@@ -6,7 +6,20 @@ float chunk_draw_visible() {
 	for(char y=-9;y<CHUNKS_PER_DIM+9;y++) {
 		for(char x=-9;x<CHUNKS_PER_DIM+9;x++) {
 			if(((x*CHUNK_SIZE-camera_x)*(x*CHUNK_SIZE-camera_x)+(y*CHUNK_SIZE-camera_z)*(y*CHUNK_SIZE-camera_z))<(render_distance+CHUNK_SIZE*2.0F)*(render_distance+CHUNK_SIZE*2.0F)) {//if(PointInTriangle(x*16,y*16,camera_x,camera_z,camera_x+sin(camera_rot_x-1.5F)*128.0F,camera_z+cos(camera_rot_x-1.5F)*128.0F,camera_x+sin(camera_rot_x+1.5F)*128.0F,camera_z+cos(camera_rot_x+1.5F)*128.0F)) {
-				if(camera_CubeInFrustum(x*CHUNK_SIZE+CHUNK_SIZE/2,0.0F,y*CHUNK_SIZE+CHUNK_SIZE/2,CHUNK_SIZE/2,chunk_max_height[y*CHUNKS_PER_DIM+x])) {
+				int tmp_x = x, tmp_y = y;
+				if(tmp_x<0) {
+					tmp_x += CHUNKS_PER_DIM;
+				}
+				if(tmp_y<0) {
+					tmp_y += CHUNKS_PER_DIM;
+				}
+				if(tmp_x>=CHUNKS_PER_DIM) {
+					tmp_x -= CHUNKS_PER_DIM;
+				}
+				if(tmp_y>=CHUNKS_PER_DIM) {
+					tmp_y -= CHUNKS_PER_DIM;
+				}
+				if(camera_CubeInFrustum(x*CHUNK_SIZE+CHUNK_SIZE/2,0.0F,y*CHUNK_SIZE+CHUNK_SIZE/2,CHUNK_SIZE/2,chunk_max_height[tmp_y*CHUNKS_PER_DIM+tmp_x])) {
 					chunks_to_draw[index] = x*CHUNK_SIZE;
 					chunks_to_draw2[index++] = y*CHUNK_SIZE;
 				}
