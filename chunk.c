@@ -3,6 +3,8 @@ float chunk_draw_visible() {
 	int chunks_to_draw_y[CHUNKS_PER_DIM*CHUNKS_PER_DIM*2];
 	int index = 0;
 	int b = 0;
+	
+	//go through all possible chunks and store all in range and view
 	for(char y=-9;y<CHUNKS_PER_DIM+9;y++) {
 		for(char x=-9;x<CHUNKS_PER_DIM+9;x++) {
 			if(((x*CHUNK_SIZE-camera_x)*(x*CHUNK_SIZE-camera_x)+(y*CHUNK_SIZE-camera_z)*(y*CHUNK_SIZE-camera_z))<(render_distance+CHUNK_SIZE*2.0F)*(render_distance+CHUNK_SIZE*2.0F)) {
@@ -27,6 +29,8 @@ float chunk_draw_visible() {
 			}
 		}
 	}
+	
+	//sort all chunks to draw those in front first
 	while(1) {
 		unsigned char found = 0;
 		for(int k=0;k<index-1;k++) {
@@ -45,9 +49,11 @@ float chunk_draw_visible() {
 			break;
 		}
 	}
+	
 	for(int k=0;k<index;k++) {
 		chunk_render(chunks_to_draw_x[k]/CHUNK_SIZE,chunks_to_draw_y[k]/CHUNK_SIZE);
 	}
+	
 	return ((float)index)/((float)b);
 }
 
@@ -84,14 +90,14 @@ void chunk_render(int x, int y) {
 	if(chunk_render_mode) {
 		glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 	}
-
+	
 	/*glBegin(GL_QUADS);
 	glVertex3f(x*CHUNK_SIZE,chunk_max_height[((y*CHUNKS_PER_DIM)|x)]+0.1F,y*CHUNK_SIZE);
 	glVertex3f(x*CHUNK_SIZE,chunk_max_height[((y*CHUNKS_PER_DIM)|x)]+0.1F,y*CHUNK_SIZE+CHUNK_SIZE);
 	glVertex3f(x*CHUNK_SIZE+CHUNK_SIZE,chunk_max_height[((y*CHUNKS_PER_DIM)|x)]+0.1F,y*CHUNK_SIZE+CHUNK_SIZE);
 	glVertex3f(x*CHUNK_SIZE+CHUNK_SIZE,chunk_max_height[((y*CHUNKS_PER_DIM)|x)]+0.1F,y*CHUNK_SIZE);
 	glEnd();*/
-
+	
 	glPopMatrix();
 }
 
@@ -107,51 +113,68 @@ int chunk_generate(int displaylist, int chunk_x, int chunk_y) {
 					if(max_height<y) {
 						max_height = y;
 					}
+					
 					unsigned char shadowed = 0;
-					for(int a=0;a<map_size_y;a++) {
-						if(map_get(x,y+a+1,z+a)!=0xFFFFFFFF) {
-							shadowed |= 1;
-						} else {
-							if(map_get(x,y+a+1,z+a+1)!=0xFFFFFFFF || map_get(x,y+a+2,z+a)!=0xFFFFFFFF) {
+					for(int a=0;a<map_size_y-y;a++) {
+						if(!(shadowed&1)) {
+							if(map_get(x,y+a+1,z+a)!=0xFFFFFFFF) {
 								shadowed |= 1;
+							} else {
+								if(map_get(x,y+a+1,z+a+1)!=0xFFFFFFFF || map_get(x,y+a+2,z+a)!=0xFFFFFFFF) {
+									shadowed |= 1;
+								}
 							}
 						}
-						if(map_get(x,y+a-1,z+a)!=0xFFFFFFFF) {
-							shadowed |= 2;
-						} else {
-							if(map_get(x,y+a-1,z+a+1)!=0xFFFFFFFF || map_get(x,y+a,z+a)!=0xFFFFFFFF) {
+						if(!(shadowed&2)) {
+							if(map_get(x,y+a-1,z+a)!=0xFFFFFFFF) {
 								shadowed |= 2;
+							} else {
+								if(map_get(x,y+a-1,z+a+1)!=0xFFFFFFFF || map_get(x,y+a,z+a)!=0xFFFFFFFF) {
+									shadowed |= 2;
+								}
 							}
 						}
-						if(map_get(x+1,y+a,z+a)!=0xFFFFFFFF) {
-							shadowed |= 4;
-						} else {
-							if(map_get(x+1,y+a,z+a+1)!=0xFFFFFFFF || map_get(x+1,y+a+1,z+a)!=0xFFFFFFFF) {
+						if(!(shadowed&4)) {
+							if(map_get(x+1,y+a,z+a)!=0xFFFFFFFF) {
 								shadowed |= 4;
+							} else {
+								if(map_get(x+1,y+a,z+a+1)!=0xFFFFFFFF || map_get(x+1,y+a+1,z+a)!=0xFFFFFFFF) {
+									shadowed |= 4;
+								}
 							}
 						}
-						if(map_get(x-1,y+a,z+a)!=0xFFFFFFFF) {
-							shadowed |= 8;
-						} else {
-							if(map_get(x-1,y+a,z+a+1)!=0xFFFFFFFF || map_get(x-1,y+a+1,z+a)!=0xFFFFFFFF) {
+						if(!(shadowed&8)) {
+							if(map_get(x-1,y+a,z+a)!=0xFFFFFFFF) {
 								shadowed |= 8;
+							} else {
+								if(map_get(x-1,y+a,z+a+1)!=0xFFFFFFFF || map_get(x-1,y+a+1,z+a)!=0xFFFFFFFF) {
+									shadowed |= 8;
+								}
 							}
 						}
-						if(map_get(x,y+a,z+a+1)!=0xFFFFFFFF) {
-							shadowed |= 16;
-						} else {
-							if(map_get(x,y+a,z+a+2)!=0xFFFFFFFF || map_get(x,y+a+1,z+a+1)!=0xFFFFFFFF) {
+						if(!(shadowed&16)) {
+							if(map_get(x,y+a,z+a+1)!=0xFFFFFFFF) {
 								shadowed |= 16;
+							} else {
+								if(map_get(x,y+a,z+a+2)!=0xFFFFFFFF || map_get(x,y+a+1,z+a+1)!=0xFFFFFFFF) {
+									shadowed |= 16;
+								}
 							}
 						}
-						if(map_get(x,y+a,z+a-1)!=0xFFFFFFFF) {
-							shadowed |= 32;
-						} else {
-							if(map_get(x,y+a,z+a)!=0xFFFFFFFF || map_get(x,y+a+1,z+a-1)!=0xFFFFFFFF) {
+						if(!(shadowed&32)) {
+							if(map_get(x,y+a,z+a-1)!=0xFFFFFFFF) {
 								shadowed |= 32;
+							} else {
+								if(map_get(x,y+a,z+a)!=0xFFFFFFFF || map_get(x,y+a+1,z+a-1)!=0xFFFFFFFF) {
+									shadowed |= 32;
+								}
 							}
+						}
+						if(shadowed==0x3F) {
+							break;
 						}
 					}
+					
 					map_colors[x+(y*map_size_z+z)*map_size_x] &= 0x00FFFFFF;
 					map_colors[x+(y*map_size_z+z)*map_size_x] |= (shadowed<<24);
 					if(y==map_size_y-1 || map_colors[x+((y+1)*map_size_z+z)*map_size_x]==0xFFFFFFFF) { size++; }
