@@ -858,6 +858,7 @@ void chunk_update_all() {
 			int chunk_y = (chunk_geometry_rebuild_state/CHUNKS_PER_DIM)*CHUNK_SIZE;
 			chunk_display_lists[chunk_geometry_rebuild_state] = glGenLists(1);
 			chunk_max_height[chunk_geometry_rebuild_state] = chunk_generate(chunk_display_lists[chunk_geometry_rebuild_state], chunk_x, chunk_y);
+			chunk_last_update[chunk_geometry_rebuild_state] = glutGet(GLUT_ELAPSED_TIME);
 			printf("Generating chunks %.1f\n",((float)chunk_geometry_rebuild_state/(float)(CHUNKS_PER_DIM*CHUNKS_PER_DIM))*100.0F);
 			chunk_geometry_rebuild_state++;
 			if(chunk_geometry_rebuild_state==CHUNKS_PER_DIM*CHUNKS_PER_DIM) {
@@ -874,16 +875,17 @@ void chunk_update_all() {
 			int chunk_y = (chunk_geometry_changed[k]/CHUNKS_PER_DIM)*CHUNK_SIZE;
 			glDeleteLists(chunk_display_lists[chunk_geometry_changed[k]],1);
 			chunk_display_lists[chunk_geometry_changed[k]] = glGenLists(1);
-			chunk_max_height[k] = chunk_generate(chunk_display_lists[chunk_geometry_changed[k]], chunk_x, chunk_y);
-			for(int l=0;l<(chunk_max_height[k]/CHUNK_SIZE)+1;l++) {
-				int needs_update =  chunk_geometry_changed[k]-CHUNKS_PER_DIM*(l+1);
+			chunk_max_height[chunk_geometry_changed[k]] = chunk_generate(chunk_display_lists[chunk_geometry_changed[k]], chunk_x, chunk_y);
+			chunk_last_update[chunk_geometry_changed[k]] = glutGet(GLUT_ELAPSED_TIME);
+			for(int l=0;l<((chunk_max_height[chunk_geometry_changed[k]]+(CHUNK_SIZE-1))/CHUNK_SIZE);l++) {
+				int needs_update = chunk_geometry_changed[k]-CHUNKS_PER_DIM*(l+1);
 				int j;
 				for(j=0;j<chunk_lighting_changed_lenght;j++) {
 					if(chunk_lighting_changed[j]==needs_update) {
 						break;
 					}
 				}
-				if(j<chunk_lighting_changed_lenght) {
+				if(!(j<chunk_lighting_changed_lenght)) {
 					chunk_lighting_changed[chunk_lighting_changed_lenght++] = needs_update;
 				}
 			}
@@ -898,7 +900,8 @@ void chunk_update_all() {
 			int chunk_y = (chunk_lighting_changed[k]/CHUNKS_PER_DIM)*CHUNK_SIZE;
 			glDeleteLists(chunk_display_lists[chunk_lighting_changed[k]],1);
 			chunk_display_lists[chunk_lighting_changed[k]] = glGenLists(1);
-			chunk_max_height[k] = chunk_generate(chunk_display_lists[chunk_lighting_changed[k]], chunk_x, chunk_y);
+			chunk_max_height[chunk_lighting_changed[k]] = chunk_generate(chunk_display_lists[chunk_lighting_changed[k]], chunk_x, chunk_y);
+			chunk_last_update[chunk_lighting_changed[k]] = glutGet(GLUT_ELAPSED_TIME);
 		}
 		chunk_lighting_changed_lenght = 0;
 	}

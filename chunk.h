@@ -3,6 +3,7 @@ int chunk_geometry_rebuild_state = 0;
 
 int chunk_display_lists[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
 int chunk_max_height[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
+int chunk_last_update[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
 
 int chunk_geometry_changed[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
 int chunk_geometry_changed_lenght = 0;
