@@ -341,21 +341,6 @@ void display() {
 	} else {
 		per = (float)chunk_geometry_rebuild_state/(float)(CHUNKS_PER_DIM*CHUNKS_PER_DIM);
 	}
-	
-	/*glEnable(GL_TEXTURE_2D);
-	glBindTexture(GL_TEXTURE_2D,texture_shadow_map);
-	glCopyTexSubImage2D(GL_TEXTURE_2D,0,0,0,0,0,last_texture_size,last_texture_size);
-	glBindTexture(GL_TEXTURE_2D,0);
-	glDisable(GL_TEXTURE_2D);*/
-	
-	/*glBegin(GL_QUADS);
-	glColor4f(0.5F, 0.9098F, 1.0F, 1.0F);
-	
-	glVertex3f(-1024.0F,64.0F,-1024.0F);
-	glVertex3f(1024.0F,64.0F,-1024.0F);
-	glVertex3f(1024.0F,64.0F,1024.0F);
-	glVertex3f(-1024.0F,64.0F,1024.0F);
-	glEnd();*/
 
 	float time_delta = ((float)(glutGet(GLUT_ELAPSED_TIME)-time_last_frame))/1000.0F;
 	time_last_frame = glutGet(GLUT_ELAPSED_TIME);
@@ -365,47 +350,27 @@ void display() {
 	} else {
 		glUniform1i(uniform_draw_ui, true);
 	}
+	
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
-	gluOrtho2D(-1.0F, 1.0F, -1.0F, 1.0F);
+	gluOrtho2D(-1.0F,1.0F,-1.0F,1.0F);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
-	
-	/*glEnable(GL_TEXTURE_2D);
-	glColor4f(1.0F,1.0F,1.0F,1.0F);
-	glBindTexture(GL_TEXTURE_2D,texture_shadow_map);
-	glTranslatef(0.0F,-2.0F/window_height,0.0F);
-	glBegin(GL_QUADS);
-	glTexCoord2f(0.0F,0.0F);
-	glVertex3f(-1.0F,-1.0F,-1.0F);
-	
-	glTexCoord2f(1.0F,0.0F);
-	glVertex3f(-1.0F+((float)last_texture_size/(float)window_width)*2.0F,-1.0F,-1.0F);
-	
-	glTexCoord2f(1.0F,1.0F);
-	glVertex3f(-1.0F+((float)last_texture_size/(float)window_width)*2.0F,-1.0F+((float)last_texture_size/(float)window_height)*2.0F,-1.0F);
-	
-	glTexCoord2f(0.0F,1.0F);
-	glVertex3f(-1.0F,-1.0F+((float)last_texture_size/(float)window_height)*2.0F,-1.0F);
-	glEnd();
-	glDisable(GL_TEXTURE_2D);
-	glDepthRange(0.0F,1.0F);
-	glBindTexture(GL_TEXTURE_2D,0);
-	glTranslatef(0.0F,2.0F/window_height,0.0F);*/
 	
 	glColor4f(1.0F,1.0F,0.0F,1.0F);
 	glRasterPos2f(-1.0F,0.9F);
 	
-	char fpsString[32];
-	sprintf(fpsString,"%.2f",per*100.0F);
+	char debug[32];
+	sprintf(debug,"%.2f",per*100.0F);
 	
-	for(int i=0; i<strlen(fpsString); i++) {
-		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, fpsString[i]);
+	for(int k=0;k<strlen(debug);k++) {
+		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,debug[k]);
 	}
+	
 	if(settings.opengl14) {
 		glEnable(GL_FOG);
 	} else {
-		glUniform1i(uniform_draw_ui, false);
+		glUniform1i(uniform_draw_ui,false);
 	}
 
 	//glFinish();
@@ -475,7 +440,6 @@ void display() {
 	
 	if(key_map['c']) {
 		printf("%f,%f,%f %f,%f\n",camera_x,camera_y,camera_z,camera_rot_x,camera_rot_y);
-		printf("particle %i created\n",particle_create(camera_x,camera_y,camera_z));
 	}
 
 	if(key_map[27]) {
@@ -521,10 +485,8 @@ void timer(int value) {
 }
 
 void reshape(GLsizei width, GLsizei height) {
-	glViewport(0, 0, width, height);
-	int viewport[4];
-	glGetIntegerv(GL_VIEWPORT,viewport);
-	float heightOfNearPlane = (float)abs(viewport[3]-viewport[1]) / (2.0F*tan(0.5F*camera_fov*3.141592F/180.0F));
+	glViewport(0,0,width,height);
+	float heightOfNearPlane = (float)height/(2.0F*tan(camera_fov*1.570796F/180.0F));
 	//scalef = 0.1F; factor here = 0.24F
 	//scalef = 0.015625F factor here = 0.0375F
 	if(settings.opengl14) {
@@ -543,6 +505,8 @@ void keys(unsigned char key, int x, int y) {
 	key_map[key] = 1;
 }
 
+float hj,hk,hl;
+
 void keysUp(unsigned char key, int x, int y) {
 	if(key=='o') {
 		if(draw_outline) {
@@ -551,6 +515,14 @@ void keysUp(unsigned char key, int x, int y) {
 			draw_outline = 1;
 		}
 		chunk_set_render_mode(draw_outline);
+	}
+	if(key=='c') {
+		particle_create(hj,hk,hl,5.0F,15.0F,5.0F,64,0.1F,0.25F);
+	}
+	if(key=='v') {
+		hj = camera_x;
+		hk = camera_y;
+		hl = camera_z;
 	}
 	if(key=='n') {
 		render_distance -= 10.0F;
@@ -616,20 +588,20 @@ void mouse(int x, int y) {
 
 void enableMultisample() {
 	glEnable(GL_MULTISAMPLE);
-	glHint(GL_MULTISAMPLE_FILTER_HINT_NV, GL_NICEST);
+	glHint(GL_MULTISAMPLE_FILTER_HINT_NV,GL_NICEST);
 	int iMultiSample = 0;
 	int iNumSamples = 0;
-	glGetIntegerv(GL_SAMPLE_BUFFERS, &iMultiSample);
-	glGetIntegerv(GL_SAMPLES, &iNumSamples);
+	glGetIntegerv(GL_SAMPLE_BUFFERS,&iMultiSample);
+	glGetIntegerv(GL_SAMPLES,&iNumSamples);
 	printf("MSAA on, GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d\n", iMultiSample, iNumSamples); 
 }
 
 int main(int argc, char** argv) {
-	glutInit(&argc, argv);
+	glutInit(&argc,argv);
 	//glutInitDisplayString("rgb double depth>=24 samples>=2");
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | GLUT_MULTISAMPLE);
-	glutInitWindowSize(854, 480);
-	glutInitWindowPosition((glutGet(GLUT_SCREEN_WIDTH)-glutGet(GLUT_INIT_WINDOW_WIDTH))/2, (glutGet(GLUT_SCREEN_HEIGHT)-glutGet(GLUT_INIT_WINDOW_HEIGHT))/2);
+	glutInitWindowSize(window_width,window_height);
+	glutInitWindowPosition((glutGet(GLUT_SCREEN_WIDTH)-glutGet(GLUT_INIT_WINDOW_WIDTH))/2,(glutGet(GLUT_SCREEN_HEIGHT)-glutGet(GLUT_INIT_WINDOW_HEIGHT))/2);
 	glutCreateWindow("VoxelWar");
 	glutDisplayFunc(display);
 	glutReshapeFunc(reshape);
@@ -638,7 +610,7 @@ int main(int argc, char** argv) {
 	glutMotionFunc(mouse);
 	glutPassiveMotionFunc(mouse);
 	glutMouseFunc(mouse_click);
-	glutTimerFunc(0, timer, 0);
+	glutTimerFunc(0,timer,0);
 	glutSetCursor(GLUT_CURSOR_NONE);
 	
 	settings.opengl14 = 0;
