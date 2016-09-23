@@ -12,12 +12,9 @@
 
 #ifdef OS_WINDOWS
 #include <windows.h>
-#include "GL/glut.h"
 #endif
 
-#ifdef OS_LINUX
 #include <GL/freeglut.h>
-#endif
 
 #include <stdlib.h>
 #include <string.h>
@@ -45,6 +42,7 @@ typedef unsigned char boolean;
 struct RENDER_OPTIONS {
 	boolean opengl14;
 	boolean color_correction;
+	unsigned char multisamples;
 } settings;
 
 int window_width = 640,window_height = 480;
@@ -328,6 +326,7 @@ void display() {
 	camera_ExtractFrustum();
 	
 	AABB camera;
+	
 	aabb_set_size(&camera,0.8F,0.8F,0.8F);
 	aabb_set_center(&camera,camera_x,camera_y,camera_z);
 
@@ -335,8 +334,41 @@ void display() {
 	if(!chunk_geometry_rebuild) {
 		glShadeModel(GL_FLAT);
 		per = drawScene(1,0);
-		aabb_render(&camera);
+		//aabb_render(&camera);
 		particle_render();
+		int* pos = camera_terrain_pick(1);
+		if((int)pos!=0) {
+			glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+			glEnable(GL_POLYGON_OFFSET_LINE);
+			glPolygonOffset(-1.0F,-1.0F);
+			glDisable(GL_CULL_FACE);
+			glBegin(GL_QUADS);
+			glColor4f(1.0F,1.0F,1.0F,1.0F);
+			glVertex3s(pos[0],pos[1],pos[2]);
+			glVertex3s(pos[0]+1,pos[1],pos[2]);
+			glVertex3s(pos[0]+1,pos[1],pos[2]+1);
+			glVertex3s(pos[0],pos[1],pos[2]+1);
+			
+			glVertex3s(pos[0],pos[1]+1,pos[2]);
+			glVertex3s(pos[0]+1,pos[1]+1,pos[2]);
+			glVertex3s(pos[0]+1,pos[1]+1,pos[2]+1);
+			glVertex3s(pos[0],pos[1]+1,pos[2]+1);
+			
+			glVertex3s(pos[0],pos[1],pos[2]);
+			glVertex3s(pos[0]+1,pos[1],pos[2]);
+			glVertex3s(pos[0]+1,pos[1]+1,pos[2]);
+			glVertex3s(pos[0],pos[1]+1,pos[2]);
+			
+			glVertex3s(pos[0],pos[1],pos[2]+1);
+			glVertex3s(pos[0]+1,pos[1],pos[2]+1);
+			glVertex3s(pos[0]+1,pos[1]+1,pos[2]+1);
+			glVertex3s(pos[0],pos[1]+1,pos[2]+1);
+			glEnd();
+			glEnable(GL_CULL_FACE);
+			glPolygonOffset(0.0F,0.0F);
+			glDisable(GL_POLYGON_OFFSET_LINE);
+			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+		}
 		glShadeModel(GL_SMOOTH);
 	} else {
 		per = (float)chunk_geometry_rebuild_state/(float)(CHUNKS_PER_DIM*CHUNKS_PER_DIM);
@@ -470,8 +502,11 @@ void init() {
 
 	//tent = kv6_load(file_load("FullBody_Arms_3.kv6"));
 	//gun = kv6_load(file_load("Rifle_10mm.kv6"));
-	map_colors = malloc(map_size_x*map_size_y*map_size_z*4);
-	memset(map_colors,0xFF,map_size_x*map_size_y*map_size_z*4);
+	map_colors = malloc(map_size_x*map_size_y*map_size_z*8);
+	for(int x=0;x<512;x++) { for(int z=0;z<512;z++) { for(int y=0;y<64;y++) {
+		map_colors[x+(y*map_size_z+z)*map_size_x] = 0xFFFFFFFF;
+	} } }
+	//memset(map_colors,0x00000000FFFFFFFF,map_size_x*map_size_y*map_size_z);
 	//map_vxl_load(file_load("normandie.vxl"),map_colors);
 	genland(345423435,map_colors);
 	if(!settings.opengl14) {
@@ -537,14 +572,17 @@ void keysUp(unsigned char key, int x, int y) {
 }
 
 void mouse_click(int button, int state, int x, int y) {
-	if(button==GLUT_MIDDLE_BUTTON && state==GLUT_DOWN) {
-		int y, x = floor(camera_x), z = floor(camera_z);
-		for(y=floor(camera_y);y>0;y--) {
-			if(map_colors[x+((y-1)*map_size_z+z)*map_size_x]!=0xFFFFFFFF) {
-				break;
-			}
+	if(button==GLUT_RIGHT_BUTTON && state==GLUT_DOWN) {
+		int* pos = camera_terrain_pick(0);
+		if((int)pos!=0) {
+			map_set(pos[0],pos[1],pos[2],0x00FF00);
 		}
-		map_set(x,y,z,0xFF0000);
+	}
+	if(button==GLUT_LEFT_BUTTON && state==GLUT_DOWN) {
+		int* pos = camera_terrain_pick(1);
+		if((int)pos!=0) {
+			map_set(pos[0],pos[1],pos[2],0xFFFFFFFF);
+		}
 	}
 }
 
@@ -585,20 +623,14 @@ void mouse(int x, int y) {
 	glutWarpPointer(window_width/2,window_height/2);
 	just_warped = 1;
 }
-
-void enableMultisample() {
-	glEnable(GL_MULTISAMPLE);
-	glHint(GL_MULTISAMPLE_FILTER_HINT_NV,GL_NICEST);
-	int iMultiSample = 0;
-	int iNumSamples = 0;
-	glGetIntegerv(GL_SAMPLE_BUFFERS,&iMultiSample);
-	glGetIntegerv(GL_SAMPLES,&iNumSamples);
-	printf("MSAA on, GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d\n", iMultiSample, iNumSamples); 
-}
-
 int main(int argc, char** argv) {
+	settings.opengl14 = 0;
+	settings.color_correction = 1;
+	settings.multisamples = 16;
+
 	glutInit(&argc,argv);
 	//glutInitDisplayString("rgb double depth>=24 samples>=2");
+	glutSetOption(GLUT_MULTISAMPLE,settings.multisamples);
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | GLUT_MULTISAMPLE);
 	glutInitWindowSize(window_width,window_height);
 	glutInitWindowPosition((glutGet(GLUT_SCREEN_WIDTH)-glutGet(GLUT_INIT_WINDOW_WIDTH))/2,(glutGet(GLUT_SCREEN_HEIGHT)-glutGet(GLUT_INIT_WINDOW_HEIGHT))/2);
@@ -612,9 +644,6 @@ int main(int argc, char** argv) {
 	glutMouseFunc(mouse_click);
 	glutTimerFunc(0,timer,0);
 	glutSetCursor(GLUT_CURSOR_NONE);
-	
-	settings.opengl14 = 0;
-	settings.color_correction = 1;
 
 	#ifdef OS_WINDOWS
 		glPointParameterfv = (PFNGLPOINTPARAMETERFVPROC)wglGetProcAddress("glPointParameterfv");
@@ -687,6 +716,16 @@ int main(int argc, char** argv) {
 	last_mouse_y = window_height/2;
 	
 	init();
-	enableMultisample();
+
+	if(settings.multisamples>0) {
+		glEnable(GL_MULTISAMPLE);
+		glHint(GL_MULTISAMPLE_FILTER_HINT_NV,GL_NICEST);
+		int iMultiSample = 0;
+		int iNumSamples = 0;
+		glGetIntegerv(GL_SAMPLE_BUFFERS,&iMultiSample);
+		glGetIntegerv(GL_SAMPLES,&iNumSamples);
+		printf("MSAA on, GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d\n", iMultiSample, iNumSamples);
+	}
+	
 	glutMainLoop();
 }

@@ -283,9 +283,9 @@ int chunk_generate(int displaylist, int chunk_x, int chunk_y) {
 							}
 							
 							for(int k=0;k<4;k++) {
-								chunk_color_data[chunk_color_index++] = (int)(r*0.85F*s);
-								chunk_color_data[chunk_color_index++] = (int)(g*0.85F*s);
-								chunk_color_data[chunk_color_index++] = (int)(b*0.85F*s);
+								chunk_color_data[chunk_color_index++] = (int)(r*0.7F*s);
+								chunk_color_data[chunk_color_index++] = (int)(g*0.7F*s);
+								chunk_color_data[chunk_color_index++] = (int)(b*0.7F*s);
 							}
 
 							chunk_vertex_data[chunk_vertex_index++] = x;
@@ -382,9 +382,9 @@ int chunk_generate(int displaylist, int chunk_x, int chunk_y) {
 							}
 
 							for(int k=0;k<4;k++) {
-								chunk_color_data[chunk_color_index++] = (int)(r*0.8F*s);
-								chunk_color_data[chunk_color_index++] = (int)(g*0.8F*s);
-								chunk_color_data[chunk_color_index++] = (int)(b*0.8F*s);
+								chunk_color_data[chunk_color_index++] = (int)(r*0.6F*s);
+								chunk_color_data[chunk_color_index++] = (int)(g*0.6F*s);
+								chunk_color_data[chunk_color_index++] = (int)(b*0.6F*s);
 							}
 
 							chunk_vertex_data[chunk_vertex_index++] = x;
@@ -595,9 +595,9 @@ int chunk_generate(int displaylist, int chunk_x, int chunk_y) {
 							}
 
 							for(int k=0;k<4;k++) {
-								chunk_color_data[chunk_color_index++] = (int)(r*0.95F*s);
-								chunk_color_data[chunk_color_index++] = (int)(g*0.95F*s);
-								chunk_color_data[chunk_color_index++] = (int)(b*0.95F*s);
+								chunk_color_data[chunk_color_index++] = (int)(r*0.8F*s);
+								chunk_color_data[chunk_color_index++] = (int)(g*0.8F*s);
+								chunk_color_data[chunk_color_index++] = (int)(b*0.8F*s);
 							}
 
 							chunk_vertex_data[chunk_vertex_index++] = x+1;

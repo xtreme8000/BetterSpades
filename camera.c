@@ -1,3 +1,44 @@
+int* camera_terrain_pick(unsigned char mode) {
+	//naive approach until I find something better without glitches
+	float x = camera_x;
+	float y = camera_y;
+	float z = camera_z;
+	float ray_x = sin(camera_rot_x)*sin(camera_rot_y)*0.01F;
+	float ray_y = cos(camera_rot_y)*0.01F;
+	float ray_z = cos(camera_rot_x)*sin(camera_rot_y)*0.01F;
+	
+	if(mode==0) {
+		for(int k=0;k<2000;k++) {
+			unsigned long long now = map_get(x,y,z);
+			unsigned long long next = map_get(x+ray_x,y+ray_y,z+ray_z);
+			if(next!=0xFFFFFFFF && now==0xFFFFFFFF) {
+				static int ret[3];
+				ret[0] = floor(x);
+				ret[1] = floor(y);
+				ret[2] = floor(z);
+				return ret;
+			}
+			x += ray_x;
+			y += ray_y;
+			z += ray_z;
+		}
+	} else {
+		for(int k=0;k<2000;k++) {
+			if(map_get(x,y,z)!=0xFFFFFFFF) {
+				static int ret[3];
+				ret[0] = floor(x);
+				ret[1] = floor(y);
+				ret[2] = floor(z);
+				return ret;
+			}
+			x += ray_x;
+			y += ray_y;
+			z += ray_z;
+		}
+	}
+	return (int*)0;
+}
+
 void camera_ExtractFrustum() {
    float   proj[16];
    float   modl[16];

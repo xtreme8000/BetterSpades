@@ -128,7 +128,7 @@ int get_lowest_height(int x, int y)
 
 #define PI 3.141592
 
-void genland(unsigned int seed, unsigned int* map)
+void genland(unsigned int seed, unsigned long long* map)
 {
 	double dx, dy, d, g, g2, river, amplut[OCTMAX], samp[3], csamp[3];
 	double nx, ny, nz, gr, gg, gb;

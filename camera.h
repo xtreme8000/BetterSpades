@@ -6,3 +6,4 @@ float camera_fov = 70.0F;
 void camera_ExtractFrustum();
 unsigned char camera_PointInFrustum(float x, float y, float z);
 int camera_CubeInFrustum(float x, float y, float z, float size, float size_y);
+int* camera_terrain_pick(unsigned char mode);
