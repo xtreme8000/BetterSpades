@@ -29,6 +29,18 @@ void map_set(int x, int y, int z, unsigned long long color) {
 	if(z<map_size_z-1 && z_off==CHUNK_SIZE-1) {
 		chunk_block_update(x,y,z+1);
 	}
+	if(x>0 && z>0 && x_off==0 && z_off==0) {
+		chunk_block_update(x-1,y,z-1);
+	}
+	if(x<map_size_x-1 && z<map_size_z-1 && x_off==CHUNK_SIZE-1 && z_off==CHUNK_SIZE-1) {
+		chunk_block_update(x+1,y,z+1);
+	}
+	if(x>0 && z<map_size_z-1 && x_off==0 && z_off==CHUNK_SIZE-1) {
+		chunk_block_update(x-1,y,z+1);
+	}
+	if(x<map_size_x-1 && z>0 && x_off==CHUNK_SIZE-1 && z_off==0) {
+		chunk_block_update(x+1,y,z-1);
+	}
 }
 
 void map_vxl_setgeom(int x, int y, int z, unsigned int t, unsigned long long* map) {

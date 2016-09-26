@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include "GL/glext.h"
 
-float render_distance = 128.0F;
+float render_distance = 400.0F;
 
 #define CHUNK_SIZE 16
 #define CHUNKS_PER_DIM 32
@@ -45,7 +45,7 @@ struct RENDER_OPTIONS {
 	unsigned char multisamples;
 } settings;
 
-int window_width = 640,window_height = 480;
+int window_width = 1280,window_height = 720;
 
 int last_mouse_x, last_mouse_y;
 int uniform_near_plane_height, uniform_camera_x, uniform_camera_z, uniform_fog_distance, uniform_map_size_x, uniform_map_size_z, uniform_fog_color, uniform_setting_color_correction, uniform_draw_ui;
@@ -178,6 +178,34 @@ float shadowFix(float x) {
 	return round(x/10.0)*10.0;
 }
 
+int anim_length = 17;
+int anim_index = 16;
+int anim_start = 0;
+float fps_max = 0.0F;
+float fps_min = 10000.0F;
+
+float anim_points[] =  {54.691128F,12.567106F,365.963867F,2.440803F,1.651999F,5000,
+						82.248932F,10.129058F,340.047241F,2.200801F,1.582000F,5000,
+						104.732666F,10.187197F,326.952881F,1.728799F,1.576000F,5000,
+						155.985260F,5.519114F,322.422241F,1.578801F,1.650001F,5000,
+						214.143021F,5.839133F,323.926208F,1.566801F,1.560002F,5000,
+						245.116989F,6.149952F,324.006989F,2.928800F,1.592002F,5000,
+						307.642273F,16.940989F,312.554016F,4.062802F,1.636001F,5000,
+						303.008362F,33.992153F,253.042770F,5.518809F,1.956002F,5000,
+						272.819885F,46.366451F,217.858841F,5.916812F,2.066001F,5000,
+						232.354660F,63.937710F,182.270370F,6.328799F,2.132004F,5000,
+						210.657944F,37.654396F,207.830078F,5.650809F,2.186007F,5000,
+						194.229782F,9.483451F,244.884735F,6.248809F,1.680004F,5000,
+						203.525452F,7.917942F,256.630676F,7.856788F,1.604006F,5000,
+						246.389465F,10.553116F,255.878586F,6.206803F,1.680005F,5000,
+						248.953827F,21.124697F,319.168976F,4.452798F,1.762000F,5000,
+						230.197281F,42.232132F,384.512268F,3.486796F,2.081999F,5000,
+						157.539017F,58.230267F,394.350433F,2.516798F,2.127999F,5000};
+
+float InterpoliereCos(float Wert1, float Wert2, float FaktorWert1) {
+  return Wert1*((cos(1.5707F*FaktorWert1)+1.0F)/2.0F) + Wert2*(1.0F-(cos(1.5707F*FaktorWert1)+1.0F)/2.0F);
+}
+					
 void display() {
 	/*glMatrixMode(GL_MODELVIEW);
 
@@ -197,8 +225,36 @@ void display() {
 	gluLookAt(shadowFix(camera_x)+45.0F, 64.0F, shadowFix(camera_z)+70.0F, shadowFix(camera_x), 0.0F, shadowFix(camera_z), 0.0F, 1.0F, 0.0F);
 	glGetFloatv(GL_MODELVIEW_MATRIX, light_view_matrix);*/
 	
-	float fog_color[] = {0.5F, 0.9098F, 1.0F, 1.0F};
+	float fog_color[] = {0.5F,0.9098F,1.0F,1.0F};
 	glClearColor(fog_color[0],fog_color[1],fog_color[2],fog_color[3]);
+	
+	/*if((glutGet(GLUT_ELAPSED_TIME)-anim_start)>anim_points[anim_index*6+5]) {
+		anim_index++;
+		if(anim_index==anim_length) {
+			anim_index = 0;
+		}
+		anim_start = glutGet(GLUT_ELAPSED_TIME);
+	}
+	int tmp_ind = anim_index+1;
+	if(tmp_ind==anim_length) {
+		tmp_ind = 0;
+	}
+	float dt = (float)(glutGet(GLUT_ELAPSED_TIME)-anim_start)/(float)anim_points[anim_index*6+5];
+	camera_x = InterpoliereCos(anim_points[anim_index*6],anim_points[tmp_ind*6],dt*2.0F);
+	camera_y = InterpoliereCos(anim_points[anim_index*6+1],anim_points[tmp_ind*6+1],dt*2.0F);
+	camera_z = InterpoliereCos(anim_points[anim_index*6+2],anim_points[tmp_ind*6+2],dt*2.0F);
+	camera_rot_x = InterpoliereCos(anim_points[anim_index*6+3],anim_points[tmp_ind*6+3],dt*2.0F);
+	camera_rot_y = InterpoliereCos(anim_points[anim_index*6+4],anim_points[tmp_ind*6+4],dt*2.0F);
+	
+	/*camera_x = (anim_points[tmp_ind*6]-anim_points[anim_index*6])*dt+anim_points[anim_index*6];
+	camera_y = (anim_points[tmp_ind*6+1]-anim_points[anim_index*6+1])*dt+anim_points[anim_index*6+1];
+	camera_z = (anim_points[tmp_ind*6+2]-anim_points[anim_index*6+2])*dt+anim_points[anim_index*6+2];
+	camera_rot_x = (anim_points[tmp_ind*6+3]-anim_points[anim_index*6+3])*dt+anim_points[anim_index*6+3];
+	camera_rot_y = (anim_points[tmp_ind*6+4]-anim_points[anim_index*6+4])*dt+anim_points[anim_index*6+4];*/
+	/*printf("%f%% index: %i\n",dt*100.0F,anim_index);
+	printf("%0.1f %0.1f %0.1f\n",camera_x,camera_y,camera_z);
+	printf("Fps min: %0.1f max: %0.1f\n",fps_min,fps_max);*/
+	
 	
 	if(settings.opengl14) {
 		glFogi(GL_FOG_MODE,GL_LINEAR);
@@ -332,8 +388,8 @@ void display() {
 
 	float per = 0.0F;
 	if(!chunk_geometry_rebuild) {
-		glShadeModel(GL_FLAT);
 		per = drawScene(1,0);
+		glShadeModel(GL_FLAT);
 		//aabb_render(&camera);
 		particle_render();
 		int* pos = camera_terrain_pick(1);
@@ -342,6 +398,7 @@ void display() {
 			glEnable(GL_POLYGON_OFFSET_LINE);
 			glPolygonOffset(-1.0F,-1.0F);
 			glDisable(GL_CULL_FACE);
+			glLineWidth(1.0F);
 			glBegin(GL_QUADS);
 			glColor4f(1.0F,1.0F,1.0F,1.0F);
 			glVertex3s(pos[0],pos[1],pos[2]);
@@ -376,6 +433,13 @@ void display() {
 
 	float time_delta = ((float)(glutGet(GLUT_ELAPSED_TIME)-time_last_frame))/1000.0F;
 	time_last_frame = glutGet(GLUT_ELAPSED_TIME);
+	float fps = (1.0F/time_delta);
+	if(fps>fps_max) {
+		fps_max = fps;
+	}
+	if(fps<fps_min) {
+		fps_min = fps;
+	}
 
 	if(settings.opengl14) {
 		glDisable(GL_FOG);
@@ -393,7 +457,7 @@ void display() {
 	glRasterPos2f(-1.0F,0.9F);
 	
 	char debug[32];
-	sprintf(debug,"%.2f",per*100.0F);
+	sprintf(debug,"%.2f%%",per*100.0F);
 	
 	for(int k=0;k<strlen(debug);k++) {
 		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,debug[k]);
@@ -469,10 +533,6 @@ void display() {
 		printf("%f %f %f\n",lx,ly,lz);
 		fflush(stdout);
 	}
-	
-	if(key_map['c']) {
-		printf("%f,%f,%f %f,%f\n",camera_x,camera_y,camera_z,camera_rot_x,camera_rot_y);
-	}
 
 	if(key_map[27]) {
 		exit(0);
@@ -507,11 +567,12 @@ void init() {
 		map_colors[x+(y*map_size_z+z)*map_size_x] = 0xFFFFFFFF;
 	} } }
 	//memset(map_colors,0x00000000FFFFFFFF,map_size_x*map_size_y*map_size_z);
-	//map_vxl_load(file_load("normandie.vxl"),map_colors);
-	genland(345423435,map_colors);
+	map_vxl_load(file_load("normandie.vxl"),map_colors);
+	//genland(345423435,map_colors);
 	if(!settings.opengl14) {
 		texture_color_correction = genTexture(color_correction,16,16,16);
 	}
+	anim_start = glutGet(GLUT_ELAPSED_TIME);
 }
 
 void timer(int value) {
@@ -522,8 +583,6 @@ void timer(int value) {
 void reshape(GLsizei width, GLsizei height) {
 	glViewport(0,0,width,height);
 	float heightOfNearPlane = (float)height/(2.0F*tan(camera_fov*1.570796F/180.0F));
-	//scalef = 0.1F; factor here = 0.24F
-	//scalef = 0.015625F factor here = 0.0375F
 	if(settings.opengl14) {
 		float scale = 0.015625F;
 		glPointSize(2.422F*scale*heightOfNearPlane);
@@ -565,6 +624,12 @@ void keysUp(unsigned char key, int x, int y) {
 	if(key=='m') {
 		render_distance += 10.0F;
 	}
+	if(key=='f') {
+		glutFullScreen();
+	}
+	if(key=='p') {
+		printf("%f,%f,%f,%f,%f,5000,\n",camera_x,camera_y,camera_z,camera_rot_x,camera_rot_y);
+	}
 	if(key=='n' || key=='m') {
 		printf("Changed render distance to: %f blocks\n",render_distance);
 	}
@@ -574,13 +639,13 @@ void keysUp(unsigned char key, int x, int y) {
 void mouse_click(int button, int state, int x, int y) {
 	if(button==GLUT_RIGHT_BUTTON && state==GLUT_DOWN) {
 		int* pos = camera_terrain_pick(0);
-		if((int)pos!=0) {
-			map_set(pos[0],pos[1],pos[2],0x00FF00);
+		if((int)pos!=0 && pos[1]>1) {
+			map_set(pos[0],pos[1],pos[2],0x00008000);
 		}
 	}
 	if(button==GLUT_LEFT_BUTTON && state==GLUT_DOWN) {
 		int* pos = camera_terrain_pick(1);
-		if((int)pos!=0) {
+		if((int)pos!=0 && pos[1]>1) {
 			map_set(pos[0],pos[1],pos[2],0xFFFFFFFF);
 		}
 	}

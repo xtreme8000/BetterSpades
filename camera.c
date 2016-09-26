@@ -8,10 +8,14 @@ int* camera_terrain_pick(unsigned char mode) {
 	float ray_z = cos(camera_rot_x)*sin(camera_rot_y)*0.01F;
 	
 	if(mode==0) {
+		unsigned long long now,next;
 		for(int k=0;k<2000;k++) {
-			unsigned long long now = map_get(x,y,z);
-			unsigned long long next = map_get(x+ray_x,y+ray_y,z+ray_z);
+			now = map_get(x,y,z);
+			next = map_get(x+ray_x,y+ray_y,z+ray_z);
 			if(next!=0xFFFFFFFF && now==0xFFFFFFFF) {
+				if(floor(y+ray_y)<1 || floor(y)<1) {
+					return (int*)0;
+				}
 				static int ret[3];
 				ret[0] = floor(x);
 				ret[1] = floor(y);
@@ -24,7 +28,7 @@ int* camera_terrain_pick(unsigned char mode) {
 		}
 	} else {
 		for(int k=0;k<2000;k++) {
-			if(map_get(x,y,z)!=0xFFFFFFFF) {
+			if(floor(y)>0 && map_get(x,y,z)!=0xFFFFFFFF) {
 				static int ret[3];
 				ret[0] = floor(x);
 				ret[1] = floor(y);
