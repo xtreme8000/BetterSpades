@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include "GL/glext.h"
 
-float render_distance = 400.0F;
+float render_distance = 128.0F;
 
 #define CHUNK_SIZE 16
 #define CHUNKS_PER_DIM 32
@@ -183,6 +183,8 @@ int anim_index = 16;
 int anim_start = 0;
 float fps_max = 0.0F;
 float fps_min = 10000.0F;
+float fps_last[100];
+int fps_last_update;
 
 float anim_points[] =  {54.691128F,12.567106F,365.963867F,2.440803F,1.651999F,5000,
 						82.248932F,10.129058F,340.047241F,2.200801F,1.582000F,5000,
@@ -396,7 +398,7 @@ void display() {
 		if((int)pos!=0) {
 			glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 			glEnable(GL_POLYGON_OFFSET_LINE);
-			glPolygonOffset(-1.0F,-1.0F);
+			glPolygonOffset(0.0F,-500.0F);
 			glDisable(GL_CULL_FACE);
 			glLineWidth(1.0F);
 			glBegin(GL_QUADS);
@@ -440,6 +442,15 @@ void display() {
 	if(fps<fps_min) {
 		fps_min = fps;
 	}
+	if(glutGet(GLUT_ELAPSED_TIME)-fps_last_update>500) {
+		for(int k=0;k<99;k++) {
+			fps_last[k] = fps_last[k+1];
+		}
+		fps_last[99] = (fps_max+fps_min)/2.0F;
+		fps_max = 0;
+		fps_min = 1000000;
+		fps_last_update = glutGet(GLUT_ELAPSED_TIME);
+	}
 
 	if(settings.opengl14) {
 		glDisable(GL_FOG);
@@ -462,6 +473,22 @@ void display() {
 	for(int k=0;k<strlen(debug);k++) {
 		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,debug[k]);
 	}
+	
+	glLineWidth(2.0F);
+	glTranslatef(0.7F,0.7F,0.0F);
+	glScalef(0.2F,0.2F,1.0F);
+	glBegin(GL_LINES);
+	float total_max = 0.0F;
+	for(int k=0;k<100;k++) {
+		if(fps_last[k]>total_max) {
+			total_max = fps_last[k];
+		}
+	}
+	for(int k=0;k<99;k++) {
+		glVertex2f(-1.0F+2.0F*(k/100.0F),fps_last[k]/total_max);
+		glVertex2f(-1.0F+2.0F*((k+1)/100.0F),fps_last[k+1]/total_max);
+	}
+	glEnd();
 	
 	if(settings.opengl14) {
 		glEnable(GL_FOG);
@@ -573,6 +600,7 @@ void init() {
 		texture_color_correction = genTexture(color_correction,16,16,16);
 	}
 	anim_start = glutGet(GLUT_ELAPSED_TIME);
+	fps_last_update = anim_start;
 }
 
 void timer(int value) {
@@ -691,7 +719,12 @@ void mouse(int x, int y) {
 int main(int argc, char** argv) {
 	settings.opengl14 = 0;
 	settings.color_correction = 1;
-	settings.multisamples = 16;
+	settings.multisamples = 4;
+	if(argc>2) {
+		settings.opengl14 = atoi(argv[1]);
+		settings.color_correction = atoi(argv[2]);
+		settings.multisamples = atoi(argv[3]);
+	}
 
 	glutInit(&argc,argv);
 	//glutInitDisplayString("rgb double depth>=24 samples>=2");
