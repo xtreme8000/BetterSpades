@@ -9,9 +9,11 @@ typedef struct {
 } Particle;
 
 Particle* particles;
+float* particles_vertices;
+unsigned char* particles_colors;
 #define PARTICLES_MAX 8192
 
 void particle_init();
 void particle_update(float dt);
-void particle_render();
-void particle_create(float x, float y, float z, float velocity_x, float velocity_y, float velocity_z, int amount, float min_size, float max_size);
+int particle_render();
+void particle_create(unsigned int color, float x, float y, float z, float velocity, float velocity_y, int amount, float min_size, float max_size);

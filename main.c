@@ -14,6 +14,8 @@
 #include <windows.h>
 #endif
 
+#include <GL/gl.h>
+#include <GL/glu.h>
 #include <GL/freeglut.h>
 
 #include <stdlib.h>
@@ -22,8 +24,6 @@
 #include <float.h>
 #include <stdio.h>
 #include "GL/glext.h"
-
-float render_distance = 128.0F;
 
 #define CHUNK_SIZE 16
 #define CHUNKS_PER_DIM 32
@@ -42,15 +42,17 @@ typedef unsigned char boolean;
 struct RENDER_OPTIONS {
 	boolean opengl14;
 	boolean color_correction;
+	boolean shadow_entities;
+	boolean ambient_occlusion;
+	float render_distance;
+	int window_width;
+	int window_height;
 	unsigned char multisamples;
 } settings;
 
-int window_width = 1280,window_height = 720;
-
 int last_mouse_x, last_mouse_y;
-int uniform_near_plane_height, uniform_camera_x, uniform_camera_z, uniform_fog_distance, uniform_map_size_x, uniform_map_size_z, uniform_fog_color, uniform_setting_color_correction, uniform_draw_ui;
+int uniform_point_size, uniform_near_plane_height, uniform_camera_x, uniform_camera_z, uniform_fog_distance, uniform_map_size_x, uniform_map_size_z, uniform_fog_color, uniform_setting_color_correction, uniform_draw_ui;
 unsigned char key_map[256];
-unsigned char firstabc = 1;
 unsigned char draw_outline = 0;
 
 PFNGLPOINTPARAMETERFVPROC glPointParameterfv;
@@ -119,32 +121,61 @@ long time_last_frame;
 float lx = 232.91F,ly = 1.6F,lz = 313.66F;
 
 void render_man(float x, float z) {
-	glPushMatrix();
+	/*glPushMatrix();
 	glTranslatef(lx+x,ly+0.4F,lz+z);
-	glScalef(0.015625F,0.015625F,0.015625F);
+	//glScalef(0.015625F,0.015625F,0.015625F);
 	kv6_render(&tent,255,0,0);
 	glPopMatrix();
 	
 	glPushMatrix();
 	glTranslatef(lx+x+1.125F,ly+0.4F,lz+z);
-	glScalef(-0.015625F,0.015625F,0.015625F);
+	//glScalef(-0.015625F,0.015625F,0.015625F);
 	kv6_render(&tent,255,0,0);
 	glPopMatrix();
 	
 	glPushMatrix();
 	glTranslatef(lx+x+0.1F,ly+1.4F,lz+z+1.25F);
-	glScalef(0.015625F,0.015625F,0.015625F);
+	//glScalef(0.015625F,0.015625F,0.015625F);
 	kv6_render(&gun,255,0,0);
-	glPopMatrix();
+	glPopMatrix();*/
 }
 
-float drawScene() {
+void update_point_size(float scale) {
+	float heightOfNearPlane = (float)settings.window_height/(2.0F*tan(camera_fov*1.570796F/180.0F));
+	if(settings.opengl14) {
+		glPointSize(2.422F*scale*heightOfNearPlane);
+		float distance_attenuation[] = {0.0F,0.0F,1.0F};
+		glPointParameterfv(GL_POINT_DISTANCE_ATTENUATION,distance_attenuation);
+	} else {
+		glUniform1f(uniform_point_size, scale);
+		glUniform1f(uniform_near_plane_height, heightOfNearPlane);
+	}
+}
+
+float drawScene(boolean shadowed) {
+	if(settings.ambient_occlusion) {
+		glShadeModel(GL_SMOOTH);
+	} else {
+		glShadeModel(GL_FLAT);
+	}
+	
 	glEnableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_VERTEX_ARRAY);
-	//render_man(0.0F,0.0F);
-	float r = chunk_draw_visible();
+	float r = chunk_draw_visible(shadowed);
+
+	/*update_point_size(0.015625F);
+	glPushMatrix();
+	glTranslatef(lx,ly+0.4F,lz);
+	glScalef(0.015625F,0.015625F,0.015625F);
+	kv6_render(&tent,255,0,0);
+	glPopMatrix();*/
+	
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
+	
+	glShadeModel(GL_FLAT);
+	particle_render();
+	
 	return r;
 }
 
@@ -184,6 +215,7 @@ int anim_start = 0;
 float fps_max = 0.0F;
 float fps_min = 10000.0F;
 float fps_last[100];
+float per_last[100];
 int fps_last_update;
 
 float anim_points[] =  {54.691128F,12.567106F,365.963867F,2.440803F,1.651999F,5000,
@@ -204,7 +236,7 @@ float anim_points[] =  {54.691128F,12.567106F,365.963867F,2.440803F,1.651999F,50
 						230.197281F,42.232132F,384.512268F,3.486796F,2.081999F,5000,
 						157.539017F,58.230267F,394.350433F,2.516798F,2.127999F,5000};
 
-float InterpoliereCos(float Wert1, float Wert2, float FaktorWert1) {
+float interpolatecos(float Wert1, float Wert2, float FaktorWert1) {
   return Wert1*((cos(1.5707F*FaktorWert1)+1.0F)/2.0F) + Wert2*(1.0F-(cos(1.5707F*FaktorWert1)+1.0F)/2.0F);
 }
 					
@@ -212,7 +244,7 @@ void display() {
 	/*glMatrixMode(GL_MODELVIEW);
 
 	glLoadIdentity();
-	gluPerspective(camera_fov, ((float)window_width)/((float)window_height), 0.05F, 1024.0F);
+	gluPerspective(camera_fov, ((float)settings.window_width)/((float)settings.window_height), 0.05F, 1024.0F);
 	glGetFloatv(GL_MODELVIEW_MATRIX, camera_projection_matrix);
 
 	glLoadIdentity();
@@ -242,11 +274,11 @@ void display() {
 		tmp_ind = 0;
 	}
 	float dt = (float)(glutGet(GLUT_ELAPSED_TIME)-anim_start)/(float)anim_points[anim_index*6+5];
-	camera_x = InterpoliereCos(anim_points[anim_index*6],anim_points[tmp_ind*6],dt*2.0F);
-	camera_y = InterpoliereCos(anim_points[anim_index*6+1],anim_points[tmp_ind*6+1],dt*2.0F);
-	camera_z = InterpoliereCos(anim_points[anim_index*6+2],anim_points[tmp_ind*6+2],dt*2.0F);
-	camera_rot_x = InterpoliereCos(anim_points[anim_index*6+3],anim_points[tmp_ind*6+3],dt*2.0F);
-	camera_rot_y = InterpoliereCos(anim_points[anim_index*6+4],anim_points[tmp_ind*6+4],dt*2.0F);
+	camera_x = interpolatecos(anim_points[anim_index*6],anim_points[tmp_ind*6],dt*2.0F);
+	camera_y = interpolatecos(anim_points[anim_index*6+1],anim_points[tmp_ind*6+1],dt*2.0F);
+	camera_z = interpolatecos(anim_points[anim_index*6+2],anim_points[tmp_ind*6+2],dt*2.0F);
+	camera_rot_x = interpolatecos(anim_points[anim_index*6+3],anim_points[tmp_ind*6+3],dt*2.0F);
+	camera_rot_y = interpolatecos(anim_points[anim_index*6+4],anim_points[tmp_ind*6+4],dt*2.0F);
 	
 	/*camera_x = (anim_points[tmp_ind*6]-anim_points[anim_index*6])*dt+anim_points[anim_index*6];
 	camera_y = (anim_points[tmp_ind*6+1]-anim_points[anim_index*6+1])*dt+anim_points[anim_index*6+1];
@@ -261,12 +293,12 @@ void display() {
 	if(settings.opengl14) {
 		glFogi(GL_FOG_MODE,GL_LINEAR);
 		glFogfv(GL_FOG_COLOR,fog_color);
-		glFogf(GL_FOG_START,render_distance*0.375F);
-		glFogf(GL_FOG_END,render_distance);
+		glFogf(GL_FOG_START,settings.render_distance*0.375F);
+		glFogf(GL_FOG_END,settings.render_distance);
 		glEnable(GL_FOG);
 	} else {
 		glDisable(GL_FOG);
-		glUniform1f(uniform_fog_distance,render_distance);
+		glUniform1f(uniform_fog_distance,settings.render_distance);
 		glUniform1f(uniform_camera_x,camera_x);
 		glUniform1f(uniform_camera_z,camera_z);
 		glUniform1f(uniform_map_size_x,map_size_x);
@@ -287,7 +319,7 @@ void display() {
 
 	chunk_update_all();
 	
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | (GL_STENCIL_BUFFER_BIT*settings.shadow_entities));
 
 	/*glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf(light_projection_matrix);
@@ -315,7 +347,7 @@ void display() {
 	glLoadMatrixf(camera_projection_matrix);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadMatrixf(camera_view_matrix);
-	glViewport(0,0,window_width,window_height);
+	glViewport(0,0,settings.window_width,settings.window_height);
 
 	drawScene(0,0);
 
@@ -368,14 +400,14 @@ void display() {
 	if(settings.opengl14) {
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
-		gluPerspective(camera_fov, ((float)window_width)/((float)window_height), 0.1F, render_distance+CHUNK_SIZE*4.0F+128.0F);
+		gluPerspective(camera_fov, ((float)settings.window_width)/((float)settings.window_height), 0.1F, settings.render_distance+CHUNK_SIZE*4.0F+128.0F);
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 		gluLookAt(camera_x, camera_y, camera_z, camera_x+sin(camera_rot_x)*sin(camera_rot_y), camera_y+cos(camera_rot_y), camera_z+cos(camera_rot_x)*sin(camera_rot_y), 0.0F, 1.0F, 0.0F);
 	} else {
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
-		gluPerspective(camera_fov, ((float)window_width)/((float)window_height), 0.1F, render_distance+CHUNK_SIZE*4.0F);
+		gluPerspective(camera_fov, ((float)settings.window_width)/((float)settings.window_height), 0.1F, settings.render_distance+CHUNK_SIZE*4.0F);
 		gluLookAt(camera_x, camera_y, camera_z, camera_x+sin(camera_rot_x)*sin(camera_rot_y), camera_y+cos(camera_rot_y), camera_z+cos(camera_rot_x)*sin(camera_rot_y), 0.0F, 1.0F, 0.0F);
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
@@ -385,15 +417,38 @@ void display() {
 	
 	AABB camera;
 	
-	aabb_set_size(&camera,0.8F,0.8F,0.8F);
-	aabb_set_center(&camera,camera_x,camera_y,camera_z);
+	aabb_set_size(&camera,camera_size,camera_height,camera_size);
+	aabb_set_center(&camera,camera_x,camera_y-camera_eye_height,camera_z);
 
 	float per = 0.0F;
 	if(!chunk_geometry_rebuild) {
-		per = drawScene(1,0);
-		glShadeModel(GL_FLAT);
-		//aabb_render(&camera);
-		particle_render();
+		
+		if(settings.shadow_entities) {
+			drawScene(true);
+			
+			glEnable(GL_STENCIL_TEST);
+			glDepthMask(GL_FALSE);
+			glColorMask(0,0,0,0);
+			glStencilFunc(GL_ALWAYS,0,0);
+			glCullFace(GL_FRONT);
+			glStencilOp(GL_KEEP,GL_KEEP,GL_INCR_WRAP);
+			chunk_draw_shadow_volume(particles_vertices,vertex_index);
+			glCullFace(GL_BACK);
+			glStencilOp(GL_KEEP,GL_KEEP,GL_DECR_WRAP);
+			chunk_draw_shadow_volume(particles_vertices,vertex_index);
+			glDepthMask(GL_TRUE);
+			glColorMask(1,1,1,1);
+			glCullFace(GL_BACK);
+			glStencilFunc(GL_EQUAL,0,1);
+			glStencilOp(GL_KEEP,GL_KEEP,GL_KEEP);
+			
+			per = drawScene(false);
+			
+			glDisable(GL_STENCIL_TEST);
+		} else {
+			per = drawScene(false);
+		}
+		
 		int* pos = camera_terrain_pick(1);
 		if((int)pos!=0) {
 			glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
@@ -428,7 +483,6 @@ void display() {
 			glDisable(GL_POLYGON_OFFSET_LINE);
 			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 		}
-		glShadeModel(GL_SMOOTH);
 	} else {
 		per = (float)chunk_geometry_rebuild_state/(float)(CHUNKS_PER_DIM*CHUNKS_PER_DIM);
 	}
@@ -445,8 +499,10 @@ void display() {
 	if(glutGet(GLUT_ELAPSED_TIME)-fps_last_update>500) {
 		for(int k=0;k<99;k++) {
 			fps_last[k] = fps_last[k+1];
+			per_last[k] = per_last[k+1];
 		}
 		fps_last[99] = (fps_max+fps_min)/2.0F;
+		per_last[99] = per;
 		fps_max = 0;
 		fps_min = 1000000;
 		fps_last_update = glutGet(GLUT_ELAPSED_TIME);
@@ -485,9 +541,25 @@ void display() {
 		}
 	}
 	for(int k=0;k<99;k++) {
+		glColor4f(1.0F,0.0F,0.0F,1.0F);
+		glVertex2f(-1.0F+2.0F*(k/100.0F),per_last[k]);
+		glVertex2f(-1.0F+2.0F*((k+1)/100.0F),per_last[k+1]);
+		glColor4f(1.0F,1.0F,0.0F,1.0F);
 		glVertex2f(-1.0F+2.0F*(k/100.0F),fps_last[k]/total_max);
 		glVertex2f(-1.0F+2.0F*((k+1)/100.0F),fps_last[k+1]/total_max);
 	}
+	glColor4f(1.0F,1.0F,1.0F,1.0F);
+	glVertex2f(-1.0F,0.0F);
+	glVertex2f(1.0F,0.0F);
+	
+	glVertex2f(-1.0F,1.1F);
+	glVertex2f(1.0F,1.1F);
+	
+	glVertex2f(-1.0F,0.0F);
+	glVertex2f(-1.0F,1.1F);
+	
+	glVertex2f(1.0F,0.0F);
+	glVertex2f(1.0F,1.1F);
 	glEnd();
 	
 	if(settings.opengl14) {
@@ -495,71 +567,76 @@ void display() {
 	} else {
 		glUniform1i(uniform_draw_ui,false);
 	}
-
-	//glFinish();
-	//glFlush();
 	
 	particle_update(time_delta);
 	
-	float movement_x = 0.0F;
-	float movement_y = 0.0F;
-	float movement_z = 0.0F;
+	float x = 0.0F, y = 0.0F, z = 0.0F;
 
 	if(key_map['w']) {
-		movement_x += sin(camera_rot_x)*sin(camera_rot_y);
-		movement_y += cos(camera_rot_y);
-		movement_z += cos(camera_rot_x)*sin(camera_rot_y);
+		x += sin(camera_rot_x)*sin(camera_rot_y);
+		y += cos(camera_rot_y);
+		z += cos(camera_rot_x)*sin(camera_rot_y);
 	} else {
 		if(key_map['s']) {
-			movement_x -= sin(camera_rot_x)*sin(camera_rot_y);
-			movement_y -= cos(camera_rot_y);
-			movement_z -= cos(camera_rot_x)*sin(camera_rot_y);
+			x -= sin(camera_rot_x)*sin(camera_rot_y);
+			y -= cos(camera_rot_y);
+			z -= cos(camera_rot_x)*sin(camera_rot_y);
 		}
 	}
 	
 	if(key_map['a']) {
-		movement_x += sin(camera_rot_x+1.57);
-		movement_z += cos(camera_rot_x+1.57);
+		x += sin(camera_rot_x+1.57);
+		z += cos(camera_rot_x+1.57);
 	} else {
 		if(key_map['d']) {
-			movement_x += sin(camera_rot_x-1.57);
-			movement_z += cos(camera_rot_x-1.57);
+			x += sin(camera_rot_x-1.57);
+			z += cos(camera_rot_x-1.57);
 		}
 	}
 	
-	float len = sqrt(movement_x*movement_x+movement_y*movement_y+movement_z*movement_z);
+	if(key_map['q']) {
+		y++;
+	} else {
+		if(key_map['y']) {
+			y--;
+		}
+	}
+	
+	float len = sqrt(x*x+y*y+z*z);
 	if(len>0.0F) {
-		movement_x = (movement_x/len)*32.0F*time_delta;
-		movement_y = (movement_y/len)*32.0F*time_delta;
-		movement_z = (movement_z/len)*32.0F*time_delta;
+		camera_movement_x = (x/len)*camera_speed*time_delta;
+		camera_movement_y = (y/len)*camera_speed*time_delta;
+		camera_movement_z = (z/len)*camera_speed*time_delta;
 	}
 	
-	aabb_set_center(&camera,camera_x+movement_x,camera_y,camera_z);
-	if(camera_x+movement_x<0 || camera_x+movement_x>map_size_x || aabb_intersection_terrain(&camera)) {
-		movement_x = 0.0F;
+	if(abs(camera_movement_x)<1.0F) {
+		camera_movement_x *= pow(0.0025F,time_delta);
+	}
+	if(abs(camera_movement_y)<1.0F) {
+		camera_movement_y *= pow(0.0025F,time_delta);
+	}
+	if(abs(camera_movement_z)<1.0F) {
+		camera_movement_z *= pow(0.0025F,time_delta);
 	}
 	
-	aabb_set_center(&camera,camera_x+movement_x,camera_y+movement_y,camera_z);
-	if(camera_y+movement_y<0 || camera_y+movement_y>map_size_y || aabb_intersection_terrain(&camera)) {
-		movement_y = 0.0F;
+	aabb_set_center(&camera,camera_x+camera_movement_x,camera_y-camera_eye_height,camera_z);
+	if(camera_x+camera_movement_x<0 || camera_x+camera_movement_x>map_size_x || aabb_intersection_terrain(&camera)) {
+		camera_movement_x = 0.0F;
 	}
 	
-	aabb_set_center(&camera,camera_x+movement_x,camera_y+movement_y,camera_z+movement_z);
-	if(camera_z+movement_z<0 || camera_z+movement_z>map_size_z || aabb_intersection_terrain(&camera)) {
-		movement_z = 0.0F;
+	aabb_set_center(&camera,camera_x+camera_movement_x,camera_y+camera_movement_y-camera_eye_height,camera_z);
+	if(camera_y+camera_movement_y<0 || camera_y+camera_movement_y>map_size_y || aabb_intersection_terrain(&camera)) {
+		camera_movement_y = 0.0F;
 	}
 	
-	camera_x += movement_x;
-	camera_y += movement_y;
-	camera_z += movement_z;
-
-	if(key_map['f']) {
-		camera_x = lx;
-		camera_y = ly;
-		camera_z = lz;
-		printf("%f %f %f\n",lx,ly,lz);
-		fflush(stdout);
+	aabb_set_center(&camera,camera_x+camera_movement_x,camera_y+camera_movement_y-camera_eye_height,camera_z+camera_movement_z);
+	if(camera_z+camera_movement_z<0 || camera_z+camera_movement_z>map_size_z || aabb_intersection_terrain(&camera)) {
+		camera_movement_z = 0.0F;
 	}
+	
+	camera_x += camera_movement_x;
+	camera_y += camera_movement_y;
+	camera_z += camera_movement_z;
 
 	if(key_map[27]) {
 		exit(0);
@@ -580,21 +657,21 @@ void init() {
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	glFrontFace(GL_CCW);
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
+	glHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST);
 	glClearDepth(1.0F);
 	glDepthFunc(GL_LEQUAL);
 	glShadeModel(GL_SMOOTH);
 	
 	particle_init();
 
-	//tent = kv6_load(file_load("FullBody_Arms_3.kv6"));
+	tent = kv6_load(file_load("FullBody_Arms_3.kv6"));
 	//gun = kv6_load(file_load("Rifle_10mm.kv6"));
 	map_colors = malloc(map_size_x*map_size_y*map_size_z*8);
 	for(int x=0;x<512;x++) { for(int z=0;z<512;z++) { for(int y=0;y<64;y++) {
 		map_colors[x+(y*map_size_z+z)*map_size_x] = 0xFFFFFFFF;
 	} } }
 	//memset(map_colors,0x00000000FFFFFFFF,map_size_x*map_size_y*map_size_z);
-	map_vxl_load(file_load("normandie.vxl"),map_colors);
+	map_vxl_load(file_load("lastsav.vxl"),map_colors);
 	//genland(345423435,map_colors);
 	if(!settings.opengl14) {
 		texture_color_correction = genTexture(color_correction,16,16,16);
@@ -610,17 +687,8 @@ void timer(int value) {
 
 void reshape(GLsizei width, GLsizei height) {
 	glViewport(0,0,width,height);
-	float heightOfNearPlane = (float)height/(2.0F*tan(camera_fov*1.570796F/180.0F));
-	if(settings.opengl14) {
-		float scale = 0.015625F;
-		glPointSize(2.422F*scale*heightOfNearPlane);
-		float distance_attenuation[] = {0.0F,0.0F,1.0F};
-		glPointParameterfv(GL_POINT_DISTANCE_ATTENUATION,distance_attenuation);
-	} else {
-		glUniform1f(uniform_near_plane_height, heightOfNearPlane);
-	}
-	window_width = width;
-	window_height = height;
+	settings.window_width = width;
+	settings.window_height = height;
 }
 
 void keys(unsigned char key, int x, int y) {
@@ -629,17 +697,15 @@ void keys(unsigned char key, int x, int y) {
 
 float hj,hk,hl;
 
+unsigned int block_color = 0x00008000;
+
 void keysUp(unsigned char key, int x, int y) {
 	if(key=='o') {
-		if(draw_outline) {
-			draw_outline = 0;
-		} else {
-			draw_outline = 1;
-		}
+		draw_outline = (~draw_outline)&0x01;
 		chunk_set_render_mode(draw_outline);
 	}
 	if(key=='c') {
-		particle_create(hj,hk,hl,5.0F,15.0F,5.0F,64,0.1F,0.25F);
+		particle_create(0x00FFFFFF,hj,hk,hl,5.0F,3.0F,64,0.1F,0.25F);
 	}
 	if(key=='v') {
 		hj = camera_x;
@@ -647,19 +713,25 @@ void keysUp(unsigned char key, int x, int y) {
 		hl = camera_z;
 	}
 	if(key=='n') {
-		render_distance -= 10.0F;
+		settings.render_distance -= 10.0F;
 	}
 	if(key=='m') {
-		render_distance += 10.0F;
+		settings.render_distance += 10.0F;
 	}
 	if(key=='f') {
-		glutFullScreen();
+		glutFullScreenToggle();
 	}
 	if(key=='p') {
 		printf("%f,%f,%f,%f,%f,5000,\n",camera_x,camera_y,camera_z,camera_rot_x,camera_rot_y);
 	}
 	if(key=='n' || key=='m') {
-		printf("Changed render distance to: %f blocks\n",render_distance);
+		printf("Changed render distance to: %f blocks\n",settings.render_distance);
+	}
+	if(key=='e') {
+		int* pos = camera_terrain_pick(2);
+		if((int)pos!=0) {
+			block_color = map_get(pos[0],pos[1],pos[2]);
+		}
 	}
 	key_map[key] = 0;
 }
@@ -668,13 +740,39 @@ void mouse_click(int button, int state, int x, int y) {
 	if(button==GLUT_RIGHT_BUTTON && state==GLUT_DOWN) {
 		int* pos = camera_terrain_pick(0);
 		if((int)pos!=0 && pos[1]>1) {
-			map_set(pos[0],pos[1],pos[2],0x00008000);
+			AABB camera;
+			aabb_set_size(&camera,camera_size,camera_height,camera_size);
+			aabb_set_center(&camera,camera_x,camera_y-camera_eye_height,camera_z);
+			map_set(pos[0],pos[1],pos[2],block_color);
+			if(aabb_intersection_terrain(&camera)) {
+				map_set(pos[0],pos[1],pos[2],0xFFFFFFFF);
+			}
 		}
 	}
 	if(button==GLUT_LEFT_BUTTON && state==GLUT_DOWN) {
 		int* pos = camera_terrain_pick(1);
 		if((int)pos!=0 && pos[1]>1) {
+			unsigned int col = map_get(pos[0],pos[1],pos[2]);
 			map_set(pos[0],pos[1],pos[2],0xFFFFFFFF);
+			particle_create(col,pos[0]+0.5F,pos[1]+0.5F,pos[2]+0.5F,2.5F,1.0F,16,0.1F,0.25F);
+			if((map_get(pos[0],pos[1]+1,pos[2])&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(pos[0],pos[1]+1,pos[2])) {
+				map_apply_gravity();
+			}
+			if((map_get(pos[0],pos[1]-1,pos[2])&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(pos[0],pos[1]-1,pos[2])) {
+				map_apply_gravity();
+			}
+			if((map_get(pos[0]+1,pos[1],pos[2])&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(pos[0]+1,pos[1],pos[2])) {
+				map_apply_gravity();
+			}
+			if((map_get(pos[0]-1,pos[1],pos[2])&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(pos[0]-1,pos[1],pos[2])) {
+				map_apply_gravity();
+			}
+			if((map_get(pos[0],pos[1],pos[2]+1)&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(pos[0],pos[1],pos[2]+1)) {
+				map_apply_gravity();
+			}
+			if((map_get(pos[0],pos[1],pos[2]-1)&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(pos[0],pos[1],pos[2]-1)) {
+				map_apply_gravity();
+			}
 		}
 	}
 }
@@ -687,8 +785,8 @@ void mouse(int x, int y) {
         return;
     }
 
-    int dx = x-window_width/2;
-    int dy = y-window_height/2;
+    int dx = x-settings.window_width/2;
+    int dy = y-settings.window_height/2;
 
 	if(dx!=0) {
 		camera_rot_x -= dx*0.002F;
@@ -713,24 +811,36 @@ void mouse(int x, int y) {
 		camera_rot_x += 6.2832F;
 	}
 
-	glutWarpPointer(window_width/2,window_height/2);
+	glutWarpPointer(settings.window_width/2,settings.window_height/2);
 	just_warped = 1;
 }
 int main(int argc, char** argv) {
-	settings.opengl14 = 0;
-	settings.color_correction = 1;
+	settings.opengl14 = false;
+	settings.color_correction = true;
 	settings.multisamples = 4;
+	settings.shadow_entities = false;
+	settings.ambient_occlusion = false;
+	settings.render_distance = 128.0F;
+	settings.window_width = 800;
+	settings.window_height = 600;
+	
 	if(argc>2) {
 		settings.opengl14 = atoi(argv[1]);
 		settings.color_correction = atoi(argv[2]);
 		settings.multisamples = atoi(argv[3]);
+		settings.shadow_entities = atoi(argv[4]);
+		settings.ambient_occlusion = atoi(argv[5]);
 	}
 
 	glutInit(&argc,argv);
 	//glutInitDisplayString("rgb double depth>=24 samples>=2");
-	glutSetOption(GLUT_MULTISAMPLE,settings.multisamples);
-	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | GLUT_MULTISAMPLE);
-	glutInitWindowSize(window_width,window_height);
+	if(settings.multisamples>0) {
+		glutSetOption(GLUT_MULTISAMPLE,settings.multisamples);
+		glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | GLUT_MULTISAMPLE | (GLUT_STENCIL*settings.shadow_entities));
+	} else {
+		glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | (GLUT_STENCIL*settings.shadow_entities));
+	}
+	glutInitWindowSize(settings.window_width,settings.window_height);
 	glutInitWindowPosition((glutGet(GLUT_SCREEN_WIDTH)-glutGet(GLUT_INIT_WINDOW_WIDTH))/2,(glutGet(GLUT_SCREEN_HEIGHT)-glutGet(GLUT_INIT_WINDOW_HEIGHT))/2);
 	glutCreateWindow("VoxelWar");
 	glutDisplayFunc(display);
@@ -796,6 +906,7 @@ int main(int argc, char** argv) {
 		glAttachShader(program,shaderb);
 		glLinkProgram(program);
 		glUseProgram(program);
+		uniform_point_size = glGetUniformLocation(program,"point_size");
 		uniform_near_plane_height = glGetUniformLocation(program,"near_plane_height");
 		uniform_camera_x = glGetUniformLocation(program,"camera_x");
 		uniform_camera_z = glGetUniformLocation(program,"camera_z");
@@ -809,9 +920,9 @@ int main(int argc, char** argv) {
 		glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
 	}
 
-	glutWarpPointer(window_width/2,window_height/2);
-	last_mouse_x = window_width/2;
-	last_mouse_y = window_height/2;
+	glutWarpPointer(settings.window_width/2,settings.window_height/2);
+	last_mouse_x = settings.window_width/2;
+	last_mouse_y = settings.window_height/2;
 	
 	init();
 

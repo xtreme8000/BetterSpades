@@ -1,3 +1,82 @@
+#define MAX_VOXEL_CHECKS 8192
+int map_checked_voxels_x[MAX_VOXEL_CHECKS];
+int map_checked_voxels_y[MAX_VOXEL_CHECKS];
+int map_checked_voxels_z[MAX_VOXEL_CHECKS];
+int map_checked_voxels_index = 0;
+
+void map_apply_gravity() {
+	for(int k=0;k<map_checked_voxels_index;k++) {
+		unsigned int col = map_get(map_checked_voxels_x[k],map_checked_voxels_y[k],map_checked_voxels_z[k]);
+		if(col!=0xFFFFFFFF) {
+			map_set(map_checked_voxels_x[k],map_checked_voxels_y[k],map_checked_voxels_z[k],0xFFFFFFFF);
+			particle_create(col,map_checked_voxels_x[k]+0.5F,map_checked_voxels_y[k]+0.5F,map_checked_voxels_z[k]+0.5F,2.5F,1.0F,8,0.1F,0.25F);
+		}
+	}
+}
+
+boolean map_ground_connected_result = false;
+
+boolean map_checked_voxels_contains(int x, int y, int z) {
+	for(int k=map_checked_voxels_index-1;k>=0;k--) {
+		if(map_checked_voxels_x[k]==x && map_checked_voxels_y[k]==y && map_checked_voxels_z[k]==z) {
+			return true;
+		}
+	}
+	return false;
+}
+
+void map_ground_connected_sub(int x, int y, int z, int depth) {
+	map_checked_voxels_x[map_checked_voxels_index] = x;
+	map_checked_voxels_y[map_checked_voxels_index] = y;
+	map_checked_voxels_z[map_checked_voxels_index++] = z;
+	
+	if(y==0) {
+		map_ground_connected_result = true;
+		return;
+	}
+	
+	if((map_get(x,y-1,z)&0xFFFFFFFF)!=0xFFFFFFFF && !map_checked_voxels_contains(x,y-1,z)) {
+		map_ground_connected_sub(x,y-1,z,depth+1);
+	}
+	if(map_ground_connected_result) {
+		return;
+	}
+	if((map_get(x+1,y,z)&0xFFFFFFFF)!=0xFFFFFFFF && !map_checked_voxels_contains(x+1,y,z)) {
+		map_ground_connected_sub(x+1,y,z,depth+1);
+	}
+	if(map_ground_connected_result) {
+		return;
+	}
+	if((map_get(x-1,y,z)&0xFFFFFFFF)!=0xFFFFFFFF && !map_checked_voxels_contains(x-1,y,z)) {
+		map_ground_connected_sub(x-1,y,z,depth+1);
+	}
+	if(map_ground_connected_result) {
+		return;
+	}
+	if((map_get(x,y,z+1)&0xFFFFFFFF)!=0xFFFFFFFF && !map_checked_voxels_contains(x,y,z+1)) {
+		map_ground_connected_sub(x,y,z+1,depth+1);
+	}
+	if(map_ground_connected_result) {
+		return;
+	}
+	if((map_get(x,y,z-1)&0xFFFFFFFF)!=0xFFFFFFFF && !map_checked_voxels_contains(x,y,z-1)) {
+		map_ground_connected_sub(x,y,z-1,depth+1);
+	}
+	if(map_ground_connected_result) {
+		return;
+	}
+	if((map_get(x,y+1,z)&0xFFFFFFFF)!=0xFFFFFFFF && !map_checked_voxels_contains(x,y+1,z)) {
+		map_ground_connected_sub(x,y+1,z,depth+1);
+	}
+}
+
+boolean map_ground_connected(int x, int y, int z) {
+	map_checked_voxels_index = 0;
+	map_ground_connected_result = false;
+	map_ground_connected_sub(x,y,z,0);
+	return map_ground_connected_result;
+}
+
 unsigned long long map_get(int x, int y, int z) {
 	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_y || z>=map_size_z) {
 		return 0xFFFFFFFF;
@@ -79,7 +158,7 @@ void map_vxl_load(unsigned char* v, unsigned long long* map) {
    for (y=0; y < 512; ++y) {
       for (x=0; x < 512; ++x) {
          for (z=0; z < 64; ++z) {
-            map_vxl_setgeom(x,y,z,1,map);
+            map_vxl_setgeom(x,y,z,0x004080,map);
          }
          z = 0;
          for(;;) {

@@ -1,2 +1,2 @@
-main.exe 1 0 0
+main.exe 1 0 0 0 0
 pause

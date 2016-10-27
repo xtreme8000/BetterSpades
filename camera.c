@@ -27,17 +27,32 @@ int* camera_terrain_pick(unsigned char mode) {
 			z += ray_z;
 		}
 	} else {
-		for(int k=0;k<2000;k++) {
-			if(floor(y)>0 && map_get(x,y,z)!=0xFFFFFFFF) {
-				static int ret[3];
-				ret[0] = floor(x);
-				ret[1] = floor(y);
-				ret[2] = floor(z);
-				return ret;
+		if(mode==1) {
+			for(int k=0;k<2000;k++) {
+				if(floor(y)>0 && map_get(x,y,z)!=0xFFFFFFFF) {
+					static int ret[3];
+					ret[0] = floor(x);
+					ret[1] = floor(y);
+					ret[2] = floor(z);
+					return ret;
+				}
+				x += ray_x;
+				y += ray_y;
+				z += ray_z;
 			}
-			x += ray_x;
-			y += ray_y;
-			z += ray_z;
+		} else {
+			for(int k=0;k<2000;k++) {
+				if(map_get(x,y,z)!=0xFFFFFFFF) {
+					static int ret[3];
+					ret[0] = floor(x);
+					ret[1] = floor(y);
+					ret[2] = floor(z);
+					return ret;
+				}
+				x += ray_x;
+				y += ray_y;
+				z += ray_z;
+			}
 		}
 	}
 	return (int*)0;
