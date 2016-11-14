@@ -23,6 +23,7 @@
 #include <math.h>
 #include <float.h>
 #include <stdio.h>
+#include <time.h>
 #include "GL/glext.h"
 
 #define CHUNK_SIZE 16
@@ -31,6 +32,10 @@ typedef unsigned char boolean;
 #define true 1
 #define false 0
 
+int timems() {
+	return clock()/(CLOCKS_PER_SEC / 1000);
+}
+
 #include "chunk.h"
 #include "map.h"
 #include "model.h"
@@ -38,37 +43,42 @@ typedef unsigned char boolean;
 #include "camera.h"
 #include "aabb.h"
 #include "particle.h"
+#include "ogl.h"
 
 struct RENDER_OPTIONS {
-	boolean opengl14;
+	boolean opengl14 ;
 	boolean color_correction;
-	boolean shadow_entities;
+	boolean shadow_entities ;
 	boolean ambient_occlusion;
 	float render_distance;
 	int window_width;
 	int window_height;
 	unsigned char multisamples;
-} settings;
+} settings = {0};
 
-int last_mouse_x, last_mouse_y;
-int uniform_point_size, uniform_near_plane_height, uniform_camera_x, uniform_camera_z, uniform_fog_distance, uniform_map_size_x, uniform_map_size_z, uniform_fog_color, uniform_setting_color_correction, uniform_draw_ui;
-unsigned char key_map[256];
+int last_mouse_x = 0, last_mouse_y = 0;
+int uniform_point_size = 0, uniform_near_plane_height = 0, uniform_camera_x = 0, uniform_camera_z = 0, uniform_fog_distance = 0, uniform_map_size_x = 0, uniform_map_size_z = 0, uniform_fog_color = 0, uniform_setting_color_correction = 0, uniform_draw_ui = 0;
+unsigned char key_map[256] = {0};
 unsigned char draw_outline = 0;
 
-PFNGLPOINTPARAMETERFVPROC glPointParameterfv;
-PFNGLPOINTPARAMETERFPROC glPointParameterf;
-PFNGLCREATESHADERPROC glCreateShader;
-PFNGLSHADERSOURCEPROC glShaderSource;
-PFNGLCOMPILESHADERPROC glCompileShader;
-PFNGLCREATEPROGRAMPROC glCreateProgram;
-PFNGLATTACHSHADERPROC glAttachShader;
-PFNGLLINKPROGRAMPROC glLinkProgram;
-PFNGLUSEPROGRAMPROC glUseProgram;
-PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
-PFNGLUNIFORM1FPROC glUniform1f;
-PFNGLUNIFORM4FPROC glUniform4f;
-PFNGLUNIFORM1IPROC glUniform1i;
-PFNGLTEXIMAGE3DPROC glTexImage3D;
+PFNGLPOINTPARAMETERFVPROC glPointParameterfv = 0;
+PFNGLPOINTPARAMETERFPROC glPointParameterf = 0;
+PFNGLCREATESHADERPROC glCreateShader = 0;
+PFNGLSHADERSOURCEPROC glShaderSource = 0;
+PFNGLCOMPILESHADERPROC glCompileShader = 0;
+PFNGLCREATEPROGRAMPROC glCreateProgram = 0;
+PFNGLATTACHSHADERPROC glAttachShader = 0;
+PFNGLLINKPROGRAMPROC glLinkProgram = 0;
+PFNGLUSEPROGRAMPROC glUseProgram = 0;
+PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation = 0;
+PFNGLUNIFORM1FPROC glUniform1f = 0;
+PFNGLUNIFORM4FPROC glUniform4f = 0;
+PFNGLUNIFORM1IPROC glUniform1i = 0;
+PFNGLTEXIMAGE3DPROC glTexImage3D = 0;
+
+void init();
+void display();
+void reshape(int w, int h);
 
 #include "map.c"
 #include "chunk.c"
@@ -78,6 +88,7 @@ PFNGLTEXIMAGE3DPROC glTexImage3D;
 #include "camera.c"
 #include "aabb.c"
 #include "particle.c"
+#include "ogl.c"
 
 unsigned char color_correction[] = {16,23,36,20,23,36,36,23,36,59,23,36,90,23,36,138,23,36,174,23,36,199,23,36,212,23,36,221,23,36,228,23,36,233,23,36,238,23,36,239,23,36,243,23,36,246,23,36,16,23,36,20,23,36,36,23,36,59,23,36,90,23,36,138,23,36,174,23,36,199,23,36,212,23,36,221,23,36,228,23,36,233,23,36,238,23,36,239,23,36,243,23,36,246,23,36,16,36,36,20,36,36,36,36,36,59,36,36,90,36,36,138,36,36,174,36,36,199,36,36,212,36,36,221,36,36,228,36,36,233,36,36,238,36,36,239,36,36,243,36,36,246,36,36,16,50,36,20,50,36,36,50,36,59,50,36,90,50,36,138,50,36,174,50,36,199,50,36,212,50,36,221,50,36,228,50,36,233,50,36,238,50,36,239,50,36,243,50,36,246,50,36,16,68,36,20,68,36,36,68,36,59,68,36,90,68,36,138,68,36,174,68,36,199,68,36,212,68,36,221,68,36,228,68,36,233,68,36,238,68,36,239,68,36,243,68,36,246,68,36,16,93,36,20,93,36,36,93,36,59,93,36,90,93,36,138,93,36,174,93,36,199,93,36,212,93,36,221,93,36,228,93,36,233,93,36,238,93,36,239,93,36,243,93,36,246,93,36,16,127,36,20,127,36,36,127,36,59,127,36,90,127,36,138,127,36,174,127,36,199,127,36,212,127,36,221,127,36,228,127,36,233,127,36,238,127,36,239,127,36,243,127,36,246,127,36,16,166,36,20,166,36,36,166,36,59,166,36,90,166,36,138,166,36,174,166,36,199,166,36,212,166,36,221,166,36,228,166,36,233,166,36,238,166,36,239,166,36,243,166,36,246,166,36,16,194,36,20,194,36,36,194,36,59,194,36,90,194,36,138,194,36,174,194,36,199,194,36,212,194,36,221,194,36,228,194,36,233,194,36,238,194,36,239,194,36,243,194,36,246,194,36,16,213,36,20,213,36,36,213,36,59,213,36,90,213,36,138,213,36,174,213,36,199,213,36,212,213,36,221,213,36,228,213,36,233,213,36,238,213,36,239,213,36,243,213,36,246,213,36,16,223,36,20,223,36,36,223,36,59,223,36,90,223,36,138,223,36,174,223,36,199,223,36,212,223,36,221,223,36,228,223,36,233,223,36,238,223,36,239,223,36,243,223,36,246,223,36,16,230,36,20,230,36,36,230,36,59,230,36,90,230,36,138,230,36,174,230,36,199,230,36,212,230,36,221,230,36,228,230,36,233,230,36,238,230,36,239,230,36,243,230,36,246,230,36,16,236,36,20,236,36,36,236,36,59,236,36,90,236,36,138,236,36,174,236,36,199,236,36,212,236,36,221,236,36,228,236,36,233,236,36,238,236,36,239,236,36,243,236,36,246,236,36,16,240,36,20,240,36,36,240,36,59,240,36,90,240,36,138,240,36,174,240,36,199,240,36,212,240,36,221,240,36,228,240,36,233,240,36,238,240,36,239,240,36,243,240,36,246,240,36,16,243,36,20,243,36,36,243,36,59,243,36,90,243,36,138,243,36,174,243,36,199,243,36,212,243,36,221,243,36,228,243,36,233,243,36,238,243,36,239,243,36,243,243,36,246,243,36,16,246,36,20,246,36,36,246,36,59,246,36,90,246,36,138,246,36,174,246,36,199,246,36,212,246,36,221,246,36,228,246,36,233,246,36,238,246,36,239,246,36,243,246,36,246,246,36,
 									16,23,36,20,23,36,36,23,36,59,23,36,90,23,36,138,23,36,174,23,36,199,23,36,212,23,36,221,23,36,228,23,36,233,23,36,238,23,36,239,23,36,243,23,36,246,23,36,16,23,36,20,23,36,36,23,36,59,23,36,90,23,36,138,23,36,174,23,36,199,23,36,212,23,36,221,23,36,228,23,36,233,23,36,238,23,36,239,23,36,243,23,36,246,23,36,16,36,36,20,36,36,36,36,36,59,36,36,90,36,36,138,36,36,174,36,36,199,36,36,212,36,36,221,36,36,228,36,36,233,36,36,238,36,36,239,36,36,243,36,36,246,36,36,16,50,36,20,50,36,36,50,36,59,50,36,90,50,36,138,50,36,174,50,36,199,50,36,212,50,36,221,50,36,228,50,36,233,50,36,238,50,36,239,50,36,243,50,36,246,50,36,16,68,36,20,68,36,36,68,36,59,68,36,90,68,36,138,68,36,174,68,36,199,68,36,212,68,36,221,68,36,228,68,36,233,68,36,238,68,36,239,68,36,243,68,36,246,68,36,16,93,36,20,93,36,36,93,36,59,93,36,90,93,36,138,93,36,174,93,36,199,93,36,212,93,36,221,93,36,228,93,36,233,93,36,238,93,36,239,93,36,243,93,36,246,93,36,16,127,36,20,127,36,36,127,36,59,127,36,90,127,36,138,127,36,174,127,36,199,127,36,212,127,36,221,127,36,228,127,36,233,127,36,238,127,36,239,127,36,243,127,36,246,127,36,16,166,36,20,166,36,36,166,36,59,166,36,90,166,36,138,166,36,174,166,36,199,166,36,212,166,36,221,166,36,228,166,36,233,166,36,238,166,36,239,166,36,243,166,36,246,166,36,16,194,36,20,194,36,36,194,36,59,194,36,90,194,36,138,194,36,174,194,36,199,194,36,212,194,36,221,194,36,228,194,36,233,194,36,238,194,36,239,194,36,243,194,36,246,194,36,16,213,36,20,213,36,36,213,36,59,213,36,90,213,36,138,213,36,174,213,36,199,213,36,212,213,36,221,213,36,228,213,36,233,213,36,238,213,36,239,213,36,243,213,36,246,213,36,16,223,36,20,223,36,36,223,36,59,223,36,90,223,36,138,223,36,174,223,36,199,223,36,212,223,36,221,223,36,228,223,36,233,223,36,238,223,36,239,223,36,243,223,36,246,223,36,16,230,36,20,230,36,36,230,36,59,230,36,90,230,36,138,230,36,174,230,36,199,230,36,212,230,36,221,230,36,228,230,36,233,230,36,238,230,36,239,230,36,243,230,36,246,230,36,16,236,36,20,236,36,36,236,36,59,236,36,90,236,36,138,236,36,174,236,36,199,236,36,212,236,36,221,236,36,228,236,36,233,236,36,238,236,36,239,236,36,243,236,36,246,236,36,16,240,36,20,240,36,36,240,36,59,240,36,90,240,36,138,240,36,174,240,36,199,240,36,212,240,36,221,240,36,228,240,36,233,240,36,238,240,36,239,240,36,243,240,36,246,240,36,16,243,36,20,243,36,36,243,36,59,243,36,90,243,36,138,243,36,174,243,36,199,243,36,212,243,36,221,243,36,228,243,36,233,243,36,238,243,36,239,243,36,243,243,36,246,243,36,16,246,36,20,246,36,36,246,36,59,246,36,90,246,36,138,246,36,174,246,36,199,246,36,212,246,36,221,246,36,228,246,36,233,246,36,238,246,36,239,246,36,243,246,36,246,246,36,
@@ -97,7 +108,7 @@ unsigned char color_correction[] = {16,23,36,20,23,36,36,23,36,59,23,36,90,23,36
 									16,23,246,20,23,246,36,23,246,59,23,246,90,23,246,138,23,246,174,23,246,199,23,246,212,23,246,221,23,246,228,23,246,233,23,246,238,23,246,239,23,246,243,23,246,246,23,246,16,23,246,20,23,246,36,23,246,59,23,246,90,23,246,138,23,246,174,23,246,199,23,246,212,23,246,221,23,246,228,23,246,233,23,246,238,23,246,239,23,246,243,23,246,246,23,246,16,36,246,20,36,246,36,36,246,59,36,246,90,36,246,138,36,246,174,36,246,199,36,246,212,36,246,221,36,246,228,36,246,233,36,246,238,36,246,239,36,246,243,36,246,246,36,246,16,50,246,20,50,246,36,50,246,59,50,246,90,50,246,138,50,246,174,50,246,199,50,246,212,50,246,221,50,246,228,50,246,233,50,246,238,50,246,239,50,246,243,50,246,246,50,246,16,68,246,20,68,246,36,68,246,59,68,246,90,68,246,138,68,246,174,68,246,199,68,246,212,68,246,221,68,246,228,68,246,233,68,246,238,68,246,239,68,246,243,68,246,246,68,246,16,93,246,20,93,246,36,93,246,59,93,246,90,93,246,138,93,246,174,93,246,199,93,246,212,93,246,221,93,246,228,93,246,233,93,246,238,93,246,239,93,246,243,93,246,246,93,246,16,127,246,20,127,246,36,127,246,59,127,246,90,127,246,138,127,246,174,127,246,199,127,246,212,127,246,221,127,246,228,127,246,233,127,246,238,127,246,239,127,246,243,127,246,246,127,246,16,166,246,20,166,246,36,166,246,59,166,246,90,166,246,138,166,246,174,166,246,199,166,246,212,166,246,221,166,246,228,166,246,233,166,246,238,166,246,239,166,246,243,166,246,246,166,246,16,194,246,20,194,246,36,194,246,59,194,246,90,194,246,138,194,246,174,194,246,199,194,246,212,194,246,221,194,246,228,194,246,233,194,246,238,194,246,239,194,246,243,194,246,246,194,246,16,213,246,20,213,246,36,213,246,59,213,246,90,213,246,138,213,246,174,213,246,199,213,246,212,213,246,221,213,246,228,213,246,233,213,246,238,213,246,239,213,246,243,213,246,246,213,246,16,223,246,20,223,246,36,223,246,59,223,246,90,223,246,138,223,246,174,223,246,199,223,246,212,223,246,221,223,246,228,223,246,233,223,246,238,223,246,239,223,246,243,223,246,246,223,246,16,230,246,20,230,246,36,230,246,59,230,246,90,230,246,138,230,246,174,230,246,199,230,246,212,230,246,221,230,246,228,230,246,233,230,246,238,230,246,239,230,246,243,230,246,246,230,246,16,236,246,20,236,246,36,236,246,59,236,246,90,236,246,138,236,246,174,236,246,199,236,246,212,236,246,221,236,246,228,236,246,233,236,246,238,236,246,239,236,246,243,236,246,246,236,246,16,240,246,20,240,246,36,240,246,59,240,246,90,240,246,138,240,246,174,240,246,199,240,246,212,240,246,221,240,246,228,240,246,233,240,246,238,240,246,239,240,246,243,240,246,246,240,246,16,243,246,20,243,246,36,243,246,59,243,246,90,243,246,138,243,246,174,243,246,199,243,246,212,243,246,221,243,246,228,243,246,233,243,246,238,243,246,239,243,246,243,243,246,246,243,246,16,246,246,20,246,246,36,246,246,59,246,246,90,246,246,138,246,246,174,246,246,199,246,246,212,246,246,221,246,246,228,246,246,233,246,246,238,246,246,239,246,246,243,246,246,246,246,246,
 								   };
 
-int texture_color_correction;
+int texture_color_correction = 0;
 
 
 int genTexture(unsigned char* data, int width, int height, int depth) {
@@ -116,9 +127,12 @@ int genTexture(unsigned char* data, int width, int height, int depth) {
 	return texture;
 }
 
-long time_last_frame;
+int time_last_frame = 0;
 
 float lx = 232.91F,ly = 1.6F,lz = 313.66F;
+float hj = 0,hk = 0,hl = 0;
+
+unsigned int block_color = 0x00008000;
 
 void render_man(float x, float z) {
 	/*glPushMatrix();
@@ -179,44 +193,14 @@ float drawScene(boolean shadowed) {
 	return r;
 }
 
-/*float* multiplyMatrix(float* a, float* b) {
-	static float ret[16];
-	ret[0] = a[0]*b[0]+a[4]*b[1]+a[8]*b[2]+a[12]*b[3];
-	ret[1] = a[1]*b[0]+a[5]*b[1]+a[9]*b[2]+a[13]*b[3];
-	ret[2] = a[2]*b[0]+a[6]*b[1]+a[10]*b[2]+a[14]*b[3];
-	ret[3] = a[3]*b[0]+a[7]*b[1]+a[11]*b[2]+a[15]*b[3];
-	ret[4] = a[0]*b[4]+a[4]*b[5]+a[8]*b[6]+a[12]*b[7];
-	ret[5] = a[1]*b[4]+a[5]*b[5]+a[9]*b[6]+a[13]*b[7];
-	ret[6] = a[2]*b[4]+a[6]*b[5]+a[10]*b[6]+a[14]*b[7];
-	ret[7] = a[3]*b[4]+a[7]*b[5]+a[11]*b[6]+a[15]*b[7];
-	ret[8] = a[0]*b[8]+a[4]*b[9]+a[8]*b[10]+a[12]*b[11];
-	ret[9] = a[1]*b[8]+a[5]*b[9]+a[9]*b[10]+a[13]*b[11];
-	ret[10] = a[2]*b[8]+a[6]*b[9]+a[10]*b[10]+a[14]*b[11];
-	ret[11] = a[3]*b[8]+a[7]*b[9]+a[11]*b[10]+a[15]*b[11];
-	ret[12] = a[0]*b[12]+a[4]*b[13]+a[8]*b[14]+a[12]*b[15];
-	ret[13] = a[1]*b[12]+a[5]*b[13]+a[9]*b[14]+a[13]*b[15];
-	ret[14] = a[2]*b[12]+a[6]*b[13]+a[10]*b[14]+a[14]*b[15];
-	ret[15] = a[3]*b[12]+a[7]*b[13]+a[11]*b[14]+a[15]*b[15];
-	return ret;
-}*/
-
-/*float camera_projection_matrix[16];
-float camera_view_matrix[16];
-float light_projection_matrix[16];
-float light_view_matrix[16];*/
-
-float shadowFix(float x) {
-	return round(x/10.0)*10.0;
-}
-
 int anim_length = 17;
 int anim_index = 16;
 int anim_start = 0;
 float fps_max = 0.0F;
 float fps_min = 10000.0F;
-float fps_last[100];
-float per_last[100];
-int fps_last_update;
+float fps_last[100] = {0};
+float per_last[100] = {0};
+int fps_last_update = 0;
 
 float anim_points[] =  {54.691128F,12.567106F,365.963867F,2.440803F,1.651999F,5000,
 						82.248932F,10.129058F,340.047241F,2.200801F,1.582000F,5000,
@@ -236,44 +220,26 @@ float anim_points[] =  {54.691128F,12.567106F,365.963867F,2.440803F,1.651999F,50
 						230.197281F,42.232132F,384.512268F,3.486796F,2.081999F,5000,
 						157.539017F,58.230267F,394.350433F,2.516798F,2.127999F,5000};
 
-float interpolatecos(float Wert1, float Wert2, float FaktorWert1) {
-  return Wert1*((cos(1.5707F*FaktorWert1)+1.0F)/2.0F) + Wert2*(1.0F-(cos(1.5707F*FaktorWert1)+1.0F)/2.0F);
+float interpolatecos(float value1, float value2, float factor) {
+  return value1*((cos(1.5707F*factor)+1.0F)/2.0F) + value2*(1.0F-(cos(1.5707F*factor)+1.0F)/2.0F);
 }
 					
 void display() {
-	/*glMatrixMode(GL_MODELVIEW);
-
-	glLoadIdentity();
-	gluPerspective(camera_fov, ((float)settings.window_width)/((float)settings.window_height), 0.05F, 1024.0F);
-	glGetFloatv(GL_MODELVIEW_MATRIX, camera_projection_matrix);
-
-	glLoadIdentity();
-	gluLookAt(camera_x, camera_y, camera_z, camera_x+sin(camera_rot_x)*sin(camera_rot_y), camera_y+cos(camera_rot_y), camera_z+cos(camera_rot_x)*sin(camera_rot_y), 0.0F, 1.0F, 0.0F);
-	glGetFloatv(GL_MODELVIEW_MATRIX, camera_view_matrix);
-
-	glLoadIdentity();
-	glOrtho(-64.0,64.0,-64.0,64.0,1.0,256.0);
-	glGetFloatv(GL_MODELVIEW_MATRIX, light_projection_matrix);
-
-	glLoadIdentity();
-	gluLookAt(shadowFix(camera_x)+45.0F, 64.0F, shadowFix(camera_z)+70.0F, shadowFix(camera_x), 0.0F, shadowFix(camera_z), 0.0F, 1.0F, 0.0F);
-	glGetFloatv(GL_MODELVIEW_MATRIX, light_view_matrix);*/
-	
 	float fog_color[] = {0.5F,0.9098F,1.0F,1.0F};
 	glClearColor(fog_color[0],fog_color[1],fog_color[2],fog_color[3]);
 	
-	/*if((glutGet(GLUT_ELAPSED_TIME)-anim_start)>anim_points[anim_index*6+5]) {
+	/*if((timems()-anim_start)>anim_points[anim_index*6+5]) {
 		anim_index++;
 		if(anim_index==anim_length) {
 			anim_index = 0;
 		}
-		anim_start = glutGet(GLUT_ELAPSED_TIME);
+		anim_start = timems();
 	}
 	int tmp_ind = anim_index+1;
 	if(tmp_ind==anim_length) {
 		tmp_ind = 0;
 	}
-	float dt = (float)(glutGet(GLUT_ELAPSED_TIME)-anim_start)/(float)anim_points[anim_index*6+5];
+	float dt = (float)(timems()-anim_start)/(float)anim_points[anim_index*6+5];
 	camera_x = interpolatecos(anim_points[anim_index*6],anim_points[tmp_ind*6],dt*2.0F);
 	camera_y = interpolatecos(anim_points[anim_index*6+1],anim_points[tmp_ind*6+1],dt*2.0F);
 	camera_z = interpolatecos(anim_points[anim_index*6+2],anim_points[tmp_ind*6+2],dt*2.0F);
@@ -321,82 +287,6 @@ void display() {
 	
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | (GL_STENCIL_BUFFER_BIT*settings.shadow_entities));
 
-	/*glMatrixMode(GL_PROJECTION);
-	glLoadMatrixf(light_projection_matrix);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadMatrixf(light_view_matrix);
-	glViewport(0,0,shadow_map_resolution,shadow_map_resolution);
-	glCullFace(GL_FRONT);
-	glShadeModel(GL_FLAT);
-	glColorMask(0,0,0,0);
-
-	//glEnable(GL_POLYGON_OFFSET_FILL);
-    //glPolygonOffset(-0.75F,0.0F);
-	drawScene(0,1);
-	//glDisable(GL_POLYGON_OFFSET_FILL);
-
-	glBindTexture(GL_TEXTURE_2D, texture_shadow_map);
-	glCopyTexSubImage2D(GL_TEXTURE_2D,0,0,0,0,0,shadow_map_resolution,shadow_map_resolution);
-
-	glCullFace(GL_BACK);
-	glShadeModel(GL_SMOOTH);
-	glColorMask(1,1,1,1);
-
-	glClear(GL_DEPTH_BUFFER_BIT);
-	glMatrixMode(GL_PROJECTION);
-	glLoadMatrixf(camera_projection_matrix);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadMatrixf(camera_view_matrix);
-	glViewport(0,0,settings.window_width,settings.window_height);
-
-	drawScene(0,0);
-
-	float matrix_bias[] = {0.5f, 0.0f, 0.0f, 0.0f,
-								0.0f, 0.5f, 0.0f, 0.0f,
-								0.0f, 0.0f, 0.5f, 0.0f,
-								0.5f, 0.5f, 0.5f, 1.0f};
-	//MATRIX4X4 textureMatrix=biasMatrix*lightProjectionMatrix*lightViewMatrix;
-	float* matrix_texture = multiplyMatrix(matrix_bias,multiplyMatrix(light_projection_matrix,light_view_matrix));
-
-	float s[] = {matrix_texture[0],matrix_texture[4],matrix_texture[8],matrix_texture[12]};
-	float t[] = {matrix_texture[1],matrix_texture[5],matrix_texture[9],matrix_texture[13]};
-	float r[] = {matrix_texture[2],matrix_texture[6],matrix_texture[10],matrix_texture[14]};
-	float q[] = {matrix_texture[3],matrix_texture[7],matrix_texture[11],matrix_texture[15]};
-
-	glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
-	glTexGenfv(GL_S, GL_EYE_PLANE, s);
-	glEnable(GL_TEXTURE_GEN_S);
-
-	glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
-	glTexGenfv(GL_T, GL_EYE_PLANE, t);
-	glEnable(GL_TEXTURE_GEN_T);
-
-	glTexGeni(GL_R, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
-	glTexGenfv(GL_R, GL_EYE_PLANE, r);
-	glEnable(GL_TEXTURE_GEN_R);
-
-	glTexGeni(GL_Q, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
-	glTexGenfv(GL_Q, GL_EYE_PLANE, q);
-	glEnable(GL_TEXTURE_GEN_Q);
-
-	glBindTexture(GL_TEXTURE_2D, texture_shadow_map);
-	glEnable(GL_TEXTURE_2D);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE_ARB, GL_COMPARE_R_TO_TEXTURE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC_ARB, GL_LEQUAL);
-	glTexParameteri(GL_TEXTURE_2D, GL_DEPTH_TEXTURE_MODE_ARB, GL_INTENSITY);
-
-	glAlphaFunc(GL_EQUAL,1.0F);
-	glEnable(GL_ALPHA_TEST);
-	glDepthMask(0);
-	drawScene(1,0);
-	glDepthMask(1);
-	glDisable(GL_TEXTURE_2D);
-	glDisable(GL_TEXTURE_GEN_S);
-	glDisable(GL_TEXTURE_GEN_T);
-	glDisable(GL_TEXTURE_GEN_R);
-	glDisable(GL_TEXTURE_GEN_Q);
-	glDisable(GL_ALPHA_TEST);*/
-
 	if(settings.opengl14) {
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
@@ -439,7 +329,7 @@ void display() {
 			glDepthMask(GL_TRUE);
 			glColorMask(1,1,1,1);
 			glCullFace(GL_BACK);
-			glStencilFunc(GL_EQUAL,0,1);
+			glStencilFunc(GL_EQUAL,0,255);
 			glStencilOp(GL_KEEP,GL_KEEP,GL_KEEP);
 			
 			per = drawScene(false);
@@ -487,8 +377,8 @@ void display() {
 		per = (float)chunk_geometry_rebuild_state/(float)(CHUNKS_PER_DIM*CHUNKS_PER_DIM);
 	}
 
-	float time_delta = ((float)(glutGet(GLUT_ELAPSED_TIME)-time_last_frame))/1000.0F;
-	time_last_frame = glutGet(GLUT_ELAPSED_TIME);
+	float time_delta = ((float)(timems()-time_last_frame))/1000.0F;
+	time_last_frame = timems();
 	float fps = (1.0F/time_delta);
 	if(fps>fps_max) {
 		fps_max = fps;
@@ -496,7 +386,7 @@ void display() {
 	if(fps<fps_min) {
 		fps_min = fps;
 	}
-	if(glutGet(GLUT_ELAPSED_TIME)-fps_last_update>500) {
+	if(timems()-fps_last_update>500) {
 		for(int k=0;k<99;k++) {
 			fps_last[k] = fps_last[k+1];
 			per_last[k] = per_last[k+1];
@@ -505,7 +395,7 @@ void display() {
 		per_last[99] = per;
 		fps_max = 0;
 		fps_min = 1000000;
-		fps_last_update = glutGet(GLUT_ELAPSED_TIME);
+		fps_last_update = timems();
 	}
 
 	if(settings.opengl14) {
@@ -514,7 +404,7 @@ void display() {
 		glUniform1i(uniform_draw_ui, true);
 	}
 	
-	glMatrixMode(GL_PROJECTION);
+	/*glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gluOrtho2D(-1.0F,1.0F,-1.0F,1.0F);
 	glMatrixMode(GL_MODELVIEW);
@@ -524,7 +414,7 @@ void display() {
 	glRasterPos2f(-1.0F,0.9F);
 	
 	char debug[32];
-	sprintf(debug,"%.2f%%",per*100.0F);
+	//sprintf(debug,"%.2f%%",per*100.0F);
 	
 	for(int k=0;k<strlen(debug);k++) {
 		glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18,debug[k]);
@@ -566,7 +456,7 @@ void display() {
 		glEnable(GL_FOG);
 	} else {
 		glUniform1i(uniform_draw_ui,false);
-	}
+	}*/
 	
 	particle_update(time_delta);
 	
@@ -643,14 +533,25 @@ void display() {
 	}
 
 
-	glutSwapBuffers();
-
-	//printf("FPS: %f\n",(1.0F/time_delta));
-	//fflush(stdout);
-	glutPostRedisplay();
+	#ifdef STANDALONE
+		glutSwapBuffers();
+		glutPostRedisplay();
+	#endif
 }
 
 void init() {
+	settings.opengl14 = true;
+	settings.color_correction = false;
+	settings.multisamples = 4;
+	settings.shadow_entities = false;
+	settings.ambient_occlusion = true;
+	settings.render_distance = 128.0F;
+	
+	for(int k=0;k<128;k++) {
+		overlay_textures_id[k] = 0;
+		overlay_textures_data[k] = 0;
+	}
+
 	glDisable(GL_TEXTURE_RECTANGLE);
 
 	glEnable(GL_DEPTH_TEST);
@@ -664,25 +565,20 @@ void init() {
 	
 	particle_init();
 
-	tent = kv6_load(file_load("FullBody_Arms_3.kv6"));
+	//tent = kv6_load(file_load("FullBody_Arms_3.kv6"));
 	//gun = kv6_load(file_load("Rifle_10mm.kv6"));
 	map_colors = malloc(map_size_x*map_size_y*map_size_z*8);
 	for(int x=0;x<512;x++) { for(int z=0;z<512;z++) { for(int y=0;y<64;y++) {
 		map_colors[x+(y*map_size_z+z)*map_size_x] = 0xFFFFFFFF;
 	} } }
 	//memset(map_colors,0x00000000FFFFFFFF,map_size_x*map_size_y*map_size_z);
-	map_vxl_load(file_load("lastsav.vxl"),map_colors);
+	//map_vxl_load(file_load("lastsav.vxl"),map_colors);
 	//genland(345423435,map_colors);
 	if(!settings.opengl14) {
 		texture_color_correction = genTexture(color_correction,16,16,16);
 	}
-	anim_start = glutGet(GLUT_ELAPSED_TIME);
+	anim_start = timems();
 	fps_last_update = anim_start;
-}
-
-void timer(int value) {
-   //glutPostRedisplay();
-   glutTimerFunc(1,timer,0);
 }
 
 void reshape(GLsizei width, GLsizei height) {
@@ -691,13 +587,16 @@ void reshape(GLsizei width, GLsizei height) {
 	settings.window_height = height;
 }
 
+#ifdef STANDALONE
+
+void timer(int value) {
+   //glutPostRedisplay();
+   glutTimerFunc(1,timer,0);
+}
+
 void keys(unsigned char key, int x, int y) {
 	key_map[key] = 1;
 }
-
-float hj,hk,hl;
-
-unsigned int block_color = 0x00008000;
 
 void keysUp(unsigned char key, int x, int y) {
 	if(key=='o') {
@@ -722,10 +621,10 @@ void keysUp(unsigned char key, int x, int y) {
 		glutFullScreenToggle();
 	}
 	if(key=='p') {
-		printf("%f,%f,%f,%f,%f,5000,\n",camera_x,camera_y,camera_z,camera_rot_x,camera_rot_y);
+		//printf("%f,%f,%f,%f,%f,5000,\n",camera_x,camera_y,camera_z,camera_rot_x,camera_rot_y);
 	}
 	if(key=='n' || key=='m') {
-		printf("Changed render distance to: %f blocks\n",settings.render_distance);
+		//printf("Changed render distance to: %f blocks\n",settings.render_distance);
 	}
 	if(key=='e') {
 		int* pos = camera_terrain_pick(2);
@@ -814,6 +713,7 @@ void mouse(int x, int y) {
 	glutWarpPointer(settings.window_width/2,settings.window_height/2);
 	just_warped = 1;
 }
+
 int main(int argc, char** argv) {
 	settings.opengl14 = false;
 	settings.color_correction = true;
@@ -933,8 +833,10 @@ int main(int argc, char** argv) {
 		int iNumSamples = 0;
 		glGetIntegerv(GL_SAMPLE_BUFFERS,&iMultiSample);
 		glGetIntegerv(GL_SAMPLES,&iNumSamples);
-		printf("MSAA on, GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d\n", iMultiSample, iNumSamples);
+		//printf("MSAA on, GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d\n", iMultiSample, iNumSamples);
 	}
 	
 	glutMainLoop();
 }
+
+#endif

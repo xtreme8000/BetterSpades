@@ -9,14 +9,14 @@ void particle_update(float dt) {
 	AABB a;
 	for(int k=0;k<PARTICLES_MAX;k++) {
 		if(particles[k].alive) {
-			if(!particles[k].fade && glutGet(GLUT_ELAPSED_TIME)-particles[k].created>=30000) {
-				particles[k].fade = glutGet(GLUT_ELAPSED_TIME);
+			if(!particles[k].fade && timems()-particles[k].created>=30000) {
+				particles[k].fade = timems();
 			}
 		
 			a.min_x = a.min_y = a.min_z = 0.0F;
 			float size = particles[k].size;
 			if(particles[k].fade) {
-				size *= 1.0F-((float)(glutGet(GLUT_ELAPSED_TIME)-particles[k].fade)/2000.0F);
+				size *= 1.0F-((float)(timems()-particles[k].fade)/2000.0F);
 			}
 			if(size<0.01F) {
 				particles[k].alive = false;
@@ -72,7 +72,7 @@ void particle_update(float dt) {
 						can_fade = false;
 					}
 					if(can_fade && !particles[k].fade) {
-						particles[k].fade = glutGet(GLUT_ELAPSED_TIME);
+						particles[k].fade = timems();
 					}
 				} else {
 					particles[k].vx *= pow(0.4F,dt);
@@ -87,8 +87,6 @@ void particle_update(float dt) {
 	}
 }
 
-int vertex_index;
-
 int particle_render() {
 	int color_index = 0;
 	vertex_index = 0;
@@ -96,7 +94,7 @@ int particle_render() {
 		if(particles[k].alive) {
 			float size = particles[k].size/2.0F;
 			if(particles[k].fade) {
-				size *= 1.0F-((float)(glutGet(GLUT_ELAPSED_TIME)-particles[k].fade)/2000.0F);
+				size *= 1.0F-((float)(timems()-particles[k].fade)/2000.0F);
 			}
 			
 			for(int i=0;i<24;i++) {
@@ -209,7 +207,7 @@ void particle_create(unsigned int color, float x, float y, float z, float veloci
 			particles[k].vx = (particles[k].vx/len)*velocity;
 			particles[k].vy = (particles[k].vy/len)*velocity*velocity_y;
 			particles[k].vz = (particles[k].vz/len)*velocity;
-			particles[k].created = glutGet(GLUT_ELAPSED_TIME);
+			particles[k].created = timems();
 			particles[k].fade = 0;
 			particles[k].color = color;
 			particles[k].alive = true;

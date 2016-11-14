@@ -52,7 +52,7 @@ unsigned int get_random()
     return (seed >> 16) & 0x7FFF;
 }
 
-unsigned char noisep[512], noisep15[512];
+unsigned char noisep[512] = {0}, noisep15[512] = {0};
 
 void noiseinit() {
 	int i, j, k;
@@ -99,8 +99,8 @@ double noise3d (double fx, double fy, double fz, int mask)
 	return((f[1]-f[0])*p[0] + f[0]);
 }
 
-vcol buf[VSID*VSID];
-vcol amb[VSID*VSID]; // ambient
+vcol buf[VSID*VSID] = {0};
+vcol amb[VSID*VSID] = {0}; // ambient
 
 int get_height_pos(int x, int y)
 {

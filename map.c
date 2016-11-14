@@ -1,9 +1,3 @@
-#define MAX_VOXEL_CHECKS 8192
-int map_checked_voxels_x[MAX_VOXEL_CHECKS];
-int map_checked_voxels_y[MAX_VOXEL_CHECKS];
-int map_checked_voxels_z[MAX_VOXEL_CHECKS];
-int map_checked_voxels_index = 0;
-
 void map_apply_gravity() {
 	for(int k=0;k<map_checked_voxels_index;k++) {
 		unsigned int col = map_get(map_checked_voxels_x[k],map_checked_voxels_y[k],map_checked_voxels_z[k]);
@@ -13,8 +7,6 @@ void map_apply_gravity() {
 		}
 	}
 }
-
-boolean map_ground_connected_result = false;
 
 boolean map_checked_voxels_contains(int x, int y, int z) {
 	for(int k=map_checked_voxels_index-1;k>=0;k--) {
@@ -150,6 +142,10 @@ void map_vxl_setcolor(int x, int y, int z, unsigned int t, unsigned long long* m
 	map[x+1+((map_size_y-1-z-1)*map_size_z+y)*map_size_x] = (r<<16)|(g<<8)|b;
 	map[x+((map_size_y-1-z-1)*map_size_z+y+1)*map_size_x] = (r<<16)|(g<<8)|b;
 	map[x+1+((map_size_y-1-z-1)*map_size_z+y+1)*map_size_x] = (r<<16)|(g<<8)|b;*/
+}
+
+void map_vxl_load_s(unsigned char* v) {
+	map_vxl_load(v,map_colors);
 }
 
 void map_vxl_load(unsigned char* v, unsigned long long* map) {

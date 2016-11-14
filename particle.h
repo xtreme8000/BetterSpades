@@ -8,10 +8,12 @@ typedef struct {
 	boolean alive;
 } Particle;
 
-Particle* particles;
-float* particles_vertices;
-unsigned char* particles_colors;
+Particle* particles = {0};
+float* particles_vertices = 0;
+unsigned char* particles_colors = 0;
 #define PARTICLES_MAX 8192
+
+int vertex_index = 0;
 
 void particle_init();
 void particle_update(float dt);
