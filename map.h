@@ -1,7 +1,7 @@
 unsigned long long* map_colors = 0;
-int map_size_x = 512;
-int map_size_y = 64;
-int map_size_z = 512;
+int map_size_x = 0;
+int map_size_y = 0;
+int map_size_z = 0;
 
 #define MAX_VOXEL_CHECKS 8192
 int map_checked_voxels_x[MAX_VOXEL_CHECKS] = {0};

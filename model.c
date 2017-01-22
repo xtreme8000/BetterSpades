@@ -1,17 +1,17 @@
-kv6_t kv6_load(unsigned char* bytes) {
-	kv6_t ret;
-	ret.has_display_list = 0;
+kv6_t* kv6_load(unsigned char* bytes) {
+	kv6_t* ret = malloc(sizeof(kv6_t));
+	ret->has_display_list = 0;
 	int index = 0;
 	if(buffer_read32(bytes,index)==0x6C78764B) { //"Kvxl"
 		index += 4;
-		ret.xsiz = buffer_read32(bytes,index);
+		ret->xsiz = buffer_read32(bytes,index);
 		index += 4;
-		ret.ysiz = buffer_read32(bytes,index);
+		ret->ysiz = buffer_read32(bytes,index);
 		index += 4;
-		ret.zsiz = buffer_read32(bytes,index);
+		ret->zsiz = buffer_read32(bytes,index);
 		index += 4;
-		ret.color = malloc(ret.xsiz*ret.ysiz*ret.zsiz*4);
-		memset(ret.color,0,ret.xsiz*ret.ysiz*ret.zsiz*4);
+		ret->color = malloc(ret->xsiz*ret->ysiz*ret->zsiz*4);
+		memset(ret->color,0,ret->xsiz*ret->ysiz*ret->zsiz*4);
 		//float xpiv = fread32f(ptr_myfile);
 		//float ypiv = fread32f(ptr_myfile);
 		//float zpiv = fread32f(ptr_myfile);
@@ -30,14 +30,14 @@ kv6_t kv6_load(unsigned char* bytes) {
 			blkdata_visfaces[k] = buffer_read8(bytes,index++);
 			blkdata_lighting[k] = buffer_read8(bytes,index++);
 		}
-		index += 4*ret.xsiz;
+		index += 4*ret->xsiz;
 		int blkdata_offset = 0;
-		for(int x=0;x<ret.xsiz;x++) {
-			for(int y=0;y<ret.ysiz;y++) {
+		for(int x=0;x<ret->xsiz;x++) {
+			for(int y=0;y<ret->ysiz;y++) {
 				int size = buffer_read16(bytes,index);
 				index += 2;
 				for(int z=0;z<size;z++) {
-					ret.color[x+y*ret.xsiz+blkdata_zpos[blkdata_offset]*ret.xsiz*ret.ysiz] = (blkdata_color[blkdata_offset]&0xFFFFFF)|(blkdata_lighting[blkdata_offset]<<24);
+					ret->color[x+y*ret->xsiz+blkdata_zpos[blkdata_offset]*ret->xsiz*ret->ysiz] = (blkdata_color[blkdata_offset]&0xFFFFFF)|(blkdata_lighting[blkdata_offset]<<24);
 					blkdata_offset++;
 				}
 			}

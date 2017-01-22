@@ -1,5 +1,5 @@
-int chunks_to_draw_x[CHUNKS_PER_DIM*CHUNKS_PER_DIM*2] = {0};
-int chunks_to_draw_y[CHUNKS_PER_DIM*CHUNKS_PER_DIM*2] = {0};
+int chunks_to_draw_x[(CHUNKS_PER_DIM+18)*(CHUNKS_PER_DIM+18)] = {0};
+int chunks_to_draw_y[(CHUNKS_PER_DIM+18)*(CHUNKS_PER_DIM+18)] = {0};
 
 float chunk_draw_visible(boolean shadowed) {
 	int index = 0;
@@ -51,10 +51,32 @@ float chunk_draw_visible(boolean shadowed) {
 		}
 	}
 	
+	unsigned int d, chunk_x, chunk_y;
+	
+	for(int k=0;k<index;k++) {
+		chunk_x = chunk_map_coord(chunks_to_draw_x[k]/CHUNK_SIZE);
+		chunk_y = chunk_map_coord(chunks_to_draw_y[k]/CHUNK_SIZE);
+		d = chunk_y*CHUNKS_PER_DIM+chunk_x;
+			
+		if(!glIsList(chunk_display_lists[d])) {
+			chunk_display_lists[d] = glGenLists(1);
+			chunk_display_lists_shadowed[d] = glGenLists(1);
+			chunk_max_height[d] = chunk_generate(chunk_display_lists[d],chunk_display_lists_shadowed[d],chunk_x*CHUNK_SIZE,chunk_y*CHUNK_SIZE);
+			chunk_last_update[d] = timems();
+		}
+	}
+	
+	glEnableClientState(GL_COLOR_ARRAY);
+	glEnableClientState(GL_VERTEX_ARRAY);
 	for(int k=0;k<index;k++) {
 		chunk_render(chunks_to_draw_x[k]/CHUNK_SIZE,chunks_to_draw_y[k]/CHUNK_SIZE,shadowed);
 	}
+	glDisableClientState(GL_COLOR_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
 	
+	if(b==0) {
+		return 0;
+	}
 	return ((float)index)/((float)b);
 }
 
@@ -67,21 +89,21 @@ void chunk_rebuild_all() {
 	chunk_geometry_rebuild_state = 0;
 }
 
-void chunk_render(int x, int y, boolean shadowed) {
-	glPushMatrix();
-	glTranslatef((x<0)*-map_size_x+(x>=CHUNKS_PER_DIM)*map_size_x,0.0F,(y<0)*-map_size_z+(y>=CHUNKS_PER_DIM)*map_size_z);
+int chunk_map_coord(int x) {
 	if(x<0) {
 		x += CHUNKS_PER_DIM;
-	}
-	if(y<0) {
-		y += CHUNKS_PER_DIM;
 	}
 	if(x>=CHUNKS_PER_DIM) {
 		x -= CHUNKS_PER_DIM;
 	}
-	if(y>=CHUNKS_PER_DIM) {
-		y -= CHUNKS_PER_DIM;
-	}
+	return x;
+}
+
+void chunk_render(int x, int y, boolean shadowed) {
+	glPushMatrix();
+	glTranslatef((x<0)*-map_size_x+(x>=CHUNKS_PER_DIM)*map_size_x,0.0F,(y<0)*-map_size_z+(y>=CHUNKS_PER_DIM)*map_size_z);
+	x = chunk_map_coord(x);
+	y = chunk_map_coord(y);
 
 	if(chunk_render_mode) {
 		glLineWidth(4.0F);
@@ -95,13 +117,6 @@ void chunk_render(int x, int y, boolean shadowed) {
 	if(chunk_render_mode) {
 		glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 	}
-	
-	/*glBegin(GL_QUADS);
-	glVertex3f(x*CHUNK_SIZE,chunk_max_height[((y*CHUNKS_PER_DIM)|x)]+0.1F,y*CHUNK_SIZE);
-	glVertex3f(x*CHUNK_SIZE,chunk_max_height[((y*CHUNKS_PER_DIM)|x)]+0.1F,y*CHUNK_SIZE+CHUNK_SIZE);
-	glVertex3f(x*CHUNK_SIZE+CHUNK_SIZE,chunk_max_height[((y*CHUNKS_PER_DIM)|x)]+0.1F,y*CHUNK_SIZE+CHUNK_SIZE);
-	glVertex3f(x*CHUNK_SIZE+CHUNK_SIZE,chunk_max_height[((y*CHUNKS_PER_DIM)|x)]+0.1F,y*CHUNK_SIZE);
-	glEnd();*/
 	
 	glPopMatrix();
 }
@@ -1296,7 +1311,7 @@ int chunk_generate(int displaylist, int displaylist_shadowed, int chunk_x, int c
 }
 
 void chunk_update_all() {
-	if(chunk_geometry_rebuild) {
+	/*if(chunk_geometry_rebuild) {
 		for(unsigned char k=0;k<CHUNKS_PER_DIM;k++) {
 			int chunk_x = (chunk_geometry_rebuild_state%CHUNKS_PER_DIM)*CHUNK_SIZE;
 			int chunk_y = (chunk_geometry_rebuild_state/CHUNKS_PER_DIM)*CHUNK_SIZE;
@@ -1311,15 +1326,17 @@ void chunk_update_all() {
 				break;
 			}
 		}
-	}
+	}*/
 	
 	if(chunk_geometry_changed_lenght>0) {
 		for(int k=0;k<chunk_geometry_changed_lenght;k++) {
 			//printf("UPDATE GEOMETRY: %i %i\n",chunk_geometry_changed[k]%CHUNKS_PER_DIM,chunk_geometry_changed[k]/CHUNKS_PER_DIM);
 			int chunk_x = (chunk_geometry_changed[k]%CHUNKS_PER_DIM)*CHUNK_SIZE;
 			int chunk_y = (chunk_geometry_changed[k]/CHUNKS_PER_DIM)*CHUNK_SIZE;
-			glDeleteLists(chunk_display_lists[chunk_geometry_changed[k]],1);
-			glDeleteLists(chunk_display_lists_shadowed[chunk_geometry_changed[k]],1);
+			if(glIsList(chunk_display_lists[chunk_geometry_changed[k]])) {
+				glDeleteLists(chunk_display_lists[chunk_geometry_changed[k]],1);
+				glDeleteLists(chunk_display_lists_shadowed[chunk_geometry_changed[k]],1);
+			}
 			chunk_display_lists[chunk_geometry_changed[k]] = glGenLists(1);
 			chunk_display_lists_shadowed[chunk_geometry_changed[k]] = glGenLists(1);
 			chunk_max_height[chunk_geometry_changed[k]] = chunk_generate(chunk_display_lists[chunk_geometry_changed[k]], chunk_display_lists_shadowed[chunk_geometry_changed[k]], chunk_x, chunk_y);
@@ -1345,8 +1362,10 @@ void chunk_update_all() {
 			//printf("UPDATE LIGHTING: %i %i\n",chunk_lighting_changed[k]%CHUNKS_PER_DIM,chunk_lighting_changed[k]/CHUNKS_PER_DIM);
 			int chunk_x = (chunk_lighting_changed[k]%CHUNKS_PER_DIM)*CHUNK_SIZE;
 			int chunk_y = (chunk_lighting_changed[k]/CHUNKS_PER_DIM)*CHUNK_SIZE;
-			glDeleteLists(chunk_display_lists[chunk_lighting_changed[k]],1);
-			glDeleteLists(chunk_display_lists_shadowed[chunk_lighting_changed[k]],1);
+			if(glIsList(chunk_display_lists[chunk_lighting_changed[k]])) {
+				glDeleteLists(chunk_display_lists[chunk_lighting_changed[k]],1);
+				glDeleteLists(chunk_display_lists_shadowed[chunk_lighting_changed[k]],1);
+			}
 			chunk_display_lists[chunk_lighting_changed[k]] = glGenLists(1);
 			chunk_display_lists_shadowed[chunk_lighting_changed[k]] = glGenLists(1);
 			chunk_max_height[chunk_lighting_changed[k]] = chunk_generate(chunk_display_lists[chunk_lighting_changed[k]], chunk_display_lists_shadowed[chunk_lighting_changed[k]], chunk_x, chunk_y);

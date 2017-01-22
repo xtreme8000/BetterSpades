@@ -1,4 +1,4 @@
-unsigned char chunk_geometry_rebuild = 1;
+unsigned char chunk_geometry_rebuild = 0;
 int chunk_geometry_rebuild_state = 0;
 
 int chunk_display_lists[CHUNKS_PER_DIM*CHUNKS_PER_DIM] = {0};
@@ -17,6 +17,7 @@ boolean chunk_render_mode = 0;
 void chunk_block_update(int x, int y, int z);
 void chunk_update_all();
 int chunk_generate(int displaylist, int displaylist_shadowed, int chunk_x, int chunk_y);
+int chunk_map_coord(int x);
 void chunk_render(int x, int y, boolean shadowed);
 void chunk_rebuild_all();
 void chunk_set_render_mode(boolean r);

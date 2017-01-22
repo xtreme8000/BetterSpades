@@ -1,5 +1,4 @@
 void aabb_render(AABB* a) {
-	glColor4f(1.0F,1.0F,1.0F,1.0F);
 	glLineWidth(1.0F);
 	glBegin(GL_LINES);
 	glVertex3f(a->min_x,a->min_y,a->min_z);
@@ -53,15 +52,15 @@ boolean aabb_intersection(AABB* a, AABB* b) {
 
 boolean aabb_intersection_terrain(AABB* a) {
 	AABB terrain_cube;
-	
+
 	int min_x = min(max(floor(a->min_x)-1,0),map_size_x);
 	int min_y = min(max(floor(a->min_y)-1,0),map_size_y);
 	int min_z = min(max(floor(a->min_z)-1,0),map_size_z);
-	
+
 	int max_x = min(max(ceil(a->max_x)+1,0),map_size_x);
 	int max_y = min(max(ceil(a->max_y)+1,0),map_size_y);
 	int max_z = min(max(ceil(a->max_z)+1,0),map_size_z);
-	
+
 	for(int x=min_x;x<max_x;x++) {
 		for(int z=min_z;z<max_z;z++) {
 			for(int y=min_y;y<max_y;y++) {
