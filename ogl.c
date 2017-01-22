@@ -101,7 +101,7 @@ void ogl_init() {
 		glHint(GL_MULTISAMPLE_FILTER_HINT_NV,GL_NICEST);
 	}
 
-	particle_init();
+	//particle_init();
 
 	if(!settings.opengl14) {
 		texture_color_correction = genTexture(color_correction,16,16,16);
@@ -194,10 +194,10 @@ void ogl_display() {
 			glStencilFunc(GL_ALWAYS,0,0);
 			glCullFace(GL_FRONT);
 			glStencilOp(GL_KEEP,GL_KEEP,GL_INCR_WRAP);
-			chunk_draw_shadow_volume(particles_vertices,vertex_index);
+			//chunk_draw_shadow_volume(particles_vertices,vertex_index);
 			glCullFace(GL_BACK);
 			glStencilOp(GL_KEEP,GL_KEEP,GL_DECR_WRAP);
-			chunk_draw_shadow_volume(particles_vertices,vertex_index);
+			//chunk_draw_shadow_volume(particles_vertices,vertex_index);
 			glDepthMask(GL_TRUE);
 			glColorMask(GL_TRUE,GL_TRUE,GL_TRUE,GL_TRUE);
 			glCullFace(GL_BACK);
@@ -332,7 +332,7 @@ void ogl_display() {
 		glUniform1i(uniform_draw_ui,false);
 	}
 
-	particle_update(time_delta);
+	//particle_update(time_delta);
 
 	glClear(GL_STENCIL_BUFFER_BIT);
 }
@@ -363,7 +363,7 @@ long long ogl_map_get(int x, int y, int z) {
 }
 
 void ogl_particle_create(unsigned int color, float x, float y, float z, float velocity, float velocity_y, int amount, float min_size, float max_size) {
-	particle_create(color,x,y,z,velocity,velocity_y,amount,min_size,max_size);
+	//particle_create(color,x,y,z,velocity,velocity_y,amount,min_size,max_size);
 }
 
 void ogl_display_min() {

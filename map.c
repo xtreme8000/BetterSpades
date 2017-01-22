@@ -3,7 +3,7 @@ void map_apply_gravity() {
 		unsigned int col = map_get(map_checked_voxels_x[k],map_checked_voxels_y[k],map_checked_voxels_z[k]);
 		if(col!=0xFFFFFFFF) {
 			map_set(map_checked_voxels_x[k],map_checked_voxels_y[k],map_checked_voxels_z[k],0xFFFFFFFF);
-			particle_create(col,map_checked_voxels_x[k]+0.5F,map_checked_voxels_y[k]+0.5F,map_checked_voxels_z[k]+0.5F,2.5F,1.0F,8,0.1F,0.25F);
+			//particle_create(col,map_checked_voxels_x[k]+0.5F,map_checked_voxels_y[k]+0.5F,map_checked_voxels_z[k]+0.5F,2.5F,1.0F,8,0.1F,0.25F);
 		}
 	}
 }

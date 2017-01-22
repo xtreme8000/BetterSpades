@@ -32,18 +32,14 @@ typedef unsigned char boolean;
 #define true 1
 #define false 0
 
-int timems() {
-	return clock()/(CLOCKS_PER_SEC / 1000);
-}
+#define timems() (clock()/(CLOCKS_PER_SEC / 1000))
 
 #include "chunk.h"
 #include "map.h"
 #include "model.h"
 #include "file.h"
-#include "camera.h"
-#include "aabb.h"
-#include "particle.h"
 #include "ogl.h"
+#include "camera.h"
 
 struct RENDER_OPTIONS {
 	boolean opengl14 ;
@@ -106,13 +102,10 @@ float drawScene(boolean shadowed);
 
 #include "map.c"
 #include "chunk.c"
-#include "classicgen.c"
 #include "model.c"
 #include "file.c"
-#include "camera.c"
-#include "aabb.c"
-#include "particle.c"
 #include "ogl.c"
+#include "camera.c"
 
 
 int genTexture(unsigned char* data, int width, int height, int depth) {
@@ -158,7 +151,7 @@ float drawScene(boolean shadowed) {
 	//glDisable(GL_POLYGON_STIPPLE);
 
 	glShadeModel(GL_FLAT);
-	particle_render();
+	//particle_render();
 
 	return r;
 }
