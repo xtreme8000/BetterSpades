@@ -1,0 +1,2 @@
+#!/bin/bash
+clang -c -I./include -emit-llvm -fslp-vectorize-aggressive -S -Ofast -mmmx -msse -msse2 -msse3 main.c -o ogl.ll

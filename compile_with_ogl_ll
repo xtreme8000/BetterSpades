@@ -1,0 +1,10 @@
+#!/bin/bash
+ldc2 -singleobj -output-ll *.d *.di ./derelict/sdl2/*.d ./derelict/enet/*.d ./derelict/util/*.d -ofmain.ll
+echo 20% done
+llvm-link  main.ll ogl.ll -S -o client.ll
+echo 40% done
+opt -O3 -mattr=mmx -mattr=sse -mattr=sse2 -mattr=sse3 -march=native client.ll -S -o client_opt.ll
+echo 60% done
+llc -O3 -mattr=mmx -mattr=sse -mattr=sse2 -mattr=sse3 client_opt.ll -filetype=obj -o main.o
+echo 80% done
+gcc main.o -o main -lslang -lphobos2-ldc -ldruntime-ldc -ldl -lpthread -lm -march=native -s

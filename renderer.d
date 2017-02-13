@@ -170,7 +170,7 @@ void Renderer_FillRect(SDL_Rect *rct, uint color) {
 void Renderer_DrawVoxels(){}
 
 //PLS ADD: (returns whether object is visible, scrx/scry are screen coords of the centre, dist is distance
-bool Project2D(float xpos, float ypos, float zpos, float *dist, out int scrx, out int scry){
+bool Project2D(float xpos, float ypos, float zpos, out int scrx, out int scry, float *dist){
 	return false;
 }
 
@@ -182,7 +182,7 @@ void Renderer_SetBlur(float amount) {
 
 }
 
-uint Voxel_FindFloorZ(uint x, uint y, uint z){
+uint Voxel_GetHighestY(uint x, uint y, uint z){
 	for(y=0;y<MapYSize; y++){
 		if(Voxel_IsSolid(x, y, z)){
 			return y;
@@ -193,6 +193,10 @@ uint Voxel_FindFloorZ(uint x, uint y, uint z){
 
 bool Voxel_IsSolid(Tx, Ty, Tz)(Tx x, Ty y, Tz z) {
 	return ogl_map_get(cast(uint)x,cast(uint)(64-y-1),cast(uint)z)!=0xFFFFFFFF;
+}
+
+bool Voxel_IsSolid(Vector3_t pos){
+	return Voxel_IsSolid(pos.x, pos.y, pos.z);
 }
 
 void Voxel_SetColor(uint x, uint y, uint z, uint col){
@@ -263,7 +267,12 @@ extern(C){
 
 	struct Sprite_t{
 		float rhe, rti, rst;
-		float xpos, ypos, zpos;
+		union{
+			struct{
+				float xpos, ypos, zpos;
+			}
+			Vector3_t pos;
+		}
 		float xdensity, ydensity, zdensity;
 		uint color_mod, replace_black;
 		ubyte brightness;
@@ -403,7 +412,14 @@ void Renderer_UpdateFlashes(alias UpdateGfx=true)(float update_speed){
 }
 
 auto Renderer_DrawRoundZoomedIn(Vector3_t* scope_pos, Vector3_t* scope_rot, MenuElement_t *scope_picture, float xzoom, float yzoom) {
-	return null;
+	struct return_type{
+		SDL_Rect dstrect;
+		SDL_Rect srcrect;
+		SDL_Texture *scope_texture;
+		uint scope_texture_width, scope_texture_height;
+	}
+	return_type *ret=null;
+	return ret;
 }
 
 void Renderer_SetBrightness(float brightness){

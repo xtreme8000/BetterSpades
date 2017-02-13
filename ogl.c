@@ -1,3 +1,4 @@
+#define min(x, y) ((x)<(y) ? (x) : (y))
 
 float wireframe_x = 0, wireframe_y = 0, wireframe_z = 0;
 
@@ -13,7 +14,7 @@ void ogl_reshape(int width, int height) {
 void ogl_init() {
 	settings.opengl14 = true;
 	settings.color_correction = false;
-	settings.multisamples = 16;
+	settings.multisamples = 0;
 	settings.shadow_entities = false;
 	settings.ambient_occlusion = true;
 	settings.render_distance = 256.0F;
@@ -63,7 +64,7 @@ void ogl_init() {
 			glUniform1f = (PFNGLUNIFORM1FPROC)glXGetProcAddress("glUniform1f");
 			glUniform4f = (PFNGLUNIFORM4FPROC)glXGetProcAddress("glUniform4f");
 			glUniform1i = (PFNGLUNIFORM1IPROC)glXGetProcAddress("glUniform1i");
-			glTexImage3D = (PFNGLTEXIMAGE3DPROC)glXGetProcAddress("glTexImage3D");
+			//glTexImage3D = (PFNGLTEXIMAGE3DPROC)glXGetProcAddress("glTexImage3D");
 		#endif
 
 		int shadera = glCreateShader(GL_VERTEX_SHADER);
