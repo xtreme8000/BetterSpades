@@ -1,7 +1,7 @@
 #!/bin/bash
-ldc2 -singleobj -output-ll *.d *.di ./derelict/sdl2/*.d ./derelict/enet/*.d ./derelict/util/*.d -ofmain.ll
+ldc2 -singleobj -output-ll ./aof-opengl/*.d *.d *.di ./derelict/sdl2/*.d ./derelict/enet/*.d ./derelict/util/*.d -ofmain.ll
 echo 20% done
-llvm-link  main.ll ogl.ll -S -o client.ll
+llvm-link  main.ll ./aof-opengl/ogl.ll -S -o client.ll
 echo 40% done
 opt -O3 -mattr=mmx -mattr=sse -mattr=sse2 -mattr=sse3 -march=native client.ll -S -o client_opt.ll
 echo 60% done

@@ -1,2 +1,2 @@
 #!/bin/bash
-dmd ogl.o -profile *.d *.di -gc -L-L/usr/local/lib -L-lslang -ofmain ./derelict/sdl2/*.d ./derelict/enet/*.d ./derelict/util/*.d -L-lGL -L-lGLU -L-lglut
+dmd ./aof-opengl/ogl.o -profile ./aof-opengl/*.d *.d *.di -gc -L-L/usr/local/lib -L-lslang -ofmain ./derelict/sdl2/*.d ./derelict/enet/*.d ./derelict/util/*.d -L-lGL -L-lGLU -L-lglut
