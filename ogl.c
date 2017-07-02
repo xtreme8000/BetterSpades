@@ -15,9 +15,9 @@ void ogl_init() {
 	settings.opengl14 = true;
 	settings.color_correction = false;
 	settings.multisamples = 0;
-	settings.shadow_entities = false;
-	settings.ambient_occlusion = true;
-	settings.render_distance = 256.0F;
+	settings.shadow_entities = true;
+	settings.ambient_occlusion = false;
+	settings.render_distance = 128.0F;
 
 	glDisable(GL_TEXTURE_RECTANGLE);
 
@@ -130,7 +130,8 @@ void ogl_init() {
 }
 
 void ogl_display() {
-	float fog_color[] = {0.5F,0.9098F,1.0F,1.0F};
+	printf("TEST\n");
+	float fog_color[4] = {0.5F,0.9098F,1.0F,1.0F};
 	glClearColor(fog_color[0],fog_color[1],fog_color[2],fog_color[3]);
 
 
@@ -405,7 +406,8 @@ void ogl_render_sprite(char* filename, float x, float y, float z, int xsiz, int 
 			return;
 		}
 		kv6_name[free_slot] = (int)filename;
-		unsigned char* data = file_load(filename);
+		//unsigned char* data = file_load(filename);
+		unsigned char *data=filename; //HUEHUE - lecom
 		kv6_model[free_slot] = kv6_load(data);
 		free(data);
 		model = kv6_model[free_slot];

@@ -29,7 +29,7 @@ extern(C) void ogl_overlay_rect_sub(void* texture, int texture_width, int textur
 extern(C) void ogl_overlay_finish();
 extern(C) int ogl_overlay_bind_fullness();
 extern(C) void ogl_display_min();
-extern(C) void ogl_render_sprite(char* filename, float x, float y, float z, int xsiz, int ysiz, int zsiz, float dx, float dy, float dz, float rx, float ry, float rz);
+extern(C) void ogl_render_sprite(ubyte* filename, float x, float y, float z, int xsiz, int ysiz, int zsiz, float dx, float dy, float dz, float rx, float ry, float rz);
 extern(C) void ogl_render_3d_box(float x, float y, float z, float size, uint color);
 extern(C) void ogl_render_hole(float x, float y, float z, float size, uint color, ubyte side);
 extern(C) int ogl_kv6_bind_fullness();
@@ -45,7 +45,7 @@ immutable float Renderer_SmokeRenderSpeed=1.0;
 bool ogl_chunks_invalid = false;
 
 void Renderer_Init(){
-	SDL_GL_SetAttribute(SDL_GL_RED_SIZE,8);
+	/*SDL_GL_SetAttribute(SDL_GL_RED_SIZE,8);
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE,8);
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,8);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,24);
@@ -53,7 +53,7 @@ void Renderer_Init(){
 
 	SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE,4);
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS,1);
-	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES,16);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES,16);*/
 }
 
 void Renderer_SetUp(uint screen_xsize, uint screen_ysize) {
@@ -182,10 +182,10 @@ void Renderer_SetBlur(float amount) {
 
 }
 
-uint Voxel_GetHighestY(uint x, uint y, uint z){
-	for(y=0;y<MapYSize; y++){
-		if(Voxel_IsSolid(x, y, z)){
-			return y;
+uint Voxel_GetHighestY(Tx, Ty, Tz)(Tx x, Ty y, Tz z){
+	for(uint y2=cast(uint)y;y2<MapYSize; y2++){
+		if(Voxel_IsSolid(cast(uint)x, cast(uint)y2, cast(uint)z)){
+			return y2;
 		}
 	}
 	return 0;
@@ -225,8 +225,26 @@ void Voxel_Remove(uint x, uint y, uint z){
 	ogl_map_set(x,64-y-1,z,0xFFFFFFFF);
 }
 
+void Renderer_DrawSprite(SpriteRenderData_t *sprrend, Vector3_t pos, Vector3_t rotation){
+	Sprite_t spr;
+	spr.model=sprrend.model;
+	spr.pos=pos; spr.rot=rotation; spr.density=sprrend.size/Vector3_t(spr.model.size);
+	spr.color_mod=sprrend.color_mod; spr.replace_black=sprrend.replace_black;
+	spr.brightness=sprrend.brightness; spr.check_visibility=sprrend.check_visibility;
+	return Renderer_DrawSprite(&spr);
+}
+
+struct _Renderer_ModelAttachment_t{
+	ubyte[] raw_model;
+}
+alias Renderer_ModelAttachment_t=_Renderer_ModelAttachment_t;
+
 void Renderer_DrawSprite(Sprite_t *spr){
-	ogl_render_sprite(cast(char*)spr.model.filename.ptr,spr.xpos,64.0F-spr.ypos,spr.zpos,spr.model.xsize,spr.model.ysize,spr.model.zsize,spr.xdensity,spr.ydensity,spr.zdensity,spr.rhe,-spr.rti+90.0F,spr.rst);
+	if(!spr.model.renderer_attachment.raw_model.length){
+		spr.model.renderer_attachment.raw_model=spr.model.to!"KV6"();
+	}
+	import std.conv, std.string;
+	ogl_render_sprite(spr.model.renderer_attachment.raw_model.ptr,spr.xpos,64.0F-spr.ypos,spr.zpos,spr.model.xsize,spr.model.ysize,spr.model.zsize,spr.xdensity,spr.ydensity,spr.zdensity,spr.rhe,-spr.rti+90.0F,spr.rst);
 }
 
 void Renderer_DrawWireframe(Sprite_t *spr) {
@@ -238,131 +256,22 @@ void Renderer_SetFog(uint fogcolor, uint fogrange){
 
 alias RendererParticleSize_t=float;
 
-extern(C) struct ModelVoxel_t {
-	uint color;
-	ushort ypos;
-	char visiblefaces, normalindex;
-}
-
-extern(C){
-	struct Model_t{
-		int xsize, ysize, zsize;
-		float xpivot, ypivot, zpivot;
-		Model_t *lowermip;
-		ModelVoxel_t[] voxels;
-		uint[] offsets;
-		ushort[] column_lengths;
-		string filename;
-		Model_t *copy(){
-			Model_t *newmodel=new Model_t;
-			newmodel.xsize=xsize; newmodel.ysize=ysize; newmodel.zsize=zsize;
-			newmodel.xpivot=xpivot; newmodel.ypivot=ypivot; newmodel.zpivot=zpivot;
-			newmodel.lowermip=lowermip;
-			newmodel.voxels.length=voxels.length; newmodel.voxels[]=voxels[];
-			newmodel.offsets.length=offsets.length; newmodel.offsets[]=offsets[];
-			newmodel.column_lengths.length=column_lengths.length; newmodel.column_lengths[]=column_lengths[];
-			return newmodel;
-		}
+import std.random;
+void Renderer_Draw3DParticle(alias hole_side=false)(float x, float y, float z, RendererParticleSize_t sx, RendererParticleSize_t sy, RendererParticleSize_t sz, uint col) {
+	static if(hole_side!=false && 0){
+		ubyte hole_side=uniform!ubyte();
+		if(x==cast(int)x)
+			hole_side=0;
+		else if(y==cast(int)y)
+			hole_side=1;
+		else if(z==cast(int)z)
+			hole_side=2;
+		ogl_render_hole(x,64.0F-y,z,0.1F,col,hole_side);
 	}
-
-	struct Sprite_t{
-		float rhe, rti, rst;
-		union{
-			struct{
-				float xpos, ypos, zpos;
-			}
-			Vector3_t pos;
-		}
-		float xdensity, ydensity, zdensity;
-		uint color_mod, replace_black;
-		ubyte brightness;
-		ubyte check_visibility;
-		Model_t *model;
+	else{
+		ogl_render_3d_box(x,64.0F-y+0.05F,z,(sx+sy+sz)/3.0F,col);
 	}
 }
-
-int freadptr(void *buf, uint bytes, File f){
-	if(!buf){
-		writeflnlog("freadptr called with void buffer");
-		return 0;
-	}
-	return cast(int)cstdio_fread(buf, bytes, 1u, f.getFP());
-}
-
-Model_t *Load_KV6(string fname){
-	File f=File(fname, "rb");
-	if(!f.isOpen()){
-		writeflnerr("Couldn't open %s", fname);
-		return null;
-	}
-	string fileid;
-	fileid.length=4;
-	freadptr(cast(void*)fileid.ptr, 4, f);
-	if(fileid!="Kvxl"){
-		writeflnerr("Model file %s is not a valid KV6 file (wrong header)", fname);
-		return null;
-	}
-	Model_t *model=new Model_t;
-	model.filename=fname;
-	freadptr(&model.xsize, 4, f); freadptr(&model.zsize, 4, f); freadptr(&model.ysize, 4, f);
-	if(model.xsize<0 || model.ysize<0 || model.zsize<0){
-		writeflnerr("Model file %s has invalid size (%d|%d|%d)", fname, model.xsize, model.ysize, model.zsize);
-		return null;
-	}
-	freadptr(&model.xpivot, 4, f); freadptr(&model.zpivot, 4, f); freadptr(&model.ypivot, 4, f);
-	int voxelcount;
-	freadptr(&voxelcount, voxelcount.sizeof, f);
-	if(voxelcount<0){
-		writeflnerr("Model file %s has invalid voxel count (%d)", fname, voxelcount);
-		return null;
-	}
-	model.voxels=new ModelVoxel_t[](voxelcount);
-	for(uint i=0; i<voxelcount; i++){
-		freadptr(&model.voxels[i], model.voxels[i].sizeof, f);
-	}
-	auto xlength=new uint[](model.xsize);
-	for(uint x=0; x<model.xsize; x++)
-		freadptr(&xlength[x], 4, f);
-	auto ylength=new ushort[][](model.xsize, model.zsize);
-	for(uint x=0; x<model.xsize; x++)
-		for(uint z=0; z<model.zsize; z++)
-			freadptr(&ylength[x][z], 2, f);
-	model.offsets.length=model.xsize*model.zsize;
-	model.column_lengths.length=model.offsets.length;
-	typeof(model.offsets[0]) voxel_xindex=0;
-	for(uint x=0; x<model.xsize; x++){
-		auto voxel_zindex=voxel_xindex;
-		for(uint z=0; z<model.zsize; z++){
-			model.offsets[x+z*model.xsize]=voxel_zindex;
-			model.column_lengths[x+z*model.xsize]=ylength[x][z];
-			voxel_zindex+=ylength[x][z];
-		}
-		voxel_xindex+=xlength[x];
-	}
-	string palette;
-	palette.length=4;
-	freadptr(cast(void*)palette.ptr, 4, f);
-	if(!f.eof()){
-		if(palette=="SPal"){
-			writeflnlog("Note: File %s contains a useless suggested palette block (SLAB6)", fname);
-		}
-		else{
-			writeflnlog("Warning: File %s contains invalid data after its ending (corrupted file?)", fname);
-			writeflnlog("KV6 size: (%d|%d|%d), pivot: (%d|%d|%d), amount of voxels: %d", model.xsize, model.ysize, model.zsize, 
-			model.xpivot, model.ypivot, model.zpivot, voxelcount);
-		}
-	}
-	f.close();
-	return model;
-}
-
-void Renderer_Draw3DParticle(float x, float y, float z, RendererParticleSize_t sx, RendererParticleSize_t sy, RendererParticleSize_t sz, uint col) {
-	ogl_render_3d_box(x,64.0F-y+0.05F,z,(sx+sy+sz)/3.0F,col);
-}
-
-/*void Renderer_Draw3DBlockDamage(float x, float y, float z, uint col, ubyte side) {
-	ogl_render_hole(x,64.0F-y,z,0.1F,col,side);
-}*/
 
 void Renderer_Draw3DParticle(Vector3_t *pos, RendererParticleSize_t sx, RendererParticleSize_t sy, RendererParticleSize_t sz, uint col){
 	return Renderer_Draw3DParticle(pos.x, pos.y, pos.z, sx, sy, sz, col);

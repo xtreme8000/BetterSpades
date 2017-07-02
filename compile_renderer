@@ -1,0 +1,2 @@
+#!/bin/bash
+gcc -g -std=c99 -c -I./include -Ofast -mmmx -msse -msse2 -msse3 main.c -o ogl.o
