@@ -1813,7 +1813,7 @@ void chunk_update_all() {
 			}
 			chunk_display_lists[chunk_geometry_rebuild_state] = glGenLists(1);
 			chunk_max_height[chunk_geometry_rebuild_state] = chunk_generate(chunk_display_lists[chunk_geometry_rebuild_state], chunk_x, chunk_y);
-			chunk_last_update[chunk_geometry_rebuild_state] = glutGet(GLUT_ELAPSED_TIME);
+			chunk_last_update[chunk_geometry_rebuild_state] = glfwGetTime();
 			printf("Generating chunks %.1f\n",((float)chunk_geometry_rebuild_state/(float)(CHUNKS_PER_DIM*CHUNKS_PER_DIM))*100.0F);
 			chunk_geometry_rebuild_state++;
 			if(chunk_geometry_rebuild_state==CHUNKS_PER_DIM*CHUNKS_PER_DIM) {
@@ -1833,7 +1833,7 @@ void chunk_update_all() {
 			}
 			chunk_display_lists[chunk_geometry_changed[k]] = glGenLists(1);
 			chunk_max_height[chunk_geometry_changed[k]] = chunk_generate(chunk_display_lists[chunk_geometry_changed[k]], chunk_x, chunk_y);
-			chunk_last_update[chunk_geometry_changed[k]] = glutGet(GLUT_ELAPSED_TIME);
+			chunk_last_update[chunk_geometry_changed[k]] = glfwGetTime();
 			/*for(int l=0;l<((chunk_max_height[chunk_geometry_changed[k]]+(CHUNK_SIZE-1))/CHUNK_SIZE);l++) {
 				int needs_update = chunk_geometry_changed[k]-CHUNKS_PER_DIM*(l+1);
 				int j;
@@ -1860,7 +1860,7 @@ void chunk_update_all() {
 			chunk_display_lists[chunk_lighting_changed[k]] = glGenLists(1);
 			//chunk_display_lists_shadowed[chunk_lighting_changed[k]] = glGenLists(1);
 			chunk_max_height[chunk_lighting_changed[k]] = chunk_generate(chunk_display_lists[chunk_lighting_changed[k]], chunk_x, chunk_y);
-			chunk_last_update[chunk_lighting_changed[k]] = glutGet(GLUT_ELAPSED_TIME);
+			chunk_last_update[chunk_lighting_changed[k]] = glfwGetTime();
 		}
 		chunk_lighting_changed_lenght = 0;
 	}

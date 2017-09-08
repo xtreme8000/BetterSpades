@@ -1,3 +1,20 @@
+void camera_apply(float dt) {
+	switch(camera_mode) {
+		case CAMERAMODE_FPS:
+			cameracontroller_fps(dt);
+			break;
+		case CAMERAMODE_BODYVIEW:
+			cameracontroller_bodyview(dt);
+			break;
+		case CAMERAMODE_SPECTATOR:
+			cameracontroller_spectator(dt);
+			break;
+		case CAMERAMODE_SELECTION:
+			cameracontroller_selection(dt);
+			break;
+	}
+}
+
 int* camera_terrain_pick(unsigned char mode) {
 	//naive approach until I find something better without glitches
 	float x = camera_x;
@@ -6,7 +23,7 @@ int* camera_terrain_pick(unsigned char mode) {
 	float ray_x = sin(camera_rot_x)*sin(camera_rot_y)*0.01F;
 	float ray_y = cos(camera_rot_y)*0.01F;
 	float ray_z = cos(camera_rot_x)*sin(camera_rot_y)*0.01F;
-	
+
 	if(mode==0) {
 		unsigned long long now,next;
 		for(int k=0;k<2000;k++) {

@@ -2,8 +2,8 @@ typedef struct {
 	float x,y,z;
 	float vx,vy,vz;
 	float size;
-	long created;
-	long fade;
+	float created;
+	float fade;
 	unsigned int color;
 	boolean alive;
 } Particle;

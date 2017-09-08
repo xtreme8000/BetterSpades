@@ -1,22 +1,29 @@
 #pragma pack(push,1)
 
+#define PACKET_POSITIONDATA_ID 0
 struct PacketPositionData {
 	float x,y,z;
 };
 
+#define PACKET_ORIENTATIONDATA_ID 1
 struct PacketOrientationData {
 	float x,y,z;
 };
 
 struct PacketWorldUpdate {
-	struct { float x,y,z,ox,oy,oz; } players[32];
+	struct {
+		float x,y,z;
+		float ox,oy,oz;
+	} players[32];
 };
 
+#define PACKET_INPUTDATA_ID 3
 struct PacketInputData {
 	unsigned char player_id;
 	unsigned char keys;
 };
 
+#define PACKET_WEAPONINPUT_ID 4
 struct PacketWeaponInput {
 	unsigned char player_id;
 	unsigned char primary : 1;
@@ -28,6 +35,20 @@ struct PacketSetHP {
 	unsigned char type;
 	float x,y,z;
 };
+
+struct PacketKillAction {
+	unsigned char player_id;
+	unsigned char killer_id;
+	unsigned char kill_type;
+	unsigned char respawn_time;
+};
+#define KILLTYPE_WEAPON			0
+#define KILLTYPE_HEADSHOT		1
+#define KILLTYPE_MELEE			2
+#define KILLTYPE_GRENADE		3
+#define KILLTYPE_FALL			4
+#define KILLTYPE_TEAMCHANGE		5
+#define KILLTYPE_CLASSCHANGE	6
 
 struct PacketGrenade {
 	unsigned char player_id;
@@ -44,6 +65,7 @@ struct PacketPlayerLeft {
 	unsigned char player_id;
 };
 
+#define PACKET_EXISTINGPLAYER_ID 9
 struct PacketExistingPlayer {
 	unsigned char player_id;
 	unsigned char team;
@@ -98,6 +120,7 @@ struct PacketSetTool {
 #define TOOL_GUN		2
 #define TOOL_GRENADE	3
 
+#define PACKET_CHATMESSAGE_ID 17
 struct PacketChatMessage {
 	unsigned char player_id;
 	unsigned char chat_type;

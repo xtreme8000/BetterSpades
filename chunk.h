@@ -1,9 +1,12 @@
+#define CHUNK_SIZE 16
+#define CHUNKS_PER_DIM 32
+
 unsigned char chunk_geometry_rebuild = 1;
 int chunk_geometry_rebuild_state = 0;
 
 int chunk_display_lists[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
 int chunk_max_height[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
-int chunk_last_update[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
+float chunk_last_update[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
 
 int chunk_geometry_changed[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
 int chunk_geometry_changed_lenght = 0;
