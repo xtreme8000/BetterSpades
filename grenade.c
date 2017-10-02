@@ -29,15 +29,16 @@ int grenade_clipworld(int x, int y, int z) {
 int grenade_move(struct Grenade* g, float dt) {
     float tmp;
     tmp = g->pos.z;
-    g->pos.z = 63-g->pos.y;
+    g->pos.z = 63.0F-g->pos.y;
     g->pos.y = tmp;
     tmp = g->velocity.z;
     g->velocity.z = -g->velocity.y;
     g->velocity.y = tmp;
 
     struct Position fpos = g->pos; //old position
+
     //do velocity & gravity (friction is negligible)
-    float f = dt*32;
+    float f = dt*32.0F;
     g->velocity.z += dt;
     g->pos.x += g->velocity.x*f;
     g->pos.y += g->velocity.y*f;
@@ -67,19 +68,19 @@ int grenade_move(struct Grenade* g, float dt) {
         int lp2y = floor(fpos.y);
         int lp2z = floor(fpos.z);
         if (lpz != lp2z && ((lpx == lp2x && lpy == lp2y) || !grenade_clipworld(lpx,lpy,lp2z)))
-            g->velocity.z = -g->velocity.z;
+            g->velocity.z *= -1;
         else if(lpx != lp2x && ((lpy == lp2y && lpz == lp2z) || !grenade_clipworld(lp2x,lpy,lpz)))
-            g->velocity.x = -g->velocity.x;
+            g->velocity.x *= -1;
         else if(lpy != lp2y && ((lpx == lp2x && lpz == lp2z) || !grenade_clipworld(lpx,lp2y,lpz)))
-            g->velocity.y = -g->velocity.y;
+            g->velocity.y *= -1;
         g->pos = fpos; //set back to old position
-        g->velocity.x *= 0.36f;
-        g->velocity.y *= 0.36f;
-        g->velocity.z *= 0.36f;
+        g->velocity.x *= 0.36F;
+        g->velocity.y *= 0.36F;
+        g->velocity.z *= 0.36F;
     }
 
     tmp = g->pos.y;
-    g->pos.y = 63-g->pos.z;
+    g->pos.y = 63.0F-g->pos.z;
     g->pos.z = tmp;
     tmp = g->velocity.y;
     g->velocity.y = -g->velocity.z;
@@ -96,10 +97,11 @@ void grenade_update(float dt) {
                 grenades[k].active = 0;
             } else {
                 grenade_move(&grenades[k],dt);
-                AABB g;
-                aabb_set_size(&g,0.5F,0.5F,0.5F);
-                aabb_set_center(&g,grenades[k].pos.x,grenades[k].pos.y,grenades[k].pos.z);
-                aabb_render(&g);
+                //TODO: position grenade on ground properly
+                glPushMatrix();
+                glTranslatef(grenades[k].pos.x,grenades[k].pos.y+(model_grenade.zpiv+model_grenade.zsiz*2)*model_grenade.scale,grenades[k].pos.z);
+                kv6_render(&model_grenade,TEAM_1);
+                glPopMatrix();
             }
         }
     }

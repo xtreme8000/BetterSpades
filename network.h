@@ -1,3 +1,11 @@
+void network_send(int id, void* data, int len);
+void network_updateColor();
+void network_disconnect();
+int network_connect(char* ip, int port);
+void network_update();
+int network_status();
+void network_init();
+
 #pragma pack(push,1)
 
 #define PACKET_POSITIONDATA_ID 0
@@ -11,10 +19,8 @@ struct PacketOrientationData {
 };
 
 struct PacketWorldUpdate {
-	struct {
-		float x,y,z;
-		float ox,oy,oz;
-	} players[32];
+	float x,y,z;
+	float ox,oy,oz;
 };
 
 #define PACKET_INPUTDATA_ID 3
@@ -28,6 +34,12 @@ struct PacketWeaponInput {
 	unsigned char player_id;
 	unsigned char primary : 1;
 	unsigned char secondary : 1;
+};
+
+struct PacketWeaponReload {
+	unsigned char player_id;
+	unsigned char ammo;
+	unsigned char reserved;
 };
 
 struct PacketSetHP {
@@ -50,6 +62,11 @@ struct PacketKillAction {
 #define KILLTYPE_TEAMCHANGE		5
 #define KILLTYPE_CLASSCHANGE	6
 
+struct PacketRestock {
+	unsigned char player_id;
+};
+
+#define PACKET_GRENADE_ID 6
 struct PacketGrenade {
 	unsigned char player_id;
 	float fuse_length;
@@ -75,6 +92,10 @@ struct PacketExistingPlayer {
 	unsigned char blue,green,red;
 	char name[17];
 };
+#define WEAPON_RIFLE	0
+#define WEAPON_SMG		1
+#define WEAPON_SHOTGUN	2
+
 
 struct PacketCreatePlayer {
 	unsigned char player_id;
@@ -84,6 +105,7 @@ struct PacketCreatePlayer {
 	char name[17];
 };
 
+#define PACKET_BLOCKACTION_ID 13
 struct PacketBlockAction {
 	unsigned char player_id;
 	unsigned char action_type;
@@ -100,6 +122,7 @@ struct PacketBlockLine {
 	int ex,ey,ez;
 };
 
+#define PACKET_SETCOLOR_ID 8
 struct PacketSetColor {
 	unsigned char player_id;
 	unsigned char blue,green,red;
@@ -130,6 +153,15 @@ struct PacketChatMessage {
 #define CHAT_TEAM	1
 #define CHAT_SYSTEM	2
 
+struct PacketFogColor {
+	unsigned char alpha,red,green,blue;
+};
+
+struct PacketChangeWeapon {
+	unsigned char player_id;
+	unsigned char weapon;
+};
+
 struct PacketStateData {
 	unsigned char player_id;
 	unsigned char fog_blue,fog_green,fog_red;
@@ -139,7 +171,7 @@ struct PacketStateData {
 	char team_2_name[10];
 	unsigned char gamemode;
 
-	union {
+	union Gamemodes {
 		struct {
 			unsigned char team_1_score;
 			unsigned char team_2_score;
@@ -156,8 +188,12 @@ struct PacketStateData {
 				} dropped;
 			} team_1_intel_location;
 			union intel_location team_2_intel_location;
-			float team_1_base_x,team_1_base_y,team_1_base_z;
-			float team_2_base_x,team_2_base_y,team_2_base_z;
+			struct {
+				float x,y,z;
+			} team_1_base;
+			struct {
+				float x,y,z;
+			} team_2_base;
 		} ctf;
 
 		struct {

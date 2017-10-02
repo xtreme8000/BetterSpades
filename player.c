@@ -4,6 +4,142 @@
 #define WEAPON_PRIMARY 1
 #define FALL_DAMAGE_SCALAR 4096
 
+float player_swing_func(float x) {
+    x -= (int)x;
+    return (x<0.5F)?(x*4.0F-1.0F):(3.0F-x*4.0F);
+}
+
+float player_tool_func(struct Player* p) {
+    if(p==&players[local_player_id] && glfwGetTime()-p->item_showup<0.5F) {
+        return 45.0F-(glfwGetTime()-p->item_showup)*90.0F;
+    }
+    if(p->input.buttons.lmb) {
+        switch(p->held_item) {
+            case TOOL_SPADE:
+                return (player_swing_func((glfwGetTime()-p->input.buttons.lmb_start)*1.5F)+1.0F)/2.0F*45.0F;
+            case TOOL_GRENADE:
+                return max(-(glfwGetTime()-p->input.buttons.lmb_start)*35.0F,-35.0F);
+        }
+    }
+    return 0.0F;
+}
+
+void player_render(struct Player* p, int id) {
+    float time = glfwGetTime()*1000.0F;
+
+    struct kv6_t* torso = p->input.keys.crouch?&model_playertorsoc:&model_playertorso;
+    struct kv6_t* leg = p->input.keys.crouch?&model_playerlegc:&model_playerleg;
+    float height = p->input.keys.crouch?0.8F:0.9F;
+
+    if(id!=local_player_id || !p->alive) {
+        glPushMatrix();
+        glTranslatef(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
+        matrix_pointAt(p->orientation.x,p->orientation.y,p->orientation.z);
+        glRotatef(90.0F,0.0F,1.0F,0.0F);
+        kv6_render(&model_playerhead,p->team);
+        glPopMatrix();
+
+        glPushMatrix();
+        glTranslatef(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
+        matrix_pointAt(p->orientation.x,0.0F,p->orientation.z);
+        glRotatef(90.0F,0.0F,1.0F,0.0F);
+        kv6_render(torso,p->team);
+        glPopMatrix();
+
+        /*if(map.gamemode==PacketStateData.STATE_CTF) {
+            mat4.translate(mov_matrix,mov_matrix,[0.0,-models.playerhead.zsiz*0.125-torso.zsiz*0.125*0.125,-torso.ysiz*0.125]);
+            if(player.team==0 && "player" in map.gamestate.team_2_intel && map.players[map.gamestate.team_2_intel.player]==player) {
+                models.intel.draw(0,0,0,0.125,1);
+            }
+            if(player.team==1 && "player" in map.gamestate.team_1_intel && map.players[map.gamestate.team_1_intel.player]==player) {
+                models.intel.draw(0,0,0,0.125,0);
+            }
+        }*/
+
+        glPushMatrix();
+        glTranslatef(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
+        matrix_pointAt(p->orientation.x,0.0F,p->orientation.z);
+        glRotatef(90.0F,0.0F,1.0F,0.0F);
+        glTranslatef(torso->xsiz*0.1F*0.5F-leg->xsiz*0.1F*0.5F,-torso->zsiz*0.1F*(p->input.keys.crouch?0.6F:1.0F),p->input.keys.crouch?(-torso->zsiz*0.1F*0.75F):0.0F);
+        if(p->input.keys.up || p->input.keys.down) {
+            glRotatef(45.0F*sin(time*0.005F),1.0F,0.0F,0.0F);
+        }
+        if(p->input.keys.left || p->input.keys.right) {
+            glRotatef(45.0F*sin(time*0.005F),0.0F,0.0F,1.0F);
+        }
+        kv6_render(leg,p->team);
+        glPopMatrix();
+
+        glPushMatrix();
+        glTranslatef(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
+        matrix_pointAt(p->orientation.x,0.0F,p->orientation.z);
+        glRotatef(90.0F,0.0F,1.0F,0.0F);
+        glTranslatef(-torso->xsiz*0.1F*0.5F+leg->xsiz*0.1F*0.5F,-torso->zsiz*0.1F*(p->input.keys.crouch?0.6F:1.0F),p->input.keys.crouch?(-torso->zsiz*0.1F*0.75F):0.0F);
+        if(p->input.keys.up || p->input.keys.down) {
+            glRotatef(-45.0F*sin(time*0.005F),1.0F,0.0F,0.0F);
+        }
+        if(p->input.keys.left || p->input.keys.right) {
+            glRotatef(-45.0F*sin(time*0.005F),0.0F,0.0F,1.0F);
+        }
+        kv6_render(leg,p->team);
+        glPopMatrix();
+    }
+
+    glPushMatrix();
+    glTranslatef(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
+    matrix_pointAt(p->orientation.x,p->orientation.y,p->orientation.z);
+    glRotatef(90.0F,0.0F,1.0F,0.0F);
+    if(p->input.keys.crouch) {
+        glTranslatef(0.0F,-2*0.1F,-3*0.1F);
+    } else {
+        glTranslatef(0.0F,-2*0.1F,-1*0.1F);
+    }
+
+    if(id==local_player_id && p->alive) {
+        float speed = sqrt(pow(p->physics.velocity.x,2)+pow(p->physics.velocity.z,2))/0.25F;
+        glTranslatef(0.0F,0.0F,0.1F*player_swing_func(time/1000.0F)*speed);
+    }
+
+    if(p->input.keys.sprint && !p->input.keys.crouch) {
+        glRotatef(45.0F,1.0F,0.0F,0.0F);
+    }
+    /*if(p->input.buttons.lmb || p->input.buttons.rmb) {
+        glRotatef(22.5F*player_spade_func(glfwGetTime()-p->input.buttons.lmb_start),1.0F,0.0F,0.0F);
+    }*/
+    glRotatef(player_tool_func(p),1.0F,0.0F,0.0F);
+    if(id!=local_player_id || settings.player_arms) {
+        kv6_render(&model_playerarms,p->team);
+    }
+
+    glTranslatef(-3.5F*0.1F+0.01F,0.0F,10*0.1F);
+    switch(p->held_item) {
+        case TOOL_SPADE:
+            kv6_render(&model_spade,p->team);
+            break;
+        case TOOL_BLOCK:
+            //models.block.setColor((player.block.color>>16)&255,(player.block.color>>8)&255,player.block.color&255);
+            kv6_render(&model_block,p->team);
+            break;
+        case TOOL_GUN:
+            switch(p->weapon) {
+                case WEAPON_RIFLE:
+                    kv6_render(&model_semi,p->team);
+                    break;
+                case WEAPON_SMG:
+                    kv6_render(&model_smg,p->team);
+                    break;
+                case WEAPON_SHOTGUN:
+                    kv6_render(&model_shotgun,p->team);
+                    break;
+            }
+            break;
+        case TOOL_GRENADE:
+            kv6_render(&model_grenade,p->team);
+            break;
+    }
+    glPopMatrix();
+}
+
 int player_clipbox(float x, float y, float z) {
     int sz;
 
@@ -172,9 +308,8 @@ int player_move(struct Player* p, float fsynctics) {
     float f, f2;
 
 	//move player and perform simple physics (gravity, momentum, friction)
-	if(p->input.keys.jump)
-	{
-		p->input.keys.jump = 0;
+	if(p->physics.jump) {
+		p->physics.jump = 0;
 		p->physics.velocity.z = -0.36f;
 	}
 

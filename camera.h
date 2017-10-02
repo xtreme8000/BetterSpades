@@ -8,7 +8,7 @@ unsigned char camera_mode = CAMERAMODE_SPECTATOR;
 float frustum[6][4];
 float camera_rot_x = 2.04F, camera_rot_y = 1.79F;
 float camera_x = 256.0F, camera_y = 60.0F, camera_z = 256.0F;
-float camera_fov = 75.0F;
+float camera_fov = 70.0F;
 float camera_size = 0.8F;
 float camera_height = 0.8F;
 float camera_eye_height = 0.0F;

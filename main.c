@@ -21,6 +21,12 @@
 #include <stdio.h>
 #include "GL/glext.h"
 
+#define PI			3.1415F
+#define DOUBLEPI	(PI*2.0F)
+#define EPSILON		0.005F
+
+#define MOUSE_SENSITIVITY 0.002F
+
 #ifndef min
 #define min(a,b) ((a)<(b)?(a):(b))
 #endif
@@ -32,6 +38,11 @@ typedef unsigned char boolean;
 #define true 1
 #define false 0
 
+#define rgb(r,g,b) (((b)<<16)|((g)<<8)|(r))
+
+#include "lodepng/lodepng.h"
+#include "lodepng/lodepng.c"
+
 #include "chunk.h"
 #include "map.h"
 #include "model.h"
@@ -39,10 +50,13 @@ typedef unsigned char boolean;
 #include "camera.h"
 #include "aabb.h"
 #include "particle.h"
+#include "network.h"
 #include "player.h"
 #include "grenade.h"
 #include "cameracontroller.h"
-#include "network.h"
+#include "font.h"
+#include "texture.h"
+#include "weapon.h"
 
 struct RENDER_OPTIONS {
 	boolean opengl14;
@@ -53,10 +67,12 @@ struct RENDER_OPTIONS {
 	int window_width;
 	int window_height;
 	unsigned char multisamples;
+	unsigned char player_arms;
 } settings;
 
 int uniform_point_size, uniform_near_plane_height, uniform_camera_x, uniform_camera_z, uniform_fog_distance, uniform_map_size_x, uniform_map_size_z, uniform_fog_color, uniform_setting_color_correction, uniform_draw_ui;
 unsigned char key_map[512];
+unsigned char button_map[3];
 unsigned char draw_outline = 0;
 
 PFNGLPOINTPARAMETERFVPROC glPointParameterfv;
@@ -74,6 +90,8 @@ PFNGLUNIFORM4FPROC glUniform4f;
 PFNGLUNIFORM1IPROC glUniform1i;
 PFNGLTEXIMAGE3DPROC glTexImage3D;
 
+void matrix_pointAt(float dx, float dy, float dz);
+
 #include "map.c"
 #include "chunk.c"
 #include "model.c"
@@ -85,8 +103,12 @@ PFNGLTEXIMAGE3DPROC glTexImage3D;
 #include "grenade.c"
 #include "cameracontroller.c"
 #include "network.c"
+#include "font.c"
+#include "texture.c"
+#include "weapon.c"
 
-unsigned char color_correction[] = {16,23,36,20,23,36,36,23,36,59,23,36,90,23,36,138,23,36,174,23,36,199,23,36,212,23,36,221,23,36,228,23,36,233,23,36,238,23,36,239,23,36,243,23,36,246,23,36,16,23,36,20,23,36,36,23,36,59,23,36,90,23,36,138,23,36,174,23,36,199,23,36,212,23,36,221,23,36,228,23,36,233,23,36,238,23,36,239,23,36,243,23,36,246,23,36,16,36,36,20,36,36,36,36,36,59,36,36,90,36,36,138,36,36,174,36,36,199,36,36,212,36,36,221,36,36,228,36,36,233,36,36,238,36,36,239,36,36,243,36,36,246,36,36,16,50,36,20,50,36,36,50,36,59,50,36,90,50,36,138,50,36,174,50,36,199,50,36,212,50,36,221,50,36,228,50,36,233,50,36,238,50,36,239,50,36,243,50,36,246,50,36,16,68,36,20,68,36,36,68,36,59,68,36,90,68,36,138,68,36,174,68,36,199,68,36,212,68,36,221,68,36,228,68,36,233,68,36,238,68,36,239,68,36,243,68,36,246,68,36,16,93,36,20,93,36,36,93,36,59,93,36,90,93,36,138,93,36,174,93,36,199,93,36,212,93,36,221,93,36,228,93,36,233,93,36,238,93,36,239,93,36,243,93,36,246,93,36,16,127,36,20,127,36,36,127,36,59,127,36,90,127,36,138,127,36,174,127,36,199,127,36,212,127,36,221,127,36,228,127,36,233,127,36,238,127,36,239,127,36,243,127,36,246,127,36,16,166,36,20,166,36,36,166,36,59,166,36,90,166,36,138,166,36,174,166,36,199,166,36,212,166,36,221,166,36,228,166,36,233,166,36,238,166,36,239,166,36,243,166,36,246,166,36,16,194,36,20,194,36,36,194,36,59,194,36,90,194,36,138,194,36,174,194,36,199,194,36,212,194,36,221,194,36,228,194,36,233,194,36,238,194,36,239,194,36,243,194,36,246,194,36,16,213,36,20,213,36,36,213,36,59,213,36,90,213,36,138,213,36,174,213,36,199,213,36,212,213,36,221,213,36,228,213,36,233,213,36,238,213,36,239,213,36,243,213,36,246,213,36,16,223,36,20,223,36,36,223,36,59,223,36,90,223,36,138,223,36,174,223,36,199,223,36,212,223,36,221,223,36,228,223,36,233,223,36,238,223,36,239,223,36,243,223,36,246,223,36,16,230,36,20,230,36,36,230,36,59,230,36,90,230,36,138,230,36,174,230,36,199,230,36,212,230,36,221,230,36,228,230,36,233,230,36,238,230,36,239,230,36,243,230,36,246,230,36,16,236,36,20,236,36,36,236,36,59,236,36,90,236,36,138,236,36,174,236,36,199,236,36,212,236,36,221,236,36,228,236,36,233,236,36,238,236,36,239,236,36,243,236,36,246,236,36,16,240,36,20,240,36,36,240,36,59,240,36,90,240,36,138,240,36,174,240,36,199,240,36,212,240,36,221,240,36,228,240,36,233,240,36,238,240,36,239,240,36,243,240,36,246,240,36,16,243,36,20,243,36,36,243,36,59,243,36,90,243,36,138,243,36,174,243,36,199,243,36,212,243,36,221,243,36,228,243,36,233,243,36,238,243,36,239,243,36,243,243,36,246,243,36,16,246,36,20,246,36,36,246,36,59,246,36,90,246,36,138,246,36,174,246,36,199,246,36,212,246,36,221,246,36,228,246,36,233,246,36,238,246,36,239,246,36,243,246,36,246,246,36,
+unsigned char color_correction[] =
+									{16,23,36,20,23,36,36,23,36,59,23,36,90,23,36,138,23,36,174,23,36,199,23,36,212,23,36,221,23,36,228,23,36,233,23,36,238,23,36,239,23,36,243,23,36,246,23,36,16,23,36,20,23,36,36,23,36,59,23,36,90,23,36,138,23,36,174,23,36,199,23,36,212,23,36,221,23,36,228,23,36,233,23,36,238,23,36,239,23,36,243,23,36,246,23,36,16,36,36,20,36,36,36,36,36,59,36,36,90,36,36,138,36,36,174,36,36,199,36,36,212,36,36,221,36,36,228,36,36,233,36,36,238,36,36,239,36,36,243,36,36,246,36,36,16,50,36,20,50,36,36,50,36,59,50,36,90,50,36,138,50,36,174,50,36,199,50,36,212,50,36,221,50,36,228,50,36,233,50,36,238,50,36,239,50,36,243,50,36,246,50,36,16,68,36,20,68,36,36,68,36,59,68,36,90,68,36,138,68,36,174,68,36,199,68,36,212,68,36,221,68,36,228,68,36,233,68,36,238,68,36,239,68,36,243,68,36,246,68,36,16,93,36,20,93,36,36,93,36,59,93,36,90,93,36,138,93,36,174,93,36,199,93,36,212,93,36,221,93,36,228,93,36,233,93,36,238,93,36,239,93,36,243,93,36,246,93,36,16,127,36,20,127,36,36,127,36,59,127,36,90,127,36,138,127,36,174,127,36,199,127,36,212,127,36,221,127,36,228,127,36,233,127,36,238,127,36,239,127,36,243,127,36,246,127,36,16,166,36,20,166,36,36,166,36,59,166,36,90,166,36,138,166,36,174,166,36,199,166,36,212,166,36,221,166,36,228,166,36,233,166,36,238,166,36,239,166,36,243,166,36,246,166,36,16,194,36,20,194,36,36,194,36,59,194,36,90,194,36,138,194,36,174,194,36,199,194,36,212,194,36,221,194,36,228,194,36,233,194,36,238,194,36,239,194,36,243,194,36,246,194,36,16,213,36,20,213,36,36,213,36,59,213,36,90,213,36,138,213,36,174,213,36,199,213,36,212,213,36,221,213,36,228,213,36,233,213,36,238,213,36,239,213,36,243,213,36,246,213,36,16,223,36,20,223,36,36,223,36,59,223,36,90,223,36,138,223,36,174,223,36,199,223,36,212,223,36,221,223,36,228,223,36,233,223,36,238,223,36,239,223,36,243,223,36,246,223,36,16,230,36,20,230,36,36,230,36,59,230,36,90,230,36,138,230,36,174,230,36,199,230,36,212,230,36,221,230,36,228,230,36,233,230,36,238,230,36,239,230,36,243,230,36,246,230,36,16,236,36,20,236,36,36,236,36,59,236,36,90,236,36,138,236,36,174,236,36,199,236,36,212,236,36,221,236,36,228,236,36,233,236,36,238,236,36,239,236,36,243,236,36,246,236,36,16,240,36,20,240,36,36,240,36,59,240,36,90,240,36,138,240,36,174,240,36,199,240,36,212,240,36,221,240,36,228,240,36,233,240,36,238,240,36,239,240,36,243,240,36,246,240,36,16,243,36,20,243,36,36,243,36,59,243,36,90,243,36,138,243,36,174,243,36,199,243,36,212,243,36,221,243,36,228,243,36,233,243,36,238,243,36,239,243,36,243,243,36,246,243,36,16,246,36,20,246,36,36,246,36,59,246,36,90,246,36,138,246,36,174,246,36,199,246,36,212,246,36,221,246,36,228,246,36,233,246,36,238,246,36,239,246,36,243,246,36,246,246,36,
 									16,23,36,20,23,36,36,23,36,59,23,36,90,23,36,138,23,36,174,23,36,199,23,36,212,23,36,221,23,36,228,23,36,233,23,36,238,23,36,239,23,36,243,23,36,246,23,36,16,23,36,20,23,36,36,23,36,59,23,36,90,23,36,138,23,36,174,23,36,199,23,36,212,23,36,221,23,36,228,23,36,233,23,36,238,23,36,239,23,36,243,23,36,246,23,36,16,36,36,20,36,36,36,36,36,59,36,36,90,36,36,138,36,36,174,36,36,199,36,36,212,36,36,221,36,36,228,36,36,233,36,36,238,36,36,239,36,36,243,36,36,246,36,36,16,50,36,20,50,36,36,50,36,59,50,36,90,50,36,138,50,36,174,50,36,199,50,36,212,50,36,221,50,36,228,50,36,233,50,36,238,50,36,239,50,36,243,50,36,246,50,36,16,68,36,20,68,36,36,68,36,59,68,36,90,68,36,138,68,36,174,68,36,199,68,36,212,68,36,221,68,36,228,68,36,233,68,36,238,68,36,239,68,36,243,68,36,246,68,36,16,93,36,20,93,36,36,93,36,59,93,36,90,93,36,138,93,36,174,93,36,199,93,36,212,93,36,221,93,36,228,93,36,233,93,36,238,93,36,239,93,36,243,93,36,246,93,36,16,127,36,20,127,36,36,127,36,59,127,36,90,127,36,138,127,36,174,127,36,199,127,36,212,127,36,221,127,36,228,127,36,233,127,36,238,127,36,239,127,36,243,127,36,246,127,36,16,166,36,20,166,36,36,166,36,59,166,36,90,166,36,138,166,36,174,166,36,199,166,36,212,166,36,221,166,36,228,166,36,233,166,36,238,166,36,239,166,36,243,166,36,246,166,36,16,194,36,20,194,36,36,194,36,59,194,36,90,194,36,138,194,36,174,194,36,199,194,36,212,194,36,221,194,36,228,194,36,233,194,36,238,194,36,239,194,36,243,194,36,246,194,36,16,213,36,20,213,36,36,213,36,59,213,36,90,213,36,138,213,36,174,213,36,199,213,36,212,213,36,221,213,36,228,213,36,233,213,36,238,213,36,239,213,36,243,213,36,246,213,36,16,223,36,20,223,36,36,223,36,59,223,36,90,223,36,138,223,36,174,223,36,199,223,36,212,223,36,221,223,36,228,223,36,233,223,36,238,223,36,239,223,36,243,223,36,246,223,36,16,230,36,20,230,36,36,230,36,59,230,36,90,230,36,138,230,36,174,230,36,199,230,36,212,230,36,221,230,36,228,230,36,233,230,36,238,230,36,239,230,36,243,230,36,246,230,36,16,236,36,20,236,36,36,236,36,59,236,36,90,236,36,138,236,36,174,236,36,199,236,36,212,236,36,221,236,36,228,236,36,233,236,36,238,236,36,239,236,36,243,236,36,246,236,36,16,240,36,20,240,36,36,240,36,59,240,36,90,240,36,138,240,36,174,240,36,199,240,36,212,240,36,221,240,36,228,240,36,233,240,36,238,240,36,239,240,36,243,240,36,246,240,36,16,243,36,20,243,36,36,243,36,59,243,36,90,243,36,138,243,36,174,243,36,199,243,36,212,243,36,221,243,36,228,243,36,233,243,36,238,243,36,239,243,36,243,243,36,246,243,36,16,246,36,20,246,36,36,246,36,59,246,36,90,246,36,138,246,36,174,246,36,199,246,36,212,246,36,221,246,36,228,246,36,233,246,36,238,246,36,239,246,36,243,246,36,246,246,36,
 									16,23,43,20,23,43,36,23,43,59,23,43,90,23,43,138,23,43,174,23,43,199,23,43,212,23,43,221,23,43,228,23,43,233,23,43,238,23,43,239,23,43,243,23,43,246,23,43,16,23,43,20,23,43,36,23,43,59,23,43,90,23,43,138,23,43,174,23,43,199,23,43,212,23,43,221,23,43,228,23,43,233,23,43,238,23,43,239,23,43,243,23,43,246,23,43,16,36,43,20,36,43,36,36,43,59,36,43,90,36,43,138,36,43,174,36,43,199,36,43,212,36,43,221,36,43,228,36,43,233,36,43,238,36,43,239,36,43,243,36,43,246,36,43,16,50,43,20,50,43,36,50,43,59,50,43,90,50,43,138,50,43,174,50,43,199,50,43,212,50,43,221,50,43,228,50,43,233,50,43,238,50,43,239,50,43,243,50,43,246,50,43,16,68,43,20,68,43,36,68,43,59,68,43,90,68,43,138,68,43,174,68,43,199,68,43,212,68,43,221,68,43,228,68,43,233,68,43,238,68,43,239,68,43,243,68,43,246,68,43,16,93,43,20,93,43,36,93,43,59,93,43,90,93,43,138,93,43,174,93,43,199,93,43,212,93,43,221,93,43,228,93,43,233,93,43,238,93,43,239,93,43,243,93,43,246,93,43,16,127,43,20,127,43,36,127,43,59,127,43,90,127,43,138,127,43,174,127,43,199,127,43,212,127,43,221,127,43,228,127,43,233,127,43,238,127,43,239,127,43,243,127,43,246,127,43,16,166,43,20,166,43,36,166,43,59,166,43,90,166,43,138,166,43,174,166,43,199,166,43,212,166,43,221,166,43,228,166,43,233,166,43,238,166,43,239,166,43,243,166,43,246,166,43,16,194,43,20,194,43,36,194,43,59,194,43,90,194,43,138,194,43,174,194,43,199,194,43,212,194,43,221,194,43,228,194,43,233,194,43,238,194,43,239,194,43,243,194,43,246,194,43,16,213,43,20,213,43,36,213,43,59,213,43,90,213,43,138,213,43,174,213,43,199,213,43,212,213,43,221,213,43,228,213,43,233,213,43,238,213,43,239,213,43,243,213,43,246,213,43,16,223,43,20,223,43,36,223,43,59,223,43,90,223,43,138,223,43,174,223,43,199,223,43,212,223,43,221,223,43,228,223,43,233,223,43,238,223,43,239,223,43,243,223,43,246,223,43,16,230,43,20,230,43,36,230,43,59,230,43,90,230,43,138,230,43,174,230,43,199,230,43,212,230,43,221,230,43,228,230,43,233,230,43,238,230,43,239,230,43,243,230,43,246,230,43,16,236,43,20,236,43,36,236,43,59,236,43,90,236,43,138,236,43,174,236,43,199,236,43,212,236,43,221,236,43,228,236,43,233,236,43,238,236,43,239,236,43,243,236,43,246,236,43,16,240,43,20,240,43,36,240,43,59,240,43,90,240,43,138,240,43,174,240,43,199,240,43,212,240,43,221,240,43,228,240,43,233,240,43,238,240,43,239,240,43,243,240,43,246,240,43,16,243,43,20,243,43,36,243,43,59,243,43,90,243,43,138,243,43,174,243,43,199,243,43,212,243,43,221,243,43,228,243,43,233,243,43,238,243,43,239,243,43,243,243,43,246,243,43,16,246,43,20,246,43,36,246,43,59,246,43,90,246,43,138,246,43,174,246,43,199,246,43,212,246,43,221,246,43,228,246,43,233,246,43,238,246,43,239,246,43,243,246,43,246,246,43,
 									16,23,55,20,23,55,36,23,55,59,23,55,90,23,55,138,23,55,174,23,55,199,23,55,212,23,55,221,23,55,228,23,55,233,23,55,238,23,55,239,23,55,243,23,55,246,23,55,16,23,55,20,23,55,36,23,55,59,23,55,90,23,55,138,23,55,174,23,55,199,23,55,212,23,55,221,23,55,228,23,55,233,23,55,238,23,55,239,23,55,243,23,55,246,23,55,16,36,55,20,36,55,36,36,55,59,36,55,90,36,55,138,36,55,174,36,55,199,36,55,212,36,55,221,36,55,228,36,55,233,36,55,238,36,55,239,36,55,243,36,55,246,36,55,16,50,55,20,50,55,36,50,55,59,50,55,90,50,55,138,50,55,174,50,55,199,50,55,212,50,55,221,50,55,228,50,55,233,50,55,238,50,55,239,50,55,243,50,55,246,50,55,16,68,55,20,68,55,36,68,55,59,68,55,90,68,55,138,68,55,174,68,55,199,68,55,212,68,55,221,68,55,228,68,55,233,68,55,238,68,55,239,68,55,243,68,55,246,68,55,16,93,55,20,93,55,36,93,55,59,93,55,90,93,55,138,93,55,174,93,55,199,93,55,212,93,55,221,93,55,228,93,55,233,93,55,238,93,55,239,93,55,243,93,55,246,93,55,16,127,55,20,127,55,36,127,55,59,127,55,90,127,55,138,127,55,174,127,55,199,127,55,212,127,55,221,127,55,228,127,55,233,127,55,238,127,55,239,127,55,243,127,55,246,127,55,16,166,55,20,166,55,36,166,55,59,166,55,90,166,55,138,166,55,174,166,55,199,166,55,212,166,55,221,166,55,228,166,55,233,166,55,238,166,55,239,166,55,243,166,55,246,166,55,16,194,55,20,194,55,36,194,55,59,194,55,90,194,55,138,194,55,174,194,55,199,194,55,212,194,55,221,194,55,228,194,55,233,194,55,238,194,55,239,194,55,243,194,55,246,194,55,16,213,55,20,213,55,36,213,55,59,213,55,90,213,55,138,213,55,174,213,55,199,213,55,212,213,55,221,213,55,228,213,55,233,213,55,238,213,55,239,213,55,243,213,55,246,213,55,16,223,55,20,223,55,36,223,55,59,223,55,90,223,55,138,223,55,174,223,55,199,223,55,212,223,55,221,223,55,228,223,55,233,223,55,238,223,55,239,223,55,243,223,55,246,223,55,16,230,55,20,230,55,36,230,55,59,230,55,90,230,55,138,230,55,174,230,55,199,230,55,212,230,55,221,230,55,228,230,55,233,230,55,238,230,55,239,230,55,243,230,55,246,230,55,16,236,55,20,236,55,36,236,55,59,236,55,90,236,55,138,236,55,174,236,55,199,236,55,212,236,55,221,236,55,228,236,55,233,236,55,238,236,55,239,236,55,243,236,55,246,236,55,16,240,55,20,240,55,36,240,55,59,240,55,90,240,55,138,240,55,174,240,55,199,240,55,212,240,55,221,240,55,228,240,55,233,240,55,238,240,55,239,240,55,243,240,55,246,240,55,16,243,55,20,243,55,36,243,55,59,243,55,90,243,55,138,243,55,174,243,55,199,243,55,212,243,55,221,243,55,228,243,55,233,243,55,238,243,55,239,243,55,243,243,55,246,243,55,16,246,55,20,246,55,36,246,55,59,246,55,90,246,55,138,246,55,174,246,55,199,246,55,212,246,55,221,246,55,228,246,55,233,246,55,238,246,55,239,246,55,243,246,55,246,246,55,
@@ -145,9 +167,39 @@ float drawScene() {
 	glEnableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_VERTEX_ARRAY);
 	float r = chunk_draw_visible();
-
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
+
+	if(gamestate.gamemode_type==GAMEMODE_CTF) {
+		if(!gamestate.gamemode.ctf.team_1_intel) {
+			glPushMatrix();
+			glTranslatef(gamestate.gamemode.ctf.team_1_intel_location.dropped.x,
+						 63.0F-gamestate.gamemode.ctf.team_1_intel_location.dropped.z,
+						 gamestate.gamemode.ctf.team_1_intel_location.dropped.y);
+			kv6_render(&model_intel,TEAM_1);
+			glPopMatrix();
+		}
+		if(!gamestate.gamemode.ctf.team_2_intel) {
+			glPushMatrix();
+			glTranslatef(gamestate.gamemode.ctf.team_2_intel_location.dropped.x,
+						 63.0F-gamestate.gamemode.ctf.team_2_intel_location.dropped.z,
+						 gamestate.gamemode.ctf.team_2_intel_location.dropped.y);
+			kv6_render(&model_intel,TEAM_2);
+			glPopMatrix();
+		}
+		glPushMatrix();
+		glTranslatef(gamestate.gamemode.ctf.team_1_base.x,
+					 63.0F-gamestate.gamemode.ctf.team_1_base.z,
+					 gamestate.gamemode.ctf.team_1_base.y);
+		kv6_render(&model_tent,TEAM_1);
+		glPopMatrix();
+		glPushMatrix();
+		glTranslatef(gamestate.gamemode.ctf.team_2_base.x,
+					 63.0F-gamestate.gamemode.ctf.team_2_base.z,
+					 gamestate.gamemode.ctf.team_2_base.y);
+		kv6_render(&model_tent,TEAM_2);
+		glPopMatrix();
+	}
 
 	glShadeModel(GL_FLAT);
 	particle_render();
@@ -173,7 +225,6 @@ void matrix_pointAt(float dx, float dy, float dz) {
 }
 
 void display(float dt) {
-	float fog_color[] = {0.5F,0.9098F,1.0F,1.0F};
 	glClearColor(fog_color[0],fog_color[1],fog_color[2],fog_color[3]);
 
 	if(settings.opengl14) {
@@ -207,6 +258,9 @@ void display(float dt) {
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | (GL_STENCIL_BUFFER_BIT*settings.shadow_entities));
 
+	float last_cy = players[local_player_id].physics.eye.y;
+	player_move(&players[local_player_id],dt);
+
 	if(settings.opengl14) {
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
@@ -214,6 +268,15 @@ void display(float dt) {
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 		camera_apply(dt);
+
+		double view[16];
+		glGetDoublev(GL_MODELVIEW_MATRIX,view);
+		float light[4] = {1.0F,-3.0F,1.0F,0.0F};
+		mul_matrix_vector(map_sun,view,light);
+		float map_sun_len = sqrt(map_sun[0]*map_sun[0]+map_sun[1]*map_sun[1]+map_sun[2]*map_sun[2]);
+		map_sun[0] /= map_sun_len;
+		map_sun[1] /= map_sun_len;
+		map_sun[2] /= map_sun_len;
 	} else {
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
@@ -257,12 +320,58 @@ void display(float dt) {
 			per = drawScene();
 		}
 
+		grenade_update(dt);
+
+		if(players[local_player_id].items_show && glfwGetTime()-players[local_player_id].items_show_start>=0.5F) {
+			players[local_player_id].items_show = 0;
+		}
+
+		if(camera_mode==CAMERAMODE_FPS) {
+			weapon_update();
+			if(players[local_player_id].input.buttons.lmb
+				&& players[local_player_id].held_item==TOOL_BLOCK
+				&& (glfwGetTime()-players[local_player_id].item_showup)>=0.5F
+				&& local_player_blocks>0) {
+				int* pos = camera_terrain_pick(0);
+				if((int)pos!=0 && pos[1]>1) {
+					players[local_player_id].item_showup = glfwGetTime();
+					local_player_blocks = max(local_player_blocks-1,0);
+
+					struct PacketBlockAction blk;
+					blk.player_id = local_player_id;
+					blk.action_type = ACTION_BUILD;
+					blk.x = pos[0];
+					blk.y = pos[2];
+					blk.z = 63-pos[1];
+					network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
+				}
+			}
+		}
+
+		if(glfwGetTime()-players[local_player_id].item_disabled<0.3F) {
+			players[local_player_id].item_showup = glfwGetTime();
+			if(players[local_player_id].input.buttons.lmb) {
+				players[local_player_id].input.buttons.lmb_start = glfwGetTime();
+			}
+			if(players[local_player_id].input.buttons.rmb) {
+				players[local_player_id].input.buttons.rmb_start = glfwGetTime();
+			}
+		} else {
+			float tmp2 = players[local_player_id].physics.eye.y;
+			players[local_player_id].physics.eye.y = last_cy;
+			glDepthRange(0.0F,0.05F);
+			player_render(&players[local_player_id],local_player_id);
+			glDepthRange(0.0F,1.0F);
+			players[local_player_id].physics.eye.y = tmp2;
+		}
+
 		AABB test;
 		for(int k=0;k<32;k++) {
-			if(players[k].connected) {
+			if(players[k].connected && k!=local_player_id) {
 				if(players[k].alive) {
 					player_move(&players[k],dt);
 				}
+				player_render(&players[k],k);
 
 				if(players[k].alive) {
 					glColor3f(1.0F,1.0F,1.0F);
@@ -349,6 +458,8 @@ void display(float dt) {
 		glUniform1i(uniform_draw_ui, true);
 	}
 
+	glDisable(GL_DEPTH_TEST);
+
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gluOrtho2D(-1.0F,1.0F,-1.0F,1.0F);
@@ -397,6 +508,143 @@ void display(float dt) {
 	glVertex2f(1.0F,1.1F);
 	glEnd();
 
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	glOrtho(0.0F,settings.window_width,0.0F,settings.window_height,-1.0F,1.0F);
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+	if(camera_mode==CAMERAMODE_FPS) {
+		float scalef = settings.window_height/600.0F;
+
+		if(local_player_health<=30) {
+			glColor3f(1,0,0);
+		} else {
+			glColor3f(1,1,1);
+		}
+		char hp[4];
+		sprintf(hp,"%i",local_player_health);
+		font_render(settings.window_width/2.0F-font_length(53.0F*scalef,hp),53.0F*scalef,53.0F*scalef,hp);
+		texture_draw(&texture_health,settings.window_width/2.0F,44.0F*scalef,32.0F*scalef,32.0F*scalef);
+
+		if(players[local_player_id].held_item==TOOL_GRENADE && local_player_grenades==0) {
+			players[local_player_id].held_item--;
+		}
+		if(players[local_player_id].held_item==TOOL_GUN && local_player_ammo+local_player_ammo_reserved==0) {
+			players[local_player_id].held_item--;
+		}
+		if(players[local_player_id].held_item==TOOL_BLOCK && local_player_blocks==0) {
+			players[local_player_id].held_item--;
+		}
+
+
+		char item_mini_str[32];
+		struct texture* item_mini;
+		int off = 0;
+		switch(players[local_player_id].held_item) {
+			default:
+			case TOOL_BLOCK:
+				off = 64*scalef;
+			case TOOL_SPADE:
+				item_mini = &texture_block;
+				sprintf(item_mini_str,"%i",local_player_blocks);
+				break;
+			case TOOL_GRENADE:
+				item_mini = &texture_grenade;
+				sprintf(item_mini_str,"%i",local_player_grenades);
+				break;
+			case TOOL_GUN:
+				sprintf(item_mini_str,"%i-%i",local_player_ammo,local_player_ammo_reserved);
+				switch(players[local_player_id].weapon) {
+					case WEAPON_RIFLE:
+						item_mini = &texture_ammo_semi;
+						break;
+					case WEAPON_SMG:
+						item_mini = &texture_ammo_smg;
+						break;
+					case WEAPON_SHOTGUN:
+						item_mini = &texture_ammo_shotgun;
+						break;
+				}
+				break;
+		}
+
+		glColor3f(1.0F,1.0F,0.0F);
+		texture_draw(item_mini,settings.window_width-44.0F*scalef-off,44.0F*scalef,32.0F*scalef,32.0F*scalef);
+		font_render(settings.window_width-font_length(53.0F*scalef,item_mini_str)-44.0F*scalef-off,53.0F*scalef,53.0F*scalef,item_mini_str);
+		glColor3f(1.0F,1.0F,1.0F);
+
+		if(players[local_player_id].held_item==TOOL_BLOCK) {
+			texture_draw(&texture_color_selection,settings.window_width-64*scalef,64*scalef,64*scalef,64*scalef);
+		}
+
+		if(players[local_player_id].items_show) {
+			glEnable(GL_DEPTH_TEST);
+			glDepthRange(0.0F,0.05F);
+
+			glMatrixMode(GL_PROJECTION);
+			glLoadIdentity();
+			gluPerspective(70.0F, ((float)settings.window_width)/((float)settings.window_height), 0.1F, settings.render_distance+CHUNK_SIZE*4.0F+128.0F);
+			glMatrixMode(GL_MODELVIEW);
+			glLoadIdentity();
+
+			glPushMatrix();
+			glTranslatef((model_spade.xpiv-model_spade.xsiz/2)*0.05F,(model_spade.zpiv-model_spade.zsiz/2)*0.05F,(model_spade.ypiv-model_spade.ysiz/2)*0.05F);
+			glTranslatef(-2.25F,-1.5F,-6.0F+(players[local_player_id].held_item==TOOL_SPADE)*1.5F);
+			glRotatef(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
+			kv6_render(&model_spade,TEAM_1);
+			glPopMatrix();
+
+			if(local_player_blocks>0) {
+				glPushMatrix();
+				glTranslatef((model_block.xpiv-model_block.xsiz/2)*0.05F,(model_block.zpiv-model_block.zsiz/2)*0.05F,(model_block.ypiv-model_block.ysiz/2)*0.05F);
+				glTranslatef(-2.25F,-1.5F,-6.0F+(players[local_player_id].held_item==TOOL_BLOCK)*1.5F);
+				glTranslatef(1.5F,0.0F,0.0F);
+				glRotatef(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
+				kv6_render(&model_block,TEAM_1);
+				glPopMatrix();
+			}
+
+			if(local_player_ammo+local_player_ammo_reserved>0) {
+				struct kv6_t* gun;
+				switch(players[local_player_id].weapon) {
+					default:
+					case WEAPON_RIFLE:
+						gun = &model_semi;
+						break;
+					case WEAPON_SMG:
+						gun = &model_smg;
+						break;
+					case WEAPON_SHOTGUN:
+						gun = &model_shotgun;
+						break;
+				}
+				glPushMatrix();
+				glTranslatef((gun->xpiv-gun->xsiz/2)*0.05F,(gun->zpiv-gun->zsiz/2)*0.05F,(gun->ypiv-gun->ysiz/2)*0.05F);
+				glTranslatef(-2.25F,-1.5F,-6.0F+(players[local_player_id].held_item==TOOL_GUN)*1.5F);
+				glTranslatef(3.0F,0.0F,0.0F);
+				glRotatef(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
+				kv6_render(gun,TEAM_1);
+				glPopMatrix();
+			}
+
+			if(local_player_grenades>0) {
+				glPushMatrix();
+				glTranslatef((model_grenade.xpiv-model_grenade.xsiz/2)*0.05F,(model_grenade.zpiv-model_grenade.zsiz/2)*0.05F,(model_grenade.ypiv-model_grenade.ysiz/2)*0.05F);
+				glTranslatef(-2.25F,-1.5F,-6.0F+(players[local_player_id].held_item==TOOL_GRENADE)*1.5F);
+				glTranslatef(4.5F,0.0F,0.0F);
+				glRotatef(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
+				kv6_render(&model_grenade,TEAM_1);
+				glPopMatrix();
+			}
+
+			glDepthRange(0.0F,1.0F);
+			glDisable(GL_DEPTH_TEST);
+		}
+	}
+
+	glEnable(GL_DEPTH_TEST);
+
 	if(settings.opengl14) {
 		glEnable(GL_FOG);
 	} else {
@@ -418,6 +666,11 @@ void init() {
 
 	particle_init();
 	network_init();
+	kv6_init();
+	font_init();
+	texture_init();
+
+	weapon_set();
 
 	//tent = kv6_load(file_load("FullBody_Arms_3.kv6"));
 	//gun = kv6_load(file_load("Rifle_10mm.kv6"));
@@ -441,30 +694,57 @@ void reshape(GLFWwindow* window, int width, int height) {
 }
 
 float hj,hk,hl;
-
-unsigned int block_color = 0x00008000;
-
 void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	if(action==GLFW_RELEASE) {
 		key_map[key] = 0;
 	}
 	if(action==GLFW_PRESS) {
 		key_map[key] = 1;
-		if(key==GLFW_KEY_1) {
+		if(key==GLFW_KEY_F1) {
 			camera_mode = 0;
 		}
-		if(key==GLFW_KEY_2) {
+		if(key==GLFW_KEY_F2) {
 			camera_mode = 1;
 		}
-		if(key==GLFW_KEY_3) {
+		if(key==GLFW_KEY_F3) {
 			camera_mode = 2;
 		}
-		if(key==GLFW_KEY_4) {
+		if(key==GLFW_KEY_F4) {
 			camera_mode = 3;
 		}
 
-		if(key==GLFW_KEY_8) {
-			if(!network_connect("69.197.190.10",34887)) {
+		if(key==GLFW_KEY_R && camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN) {
+			weapon_reload();
+		}
+
+		unsigned char tool_switch = 0;
+		switch(key) {
+			case GLFW_KEY_1:
+				players[local_player_id].held_item = TOOL_SPADE;
+				tool_switch = 1;
+				break;
+			case GLFW_KEY_2:
+				players[local_player_id].held_item = TOOL_BLOCK;
+				tool_switch = 1;
+				break;
+			case GLFW_KEY_3:
+				players[local_player_id].held_item = TOOL_GUN;
+				tool_switch = 1;
+				break;
+			case GLFW_KEY_4:
+				players[local_player_id].held_item = TOOL_GRENADE;
+				tool_switch = 1;
+				break;
+		}
+
+		if(tool_switch) {
+			players[local_player_id].item_disabled = glfwGetTime();
+	        players[local_player_id].items_show_start = glfwGetTime();
+	        players[local_player_id].items_show = 1;
+		}
+
+		if(key==GLFW_KEY_8) {//185.164.138.19",24918-"69.197.190.10",34887
+			if(!network_connect("149.202.62.72",32885)) {
 				printf("connection failed ;(\n");
 				exit(0);
 			}
@@ -473,25 +753,16 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 		if(key==GLFW_KEY_9) {
 			struct PacketExistingPlayer login;
 			login.player_id = local_player_id;
-			login.team = 0;
-			login.weapon = 1;
-			login.held_item = 2;
+			login.team = TEAM_2;
+			login.weapon = WEAPON_SMG;
+			login.held_item = TOOL_GUN;
 			login.kills = 0;
-			login.blue = 111;
-			login.green = 111;
-			login.red = 111;
+			login.blue = players[local_player_id].block.blue;
+			login.green = players[local_player_id].block.green;
+			login.red = players[local_player_id].block.red;
 			char* n = "DEV_CLIENT";
 			strcpy(login.name,n);
 			network_send(PACKET_EXISTINGPLAYER_ID,&login,sizeof(login)-sizeof(login.name)+strlen(n)+1);
-		}
-
-		if(key==GLFW_KEY_0) {
-			struct PacketChatMessage chat;
-			chat.player_id = local_player_id;
-			chat.chat_type = CHAT_ALL;
-			char* m = "/kill";
-			strcpy(chat.message,m);
-			network_send(PACKET_CHATMESSAGE_ID,&chat,sizeof(chat)-sizeof(chat.message)+strlen(m)+1);
 		}
 
 		if(key==GLFW_KEY_O) {
@@ -525,27 +796,28 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 		if(key==GLFW_KEY_E) {
 			int* pos = camera_terrain_pick(2);
 			if((int)pos!=0) {
-				block_color = map_get(pos[0],pos[1],pos[2]);
+				int c = map_get(pos[0],pos[1],pos[2]);
+				players[local_player_id].block.red   = c & 0xFF;
+				players[local_player_id].block.green = (c>>8) & 0xFF;
+				players[local_player_id].block.blue  = (c>>16) & 0xFF;
+				network_updateColor();
 			}
-		}
-		if(key==GLFW_KEY_SPACE && !players[local_player_id].physics.jump) {
-			players[local_player_id].input.keys.jump = 1;
 		}
 	}
 }
 
 void mouse_click(GLFWwindow* window, int button, int action, int mods) {
+	if(button==GLFW_MOUSE_BUTTON_LEFT) {
+		button_map[0] = (action==GLFW_PRESS);
+	}
+	if(button==GLFW_MOUSE_BUTTON_RIGHT) {
+		button_map[1] = (action==GLFW_PRESS);
+	}
+	if(button==GLFW_MOUSE_BUTTON_MIDDLE) {
+		button_map[2] = (action==GLFW_PRESS);
+	}
 	if(button==GLFW_MOUSE_BUTTON_RIGHT && action==GLFW_PRESS) {
-		int* pos = camera_terrain_pick(0);
-		if((int)pos!=0 && pos[1]>1) {
-			AABB camera;
-			aabb_set_size(&camera,camera_size,camera_height,camera_size);
-			aabb_set_center(&camera,camera_x,camera_y-camera_eye_height,camera_z);
-			map_set(pos[0],pos[1],pos[2],block_color);
-			if(aabb_intersection_terrain(&camera)) {
-				map_set(pos[0],pos[1],pos[2],0xFFFFFFFF);
-			}
-		}
+		players[local_player_id].input.buttons.rmb_start = glfwGetTime();
 		if(camera_mode==CAMERAMODE_BODYVIEW) {
 			cameracontroller_bodyview_player = (cameracontroller_bodyview_player+1)%PLAYERS_MAX;
 			while(1) {
@@ -556,8 +828,34 @@ void mouse_click(GLFWwindow* window, int button, int action, int mods) {
 		    }
 		}
 	}
+	if(button==GLFW_MOUSE_BUTTON_LEFT && action==GLFW_RELEASE) {
+		if(camera_mode==CAMERAMODE_FPS && glfwGetTime()-players[local_player_id].item_showup>=0.5F) {
+			if(players[local_player_id].held_item==TOOL_GRENADE && local_player_grenades>0) {
+				local_player_grenades = max(local_player_grenades-1,0);
+				struct PacketGrenade g;
+				g.player_id = local_player_id;
+				g.fuse_length = 1.5F;
+				g.x = players[local_player_id].pos.x;
+				g.y = players[local_player_id].pos.z;
+				g.z = 63.0F-players[local_player_id].pos.y;
+				g.vx = players[local_player_id].orientation.x;
+				g.vy = players[local_player_id].orientation.z;
+				g.vz = -players[local_player_id].orientation.y;
+				network_send(PACKET_GRENADE_ID,&g,sizeof(g));
+				read_PacketGrenade(&g,sizeof(g));
+			}
+		}
+	}
 	if(button==GLFW_MOUSE_BUTTON_LEFT && action==GLFW_PRESS) {
-		int* pos = camera_terrain_pick(1);
+		players[local_player_id].input.buttons.lmb_start = glfwGetTime();
+
+		if(camera_mode==CAMERAMODE_FPS && glfwGetTime()-players[local_player_id].item_showup>=0.5F) {
+			if(players[local_player_id].held_item==TOOL_GUN && weapon_reloading()) {
+				weapon_reload_abort();
+			}
+		}
+
+		/*int* pos = camera_terrain_pick(1);
 		if((int)pos!=0 && pos[1]>1) {
 			unsigned int col = map_get(pos[0],pos[1],pos[2]);
 			map_set(pos[0],pos[1],pos[2],0xFFFFFFFF);
@@ -580,7 +878,7 @@ void mouse_click(GLFWwindow* window, int button, int action, int mods) {
 			if((map_get(pos[0],pos[1],pos[2]-1)&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(pos[0],pos[1],pos[2]-1)) {
 				map_apply_gravity();
 			}
-		}
+		}*/
 		if(camera_mode==CAMERAMODE_BODYVIEW) {
 			cameracontroller_bodyview_player = (cameracontroller_bodyview_player-1)%PLAYERS_MAX;
 			while(1) {
@@ -592,13 +890,6 @@ void mouse_click(GLFWwindow* window, int button, int action, int mods) {
 		}
 	}
 }
-
-
-#define PI			3.1415F
-#define DOUBLEPI	6.2832F
-#define EPSILON		0.005F
-
-#define MOUSE_SENSITIVITY 0.002F
 
 double last_x, last_y;
 void mouse(GLFWwindow* window, double x, double y) {
@@ -635,6 +926,7 @@ int main(int argc, char** argv) {
 	settings.render_distance = 128.0F;
 	settings.window_width = 800;
 	settings.window_height = 600;
+	settings.player_arms = 0;
 
 	if(argc>2) {
 		settings.opengl14 = atoi(argv[1]);
@@ -748,7 +1040,6 @@ int main(int argc, char** argv) {
 		last_frame = t;
 
 		display(dt);
-		grenade_update(dt);
 		particle_update(dt);
 
 		network_update();

@@ -3,6 +3,10 @@ int map_size_x = 512;
 int map_size_y = 64;
 int map_size_z = 512;
 
+float fog_color[] = {0.5F,0.9098F,1.0F,1.0F};
+
+float map_sun[4];
+
 struct Point {
 	int x,y,z;
 };

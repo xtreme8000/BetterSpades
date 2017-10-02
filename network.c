@@ -8,6 +8,7 @@ int network_connected = 0;
 int network_logged_in = 0;
 
 float network_pos_update = 0.0F;
+float network_orient_update = 0.0F;
 unsigned char network_keys_last;
 unsigned char network_buttons_last;
 
@@ -109,9 +110,33 @@ void read_PacketBlockLine(void* data, int len) {
 
 void read_PacketStateData(void* data, int len) {
 	struct PacketStateData* p = (struct PacketStateData*)data;
-	//p->gamemode_data.ctf.team_1_intel_location.dropped.x = 5;
+
+	strcpy(gamestate.team_1.name,p->team_1_name);
+	gamestate.team_1.red = p->team_1_red;
+	gamestate.team_1.green = p->team_1_green;
+	gamestate.team_1.blue = p->team_1_blue;
+
+	strcpy(gamestate.team_2.name,p->team_2_name);
+	gamestate.team_2.red = p->team_2_red;
+	gamestate.team_2.green = p->team_2_green;
+	gamestate.team_2.blue = p->team_2_blue;
+
+	memcpy(&gamestate.gamemode,&p->gamemode_data,sizeof(union Gamemodes));
+
+	fog_color[0] = p->fog_red/255.0F;
+	fog_color[1] = p->fog_green/255.0F;
+	fog_color[2] = p->fog_blue/255.0F;
 
 	local_player_id = p->player_id;
+	local_player_health = 100;
+	local_player_blocks = 50;
+	local_player_grenades = 3;
+	weapon_set();
+
+	players[local_player_id].block.red = 111;
+	players[local_player_id].block.green = 111;
+	players[local_player_id].block.blue = 111;
+
 	camera_mode = CAMERAMODE_SELECTION;
 
 	printf("map data was %i bytes\n",compressed_chunk_data_offset);
@@ -140,6 +165,13 @@ void read_PacketStateData(void* data, int len) {
 	libdeflate_free_decompressor(d);
 }
 
+void read_PacketFogColor(void* data, int len) {
+	struct PacketFogColor* p = (struct PacketFogColor*)data;
+	fog_color[0] = p->red/255.0F;
+	fog_color[1] = p->green/255.0F;
+	fog_color[2] = p->blue/255.0F;
+}
+
 void read_PacketExistingPlayer(void* data, int len) {
 	struct PacketExistingPlayer* p = (struct PacketExistingPlayer*)data;
 	if(p->player_id<PLAYERS_MAX && p->team<3 && p->weapon<3 && p->held_item<4) {
@@ -163,14 +195,27 @@ void read_PacketCreatePlayer(void* data, int len) {
 		players[p->player_id].connected = 1;
 		players[p->player_id].alive = 1;
 		players[p->player_id].team = p->team;
+		players[p->player_id].held_item = TOOL_GUN;
 		players[p->player_id].weapon = p->weapon;
 		players[p->player_id].pos.x = p->x;
 		players[p->player_id].pos.y = 63.0F-p->z;
 		players[p->player_id].pos.z = p->y;
 		strcpy(players[p->player_id].name,p->name);
+		players[p->player_id].orientation.x = (p->team==TEAM_1)?1.0F:-1.0F;
+		players[p->player_id].orientation.y = 0.0F;
+		players[p->player_id].orientation.z = 0.0F;
+		players[p->player_id].block.red = 111;
+		players[p->player_id].block.green = 111;
+		players[p->player_id].block.blue = 111;
 		if(p->player_id==local_player_id) {
 			camera_mode = (p->team==TEAM_SPECTATOR)?CAMERAMODE_SPECTATOR:CAMERAMODE_FPS;
+			camera_rot_x = (p->team==TEAM_1)?0.5F*PI:1.5F*PI;
+			camera_rot_y = 90.0F;
 			network_logged_in = 1;
+			local_player_health = 100;
+			local_player_blocks = 50;
+			local_player_grenades = 3;
+			weapon_set();
 		}
 	}
 }
@@ -184,22 +229,22 @@ void read_PacketPlayerLeft(void* data, int len) {
 
 void read_PacketMapStart(void* data, int len) {
 	struct PacketMapStart* p = (struct PacketMapStart*)data;
-	//someone fix the wrong map size of 1.5mb
+	//ffs someone fix the wrong map size of 1.5mb
 	compressed_chunk_data_size = 1024*1024;
 	compressed_chunk_data = malloc(compressed_chunk_data_size);
 	compressed_chunk_data_offset = 0;
 }
 
 void read_PacketWorldUpdate(void* data, int len) {
-	struct PacketWorldUpdate* p = (struct PacketWorldUpdate*)data;
-	for(int k=0;k<32;k++) {
+	for(int k=0;k<(len/24);k++) { //support up to 256 players
+		struct PacketWorldUpdate* p = (struct PacketWorldUpdate*)(data+k*24);
 		if(players[k].connected && k!=local_player_id) {
-			players[k].pos.x = p->players[k].x;
-			players[k].pos.y = 63.0F-p->players[k].z;
-			players[k].pos.z = p->players[k].y;
-			players[k].orientation.x = p->players[k].ox;
-			players[k].orientation.y = -p->players[k].oz;
-			players[k].orientation.z = p->players[k].oy;
+			players[k].pos.x = p->x;
+			players[k].pos.y = 63.0F-p->z;
+			players[k].pos.z = p->y;
+			players[k].orientation.x = p->ox;
+			players[k].orientation.y = -p->oz;
+			players[k].orientation.z = p->oy;
 		}
 	}
 }
@@ -231,6 +276,7 @@ void read_PacketInputData(void* data, int len) {
 	struct PacketInputData* p = (struct PacketInputData*)data;
 	if(p->player_id<PLAYERS_MAX && p->player_id!=local_player_id) {
 		players[p->player_id].input.keys.packed = p->keys;
+		players[p->player_id].physics.jump = players[p->player_id].input.keys.jump;
 	}
 }
 
@@ -239,6 +285,12 @@ void read_PacketWeaponInput(void* data, int len) {
 	if(p->player_id<PLAYERS_MAX && p->player_id!=local_player_id) {
 		players[p->player_id].input.buttons.lmb = p->primary;
 		players[p->player_id].input.buttons.rmb = p->secondary;
+		if(p->primary) {
+			players[p->player_id].input.buttons.lmb_start = glfwGetTime();
+		}
+		if(p->secondary) {
+			players[p->player_id].input.buttons.rmb_start = glfwGetTime();
+		}
 	}
 }
 
@@ -261,9 +313,10 @@ void read_PacketKillAction(void* data, int len) {
 			players[p->killer_id].score++;
 		}
 		printf("[KILLFEED] ");
+		char* gun_name[3] = {"Rifle","SMG","Shotgun"};
 		switch(p->kill_type) {
 			case KILLTYPE_WEAPON:
-				printf("%s was killed by %s\n",players[p->player_id].name,players[p->killer_id].name);
+				printf("%s was killed by %s (%s)\n",players[p->player_id].name,players[p->killer_id].name,gun_name[players[p->killer_id].weapon]);
 				break;
 			case KILLTYPE_HEADSHOT:
 				printf("%s was killed by %s (Headshot)\n",players[p->player_id].name,players[p->killer_id].name);
@@ -288,6 +341,7 @@ void read_PacketKillAction(void* data, int len) {
 }
 
 void read_PacketShortPlayerData(void* data, int len) {
+	//should never be received, but process it anyway
 	struct PacketShortPlayerData* p = (struct PacketShortPlayerData*)data;
 	if(p->player_id<PLAYERS_MAX && p->team<3 && p->weapon<3) {
 		players[p->player_id].team = p->team;
@@ -306,6 +360,44 @@ void read_PacketGrenade(void* data, int len) {
 	g->velocity.x = p->vx;
 	g->velocity.y = -p->vz;
 	g->velocity.z = p->vy;
+}
+
+void read_PacketSetHP(void* data, int len) {
+	struct PacketSetHP* p = (struct PacketSetHP*)data;
+	local_player_health = p->hp;
+}
+
+void read_PacketRestock(void* data, int len) {
+	struct PacketRestock* p = (struct PacketRestock*)data;
+	local_player_health = 100;
+	local_player_blocks = 50;
+	local_player_grenades = 3;
+	weapon_set();
+}
+
+void read_PacketChangeWeapon(void* data, int len) {
+	struct PacketChangeWeapon* p = (struct PacketChangeWeapon*)data;
+	if(p->player_id<PLAYERS_MAX) {
+		players[p->player_id].weapon = p->weapon;
+	}
+}
+
+void read_PacketWeaponReload(void* data, int len) {
+	struct PacketWeaponReload* p = (struct PacketWeaponReload*)data;
+	if(p->player_id==local_player_id) {
+		weapon_set();
+		local_player_ammo = p->ammo;
+		local_player_ammo_reserved = p->reserved;
+	}
+}
+
+void network_updateColor() {
+	struct PacketSetColor c;
+	c.player_id = local_player_id;
+	c.red = players[local_player_id].block.red;
+	c.green = players[local_player_id].block.green;
+	c.blue = players[local_player_id].block.blue;
+	network_send(PACKET_SETCOLOR_ID,&c,sizeof(c));
 }
 
 void network_send(int id, void* data, int len) {
@@ -385,11 +477,20 @@ void network_update() {
 
 		if(network_logged_in && players[local_player_id].team!=TEAM_SPECTATOR) {
 			if(players[local_player_id].input.keys.packed!=network_keys_last) {
-				network_send(PACKET_INPUTDATA_ID,&players[local_player_id].input.keys.packed,1);
+				struct PacketInputData in;
+				in.player_id = local_player_id;
+				in.keys = players[local_player_id].input.keys.packed;
+				network_send(PACKET_INPUTDATA_ID,&in,sizeof(in));
+
 				network_keys_last = players[local_player_id].input.keys.packed;
 			}
 			if(players[local_player_id].input.buttons.packed!=network_buttons_last) {
-				network_send(PACKET_WEAPONINPUT_ID,&players[local_player_id].input.buttons.packed,1);
+				struct PacketWeaponInput in;
+				in.player_id = local_player_id;
+				in.primary = players[local_player_id].input.buttons.lmb;
+				in.secondary = players[local_player_id].input.buttons.rmb;
+				network_send(PACKET_WEAPONINPUT_ID,&in,sizeof(in));
+
 				network_buttons_last = players[local_player_id].input.buttons.packed;
 			}
 
@@ -400,6 +501,9 @@ void network_update() {
 				pos.y = players[local_player_id].pos.z;
 				pos.z = 63.0F-players[local_player_id].pos.y;
 				network_send(PACKET_POSITIONDATA_ID,&pos,sizeof(pos));
+			}
+			if(glfwGetTime()-network_orient_update>0.05F) {
+				network_orient_update = glfwGetTime();
 				struct PacketPositionData orient;
 				orient.x = players[local_player_id].orientation.x;
 				orient.y = players[local_player_id].orientation.z;
@@ -416,7 +520,7 @@ int network_status() {
 
 void network_init() {
 	enet_initialize();
-	client = enet_host_create(NULL,1,1,0,0);
+	client = enet_host_create(NULL,1,1,0,0); //limit bandwidth here if you want to
 	enet_host_compress_with_range_coder(client);
 
 	packets[0]  = read_PacketPositionData;
@@ -424,7 +528,7 @@ void network_init() {
 	packets[2]  = read_PacketWorldUpdate;
 	packets[3]  = read_PacketInputData;
 	packets[4]  = read_PacketWeaponInput;
-	//5
+	packets[5]  = read_PacketSetHP;
 	packets[6]  = read_PacketGrenade;
 	packets[7]  = read_PacketSetTool;
 	packets[8]  = read_PacketSetColor;
@@ -440,5 +544,10 @@ void network_init() {
 	packets[18] = read_PacketMapStart;
 	packets[19] = read_PacketMapChunk;
 	packets[20] = read_PacketPlayerLeft;
-	//21-30
+	//21-25
+	packets[26] = read_PacketRestock;
+	packets[27] = read_PacketFogColor;
+	packets[28] = read_PacketWeaponReload;
+	//29
+	packets[30] = read_PacketChangeWeapon;
 }

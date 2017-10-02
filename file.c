@@ -10,6 +10,10 @@ unsigned char* file_load(const char* name) {
 	return data;
 }
 
+float buffer_readf(unsigned char* buffer, int index) {
+	return ((float*)(buffer+index))[0];
+}
+
 unsigned int buffer_read32(unsigned char* buffer, int index) {
 	return (buffer[index+3]<<24) | (buffer[index+2]<<16) | (buffer[index+1]<<8) | buffer[index];
 }

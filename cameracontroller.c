@@ -1,8 +1,13 @@
+
+float last_rot_x, last_rot_y;
 void cameracontroller_fps(float dt) {
     players[local_player_id].connected = 1;
 	players[local_player_id].alive = 1;
+
+	//players[local_player_id].weapon = WEAPON_SMG;
+
 	camera_x = players[local_player_id].physics.eye.x;
-	camera_y = players[local_player_id].physics.eye.y+1.0F;
+	camera_y = players[local_player_id].physics.eye.y+1.0F+(players[local_player_id].input.keys.crouch?0.0F:0.1F);
 	camera_z = players[local_player_id].physics.eye.z;
 	players[local_player_id].input.keys.up = key_map[GLFW_KEY_W];
 	players[local_player_id].input.keys.down = key_map[GLFW_KEY_S];
@@ -10,11 +15,31 @@ void cameracontroller_fps(float dt) {
 	players[local_player_id].input.keys.right = key_map[GLFW_KEY_D];
 	players[local_player_id].input.keys.sprint = key_map[GLFW_KEY_LEFT_SHIFT];
 	players[local_player_id].input.keys.crouch = key_map[GLFW_KEY_LEFT_CONTROL];
+    players[local_player_id].input.keys.jump = key_map[GLFW_KEY_SPACE];
+
+    if(key_map[GLFW_KEY_LEFT_SHIFT]) {
+        players[local_player_id].item_disabled = glfwGetTime();
+    } else {
+        if(glfwGetTime()-players[local_player_id].item_disabled<0.4F && !players[local_player_id].items_show) {
+            players[local_player_id].items_show_start = glfwGetTime();
+            players[local_player_id].items_show = 1;
+        }
+    }
+
+    players[local_player_id].input.buttons.lmb = button_map[0];
+    players[local_player_id].input.buttons.rmb = button_map[1];
+
+    if(key_map[GLFW_KEY_SPACE] && !players[local_player_id].physics.airborne) {
+        players[local_player_id].physics.jump = 1;
+    }
+
     players[local_player_id].input.keys.sneak = key_map[GLFW_KEY_V];
-	players[local_player_id].orientation.x = sin(camera_rot_x)*sin(camera_rot_y);
-	players[local_player_id].orientation.y = cos(camera_rot_y);
-	players[local_player_id].orientation.z = cos(camera_rot_x)*sin(camera_rot_y);
+	players[local_player_id].orientation.x = sin(last_rot_x)*sin(last_rot_y);
+	players[local_player_id].orientation.y = cos(last_rot_y);
+	players[local_player_id].orientation.z = cos(last_rot_x)*sin(last_rot_y);
     gluLookAt(camera_x,camera_y,camera_z,camera_x+sin(camera_rot_x)*sin(camera_rot_y),camera_y+cos(camera_rot_y),camera_z+cos(camera_rot_x)*sin(camera_rot_y),0.0F,1.0F,0.0F);
+    last_rot_x = camera_rot_x;
+    last_rot_y = camera_rot_y;
 }
 
 void cameracontroller_spectator(float dt) {
