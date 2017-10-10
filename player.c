@@ -9,16 +9,36 @@ float player_swing_func(float x) {
     return (x<0.5F)?(x*4.0F-1.0F):(3.0F-x*4.0F);
 }
 
+float player_spade_func(float x) {
+    return 1.0F-(x*5-(int)(x*5));
+}
+
 float player_tool_func(struct Player* p) {
-    if(p==&players[local_player_id] && glfwGetTime()-p->item_showup<0.5F) {
-        return 45.0F-(glfwGetTime()-p->item_showup)*90.0F;
-    }
     if(p->input.buttons.lmb) {
         switch(p->held_item) {
             case TOOL_SPADE:
-                return (player_swing_func((glfwGetTime()-p->input.buttons.lmb_start)*1.5F)+1.0F)/2.0F*45.0F;
+                if(p==&players[local_player_id] && camera_mode==CAMERAMODE_FPS) {
+                    return player_spade_func(glfwGetTime()-p->input.buttons.lmb_start)*90.0F;
+                } else {
+                    return (player_swing_func((glfwGetTime()-p->input.buttons.lmb_start)*5.0F)+1.0F)/2.0F*90.0F;
+                }
             case TOOL_GRENADE:
                 return max(-(glfwGetTime()-p->input.buttons.lmb_start)*35.0F,-35.0F);
+        }
+    }
+    return 0.0F;
+}
+
+float player_tool_translate_func(struct Player* p) {
+    if(p==&players[local_player_id]) {
+        if(glfwGetTime()-p->item_showup<0.5F) {
+            return 0.0F;
+        }
+        if(p->input.buttons.lmb) {
+            switch(p->held_item) {
+                case TOOL_GUN:
+                    return -player_spade_func((glfwGetTime()-p->input.buttons.lmb_start)/2.5F)*0.5F;
+            }
         }
     }
     return 0.0F;
@@ -31,7 +51,7 @@ void player_render(struct Player* p, int id) {
     struct kv6_t* leg = p->input.keys.crouch?&model_playerlegc:&model_playerleg;
     float height = p->input.keys.crouch?0.8F:0.9F;
 
-    if(id!=local_player_id || !p->alive) {
+    if(id!=local_player_id || !p->alive || camera_mode!=CAMERAMODE_FPS) {
         glPushMatrix();
         glTranslatef(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
         matrix_pointAt(p->orientation.x,p->orientation.y,p->orientation.z);
@@ -97,7 +117,7 @@ void player_render(struct Player* p, int id) {
 
     if(id==local_player_id && p->alive) {
         float speed = sqrt(pow(p->physics.velocity.x,2)+pow(p->physics.velocity.z,2))/0.25F;
-        glTranslatef(0.0F,0.0F,0.1F*player_swing_func(time/1000.0F)*speed);
+        glTranslatef(0.0F,0.0F,0.1F*player_swing_func(time/1000.0F)*speed+player_tool_translate_func(p));
     }
 
     if(p->input.keys.sprint && !p->input.keys.crouch) {
@@ -106,18 +126,30 @@ void player_render(struct Player* p, int id) {
     /*if(p->input.buttons.lmb || p->input.buttons.rmb) {
         glRotatef(22.5F*player_spade_func(glfwGetTime()-p->input.buttons.lmb_start),1.0F,0.0F,0.0F);
     }*/
-    glRotatef(player_tool_func(p),1.0F,0.0F,0.0F);
-    if(id!=local_player_id || settings.player_arms) {
+    if(id==local_player_id && glfwGetTime()-p->item_showup<0.5F) {
+        glRotatef(45.0F-(glfwGetTime()-p->item_showup)*90.0F,1.0F,0.0F,0.0F);
+    }
+    if(p->held_item!=TOOL_SPADE || (p->held_item==TOOL_SPADE && id!=local_player_id)) {
+        glRotatef(player_tool_func(p),1.0F,0.0F,0.0F);
+    }
+    if(id!=local_player_id || settings.player_arms || camera_mode!=CAMERAMODE_FPS) {
         kv6_render(&model_playerarms,p->team);
     }
 
     glTranslatef(-3.5F*0.1F+0.01F,0.0F,10*0.1F);
+    if(p->held_item==TOOL_SPADE && id==local_player_id && glfwGetTime()-p->item_showup>=0.5F) {
+        glTranslatef(0.0F,(model_spade.zpiv-model_spade.zsiz)*0.05F,0.0F);
+        glRotatef(player_tool_func(p),1.0F,0.0F,0.0F);
+        glTranslatef(0.0F,-(model_spade.zpiv-model_spade.zsiz)*0.05F,0.0F);
+    }
     switch(p->held_item) {
         case TOOL_SPADE:
             kv6_render(&model_spade,p->team);
             break;
         case TOOL_BLOCK:
-            //models.block.setColor((player.block.color>>16)&255,(player.block.color>>8)&255,player.block.color&255);
+            model_block.red = p->block.red/255.0F;
+            model_block.green = p->block.green/255.0F;
+            model_block.blue = p->block.blue/255.0F;
             kv6_render(&model_block,p->team);
             break;
         case TOOL_GUN:

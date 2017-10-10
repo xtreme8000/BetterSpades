@@ -120,7 +120,6 @@ void cameracontroller_spectator(float dt) {
 void cameracontroller_bodyview(float dt) {
 
     //check if we cant spectate the player anymore
-    printf("spectating: %i %s\n",cameracontroller_bodyview_player,players[cameracontroller_bodyview_player].name);
     while(1) {
         if(players[cameracontroller_bodyview_player].connected && players[cameracontroller_bodyview_player].team==players[local_player_id].team) {
             break;

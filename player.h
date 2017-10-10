@@ -68,6 +68,7 @@ struct Player {
         } velocity;
         struct Position eye;
     } physics;
-} players[PLAYERS_MAX]; //pyspades/pysnip/piqueserver sometime uses ids that are out of range
+} players[PLAYERS_MAX];
+//pyspades/pysnip/piqueserver sometime uses ids that are out of range
 
 void player_render(struct Player* p, int id);

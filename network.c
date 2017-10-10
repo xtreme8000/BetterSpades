@@ -32,9 +32,19 @@ void read_PacketMapChunk(void* data, int len) {
 
 void read_PacketChatMessage(void* data, int len) {
 	struct PacketChatMessage* p = (struct PacketChatMessage*)data;
-	char* n = "";
-	if(p->player_id<PLAYERS_MAX) {
-		n = players[p->player_id].name;
+	char n[64];
+	if(p->player_id<PLAYERS_MAX && players[p->player_id].connected) {
+		switch(players[p->player_id].team) {
+			case TEAM_1:
+				sprintf(n,"%s (%s)",players[p->player_id].name,gamestate.team_1.name);
+				break;
+			case TEAM_2:
+				sprintf(n,"%s (%s)",players[p->player_id].name,gamestate.team_2.name);
+				break;
+			case TEAM_SPECTATOR:
+				sprintf(n,"%s (Spectator)",players[p->player_id].name);
+				break;
+		}
 	}
 	printf("[chat] %s: %s\n",n,p->message);
 }

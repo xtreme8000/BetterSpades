@@ -370,10 +370,10 @@ void display(float dt) {
 			if(players[k].connected && k!=local_player_id) {
 				if(players[k].alive) {
 					player_move(&players[k],dt);
+					player_render(&players[k],k);
 				}
-				player_render(&players[k],k);
 
-				if(players[k].alive) {
+				/*if(players[k].alive) {
 					glColor3f(1.0F,1.0F,1.0F);
 				} else {
 					glColor3f(1.0F,0.0F,0.0F);
@@ -390,11 +390,9 @@ void display(float dt) {
 				glVertex3f(0,0,0);
 				glVertex3f(1,0,0);
 				glEnd();
-				glPopMatrix();
+				glPopMatrix();*/
 			}
 		}
-
-		glColor3f(0.0F,1.0F,0.0F);
 
 		int* pos = camera_terrain_pick(1);
 		if((int)pos!=0) {
@@ -513,9 +511,21 @@ void display(float dt) {
 	glOrtho(0.0F,settings.window_width,0.0F,settings.window_height,-1.0F,1.0F);
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
+	float scalef = settings.window_height/600.0F;
+
+	if(camera_mode==CAMERAMODE_BODYVIEW) {
+		font_select(FONT_SMALLFNT);
+		font_centered(settings.window_width/2.0F,settings.window_height*0.25F,8.0F*scalef,players[cameracontroller_bodyview_player].name);
+		font_select(FONT_FIXEDSYS);
+	}
 
 	if(camera_mode==CAMERAMODE_FPS) {
-		float scalef = settings.window_height/600.0F;
+
+		font_select(FONT_SMALLFNT);
+		for(int k=0;k<6;k++) {
+			font_render(11.0F*scalef,settings.window_height*0.15F-10.0F*scalef*k,8.0F*scalef,"[BTK]LastKiller (Green): chat test!");
+		}
+		font_select(FONT_FIXEDSYS);
 
 		if(local_player_health<=30) {
 			glColor3f(1,0,0);
@@ -592,7 +602,7 @@ void display(float dt) {
 			glTranslatef((model_spade.xpiv-model_spade.xsiz/2)*0.05F,(model_spade.zpiv-model_spade.zsiz/2)*0.05F,(model_spade.ypiv-model_spade.ysiz/2)*0.05F);
 			glTranslatef(-2.25F,-1.5F,-6.0F+(players[local_player_id].held_item==TOOL_SPADE)*1.5F);
 			glRotatef(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
-			kv6_render(&model_spade,TEAM_1);
+			kv6_render(&model_spade,players[local_player_id].team);
 			glPopMatrix();
 
 			if(local_player_blocks>0) {
@@ -601,7 +611,10 @@ void display(float dt) {
 				glTranslatef(-2.25F,-1.5F,-6.0F+(players[local_player_id].held_item==TOOL_BLOCK)*1.5F);
 				glTranslatef(1.5F,0.0F,0.0F);
 				glRotatef(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
-				kv6_render(&model_block,TEAM_1);
+				model_block.red = players[local_player_id].block.red/255.0F;
+	            model_block.green = players[local_player_id].block.green/255.0F;
+	            model_block.blue = players[local_player_id].block.blue/255.0F;
+				kv6_render(&model_block,players[local_player_id].team);
 				glPopMatrix();
 			}
 
@@ -624,7 +637,7 @@ void display(float dt) {
 				glTranslatef(-2.25F,-1.5F,-6.0F+(players[local_player_id].held_item==TOOL_GUN)*1.5F);
 				glTranslatef(3.0F,0.0F,0.0F);
 				glRotatef(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
-				kv6_render(gun,TEAM_1);
+				kv6_render(gun,players[local_player_id].team);
 				glPopMatrix();
 			}
 
@@ -634,7 +647,7 @@ void display(float dt) {
 				glTranslatef(-2.25F,-1.5F,-6.0F+(players[local_player_id].held_item==TOOL_GRENADE)*1.5F);
 				glTranslatef(4.5F,0.0F,0.0F);
 				glRotatef(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
-				kv6_render(&model_grenade,TEAM_1);
+				kv6_render(&model_grenade,players[local_player_id].team);
 				glPopMatrix();
 			}
 
@@ -743,8 +756,8 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	        players[local_player_id].items_show = 1;
 		}
 
-		if(key==GLFW_KEY_8) {//185.164.138.19",24918-"69.197.190.10",34887
-			if(!network_connect("149.202.62.72",32885)) {
+		if(key==GLFW_KEY_8) {//185.164.138.19",24918-"69.197.190.10",34887-"149.202.62.72",32885
+			if(!network_connect("176.28.11.9",32891)) {aos://151723184:32891:0.75
 				printf("connection failed ;(\n");
 				exit(0);
 			}

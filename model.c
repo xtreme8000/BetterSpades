@@ -14,11 +14,13 @@ void kv6_init() {
 	model_shotgun = kv6_load(file_load("kv6/shotgun.kv6"),0.05F);
 	model_spade = kv6_load(file_load("kv6/spade.kv6"),0.05F);
 	model_block = kv6_load(file_load("kv6/block.kv6"),0.05F);
+	model_block.colorize = 1;
 	model_grenade = kv6_load(file_load("kv6/grenade.kv6"),0.05F);
 }
 
 struct kv6_t kv6_load(unsigned char* bytes, float scale) {
 	struct kv6_t ret;
+	ret.colorize = 0;
 	ret.has_display_list = 0;
 	ret.scale = scale;
 	int index = 0;
@@ -130,14 +132,17 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 			}
 		}
 
-		float* vertices = malloc(size*12*sizeof(float));
-		unsigned char* colors = malloc(size*12*sizeof(unsigned char));
+		kv6->vertices_final = malloc(size*12*sizeof(float));
+		kv6->colors_final = malloc(size*12*sizeof(unsigned char)*2);
 
-		kv6->display_list = glGenLists(2);
+		if(!kv6->colorize) {
+			kv6->display_list = glGenLists(2);
+		}
+
+		int v,c;
 		for(int t=0;t<2;t++) {
 
-			int v = 0;
-			int c = 0;
+			v = c = 0;
 
 			for(int x=0;x<kv6->xsiz;x++) {
 				for(int y=0;y<kv6->ysiz;y++) {
@@ -167,108 +172,109 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 							float p[3] = {(x-kv6->xpiv)*kv6->scale,(z-kv6->zpiv)*kv6->scale,(y-kv6->ypiv)*kv6->scale};
 
 							int i = 0;
+							float alpha[6];
 							//glNormal3f(kv6_normals[a][0],-kv6_normals[a][2],kv6_normals[a][1]);
 
 							if(z==kv6->zsiz-1 || !kv6->color[x+(y+(z+1)*kv6->ysiz)*kv6->xsiz]) {
-								vertices[v++] = p[0];
-								vertices[v++] = p[1]+kv6->scale;
-								vertices[v++] = p[2];
-								vertices[v++] = p[0];
-								vertices[v++] = p[1]+kv6->scale;
-								vertices[v++] = p[2]+kv6->scale;
-								vertices[v++] = p[0]+kv6->scale;
-								vertices[v++] = p[1]+kv6->scale;
-								vertices[v++] = p[2]+kv6->scale;
-								vertices[v++] = p[0]+kv6->scale;
-								vertices[v++] = p[1]+kv6->scale;
-								vertices[v++] = p[2];
-								i++;
+								kv6->vertices_final[v++] = p[0];
+								kv6->vertices_final[v++] = p[1]+kv6->scale;
+								kv6->vertices_final[v++] = p[2];
+								kv6->vertices_final[v++] = p[0];
+								kv6->vertices_final[v++] = p[1]+kv6->scale;
+								kv6->vertices_final[v++] = p[2]+kv6->scale;
+								kv6->vertices_final[v++] = p[0]+kv6->scale;
+								kv6->vertices_final[v++] = p[1]+kv6->scale;
+								kv6->vertices_final[v++] = p[2]+kv6->scale;
+								kv6->vertices_final[v++] = p[0]+kv6->scale;
+								kv6->vertices_final[v++] = p[1]+kv6->scale;
+								kv6->vertices_final[v++] = p[2];
+								alpha[i++] = 1.0F;
 							}
 
 							if(z==0 || !kv6->color[x+(y+(z-1)*kv6->ysiz)*kv6->xsiz]) {
-								vertices[v++] = p[0];
-								vertices[v++] = p[1];
-								vertices[v++] = p[2];
-								vertices[v++] = p[0]+kv6->scale;
-								vertices[v++] = p[1];
-								vertices[v++] = p[2];
-								vertices[v++] = p[0]+kv6->scale;
-								vertices[v++] = p[1];
-								vertices[v++] = p[2]+kv6->scale;
-								vertices[v++] = p[0];
-								vertices[v++] = p[1];
-								vertices[v++] = p[2]+kv6->scale;
-								i++;
+								kv6->vertices_final[v++] = p[0];
+								kv6->vertices_final[v++] = p[1];
+								kv6->vertices_final[v++] = p[2];
+								kv6->vertices_final[v++] = p[0]+kv6->scale;
+								kv6->vertices_final[v++] = p[1];
+								kv6->vertices_final[v++] = p[2];
+								kv6->vertices_final[v++] = p[0]+kv6->scale;
+								kv6->vertices_final[v++] = p[1];
+								kv6->vertices_final[v++] = p[2]+kv6->scale;
+								kv6->vertices_final[v++] = p[0];
+								kv6->vertices_final[v++] = p[1];
+								kv6->vertices_final[v++] = p[2]+kv6->scale;
+								alpha[i++] = 0.6F;
 							}
 
 							if(y==0 || !kv6->color[x+((y-1)+z*kv6->ysiz)*kv6->xsiz]) {
-								vertices[v++] = p[0];
-								vertices[v++] = p[1];
-								vertices[v++] = p[2];
-								vertices[v++] = p[0];
-								vertices[v++] = p[1]+kv6->scale;
-								vertices[v++] = p[2];
-								vertices[v++] = p[0]+kv6->scale;
-								vertices[v++] = p[1]+kv6->scale;
-								vertices[v++] = p[2];
-								vertices[v++] = p[0]+kv6->scale;
-								vertices[v++] = p[1];
-								vertices[v++] = p[2];
-								i++;
+								kv6->vertices_final[v++] = p[0];
+								kv6->vertices_final[v++] = p[1];
+								kv6->vertices_final[v++] = p[2];
+								kv6->vertices_final[v++] = p[0];
+								kv6->vertices_final[v++] = p[1]+kv6->scale;
+								kv6->vertices_final[v++] = p[2];
+								kv6->vertices_final[v++] = p[0]+kv6->scale;
+								kv6->vertices_final[v++] = p[1]+kv6->scale;
+								kv6->vertices_final[v++] = p[2];
+								kv6->vertices_final[v++] = p[0]+kv6->scale;
+								kv6->vertices_final[v++] = p[1];
+								kv6->vertices_final[v++] = p[2];
+								alpha[i++] = 0.95F;
 							}
 
 							if(y==kv6->ysiz-1 || !kv6->color[x+((y+1)+z*kv6->ysiz)*kv6->xsiz]) {
-								vertices[v++] = p[0];
-								vertices[v++] = p[1];
-								vertices[v++] = p[2]+kv6->scale;
-								vertices[v++] = p[0]+kv6->scale;
-								vertices[v++] = p[1];
-								vertices[v++] = p[2]+kv6->scale;
-								vertices[v++] = p[0]+kv6->scale;
-								vertices[v++] = p[1]+kv6->scale;
-								vertices[v++] = p[2]+kv6->scale;
-								vertices[v++] = p[0];
-								vertices[v++] = p[1]+kv6->scale;
-								vertices[v++] = p[2]+kv6->scale;
-								i++;
+								kv6->vertices_final[v++] = p[0];
+								kv6->vertices_final[v++] = p[1];
+								kv6->vertices_final[v++] = p[2]+kv6->scale;
+								kv6->vertices_final[v++] = p[0]+kv6->scale;
+								kv6->vertices_final[v++] = p[1];
+								kv6->vertices_final[v++] = p[2]+kv6->scale;
+								kv6->vertices_final[v++] = p[0]+kv6->scale;
+								kv6->vertices_final[v++] = p[1]+kv6->scale;
+								kv6->vertices_final[v++] = p[2]+kv6->scale;
+								kv6->vertices_final[v++] = p[0];
+								kv6->vertices_final[v++] = p[1]+kv6->scale;
+								kv6->vertices_final[v++] = p[2]+kv6->scale;
+								alpha[i++] = 0.9F;
 							}
 
 							if(x==0 || !kv6->color[(x-1)+(y+z*kv6->ysiz)*kv6->xsiz]) {
-								vertices[v++] = p[0];
-								vertices[v++] = p[1];
-								vertices[v++] = p[2];
-								vertices[v++] = p[0];
-								vertices[v++] = p[1];
-								vertices[v++] = p[2]+kv6->scale;
-								vertices[v++] = p[0];
-								vertices[v++] = p[1]+kv6->scale;
-								vertices[v++] = p[2]+kv6->scale;
-								vertices[v++] = p[0];
-								vertices[v++] = p[1]+kv6->scale;
-								vertices[v++] = p[2];
-								i++;
+								kv6->vertices_final[v++] = p[0];
+								kv6->vertices_final[v++] = p[1];
+								kv6->vertices_final[v++] = p[2];
+								kv6->vertices_final[v++] = p[0];
+								kv6->vertices_final[v++] = p[1];
+								kv6->vertices_final[v++] = p[2]+kv6->scale;
+								kv6->vertices_final[v++] = p[0];
+								kv6->vertices_final[v++] = p[1]+kv6->scale;
+								kv6->vertices_final[v++] = p[2]+kv6->scale;
+								kv6->vertices_final[v++] = p[0];
+								kv6->vertices_final[v++] = p[1]+kv6->scale;
+								kv6->vertices_final[v++] = p[2];
+								alpha[i++] = 0.85F;
 							}
 
 							if(x==kv6->xsiz-1 || !kv6->color[(x+1)+(y+z*kv6->ysiz)*kv6->xsiz]) {
-								vertices[v++] = p[0]+kv6->scale;
-								vertices[v++] = p[1];
-								vertices[v++] = p[2];
-								vertices[v++] = p[0]+kv6->scale;
-								vertices[v++] = p[1]+kv6->scale;
-								vertices[v++] = p[2];
-								vertices[v++] = p[0]+kv6->scale;
-								vertices[v++] = p[1]+kv6->scale;
-								vertices[v++] = p[2]+kv6->scale;
-								vertices[v++] = p[0]+kv6->scale;
-								vertices[v++] = p[1];
-								vertices[v++] = p[2]+kv6->scale;
-								i++;
+								kv6->vertices_final[v++] = p[0]+kv6->scale;
+								kv6->vertices_final[v++] = p[1];
+								kv6->vertices_final[v++] = p[2];
+								kv6->vertices_final[v++] = p[0]+kv6->scale;
+								kv6->vertices_final[v++] = p[1]+kv6->scale;
+								kv6->vertices_final[v++] = p[2];
+								kv6->vertices_final[v++] = p[0]+kv6->scale;
+								kv6->vertices_final[v++] = p[1]+kv6->scale;
+								kv6->vertices_final[v++] = p[2]+kv6->scale;
+								kv6->vertices_final[v++] = p[0]+kv6->scale;
+								kv6->vertices_final[v++] = p[1];
+								kv6->vertices_final[v++] = p[2]+kv6->scale;
+								alpha[i++] = 0.8F;
 							}
 
 							for(int k=0;k<i*4;k++) {
-								colors[c++] = (r/255.0F*(a/255.0F*0.5F+0.5F))*255.0F;
-								colors[c++] = (g/255.0F*(a/255.0F*0.5F+0.5F))*255.0F;
-								colors[c++] = (b/255.0F*(a/255.0F*0.5F+0.5F))*255.0F;
+								kv6->colors_final[c++] = (r/255.0F*(a/255.0F*0.5F+0.5F))*255.0F*alpha[k/4];
+								kv6->colors_final[c++] = (g/255.0F*(a/255.0F*0.5F+0.5F))*255.0F*alpha[k/4];
+								kv6->colors_final[c++] = (b/255.0F*(a/255.0F*0.5F+0.5F))*255.0F*alpha[k/4];
 							}
 						}
 					}
@@ -276,33 +282,46 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 			}
 
 			//glEnable(GL_NORMALIZE);
-
-			glEnableClientState(GL_COLOR_ARRAY);
-			glEnableClientState(GL_VERTEX_ARRAY);
-			glNewList(kv6->display_list+t,GL_COMPILE_AND_EXECUTE);
-
-			glVertexPointer(3,GL_FLOAT,0,vertices);
-			glColorPointer(3,GL_UNSIGNED_BYTE,0,colors);
-			glDrawArrays(GL_QUADS,0,v/3);
-
-			glEndList();
-			glDisableClientState(GL_COLOR_ARRAY);
-			glDisableClientState(GL_VERTEX_ARRAY);
-
-			////glDisable(GL_NORMALIZE);
+			if(!kv6->colorize) {
+				glNewList(kv6->display_list+t,GL_COMPILE_AND_EXECUTE);
+				glEnableClientState(GL_VERTEX_ARRAY);
+				glEnableClientState(GL_COLOR_ARRAY);
+				glVertexPointer(3,GL_FLOAT,0,kv6->vertices_final);
+				glColorPointer(3,GL_UNSIGNED_BYTE,0,kv6->colors_final);
+				glDrawArrays(GL_QUADS,0,v/3);
+				glDisableClientState(GL_COLOR_ARRAY);
+				glDisableClientState(GL_VERTEX_ARRAY);
+				glEndList();
+			}
+			//glDisable(GL_NORMALIZE);
 		}
-		free(vertices);
-		free(colors);
+
+		if(!kv6->colorize) {
+			free(kv6->vertices_final);
+			free(kv6->colors_final);
+		} else {
+			memcpy(kv6->colors_final+v*sizeof(unsigned char),kv6->colors_final,v*sizeof(unsigned char));
+			kv6->size = v/3;
+		}
 
 		kv6->has_display_list = 1;
 	} else {
-		glEnableClientState(GL_COLOR_ARRAY);
-		glEnableClientState(GL_VERTEX_ARRAY);
-
-		glCallList(kv6->display_list+(team&1));
-
-		glDisableClientState(GL_COLOR_ARRAY);
-		glDisableClientState(GL_VERTEX_ARRAY);
+		if(!kv6->colorize) {
+			glCallList(kv6->display_list+(team&1));
+		} else {
+			for(int k=0;k<kv6->size*3;k+=3) {
+				kv6->colors_final[k+0] = min(((float)kv6->colors_final[k+0+kv6->size*3*sizeof(unsigned char)])/0.4335F*kv6->red,255);
+				kv6->colors_final[k+1] = min(((float)kv6->colors_final[k+1+kv6->size*3*sizeof(unsigned char)])/0.4335F*kv6->green,255);
+				kv6->colors_final[k+2] = min(((float)kv6->colors_final[k+2+kv6->size*3*sizeof(unsigned char)])/0.4335F*kv6->blue,255);
+			}
+			glEnableClientState(GL_VERTEX_ARRAY);
+			glEnableClientState(GL_COLOR_ARRAY);
+			glVertexPointer(3,GL_FLOAT,0,kv6->vertices_final);
+			glColorPointer(3,GL_UNSIGNED_BYTE,0,kv6->colors_final);
+			glDrawArrays(GL_QUADS,0,kv6->size);
+			glDisableClientState(GL_COLOR_ARRAY);
+			glDisableClientState(GL_VERTEX_ARRAY);
+		}
 	}
 
 

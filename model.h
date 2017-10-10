@@ -1,10 +1,14 @@
 struct kv6_t {
 	unsigned short xsiz, ysiz, zsiz;
 	float xpiv, ypiv, zpiv;
-	unsigned char has_display_list;
+	unsigned char has_display_list, colorize;
 	int display_list;
 	unsigned int* color;
 	float scale;
+	unsigned char* colors_final;
+	float* vertices_final;
+	int size;
+	float red, green, blue;
 };
 
 struct kv6_t model_playerhead;
