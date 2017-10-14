@@ -1,6 +1,10 @@
 unsigned char* file_load(const char* name) {
 	FILE *f;
 	f = fopen(name,"rb");
+	if (!f) {
+		printf("ERROR: failed to open '%s', exiting\n", name);
+		exit(1);
+	}
 	fseek(f,0,SEEK_END);
 	int size = ftell(f);
 	unsigned char* data = malloc(size);
