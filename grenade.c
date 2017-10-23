@@ -94,9 +94,20 @@ void grenade_update(float dt) {
     for(int k=0;k<GRENADES_MAX;k++) {
         if(grenades[k].active) {
             if(glfwGetTime()-grenades[k].created>grenades[k].fuse_length) {
+                sound_createEx(NULL,SOUND_WORLD,
+                    (grenades[k].pos.y<1.0F)?&sound_explode_water:&sound_explode,
+                    grenades[k].pos.x,grenades[k].pos.y,grenades[k].pos.z,
+                    grenades[k].velocity.x,grenades[k].velocity.y,grenades[k].velocity.z
+                );
                 grenades[k].active = 0;
             } else {
-                grenade_move(&grenades[k],dt);
+                if(grenade_move(&grenades[k],dt)==2) {
+                    sound_createEx(NULL,SOUND_WORLD,
+                        &sound_grenade_bounce,
+                        grenades[k].pos.x,grenades[k].pos.y,grenades[k].pos.z,
+                        grenades[k].velocity.x,grenades[k].velocity.y,grenades[k].velocity.z
+                    );
+                }
                 //TODO: position grenade on ground properly
                 glPushMatrix();
                 glTranslatef(grenades[k].pos.x,grenades[k].pos.y+(model_grenade.zpiv+model_grenade.zsiz*2)*model_grenade.scale,grenades[k].pos.z);

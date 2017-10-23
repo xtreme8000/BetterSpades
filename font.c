@@ -1,46 +1,8 @@
 
 
 unsigned char font_init() {
-    unsigned char* image;
-    unsigned char* image2;
-    unsigned int width, height, width2, height2;
-    int error;
-
-    error = lodepng_decode32_file(&image,&width,&height,"fonts/FixedSys_Bold_36.png");
-    if(error) {
-        printf("Could not load font (%u): %s\n",error,lodepng_error_text(error));
-        return 0;
-    }
-
-    error = lodepng_decode32_file(&image2,&width2,&height2,"fonts/smallfnt68.png");
-    if(error) {
-        printf("Could not load font (%u): %s\n",error,lodepng_error_text(error));
-        return 0;
-    }
-
-    glEnable(GL_TEXTURE_2D);
-    glGenTextures(2,&font_texture);
-
-    glBindTexture(GL_TEXTURE_2D,font_texture);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,width,height,0,GL_RGBA,GL_UNSIGNED_BYTE,image);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
-
-    glBindTexture(GL_TEXTURE_2D,font_texture+1);
-    glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,width2,height2,0,GL_RGBA,GL_UNSIGNED_BYTE,image2);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
-
-
-    glBindTexture(GL_TEXTURE_2D,0);
-    glDisable(GL_TEXTURE_2D);
-
-    free(image);
-    free(image2);
+    texture_create(&font_fixedsys,"fonts/FixedSys_Bold_36.png");
+    texture_create(&font_smallfnt,"fonts/smallfnt68.png");
 
     font_vertex_buffer = malloc(512*8*sizeof(short));
     font_coords_buffer = malloc(512*8*sizeof(short));
@@ -106,7 +68,12 @@ void font_render(float x, float y, float h, char* text) {
     glMatrixMode(GL_MODELVIEW);
 
     glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D,font_texture+((font_type==FONT_SMALLFNT)?1:0));
+    if(font_type==FONT_SMALLFNT) {
+        glBindTexture(GL_TEXTURE_2D,font_smallfnt.texture_id);
+    }
+    if(font_type==FONT_FIXEDSYS) {
+        glBindTexture(GL_TEXTURE_2D,font_fixedsys.texture_id);
+    }
     glAlphaFunc(GL_GREATER,0.5F);
     glEnable(GL_ALPHA_TEST);
 

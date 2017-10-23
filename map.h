@@ -14,7 +14,7 @@ struct Point {
 void map_update_physics(int x, int y, int z);
 void map_ground_connected_sub(int x, int y, int z, int depth);
 boolean map_ground_connected(int x, int y, int z);
-void map_apply_gravity();
+void map_apply_gravity(void);
 unsigned long long map_get(int x, int y, int z);
 void map_set(int x, int y, int z, unsigned long long color);
 int map_cube_line(int x1, int y1, int z1, int x2, int y2, int z2, struct Point* cube_array);

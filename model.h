@@ -29,7 +29,7 @@ struct kv6_t model_grenade;
 
 void kv6_render(struct kv6_t* kv6, unsigned char team);
 struct kv6_t kv6_load(unsigned char* bytes, float scale);
-void kv6_init();
+void kv6_init(void);
 
 float kv6_normals[256][3] = {
 				{0.08847, 0.00000, -0.99608},

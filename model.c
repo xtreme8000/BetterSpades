@@ -6,8 +6,8 @@ void kv6_init() {
 	model_playerleg = kv6_load(file_load("kv6/playerleg.kv6"),0.1F);
 	model_playerlegc = kv6_load(file_load("kv6/playerlegc.kv6"),0.1F);
 
-	model_intel = kv6_load(file_load("kv6/intel.kv6"),0.2F);
-	model_tent = kv6_load(file_load("kv6/cp.kv6"),0.2F);
+	model_intel = kv6_load(file_load("kv6/intel.kv6"),0.278F);
+	model_tent = kv6_load(file_load("kv6/cp.kv6"),0.278F);
 
 	model_semi = kv6_load(file_load("kv6/semi.kv6"),0.05F);
 	model_smg = kv6_load(file_load("kv6/smg.kv6"),0.05F);
@@ -32,8 +32,8 @@ struct kv6_t kv6_load(unsigned char* bytes, float scale) {
 		index += 4;
 		ret.zsiz = buffer_read32(bytes,index);
 		index += 4;
-		ret.color = malloc(ret.xsiz*ret.ysiz*ret.zsiz*4);
-		memset(ret.color,0,ret.xsiz*ret.ysiz*ret.zsiz*4);
+		ret.color = malloc(ret.xsiz*ret.ysiz*ret.zsiz*sizeof(unsigned int));
+		memset(ret.color,0,ret.xsiz*ret.ysiz*ret.zsiz*sizeof(unsigned int));
 
 		ret.xpiv = buffer_readf(bytes,index);
 		index += 4;
@@ -111,6 +111,9 @@ void mul_matrix_vector(float* out, double* m, float* v) {
 }*/
 
 void kv6_render(struct kv6_t* kv6, unsigned char team) {
+	if(!network_logged_in)
+		return;
+
 	if(!kv6->has_display_list) {
 		int size = 0;
 		for(int x=0;x<kv6->xsiz;x++) {
@@ -136,12 +139,11 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		kv6->colors_final = malloc(size*12*sizeof(unsigned char)*2);
 
 		if(!kv6->colorize) {
-			kv6->display_list = glGenLists(2);
+			kv6->display_list = glGenLists(3);
 		}
 
 		int v,c;
-		for(int t=0;t<2;t++) {
-
+		for(int t=0;t<3;t++) {
 			v = c = 0;
 
 			for(int x=0;x<kv6->xsiz;x++) {
@@ -165,7 +167,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 										b = gamestate.team_2.blue;
 										break;
 									default:
-										r = g = b = 255;
+										r = g = b = 0;
 								}
 							}
 
@@ -307,7 +309,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		kv6->has_display_list = 1;
 	} else {
 		if(!kv6->colorize) {
-			glCallList(kv6->display_list+(team&1));
+			glCallList(kv6->display_list+(team%3));
 		} else {
 			for(int k=0;k<kv6->size*3;k+=3) {
 				kv6->colors_final[k+0] = min(((float)kv6->colors_final[k+0+kv6->size*3*sizeof(unsigned char)])/0.4335F*kv6->red,255);

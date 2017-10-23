@@ -1,3 +1,19 @@
+void camera_overflow_adjust() {
+	if(camera_rot_y<EPSILON) {
+		camera_rot_y = EPSILON;
+	}
+	if(camera_rot_y>PI) {
+		camera_rot_y = PI;
+	}
+
+	if(camera_rot_x>DOUBLEPI) {
+		camera_rot_x -= DOUBLEPI;
+	}
+	if(camera_rot_x<0.0F) {
+		camera_rot_x += DOUBLEPI;
+	}
+}
+
 void camera_apply(float dt) {
 	switch(camera_mode) {
 		case CAMERAMODE_FPS:

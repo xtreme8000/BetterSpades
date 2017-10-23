@@ -1,12 +1,31 @@
 void network_send(int id, void* data, int len);
-void network_updateColor();
-void network_disconnect();
+void network_updateColor(void);
+void network_disconnect(void);
 int network_connect(char* ip, int port);
-void network_update();
-int network_status();
-void network_init();
+void network_update(void);
+int network_status(void);
+void network_init(void);
+
+void (*packets[31]) (void* data, int len) = {NULL};
+int network_connected = 0;
+int network_logged_in = 0;
+
+float network_pos_update = 0.0F;
+float network_orient_update = 0.0F;
+unsigned char network_keys_last;
+unsigned char network_buttons_last;
+unsigned char network_tool_last = 255;
+
+#define VERSION_075	3
+#define VERSION_076	4
+
+void* compressed_chunk_data;
+int compressed_chunk_data_size;
+int compressed_chunk_data_offset = 0;
 
 #pragma pack(push,1)
+
+#define PACKET_MAPCHUNK_ID 19
 
 #define PACKET_POSITIONDATA_ID 0
 struct PacketPositionData {
@@ -18,6 +37,7 @@ struct PacketOrientationData {
 	float x,y,z;
 };
 
+#define PACKET_WORLDUPDATE_ID 2
 struct PacketWorldUpdate {
 	float x,y,z;
 	float ox,oy,oz;
@@ -36,18 +56,49 @@ struct PacketWeaponInput {
 	unsigned char secondary : 1;
 };
 
+#define PACKET_MOVEOBJECT_ID 11
+struct PacketMoveObject {
+	unsigned char object_id;
+	unsigned char team;
+	float x,y,z;
+};
+#define TEAM_1_FLAG	0
+#define TEAM_2_FLAG	1
+#define TEAM_1_BASE	2
+#define TEAM_2_BASE	3
+
+#define PACKET_INTELPICKUP_ID 24
+struct PacketIntelPickup {
+	unsigned char player_id;
+};
+
+#define PACKET_INTELCAPTURE_ID 23
+struct PacketIntelCapture {
+	unsigned char player_id;
+	unsigned char winning;
+};
+
+#define PACKET_INTELDROP_ID 25
+struct PacketIntelDrop {
+	unsigned char player_id;
+	float x,y,z;
+};
+
+#define PACKET_WEAPONRELOAD_ID 28
 struct PacketWeaponReload {
 	unsigned char player_id;
 	unsigned char ammo;
 	unsigned char reserved;
 };
 
+#define PACKET_SETHP_ID 5
 struct PacketSetHP {
 	unsigned char hp;
 	unsigned char type;
 	float x,y,z;
 };
 
+#define PACKET_KILLACTION_ID 16
 struct PacketKillAction {
 	unsigned char player_id;
 	unsigned char killer_id;
@@ -62,6 +113,7 @@ struct PacketKillAction {
 #define KILLTYPE_TEAMCHANGE		5
 #define KILLTYPE_CLASSCHANGE	6
 
+#define PACKET_RESTOCK_ID 26
 struct PacketRestock {
 	unsigned char player_id;
 };
@@ -74,10 +126,12 @@ struct PacketGrenade {
 	float vx,vy,vz;
 };
 
+#define PACKET_MAPSTART_ID 18
 struct PacketMapStart {
 	unsigned int map_size;
 };
 
+#define PACKET_PLAYERLEFT_ID 20
 struct PacketPlayerLeft {
 	unsigned char player_id;
 };
@@ -96,7 +150,7 @@ struct PacketExistingPlayer {
 #define WEAPON_SMG		1
 #define WEAPON_SHOTGUN	2
 
-
+#define PACKET_CREATEPLAYER_ID 12
 struct PacketCreatePlayer {
 	unsigned char player_id;
 	unsigned char weapon;
@@ -116,6 +170,7 @@ struct PacketBlockAction {
 #define ACTION_SPADE	2
 #define ACTION_GRENADE	3
 
+#define PACKET_BLOCKLINE_ID 14
 struct PacketBlockLine {
 	unsigned char player_id;
 	int sx,sy,sz;
@@ -128,12 +183,14 @@ struct PacketSetColor {
 	unsigned char blue,green,red;
 };
 
+#define PACKET_SHORTPLAYERDATA_ID 10
 struct PacketShortPlayerData {
 	unsigned char player_id;
 	unsigned char team;
 	unsigned char weapon;
 };
 
+#define PACKET_SETTOOL_ID 7
 struct PacketSetTool {
 	unsigned char player_id;
 	unsigned char tool;
@@ -153,15 +210,18 @@ struct PacketChatMessage {
 #define CHAT_TEAM	1
 #define CHAT_SYSTEM	2
 
+#define PACKET_FOGCOLOR_ID 27
 struct PacketFogColor {
 	unsigned char alpha,red,green,blue;
 };
 
+#define PACKET_CHANGEWEAPON_ID 30
 struct PacketChangeWeapon {
 	unsigned char player_id;
 	unsigned char weapon;
 };
 
+#define PACKET_STATEDATA_ID 15
 struct PacketStateData {
 	unsigned char player_id;
 	unsigned char fog_blue,fog_green,fog_red;
@@ -204,6 +264,19 @@ struct PacketStateData {
 			} territory[16];
 		} tc;
 	} gamemode_data;
+};
+
+#define PACKET_TERRITORYCAPTURE_ID 21
+struct PacketTerritoryCapture {
+	unsigned char tent, winning, team;
+};
+
+#define PACKET_PROGRESSBAR_ID 22
+struct PacketProgressBar {
+	unsigned char tent;
+	unsigned char team_capturing;
+	char rate;
+	float progress;
 };
 
 #pragma pack(pop)

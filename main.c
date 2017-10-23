@@ -12,7 +12,6 @@
 
 #include <GL/gl.h>
 #include <GL/glu.h>
-#include "GLFW/glfw3.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -20,6 +19,8 @@
 #include <float.h>
 #include <stdio.h>
 #include "GL/glext.h"
+
+#include "GLFW/glfw3.h"
 
 #define PI			3.1415F
 #define DOUBLEPI	(PI*2.0F)
@@ -38,11 +39,15 @@ typedef unsigned char boolean;
 #define true 1
 #define false 0
 
-#define rgb(r,g,b) (((b)<<16)|((g)<<8)|(r))
+#define rgb(r,g,b)	(((b)<<16)|((g)<<8)|(r))
+#define red(col)	((col)&0xFF)
+#define green(col)	(((col)>>8)&0xFF)
+#define blue(col)	(((col)>>16)&0xFF)
 
 #include "lodepng/lodepng.h"
 #include "lodepng/lodepng.c"
 
+#include "sound.h"
 #include "chunk.h"
 #include "map.h"
 #include "model.h"
@@ -58,6 +63,23 @@ typedef unsigned char boolean;
 #include "texture.h"
 #include "weapon.h"
 
+#define CHAT_NO_INPUT	0
+#define CHAT_ALL_INPUT	1
+#define CHAT_TEAM_INPUT	2
+
+int chat_input_mode = CHAT_NO_INPUT;
+
+char chat[10][256]; //chat[0] is current input
+unsigned int chat_color[10];
+void chat_add(unsigned int color, char* msg) {
+	for(int k=10;k>1;k--) {
+		strcpy(chat[k],chat[k-1]);
+		chat_color[k] = chat_color[k-1];
+	}
+	strcpy(chat[1],msg);
+	chat_color[1] = color;
+}
+
 struct RENDER_OPTIONS {
 	boolean opengl14;
 	boolean color_correction;
@@ -67,7 +89,8 @@ struct RENDER_OPTIONS {
 	int window_width;
 	int window_height;
 	unsigned char multisamples;
-	unsigned char player_arms;
+	boolean player_arms;
+	boolean fullscreen;
 } settings;
 
 int uniform_point_size, uniform_near_plane_height, uniform_camera_x, uniform_camera_z, uniform_fog_distance, uniform_map_size_x, uniform_map_size_z, uniform_fog_color, uniform_setting_color_correction, uniform_draw_ui;
@@ -106,6 +129,7 @@ void matrix_pointAt(float dx, float dy, float dz);
 #include "font.c"
 #include "texture.c"
 #include "weapon.c"
+#include "sound.c"
 
 unsigned char color_correction[] =
 									{16,23,36,20,23,36,36,23,36,59,23,36,90,23,36,138,23,36,174,23,36,199,23,36,212,23,36,221,23,36,228,23,36,233,23,36,238,23,36,239,23,36,243,23,36,246,23,36,16,23,36,20,23,36,36,23,36,59,23,36,90,23,36,138,23,36,174,23,36,199,23,36,212,23,36,221,23,36,228,23,36,233,23,36,238,23,36,239,23,36,243,23,36,246,23,36,16,36,36,20,36,36,36,36,36,59,36,36,90,36,36,138,36,36,174,36,36,199,36,36,212,36,36,221,36,36,228,36,36,233,36,36,238,36,36,239,36,36,243,36,36,246,36,36,16,50,36,20,50,36,36,50,36,59,50,36,90,50,36,138,50,36,174,50,36,199,50,36,212,50,36,221,50,36,228,50,36,233,50,36,238,50,36,239,50,36,243,50,36,246,50,36,16,68,36,20,68,36,36,68,36,59,68,36,90,68,36,138,68,36,174,68,36,199,68,36,212,68,36,221,68,36,228,68,36,233,68,36,238,68,36,239,68,36,243,68,36,246,68,36,16,93,36,20,93,36,36,93,36,59,93,36,90,93,36,138,93,36,174,93,36,199,93,36,212,93,36,221,93,36,228,93,36,233,93,36,238,93,36,239,93,36,243,93,36,246,93,36,16,127,36,20,127,36,36,127,36,59,127,36,90,127,36,138,127,36,174,127,36,199,127,36,212,127,36,221,127,36,228,127,36,233,127,36,238,127,36,239,127,36,243,127,36,246,127,36,16,166,36,20,166,36,36,166,36,59,166,36,90,166,36,138,166,36,174,166,36,199,166,36,212,166,36,221,166,36,228,166,36,233,166,36,238,166,36,239,166,36,243,166,36,246,166,36,16,194,36,20,194,36,36,194,36,59,194,36,90,194,36,138,194,36,174,194,36,199,194,36,212,194,36,221,194,36,228,194,36,233,194,36,238,194,36,239,194,36,243,194,36,246,194,36,16,213,36,20,213,36,36,213,36,59,213,36,90,213,36,138,213,36,174,213,36,199,213,36,212,213,36,221,213,36,228,213,36,233,213,36,238,213,36,239,213,36,243,213,36,246,213,36,16,223,36,20,223,36,36,223,36,59,223,36,90,223,36,138,223,36,174,223,36,199,223,36,212,223,36,221,223,36,228,223,36,233,223,36,238,223,36,239,223,36,243,223,36,246,223,36,16,230,36,20,230,36,36,230,36,59,230,36,90,230,36,138,230,36,174,230,36,199,230,36,212,230,36,221,230,36,228,230,36,233,230,36,238,230,36,239,230,36,243,230,36,246,230,36,16,236,36,20,236,36,36,236,36,59,236,36,90,236,36,138,236,36,174,236,36,199,236,36,212,236,36,221,236,36,228,236,36,233,236,36,238,236,36,239,236,36,243,236,36,246,236,36,16,240,36,20,240,36,36,240,36,59,240,36,90,240,36,138,240,36,174,240,36,199,240,36,212,240,36,221,240,36,228,240,36,233,240,36,238,240,36,239,240,36,243,240,36,246,240,36,16,243,36,20,243,36,36,243,36,59,243,36,90,243,36,138,243,36,174,243,36,199,243,36,212,243,36,221,243,36,228,243,36,233,243,36,238,243,36,239,243,36,243,243,36,246,243,36,16,246,36,20,246,36,36,246,36,59,246,36,90,246,36,138,246,36,174,246,36,199,246,36,212,246,36,221,246,36,228,246,36,233,246,36,238,246,36,239,246,36,243,246,36,246,246,36,
@@ -127,6 +151,7 @@ unsigned char color_correction[] =
 								   };
 
 int texture_color_correction;
+
 
 
 int genTexture(unsigned char* data, int width, int height, int depth) {
@@ -170,11 +195,14 @@ float drawScene() {
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
 
+	glShadeModel(GL_FLAT);
+	particle_render();
+
 	if(gamestate.gamemode_type==GAMEMODE_CTF) {
 		if(!gamestate.gamemode.ctf.team_1_intel) {
 			glPushMatrix();
 			glTranslatef(gamestate.gamemode.ctf.team_1_intel_location.dropped.x,
-						 63.0F-gamestate.gamemode.ctf.team_1_intel_location.dropped.z,
+						 63.0F-gamestate.gamemode.ctf.team_1_intel_location.dropped.z+1.0F,
 						 gamestate.gamemode.ctf.team_1_intel_location.dropped.y);
 			kv6_render(&model_intel,TEAM_1);
 			glPopMatrix();
@@ -182,27 +210,34 @@ float drawScene() {
 		if(!gamestate.gamemode.ctf.team_2_intel) {
 			glPushMatrix();
 			glTranslatef(gamestate.gamemode.ctf.team_2_intel_location.dropped.x,
-						 63.0F-gamestate.gamemode.ctf.team_2_intel_location.dropped.z,
+						 63.0F-gamestate.gamemode.ctf.team_2_intel_location.dropped.z+1.0F,
 						 gamestate.gamemode.ctf.team_2_intel_location.dropped.y);
 			kv6_render(&model_intel,TEAM_2);
 			glPopMatrix();
 		}
 		glPushMatrix();
 		glTranslatef(gamestate.gamemode.ctf.team_1_base.x,
-					 63.0F-gamestate.gamemode.ctf.team_1_base.z,
+					 63.0F-gamestate.gamemode.ctf.team_1_base.z+1.0F,
 					 gamestate.gamemode.ctf.team_1_base.y);
 		kv6_render(&model_tent,TEAM_1);
 		glPopMatrix();
 		glPushMatrix();
 		glTranslatef(gamestate.gamemode.ctf.team_2_base.x,
-					 63.0F-gamestate.gamemode.ctf.team_2_base.z,
+					 63.0F-gamestate.gamemode.ctf.team_2_base.z+1.0F,
 					 gamestate.gamemode.ctf.team_2_base.y);
 		kv6_render(&model_tent,TEAM_2);
 		glPopMatrix();
 	}
-
-	glShadeModel(GL_FLAT);
-	particle_render();
+	if(gamestate.gamemode_type==GAMEMODE_TC) {
+		for(int k=0;k<gamestate.gamemode.tc.territory_count;k++) {
+			glPushMatrix();
+			glTranslatef(gamestate.gamemode.tc.territory[k].x,
+						 63.0F-gamestate.gamemode.tc.territory[k].z+1.0F,
+						 gamestate.gamemode.tc.territory[k].y);
+			kv6_render(&model_tent,min(gamestate.gamemode.tc.territory[k].team,2));
+			glPopMatrix();
+		}
+	}
 
 	return r;
 }
@@ -261,10 +296,15 @@ void display(float dt) {
 	float last_cy = players[local_player_id].physics.eye.y;
 	player_move(&players[local_player_id],dt);
 
+	float fov = camera_fov;
+	if(camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN && players[local_player_id].input.buttons.rmb) {
+		fov *= 0.75F;
+	}
+
 	if(settings.opengl14) {
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
-		gluPerspective(camera_fov, ((float)settings.window_width)/((float)settings.window_height), 0.1F, settings.render_distance+CHUNK_SIZE*4.0F+128.0F);
+		gluPerspective(fov, ((float)settings.window_width)/((float)settings.window_height), 0.1F, settings.render_distance+CHUNK_SIZE*4.0F+128.0F);
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 		camera_apply(dt);
@@ -280,7 +320,7 @@ void display(float dt) {
 	} else {
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
-		gluPerspective(camera_fov, ((float)settings.window_width)/((float)settings.window_height), 0.1F, settings.render_distance+CHUNK_SIZE*4.0F);
+		gluPerspective(fov, ((float)settings.window_width)/((float)settings.window_height), 0.1F, settings.render_distance+CHUNK_SIZE*4.0F);
 		camera_apply(dt);
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
@@ -353,44 +393,22 @@ void display(float dt) {
 			if(players[local_player_id].input.buttons.lmb) {
 				players[local_player_id].input.buttons.lmb_start = glfwGetTime();
 			}
-			if(players[local_player_id].input.buttons.rmb) {
-				players[local_player_id].input.buttons.rmb_start = glfwGetTime();
-			}
+			players[local_player_id].input.buttons.rmb = 0;
 		} else {
 			float tmp2 = players[local_player_id].physics.eye.y;
 			players[local_player_id].physics.eye.y = last_cy;
-			glDepthRange(0.0F,0.05F);
+			if(camera_mode==CAMERAMODE_FPS) {
+				glDepthRange(0.0F,0.05F);
+			}
 			player_render(&players[local_player_id],local_player_id);
 			glDepthRange(0.0F,1.0F);
 			players[local_player_id].physics.eye.y = tmp2;
 		}
 
-		AABB test;
 		for(int k=0;k<32;k++) {
-			if(players[k].connected && k!=local_player_id) {
-				if(players[k].alive) {
-					player_move(&players[k],dt);
-					player_render(&players[k],k);
-				}
-
-				/*if(players[k].alive) {
-					glColor3f(1.0F,1.0F,1.0F);
-				} else {
-					glColor3f(1.0F,0.0F,0.0F);
-				}
-
-				glPushMatrix();
-				glTranslatef(players[k].physics.eye.x,players[k].physics.eye.y+1.0F,players[k].physics.eye.z);
-				matrix_pointAt(players[k].orientation.x,players[k].orientation.y,players[k].orientation.z);
-				aabb_set_size(&test,1.0F,1.0F,1.0F);
-				aabb_set_center(&test,0.0F,0.0F,0.0F);
-				aabb_render(&test);
-				glBegin(GL_LINES);
-				glColor3f(1,0,0);
-				glVertex3f(0,0,0);
-				glVertex3f(1,0,0);
-				glEnd();
-				glPopMatrix();*/
+			if(players[k].connected && players[k].alive && k!=local_player_id) {
+				player_move(&players[k],dt);
+				player_render(&players[k],k);
 			}
 		}
 
@@ -458,7 +476,7 @@ void display(float dt) {
 
 	glDisable(GL_DEPTH_TEST);
 
-	glMatrixMode(GL_PROJECTION);
+	/*glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
 	gluOrtho2D(-1.0F,1.0F,-1.0F,1.0F);
 	glMatrixMode(GL_MODELVIEW);
@@ -504,7 +522,7 @@ void display(float dt) {
 
 	glVertex2f(1.0F,0.0F);
 	glVertex2f(1.0F,1.1F);
-	glEnd();
+	glEnd();*/
 
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -512,6 +530,18 @@ void display(float dt) {
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	float scalef = settings.window_height/600.0F;
+	glColor3f(1.0F,1.0F,1.0F);
+
+
+	if(players[local_player_id].held_item==TOOL_GRENADE && local_player_grenades==0) {
+		players[local_player_id].held_item--;
+	}
+	if(players[local_player_id].held_item==TOOL_GUN && local_player_ammo+local_player_ammo_reserved==0) {
+		players[local_player_id].held_item--;
+	}
+	if(players[local_player_id].held_item==TOOL_BLOCK && local_player_blocks==0) {
+		players[local_player_id].held_item--;
+	}
 
 	if(camera_mode==CAMERAMODE_BODYVIEW) {
 		font_select(FONT_SMALLFNT);
@@ -521,11 +551,21 @@ void display(float dt) {
 
 	if(camera_mode==CAMERAMODE_FPS) {
 
-		font_select(FONT_SMALLFNT);
-		for(int k=0;k<6;k++) {
-			font_render(11.0F*scalef,settings.window_height*0.15F-10.0F*scalef*k,8.0F*scalef,"[BTK]LastKiller (Green): chat test!");
+		if(players[local_player_id].held_item==TOOL_GUN && players[local_player_id].input.buttons.rmb) {
+			struct texture* zoom;
+			switch(players[local_player_id].weapon) {
+				case WEAPON_RIFLE:
+					zoom = &texture_zoom_semi;
+					break;
+				case WEAPON_SMG:
+					zoom = &texture_zoom_smg;
+					break;
+				case WEAPON_SHOTGUN:
+					zoom = &texture_zoom_shotgun;
+					break;
+			}
+			texture_draw(zoom,(settings.window_width-settings.window_height*4/3)/2,settings.window_height,settings.window_height*4/3,settings.window_height);
 		}
-		font_select(FONT_FIXEDSYS);
 
 		if(local_player_health<=30) {
 			glColor3f(1,0,0);
@@ -536,16 +576,6 @@ void display(float dt) {
 		sprintf(hp,"%i",local_player_health);
 		font_render(settings.window_width/2.0F-font_length(53.0F*scalef,hp),53.0F*scalef,53.0F*scalef,hp);
 		texture_draw(&texture_health,settings.window_width/2.0F,44.0F*scalef,32.0F*scalef,32.0F*scalef);
-
-		if(players[local_player_id].held_item==TOOL_GRENADE && local_player_grenades==0) {
-			players[local_player_id].held_item--;
-		}
-		if(players[local_player_id].held_item==TOOL_GUN && local_player_ammo+local_player_ammo_reserved==0) {
-			players[local_player_id].held_item--;
-		}
-		if(players[local_player_id].held_item==TOOL_BLOCK && local_player_blocks==0) {
-			players[local_player_id].held_item--;
-		}
 
 
 		char item_mini_str[32];
@@ -585,75 +615,148 @@ void display(float dt) {
 		glColor3f(1.0F,1.0F,1.0F);
 
 		if(players[local_player_id].held_item==TOOL_BLOCK) {
+			for(int y=0;y<8;y++) {
+				for(int x=0;x<8;x++) {
+					if(texture_block_color(x,y)==players[local_player_id].block.packed) {
+						unsigned char g = (((int)(glfwGetTime()*4))&1)*0xFF;
+						glColor3ub(g,g,g);
+						texture_draw_empty(settings.window_width+(x*8-65)*scalef,(65-y*8)*scalef,8*scalef,8*scalef);
+						y = 10; //to break outer loop too
+						break;
+					}
+				}
+			}
+			glColor3f(1.0F,1.0F,1.0F);
+
 			texture_draw(&texture_color_selection,settings.window_width-64*scalef,64*scalef,64*scalef,64*scalef);
 		}
+	}
 
-		if(players[local_player_id].items_show) {
-			glEnable(GL_DEPTH_TEST);
-			glDepthRange(0.0F,0.05F);
-
-			glMatrixMode(GL_PROJECTION);
-			glLoadIdentity();
-			gluPerspective(70.0F, ((float)settings.window_width)/((float)settings.window_height), 0.1F, settings.render_distance+CHUNK_SIZE*4.0F+128.0F);
-			glMatrixMode(GL_MODELVIEW);
-			glLoadIdentity();
-
-			glPushMatrix();
-			glTranslatef((model_spade.xpiv-model_spade.xsiz/2)*0.05F,(model_spade.zpiv-model_spade.zsiz/2)*0.05F,(model_spade.ypiv-model_spade.ysiz/2)*0.05F);
-			glTranslatef(-2.25F,-1.5F,-6.0F+(players[local_player_id].held_item==TOOL_SPADE)*1.5F);
-			glRotatef(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
-			kv6_render(&model_spade,players[local_player_id].team);
-			glPopMatrix();
-
-			if(local_player_blocks>0) {
-				glPushMatrix();
-				glTranslatef((model_block.xpiv-model_block.xsiz/2)*0.05F,(model_block.zpiv-model_block.zsiz/2)*0.05F,(model_block.ypiv-model_block.ysiz/2)*0.05F);
-				glTranslatef(-2.25F,-1.5F,-6.0F+(players[local_player_id].held_item==TOOL_BLOCK)*1.5F);
-				glTranslatef(1.5F,0.0F,0.0F);
-				glRotatef(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
-				model_block.red = players[local_player_id].block.red/255.0F;
-	            model_block.green = players[local_player_id].block.green/255.0F;
-	            model_block.blue = players[local_player_id].block.blue/255.0F;
-				kv6_render(&model_block,players[local_player_id].team);
-				glPopMatrix();
+	if(camera_mode!=CAMERAMODE_SELECTION) {
+		font_select(FONT_SMALLFNT);
+		if(chat_input_mode!=CHAT_NO_INPUT) {
+			switch(chat_input_mode) {
+				case CHAT_ALL_INPUT:
+					font_render(11.0F*scalef,settings.window_height*0.15F+20.0F*scalef,8.0F*scalef,"Global:");
+					break;
+				case CHAT_TEAM_INPUT:
+					font_render(11.0F*scalef,settings.window_height*0.15F+20.0F*scalef,8.0F*scalef,"Team:");
+					break;
 			}
-
-			if(local_player_ammo+local_player_ammo_reserved>0) {
-				struct kv6_t* gun;
-				switch(players[local_player_id].weapon) {
-					default:
-					case WEAPON_RIFLE:
-						gun = &model_semi;
-						break;
-					case WEAPON_SMG:
-						gun = &model_smg;
-						break;
-					case WEAPON_SHOTGUN:
-						gun = &model_shotgun;
-						break;
-				}
-				glPushMatrix();
-				glTranslatef((gun->xpiv-gun->xsiz/2)*0.05F,(gun->zpiv-gun->zsiz/2)*0.05F,(gun->ypiv-gun->ysiz/2)*0.05F);
-				glTranslatef(-2.25F,-1.5F,-6.0F+(players[local_player_id].held_item==TOOL_GUN)*1.5F);
-				glTranslatef(3.0F,0.0F,0.0F);
-				glRotatef(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
-				kv6_render(gun,players[local_player_id].team);
-				glPopMatrix();
-			}
-
-			if(local_player_grenades>0) {
-				glPushMatrix();
-				glTranslatef((model_grenade.xpiv-model_grenade.xsiz/2)*0.05F,(model_grenade.zpiv-model_grenade.zsiz/2)*0.05F,(model_grenade.ypiv-model_grenade.ysiz/2)*0.05F);
-				glTranslatef(-2.25F,-1.5F,-6.0F+(players[local_player_id].held_item==TOOL_GRENADE)*1.5F);
-				glTranslatef(4.5F,0.0F,0.0F);
-				glRotatef(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
-				kv6_render(&model_grenade,players[local_player_id].team);
-				glPopMatrix();
-			}
-
-			glDepthRange(0.0F,1.0F);
-			glDisable(GL_DEPTH_TEST);
+			int l = strlen(chat[0]);
+			chat[0][l] = '_';
+			chat[0][l+1] = 0;
+			font_render(11.0F*scalef,settings.window_height*0.15F+10.0F*scalef,8.0F*scalef,chat[0]);
+			chat[0][l] = 0;
 		}
+		for(int k=0;k<6;k++) {
+			glColor3ub(red(chat_color[k+1]),green(chat_color[k+1]),blue(chat_color[k+1]));
+			font_render(11.0F*scalef,settings.window_height*0.15F-10.0F*scalef*k,8.0F*scalef,chat[k+1]);
+		}
+		font_select(FONT_FIXEDSYS);
+		glColor3f(1.0F,1.0F,1.0F);
+	}
+
+	if(gamestate.gamemode_type==GAMEMODE_TC
+		&& gamestate.progressbar.tent<gamestate.gamemode.tc.territory_count
+		&& gamestate.gamemode.tc.territory[gamestate.progressbar.tent].team!=gamestate.progressbar.team_capturing) {
+		float p = max(min(gamestate.progressbar.progress+0.05F*gamestate.progressbar.rate*(glfwGetTime()-gamestate.progressbar.update),1.0F),0.0F);
+		float l = pow(gamestate.gamemode.tc.territory[gamestate.progressbar.tent].x-players[local_player_id].pos.x,2.0F)
+				 +pow((63.0F-gamestate.gamemode.tc.territory[gamestate.progressbar.tent].z)-players[local_player_id].pos.y,2.0F)
+				 +pow(gamestate.gamemode.tc.territory[gamestate.progressbar.tent].y-players[local_player_id].pos.z,2.0F);
+		if(p<1.0F && l<20.0F*20.0F) {
+			switch(gamestate.gamemode.tc.territory[gamestate.progressbar.tent].team) {
+				case TEAM_1:
+					glColor3ub(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue);
+					break;
+				case TEAM_2:
+					glColor3ub(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue);
+					break;
+				default:
+					glColor3ub(0,0,0);
+			}
+			texture_draw(&texture_white,(settings.window_width-440.0F*scalef)/2.0F+440.0F*scalef*p,settings.window_height*0.25F,440.0F*scalef*(1.0F-p),20.0F*scalef);
+			switch(gamestate.progressbar.team_capturing) {
+				case TEAM_1:
+					glColor3ub(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue);
+					break;
+				case TEAM_2:
+					glColor3ub(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue);
+					break;
+				default:
+					glColor3ub(0,0,0);
+			}
+			texture_draw(&texture_white,(settings.window_width-440.0F*scalef)/2.0F,settings.window_height*0.25F,440.0F*scalef*p,20.0F*scalef);
+		}
+	}
+
+	if(players[local_player_id].items_show) {
+		players[local_player_id].input.buttons.rmb = 0;
+
+		glEnable(GL_DEPTH_TEST);
+		glDepthRange(0.0F,0.05F);
+
+		glMatrixMode(GL_PROJECTION);
+		glLoadIdentity();
+		gluPerspective(70.0F, ((float)settings.window_width)/((float)settings.window_height), 0.1F, settings.render_distance+CHUNK_SIZE*4.0F+128.0F);
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+
+		glPushMatrix();
+		glTranslatef((model_spade.xpiv-model_spade.xsiz/2)*0.05F,(model_spade.zpiv-model_spade.zsiz/2)*0.05F,(model_spade.ypiv-model_spade.ysiz/2)*0.05F);
+		glTranslatef(-2.25F,-1.5F,-6.0F+(players[local_player_id].held_item==TOOL_SPADE)*1.5F);
+		glRotatef(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
+		kv6_render(&model_spade,players[local_player_id].team);
+		glPopMatrix();
+
+		if(local_player_blocks>0) {
+			glPushMatrix();
+			glTranslatef((model_block.xpiv-model_block.xsiz/2)*0.05F,(model_block.zpiv-model_block.zsiz/2)*0.05F,(model_block.ypiv-model_block.ysiz/2)*0.05F);
+			glTranslatef(-2.25F,-1.5F,-6.0F+(players[local_player_id].held_item==TOOL_BLOCK)*1.5F);
+			glTranslatef(1.5F,0.0F,0.0F);
+			glRotatef(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
+			model_block.red = players[local_player_id].block.red/255.0F;
+            model_block.green = players[local_player_id].block.green/255.0F;
+            model_block.blue = players[local_player_id].block.blue/255.0F;
+			kv6_render(&model_block,players[local_player_id].team);
+			glPopMatrix();
+		}
+
+		if(local_player_ammo+local_player_ammo_reserved>0) {
+			struct kv6_t* gun;
+			switch(players[local_player_id].weapon) {
+				default:
+				case WEAPON_RIFLE:
+					gun = &model_semi;
+					break;
+				case WEAPON_SMG:
+					gun = &model_smg;
+					break;
+				case WEAPON_SHOTGUN:
+					gun = &model_shotgun;
+					break;
+			}
+			glPushMatrix();
+			glTranslatef((gun->xpiv-gun->xsiz/2)*0.05F,(gun->zpiv-gun->zsiz/2)*0.05F,(gun->ypiv-gun->ysiz/2)*0.05F);
+			glTranslatef(-2.25F,-1.5F,-6.0F+(players[local_player_id].held_item==TOOL_GUN)*1.5F);
+			glTranslatef(3.0F,0.0F,0.0F);
+			glRotatef(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
+			kv6_render(gun,players[local_player_id].team);
+			glPopMatrix();
+		}
+
+		if(local_player_grenades>0) {
+			glPushMatrix();
+			glTranslatef((model_grenade.xpiv-model_grenade.xsiz/2)*0.05F,(model_grenade.zpiv-model_grenade.zsiz/2)*0.05F,(model_grenade.ypiv-model_grenade.ysiz/2)*0.05F);
+			glTranslatef(-2.25F,-1.5F,-6.0F+(players[local_player_id].held_item==TOOL_GRENADE)*1.5F);
+			glTranslatef(4.5F,0.0F,0.0F);
+			glRotatef(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
+			kv6_render(&model_grenade,players[local_player_id].team);
+			glPopMatrix();
+		}
+
+		glDepthRange(0.0F,1.0F);
+		glDisable(GL_DEPTH_TEST);
 	}
 
 	glEnable(GL_DEPTH_TEST);
@@ -682,6 +785,7 @@ void init() {
 	kv6_init();
 	font_init();
 	texture_init();
+	sound_init();
 
 	weapon_set();
 
@@ -706,114 +810,182 @@ void reshape(GLFWwindow* window, int width, int height) {
 	settings.window_height = height;
 }
 
+void text_input(GLFWwindow* window, unsigned int codepoint) {
+	if(chat_input_mode==CHAT_NO_INPUT) {
+		return;
+	}
+
+	int len = strlen(chat[0]);
+	if(len<128) {
+		chat[0][len] = codepoint;
+		chat[0][len+1] = 0;
+	}
+}
+
 float hj,hk,hl;
 void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	if(action==GLFW_RELEASE) {
-		key_map[key] = 0;
-	}
-	if(action==GLFW_PRESS) {
-		key_map[key] = 1;
-		if(key==GLFW_KEY_F1) {
-			camera_mode = 0;
+	if(chat_input_mode==CHAT_NO_INPUT) {
+		if(action==GLFW_RELEASE) {
+			key_map[key] = 0;
 		}
-		if(key==GLFW_KEY_F2) {
-			camera_mode = 1;
-		}
-		if(key==GLFW_KEY_F3) {
-			camera_mode = 2;
-		}
-		if(key==GLFW_KEY_F4) {
-			camera_mode = 3;
-		}
+		if(action==GLFW_PRESS) {
+			key_map[key] = 1;
+			if(key==GLFW_KEY_F1) {
+				camera_mode = 0;
+			}
+			if(key==GLFW_KEY_F2) {
+				camera_mode = 1;
+			}
+			if(key==GLFW_KEY_F3) {
+				camera_mode = 2;
+			}
+			if(key==GLFW_KEY_F4) {
+				camera_mode = 3;
+			}
 
-		if(key==GLFW_KEY_R && camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN) {
-			weapon_reload();
-		}
+			if(key==GLFW_KEY_T) {
+				chat_input_mode = CHAT_ALL_INPUT;
+				chat[0][0] = 0;
+			}
+			if(key==GLFW_KEY_Y || key==GLFW_KEY_Z) {
+				chat_input_mode = CHAT_TEAM_INPUT;
+				chat[0][0] = 0;
+			}
 
-		unsigned char tool_switch = 0;
-		switch(key) {
-			case GLFW_KEY_1:
-				players[local_player_id].held_item = TOOL_SPADE;
-				tool_switch = 1;
-				break;
-			case GLFW_KEY_2:
-				players[local_player_id].held_item = TOOL_BLOCK;
-				tool_switch = 1;
-				break;
-			case GLFW_KEY_3:
-				players[local_player_id].held_item = TOOL_GUN;
-				tool_switch = 1;
-				break;
-			case GLFW_KEY_4:
-				players[local_player_id].held_item = TOOL_GRENADE;
-				tool_switch = 1;
-				break;
-		}
+			if((key==GLFW_KEY_UP || key==GLFW_KEY_DOWN || key==GLFW_KEY_LEFT || key==GLFW_KEY_RIGHT) && camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_BLOCK) {
+				int y;
+				for(y=0;y<8;y++) {
+					for(int x=0;x<8;x++) {
+						if(texture_block_color(x,y)==players[local_player_id].block.packed) {
+							switch(key) {
+								case GLFW_KEY_LEFT:
+									x = max(x-1,0);
+									break;
+								case GLFW_KEY_RIGHT:
+									x = min(x+1,7);
+									break;
+								case GLFW_KEY_UP:
+									y = max(y-1,0);
+									break;
+								case GLFW_KEY_DOWN:
+									y = min(y+1,7);
+									break;
+							}
+							players[local_player_id].block.packed = texture_block_color(x,y);
+							network_updateColor();
+							y = 10;
+							break;
+						}
+					}
+				}
+				if(y<10) {
+					players[local_player_id].block.packed = texture_block_color(3,0);
+					network_updateColor();
+				}
+			}
 
-		if(tool_switch) {
-			players[local_player_id].item_disabled = glfwGetTime();
-	        players[local_player_id].items_show_start = glfwGetTime();
-	        players[local_player_id].items_show = 1;
-		}
+			if(key==GLFW_KEY_R && camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN) {
+				weapon_reload();
+			}
 
-		if(key==GLFW_KEY_8) {//185.164.138.19",24918-"69.197.190.10",34887-"149.202.62.72",32885
-			if(!network_connect("176.28.11.9",32891)) {aos://151723184:32891:0.75
-				printf("connection failed ;(\n");
-				exit(0);
+			unsigned char tool_switch = 0;
+			switch(key) {
+				case GLFW_KEY_1:
+					players[local_player_id].held_item = TOOL_SPADE;
+					tool_switch = 1;
+					break;
+				case GLFW_KEY_2:
+					players[local_player_id].held_item = TOOL_BLOCK;
+					tool_switch = 1;
+					break;
+				case GLFW_KEY_3:
+					players[local_player_id].held_item = TOOL_GUN;
+					tool_switch = 1;
+					break;
+				case GLFW_KEY_4:
+					players[local_player_id].held_item = TOOL_GRENADE;
+					tool_switch = 1;
+					break;
+			}
+
+			if(tool_switch) {
+				players[local_player_id].item_disabled = glfwGetTime();
+		        players[local_player_id].items_show_start = glfwGetTime();
+		        players[local_player_id].items_show = 1;
+			}
+
+			if(key==GLFW_KEY_8) {//185.164.138.19",24918-"69.197.190.10",34887-"149.202.62.72",32885
+				if(!network_connect("127.0.0.1",32887)) {aos://151723184:32891:0.75
+					printf("connection failed ;(\n");
+					exit(0);
+				}
+			}
+
+			if(key==GLFW_KEY_9) {
+				struct PacketExistingPlayer login;
+				login.player_id = local_player_id;
+				login.team = TEAM_2;
+				login.weapon = WEAPON_SMG;
+				login.held_item = TOOL_GUN;
+				login.kills = 0;
+				login.blue = players[local_player_id].block.blue;
+				login.green = players[local_player_id].block.green;
+				login.red = players[local_player_id].block.red;
+				char* n = "DEV_CLIENT";
+				strcpy(login.name,n);
+				network_send(PACKET_EXISTINGPLAYER_ID,&login,sizeof(login)-sizeof(login.name)+strlen(n)+1);
+			}
+
+			if(key==GLFW_KEY_O) {
+				draw_outline = (~draw_outline)&0x01;
+				chunk_set_render_mode(draw_outline);
+			}
+			if(key==GLFW_KEY_C) {
+				particle_create(0x00FFFFFF,hj,hk,hl,5.0F,3.0F,64,0.1F,0.25F);
+			}
+			if(key==GLFW_KEY_V) {
+				printf("%f,%f,%f,%f,%f\n",camera_x,camera_y,camera_z,camera_rot_x,camera_rot_y);
+				players[local_player_id].pos.x = 256.0F;
+				players[local_player_id].pos.y = 50.0F;
+				players[local_player_id].pos.z = 256.0F;
+				hj = camera_x;
+				hk = camera_y;
+				hl = camera_z;
+			}
+			if(key==GLFW_KEY_N) {
+				settings.render_distance -= 10.0F;
+			}
+			if(key==GLFW_KEY_M) {
+				settings.render_distance += 10.0F;
+			}
+			if(key==GLFW_KEY_N || key==GLFW_KEY_M) {
+				printf("Changed render distance to: %f blocks\n",settings.render_distance);
+			}
+			if(key==GLFW_KEY_F) {
+				//glutFullScreenToggle();
+			}
+			if(key==GLFW_KEY_E) {
+				int* pos = camera_terrain_pick(2);
+				if((int)pos!=0) {
+					players[local_player_id].block.packed = map_get(pos[0],pos[1],pos[2]);
+					network_updateColor();
+				}
 			}
 		}
-
-		if(key==GLFW_KEY_9) {
-			struct PacketExistingPlayer login;
-			login.player_id = local_player_id;
-			login.team = TEAM_2;
-			login.weapon = WEAPON_SMG;
-			login.held_item = TOOL_GUN;
-			login.kills = 0;
-			login.blue = players[local_player_id].block.blue;
-			login.green = players[local_player_id].block.green;
-			login.red = players[local_player_id].block.red;
-			char* n = "DEV_CLIENT";
-			strcpy(login.name,n);
-			network_send(PACKET_EXISTINGPLAYER_ID,&login,sizeof(login)-sizeof(login.name)+strlen(n)+1);
-		}
-
-		if(key==GLFW_KEY_O) {
-			draw_outline = (~draw_outline)&0x01;
-			chunk_set_render_mode(draw_outline);
-		}
-		if(key==GLFW_KEY_C) {
-			particle_create(0x00FFFFFF,hj,hk,hl,5.0F,3.0F,64,0.1F,0.25F);
-		}
-		if(key==GLFW_KEY_V) {
-			printf("%f,%f,%f,%f,%f\n",camera_x,camera_y,camera_z,camera_rot_x,camera_rot_y);
-			players[local_player_id].pos.x = 256.0F;
-			players[local_player_id].pos.y = 50.0F;
-			players[local_player_id].pos.z = 256.0F;
-			hj = camera_x;
-			hk = camera_y;
-			hl = camera_z;
-		}
-		if(key==GLFW_KEY_N) {
-			settings.render_distance -= 10.0F;
-		}
-		if(key==GLFW_KEY_M) {
-			settings.render_distance += 10.0F;
-		}
-		if(key==GLFW_KEY_N || key==GLFW_KEY_M) {
-			printf("Changed render distance to: %f blocks\n",settings.render_distance);
-		}
-		if(key==GLFW_KEY_F) {
-			//glutFullScreenToggle();
-		}
-		if(key==GLFW_KEY_E) {
-			int* pos = camera_terrain_pick(2);
-			if((int)pos!=0) {
-				int c = map_get(pos[0],pos[1],pos[2]);
-				players[local_player_id].block.red   = c & 0xFF;
-				players[local_player_id].block.green = (c>>8) & 0xFF;
-				players[local_player_id].block.blue  = (c>>16) & 0xFF;
-				network_updateColor();
+	} else {
+		if(action!=GLFW_RELEASE) {
+			if(key==GLFW_KEY_ESCAPE || key==GLFW_KEY_ENTER) {
+				if(key==GLFW_KEY_ENTER && strlen(chat[0])>0) {
+					struct PacketChatMessage msg;
+					msg.player_id = local_player_id;
+					msg.chat_type = CHAT_ALL_INPUT?CHAT_ALL:CHAT_TEAM;
+					strcpy(msg.message,chat[0]);
+					network_send(PACKET_CHATMESSAGE_ID,&msg,sizeof(msg)-sizeof(msg.message)+strlen(chat[0])+1);
+				}
+				chat_input_mode = CHAT_NO_INPUT;
+			}
+			if(key==GLFW_KEY_BACKSPACE) {
+				chat[0][strlen(chat[0])-1] = 0;
 			}
 		}
 	}
@@ -824,6 +996,12 @@ void mouse_click(GLFWwindow* window, int button, int action, int mods) {
 		button_map[0] = (action==GLFW_PRESS);
 	}
 	if(button==GLFW_MOUSE_BUTTON_RIGHT) {
+		if(action==GLFW_PRESS) {
+			players[local_player_id].input.buttons.rmb ^= 1;
+			if(players[local_player_id].items_show) {
+				players[local_player_id].input.buttons.rmb = 0;
+			}
+		}
 		button_map[1] = (action==GLFW_PRESS);
 	}
 	if(button==GLFW_MOUSE_BUTTON_MIDDLE) {
@@ -911,23 +1089,15 @@ void mouse(GLFWwindow* window, double x, double y) {
 	last_x = x;
 	last_y = y;
 
-	camera_rot_x -= dx*MOUSE_SENSITIVITY;
-	camera_rot_y += dy*MOUSE_SENSITIVITY;
-
-	if(camera_rot_y<EPSILON) {
-		camera_rot_y = EPSILON;
-	}
-	if(camera_rot_y>PI) {
-		camera_rot_y = PI;
+	float s = 1.0F;
+	if(camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN && players[local_player_id].input.buttons.rmb) {
+		s = 0.5F;
 	}
 
-	if(camera_rot_x>DOUBLEPI) {
-		camera_rot_x -= DOUBLEPI;
-	}
+	camera_rot_x -= dx*MOUSE_SENSITIVITY*s;
+	camera_rot_y += dy*MOUSE_SENSITIVITY*s;
 
-	if(camera_rot_x<0.0F) {
-		camera_rot_x += DOUBLEPI;
-	}
+	camera_overflow_adjust();
 }
 
 int main(int argc, char** argv) {
@@ -940,6 +1110,7 @@ int main(int argc, char** argv) {
 	settings.window_width = 800;
 	settings.window_height = 600;
 	settings.player_arms = 0;
+	settings.fullscreen = 0;
 
 	if(argc>2) {
 		settings.opengl14 = atoi(argv[1]);
@@ -960,19 +1131,33 @@ int main(int argc, char** argv) {
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,1);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,1);
-	GLFWwindow* window = glfwCreateWindow(settings.window_width,settings.window_height,"BetterSpades",NULL,NULL);
+	GLFWwindow* window = glfwCreateWindow(settings.window_width,settings.window_height,"BetterSpades",settings.fullscreen?glfwGetPrimaryMonitor():NULL,NULL);
 	if(!window) {
 		printf("Could not open window\n");
 		glfwTerminate();
 		exit(1);
 	}
 
+	GLFWimage icon;
+
+	int error = lodepng_decode32_file(&icon.pixels,&icon.width,&icon.height,"icon.png");
+    if(error) {
+        printf("Could not load texture (%u): %s\n",error,lodepng_error_text(error));
+        return 0;
+    }
+	glfwSetWindowIcon(window,1,&icon);
+
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window,reshape);
 	glfwSetCursorPosCallback(window,mouse);
 	glfwSetKeyCallback(window,keys);
 	glfwSetMouseButtonCallback(window,mouse_click);
+	glfwSetCharCallback(window,text_input);
 	glfwSetInputMode(window,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
+
+	printf("Vendor: %s\n",glGetString(GL_VENDOR));
+	printf("Renderer: %s\n",glGetString(GL_RENDERER));
+	printf("Version: %s\n",glGetString(GL_VERSION));
 
 	if(settings.multisamples>0) {
 		glEnable(GL_MULTISAMPLE);
@@ -1054,6 +1239,8 @@ int main(int argc, char** argv) {
 
 		display(dt);
 		particle_update(dt);
+
+		sound_update();
 
 		network_update();
 

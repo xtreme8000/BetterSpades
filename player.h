@@ -11,6 +11,10 @@ struct {
 	struct Team team_2;
 	unsigned char gamemode_type;
 	union Gamemodes gamemode;
+	struct {
+		unsigned char team_capturing, tent;
+		float progress, rate, update;
+	} progressbar;
 } gamestate;
 #define GAMEMODE_CTF	0
 #define GAMEMODE_TC		1
@@ -34,8 +38,11 @@ struct Player {
 	unsigned char alive, connected;
 	float item_showup, item_disabled, items_show_start;
 	unsigned char items_show;
-	struct {
-		unsigned char red, green, blue;
+	union {
+		unsigned int packed;
+		struct {
+			unsigned char red, green, blue;
+		};
 	} block;
 	struct {
 		union {
@@ -68,7 +75,15 @@ struct Player {
         } velocity;
         struct Position eye;
     } physics;
+
+	struct {
+		struct Sound_source feet;
+		float feet_started;
+		struct Sound_source tool;
+		float tool_started;
+	} sound;
 } players[PLAYERS_MAX];
 //pyspades/pysnip/piqueserver sometime uses ids that are out of range
 
 void player_render(struct Player* p, int id);
+void player_reset(struct Player* p);

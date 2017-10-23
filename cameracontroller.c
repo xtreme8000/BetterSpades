@@ -4,8 +4,6 @@ void cameracontroller_fps(float dt) {
     players[local_player_id].connected = 1;
 	players[local_player_id].alive = 1;
 
-	//players[local_player_id].weapon = WEAPON_SMG;
-
 	camera_x = players[local_player_id].physics.eye.x;
 	camera_y = players[local_player_id].physics.eye.y+1.0F+(players[local_player_id].input.keys.crouch?0.0F:0.1F);
 	camera_z = players[local_player_id].physics.eye.z;
@@ -27,7 +25,7 @@ void cameracontroller_fps(float dt) {
     }
 
     players[local_player_id].input.buttons.lmb = button_map[0];
-    players[local_player_id].input.buttons.rmb = button_map[1];
+    //players[local_player_id].input.buttons.rmb = button_map[1];
 
     if(key_map[GLFW_KEY_SPACE] && !players[local_player_id].physics.airborne) {
         players[local_player_id].physics.jump = 1;
@@ -37,6 +35,11 @@ void cameracontroller_fps(float dt) {
 	players[local_player_id].orientation.x = sin(last_rot_x)*sin(last_rot_y);
 	players[local_player_id].orientation.y = cos(last_rot_y);
 	players[local_player_id].orientation.z = cos(last_rot_x)*sin(last_rot_y);
+
+    camera_vx = players[local_player_id].physics.velocity.x;
+    camera_vy = players[local_player_id].physics.velocity.y;
+    camera_vz = players[local_player_id].physics.velocity.z;
+
     gluLookAt(camera_x,camera_y,camera_z,camera_x+sin(camera_rot_x)*sin(camera_rot_y),camera_y+cos(camera_rot_y),camera_z+cos(camera_rot_x)*sin(camera_rot_y),0.0F,1.0F,0.0F);
     last_rot_x = camera_rot_x;
     last_rot_y = camera_rot_y;
@@ -114,6 +117,9 @@ void cameracontroller_spectator(float dt) {
 	camera_x += camera_movement_x;
 	camera_y += camera_movement_y;
 	camera_z += camera_movement_z;
+    camera_vx = 0.0F;
+    camera_vy = 0.0F;
+    camera_vz = 0.0F;
     gluLookAt(camera_x,camera_y,camera_z,camera_x+sin(camera_rot_x)*sin(camera_rot_y),camera_y+cos(camera_rot_y),camera_z+cos(camera_rot_x)*sin(camera_rot_y),0.0F,1.0F,0.0F);
 }
 
@@ -147,6 +153,9 @@ void cameracontroller_bodyview(float dt) {
     camera_x = players[cameracontroller_bodyview_player].pos.x;
     camera_y = players[cameracontroller_bodyview_player].pos.y;
     camera_z = players[cameracontroller_bodyview_player].pos.z;
+    camera_vx = players[cameracontroller_bodyview_player].physics.velocity.x;
+    camera_vy = players[cameracontroller_bodyview_player].physics.velocity.y;
+    camera_vz = players[cameracontroller_bodyview_player].physics.velocity.z;
 
     gluLookAt(players[cameracontroller_bodyview_player].pos.x+sin(camera_rot_x)*sin(camera_rot_y)*k,
               players[cameracontroller_bodyview_player].pos.y+cos(camera_rot_y)*k,
@@ -161,6 +170,9 @@ void cameracontroller_selection(float dt) {
     camera_x = 256.0F;
     camera_y = 125.0F;
     camera_z = 256.0F;
+    camera_vx = 0.0F;
+    camera_vy = 0.0F;
+    camera_vz = 0.0F;
     glRotatef(90.0F,1.0F,0.0F,0.0F);
     glTranslatef(-camera_x,-camera_y,-camera_z);
 }

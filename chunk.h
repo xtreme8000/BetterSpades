@@ -1,5 +1,5 @@
-#define CHUNK_SIZE 16
-#define CHUNKS_PER_DIM 32
+#define CHUNK_SIZE      16
+#define CHUNKS_PER_DIM  32
 
 unsigned char chunk_geometry_rebuild = 1;
 int chunk_geometry_rebuild_state = 0;
@@ -17,14 +17,14 @@ int chunk_lighting_changed_lenght = 0;
 boolean chunk_render_mode = 0;
 
 void chunk_block_update(int x, int y, int z);
-void chunk_update_all();
+void chunk_update_all(void);
 int chunk_generate(int displaylist, int chunk_x, int chunk_y);
 int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y);
 int chunk_generate_naive(int displaylist, int chunk_x, int chunk_y);
 void chunk_render(int x, int y);
-void chunk_rebuild_all();
+void chunk_rebuild_all(void);
 void chunk_set_render_mode(boolean r);
-float chunk_draw_visible();
+float chunk_draw_visible(void);
 
 void chunk_draw_shadow_volume(float* data, int max);
 float chunk_face_light(float* data, int k, float lx, float ly, float lz);
