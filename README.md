@@ -1,4 +1,4 @@
-## ![](/logo.png) BetterSpades
+## ![](/icon.png) BetterSpades
 
 * Replicate of the great game *Ace of Spades* (classic voxlap)
 * runs on very old systems back to OpenGL 1.1
