@@ -265,7 +265,7 @@ void display(float dt) {
 	if(settings.opengl14) {
 		glFogi(GL_FOG_MODE,GL_LINEAR);
 		glFogfv(GL_FOG_COLOR,fog_color);
-		glFogf(GL_FOG_START,settings.render_distance*0.6F);
+		glFogf(GL_FOG_START,0.0F);
 		glFogf(GL_FOG_END,settings.render_distance);
 		glEnable(GL_FOG);
 	} else {
@@ -308,6 +308,13 @@ void display(float dt) {
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
 		camera_apply(dt);
+
+		float lpos[4] = {0.0F,-1.0F,1.0F,0.0F};
+		float lambient[4] = {0.5F,0.5F,0.5F,1.0F};
+		float ldiffuse[4] = {1.0F,1.0F,1.0F,1.0F};
+		glLightfv(GL_LIGHT0,GL_POSITION,lpos);
+		glLightfv(GL_LIGHT0,GL_AMBIENT,lambient);
+		glLightfv(GL_LIGHT0,GL_DIFFUSE,ldiffuse);
 
 		double view[16];
 		glGetDoublev(GL_MODELVIEW_MATRIX,view);
@@ -915,13 +922,13 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 			}
 
 			if(key==GLFW_KEY_8) {//185.164.138.19",24918-"69.197.190.10",34887-"149.202.62.72",32885
-				if(!network_connect("127.0.0.1",32887)) {aos://151723184:32891:0.75
+				if(!network_connect("69.197.190.10",34887)) {aos://151723184:32891:0.75
 					printf("connection failed ;(\n");
 					exit(0);
 				}
 			}
 
-			if(key==GLFW_KEY_9) {
+			if(key==GLFW_KEY_9 && !network_logged_in) {
 				struct PacketExistingPlayer login;
 				login.player_id = local_player_id;
 				login.team = TEAM_2;

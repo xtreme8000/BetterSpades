@@ -58,7 +58,7 @@ float weapon_delay() {
 }
 
 void weapon_set() {
-    //players[local_player_id].weapon = WEAPON_SMG;
+    players[local_player_id].weapon = WEAPON_SMG;
     switch(players[local_player_id].weapon) {
         case WEAPON_RIFLE:
             local_player_ammo = 10;
@@ -132,6 +132,10 @@ int weapon_can_reload() {
 }
 
 void weapon_shoot() {
+    //see this for reference:
+    //https://pastebin.com/raw/TMjKSTXG
+    //http://paste.quacknet.org/view/a3ea2743
+
     double horiz_recoil, vert_recoil;
     switch(players[local_player_id].weapon) {
         case WEAPON_RIFLE:

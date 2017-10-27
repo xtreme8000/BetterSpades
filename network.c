@@ -267,6 +267,7 @@ void read_PacketMapStart(void* data, int len) {
 	compressed_chunk_data_size = 1024*1024;
 	compressed_chunk_data = malloc(compressed_chunk_data_size);
 	compressed_chunk_data_offset = 0;
+	network_logged_in = 0;
 
 	for(int k=0;k<PLAYERS_MAX;k++) {
 		players[k].connected = 0;

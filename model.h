@@ -7,6 +7,7 @@ struct kv6_t {
 	float scale;
 	unsigned char* colors_final;
 	float* vertices_final;
+	char* normals_final;
 	int size;
 	float red, green, blue;
 };

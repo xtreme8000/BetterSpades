@@ -17,6 +17,8 @@ void player_reset(struct Player* p) {
     p->physics.jump = 0;
     p->physics.airborne = 0;
     p->physics.wade = 0;
+    p->input.keys.packed = 0;
+    p->input.buttons.packed = 0;
 }
 
 float player_swing_func(float x) {

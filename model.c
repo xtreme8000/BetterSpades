@@ -137,14 +137,15 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 
 		kv6->vertices_final = malloc(size*12*sizeof(float));
 		kv6->colors_final = malloc(size*12*sizeof(unsigned char)*2);
+		kv6->normals_final = malloc(size*12*sizeof(unsigned char));
 
 		if(!kv6->colorize) {
 			kv6->display_list = glGenLists(3);
 		}
 
-		int v,c;
+		int v,c,n;
 		for(int t=0;t<3;t++) {
-			v = c = 0;
+			v = c = n = 0;
 
 			for(int x=0;x<kv6->xsiz;x++) {
 				for(int y=0;y<kv6->ysiz;y++) {
@@ -175,7 +176,6 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 
 							int i = 0;
 							float alpha[6];
-							//glNormal3f(kv6_normals[a][0],-kv6_normals[a][2],kv6_normals[a][1]);
 
 							if(z==kv6->zsiz-1 || !kv6->color[x+(y+(z+1)*kv6->ysiz)*kv6->xsiz]) {
 								kv6->vertices_final[v++] = p[0];
@@ -274,33 +274,41 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 							}
 
 							for(int k=0;k<i*4;k++) {
-								kv6->colors_final[c++] = (r/255.0F*(a/255.0F*0.5F+0.5F))*255.0F*alpha[k/4];
-								kv6->colors_final[c++] = (g/255.0F*(a/255.0F*0.5F+0.5F))*255.0F*alpha[k/4];
-								kv6->colors_final[c++] = (b/255.0F*(a/255.0F*0.5F+0.5F))*255.0F*alpha[k/4];
+								kv6->colors_final[c++] = r*alpha[k/4];//(r/255.0F*(a/255.0F*0.5F+0.5F))*255.0F;//*alpha[k/4];
+								kv6->colors_final[c++] = g*alpha[k/4];//(g/255.0F*(a/255.0F*0.5F+0.5F))*255.0F;//*alpha[k/4];
+								kv6->colors_final[c++] = b*alpha[k/4];//(b/255.0F*(a/255.0F*0.5F+0.5F))*255.0F;//*alpha[k/4];
+
+								kv6->normals_final[n++] = kv6_normals[a][0]*128;
+								kv6->normals_final[n++] = -kv6_normals[a][2]*128;
+								kv6->normals_final[n++] = kv6_normals[a][1]*128;
 							}
 						}
 					}
 				}
 			}
 
-			//glEnable(GL_NORMALIZE);
 			if(!kv6->colorize) {
 				glNewList(kv6->display_list+t,GL_COMPILE_AND_EXECUTE);
+				glEnable(GL_NORMALIZE);
 				glEnableClientState(GL_VERTEX_ARRAY);
 				glEnableClientState(GL_COLOR_ARRAY);
+				glEnableClientState(GL_NORMAL_ARRAY);
 				glVertexPointer(3,GL_FLOAT,0,kv6->vertices_final);
 				glColorPointer(3,GL_UNSIGNED_BYTE,0,kv6->colors_final);
+				glNormalPointer(GL_BYTE,0,kv6->normals_final);
 				glDrawArrays(GL_QUADS,0,v/3);
+				glDisableClientState(GL_NORMAL_ARRAY);
 				glDisableClientState(GL_COLOR_ARRAY);
 				glDisableClientState(GL_VERTEX_ARRAY);
+				glDisable(GL_NORMALIZE);
 				glEndList();
 			}
-			//glDisable(GL_NORMALIZE);
 		}
 
 		if(!kv6->colorize) {
 			free(kv6->vertices_final);
 			free(kv6->colors_final);
+			free(kv6->normals_final);
 		} else {
 			memcpy(kv6->colors_final+v*sizeof(unsigned char),kv6->colors_final,v*sizeof(unsigned char));
 			kv6->size = v/3;
@@ -308,6 +316,10 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 
 		kv6->has_display_list = 1;
 	} else {
+		glEnable(GL_LIGHTING);
+		glEnable(GL_LIGHT0);
+		glEnable(GL_COLOR_MATERIAL);
+		glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
 		if(!kv6->colorize) {
 			glCallList(kv6->display_list+(team%3));
 		} else {
@@ -316,14 +328,22 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 				kv6->colors_final[k+1] = min(((float)kv6->colors_final[k+1+kv6->size*3*sizeof(unsigned char)])/0.4335F*kv6->green,255);
 				kv6->colors_final[k+2] = min(((float)kv6->colors_final[k+2+kv6->size*3*sizeof(unsigned char)])/0.4335F*kv6->blue,255);
 			}
+			glEnable(GL_NORMALIZE);
 			glEnableClientState(GL_VERTEX_ARRAY);
 			glEnableClientState(GL_COLOR_ARRAY);
+			glEnableClientState(GL_NORMAL_ARRAY);
 			glVertexPointer(3,GL_FLOAT,0,kv6->vertices_final);
 			glColorPointer(3,GL_UNSIGNED_BYTE,0,kv6->colors_final);
+			glNormalPointer(GL_BYTE,0,kv6->normals_final);
 			glDrawArrays(GL_QUADS,0,kv6->size);
+			glDisableClientState(GL_NORMAL_ARRAY);
 			glDisableClientState(GL_COLOR_ARRAY);
 			glDisableClientState(GL_VERTEX_ARRAY);
+			glDisable(GL_NORMALIZE);
 		}
+		glDisable(GL_COLOR_MATERIAL);
+		glDisable(GL_LIGHT0);
+		glDisable(GL_LIGHTING);
 	}
 
 
