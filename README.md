@@ -20,7 +20,7 @@ These libraries and files are needed:
 #### Windows
 
 You can compile the client on windows by starting `compile.bat`.
-This will also run the generated executable automaticly.
+This will also run the generated executable automatically.
 
 * `run_min_gfx.bat` will launch the client with the lowest and least demanding settings
 * `run_max_gfx.bat` is the most you can get
