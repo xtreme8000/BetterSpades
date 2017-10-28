@@ -3,7 +3,7 @@ Desktop.ini
 /nongithub
 /dist
 /src/*/
-/build
+/build/*/
 *.lib
 *.a
 *.o
