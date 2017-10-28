@@ -1,12 +1,15 @@
 Thumbs.db
 Desktop.ini
 /nongithub
-/enet-master
+/dist
+/src/*/
+/build
 *.lib
+*.a
 *.o
 *.vxl
 *.exe
 *.zip
 *.kv6
 *.lib
-libdeflate.h
+*.dll
