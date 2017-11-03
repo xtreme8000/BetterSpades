@@ -29,6 +29,7 @@ by yourself or get hold of precompiled binaries. Place produced static libaries 
 Some files need to be copied to the `src/` directory.
 
 This means:
+
 | source         | &rightarrow; | destination |
 | -------------- | ------------ | ----------- |
 | `dr_wav.h`     | &rightarrow; | `src/dr_wav.c` <br /> Make sure to define `DR_WAV_IMPLEMENTATION` in *Line 9* |
