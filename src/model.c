@@ -1,6 +1,7 @@
 #include "common.h"
 #include "model_normals.h"
 
+struct kv6_t model_playerdead;
 struct kv6_t model_playerhead;
 struct kv6_t model_playertorso;
 struct kv6_t model_playertorsoc;
@@ -17,7 +18,12 @@ struct kv6_t model_spade;
 struct kv6_t model_block;
 struct kv6_t model_grenade;
 
+struct kv6_t model_semi_tracer;
+struct kv6_t model_smg_tracer;
+struct kv6_t model_shotgun_tracer;
+
 void kv6_init() {
+	model_playerdead = kv6_load(file_load("kv6/playerdead.kv6"),0.1F);
 	model_playerhead = kv6_load(file_load("kv6/playerhead.kv6"),0.1F);
 	model_playertorso = kv6_load(file_load("kv6/playertorso.kv6"),0.1F);
 	model_playertorsoc = kv6_load(file_load("kv6/playertorsoc.kv6"),0.1F);
@@ -35,6 +41,10 @@ void kv6_init() {
 	model_block = kv6_load(file_load("kv6/block.kv6"),0.05F);
 	model_block.colorize = 1;
 	model_grenade = kv6_load(file_load("kv6/grenade.kv6"),0.05F);
+
+	model_semi_tracer = kv6_load(file_load("kv6/semitracer.kv6"),0.05F);
+	model_smg_tracer = kv6_load(file_load("kv6/smgtracer.kv6"),0.05F);
+	model_shotgun_tracer = kv6_load(file_load("kv6/shotguntracer.kv6"),0.05F);
 }
 
 struct kv6_t kv6_load(unsigned char* bytes, float scale) {
@@ -129,9 +139,28 @@ void mul_matrix_vector(float* out, double* m, float* v) {
 	out[15] = a[3]*b[12]+a[7]*b[13]+a[11]*b[14]+a[15]*b[15];
 }*/
 
+char kv6_intersection(struct kv6_t* kv6, Ray r) {
+	AABB bb;
+
+	for(int k=0;k<8;k++) {
+		float v[4] = {(kv6->xsiz*((k&1)>0)-kv6->xpiv)*kv6->scale,(kv6->zsiz*((k&2)>0)-kv6->zpiv)*kv6->scale,(kv6->ysiz*((k&4)>0)-kv6->ypiv)*kv6->scale,1.0F};
+		matrix_vector(v);
+		bb.min_x = (k==0)?v[0]:min(bb.min_x,v[0]);
+		bb.min_y = (k==0)?v[1]:min(bb.min_y,v[1]);
+		bb.min_z = (k==0)?v[2]:min(bb.min_z,v[2]);
+
+		bb.max_x = (k==0)?v[0]:max(bb.max_x,v[0]);
+		bb.max_y = (k==0)?v[1]:max(bb.max_y,v[1]);
+		bb.max_z = (k==0)?v[2]:max(bb.max_z,v[2]);
+	}
+
+	return aabb_intersection_ray(&bb,&r);
+}
+
 void kv6_render(struct kv6_t* kv6, unsigned char team) {
-	if(!network_logged_in)
-		return;
+	printf("%i %i\n",(unsigned int)kv6,team);
+	//if(!network_logged_in)
+		//return;
 
 	if(!kv6->has_display_list) {
 		int size = 0;
@@ -364,6 +393,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		glDisable(GL_LIGHT0);
 		glDisable(GL_LIGHTING);
 	}
+
 
 
 	//TODO: render like in voxlap

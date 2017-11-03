@@ -43,7 +43,7 @@ void cameracontroller_fps(float dt) {
     camera_vy = players[local_player_id].physics.velocity.y;
     camera_vz = players[local_player_id].physics.velocity.z;
 
-    gluLookAt(camera_x,camera_y,camera_z,camera_x+sin(camera_rot_x)*sin(camera_rot_y),camera_y+cos(camera_rot_y),camera_z+cos(camera_rot_x)*sin(camera_rot_y),0.0F,1.0F,0.0F);
+    matrix_lookAt(camera_x,camera_y,camera_z,camera_x+sin(camera_rot_x)*sin(camera_rot_y),camera_y+cos(camera_rot_y),camera_z+cos(camera_rot_x)*sin(camera_rot_y),0.0F,1.0F,0.0F);
     last_rot_x = camera_rot_x;
     last_rot_y = camera_rot_y;
 }
@@ -123,7 +123,7 @@ void cameracontroller_spectator(float dt) {
     camera_vx = 0.0F;
     camera_vy = 0.0F;
     camera_vz = 0.0F;
-    gluLookAt(camera_x,camera_y,camera_z,camera_x+sin(camera_rot_x)*sin(camera_rot_y),camera_y+cos(camera_rot_y),camera_z+cos(camera_rot_x)*sin(camera_rot_y),0.0F,1.0F,0.0F);
+    matrix_lookAt(camera_x,camera_y,camera_z,camera_x+sin(camera_rot_x)*sin(camera_rot_y),camera_y+cos(camera_rot_y),camera_z+cos(camera_rot_x)*sin(camera_rot_y),0.0F,1.0F,0.0F);
 }
 
 void cameracontroller_bodyview(float dt) {
@@ -143,7 +143,7 @@ void cameracontroller_bodyview(float dt) {
     for(k=0.0F;k<5.0F;k+=0.05F) {
         aabb_set_center(&camera,
             players[cameracontroller_bodyview_player].pos.x+sin(camera_rot_x)*sin(camera_rot_y)*k,
-            players[cameracontroller_bodyview_player].pos.y+cos(camera_rot_y)*k,
+            players[cameracontroller_bodyview_player].pos.y+cos(camera_rot_y)*k+(players[cameracontroller_bodyview_player].alive?0.0F:1.0F),
             players[cameracontroller_bodyview_player].pos.z+cos(camera_rot_x)*sin(camera_rot_y)*k
         );
         if(aabb_intersection_terrain(&camera)) {
@@ -160,7 +160,7 @@ void cameracontroller_bodyview(float dt) {
     camera_vy = players[cameracontroller_bodyview_player].physics.velocity.y;
     camera_vz = players[cameracontroller_bodyview_player].physics.velocity.z;
 
-    gluLookAt(players[cameracontroller_bodyview_player].pos.x+sin(camera_rot_x)*sin(camera_rot_y)*k,
+    matrix_lookAt(players[cameracontroller_bodyview_player].pos.x+sin(camera_rot_x)*sin(camera_rot_y)*k,
               players[cameracontroller_bodyview_player].pos.y+cos(camera_rot_y)*k,
               players[cameracontroller_bodyview_player].pos.z+cos(camera_rot_x)*sin(camera_rot_y)*k,
               players[cameracontroller_bodyview_player].pos.x,
@@ -176,6 +176,6 @@ void cameracontroller_selection(float dt) {
     camera_vx = 0.0F;
     camera_vy = 0.0F;
     camera_vz = 0.0F;
-    glRotatef(90.0F,1.0F,0.0F,0.0F);
-    glTranslatef(-camera_x,-camera_y,-camera_z);
+    matrix_rotate(90.0F,1.0F,0.0F,0.0F);
+    matrix_translate(-camera_x,-camera_y,-camera_z);
 }

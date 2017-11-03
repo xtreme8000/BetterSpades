@@ -25,6 +25,10 @@ extern unsigned char local_player_blocks;
 extern unsigned char local_player_grenades;
 extern unsigned char local_player_ammo, local_player_ammo_reserved;
 
+extern int player_intersection_type;
+extern int player_intersection_player;
+extern float player_intersection_dist;
+
 extern struct Player {
 	char name[17];
 	struct Position {
@@ -33,6 +37,8 @@ extern struct Player {
 	struct Orientation {
 		float x,y,z;
 	} orientation;
+	struct Position gun_pos;
+	float gun_shoot_timer;
 	unsigned int score;
 	unsigned char team, weapon, held_item;
 	unsigned char alive, connected;
@@ -85,6 +91,7 @@ extern struct Player {
 } players[PLAYERS_MAX];
 //pyspades/pysnip/piqueserver sometime uses ids that are out of range
 
-void player_render(struct Player* p, int id);
+void player_update(float dt);
+int player_render(struct Player* p, int id);
 void player_reset(struct Player* p);
 int player_move(struct Player* p, float fsynctics);

@@ -5,7 +5,8 @@ int weapon_reloading(void);
 int weapon_can_reload(void);
 void weapon_reload_abort(void);
 void weapon_shoot(void);
-float weapon_delay(void);
+float weapon_delay(int gun);
+struct Sound_wav* weapon_sound(int gun);
 
 extern float weapon_reload_start, weapon_last_shot;
 extern unsigned char weapon_reload_inprogress;

@@ -57,8 +57,8 @@ extern struct Sound_wav sound_shotgun_shoot;
 extern struct Sound_wav sound_shotgun_reload;
 
 
-void sound_create(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z);
-void sound_createEx(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z, float vx, float vy, float vz);
+int sound_create(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z);
+int sound_createEx(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z, float vx, float vy, float vz);
 void sound_velocity(struct Sound_source* s, float vx, float vy, float vz);
 void sound_position(struct Sound_source* s, float x, float y, float z);
 void sound_update();

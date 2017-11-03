@@ -44,13 +44,13 @@ int sound_free_index() {
     return 0;
 }
 
-void sound_create(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z) {
-    sound_createEx(s,option,w,x,y,z,0.0F,0.0F,0.0F);
+int sound_create(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z) {
+    return sound_createEx(s,option,w,x,y,z,0.0F,0.0F,0.0F);
 }
 
-void sound_createEx(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z, float vx, float vy, float vz) {
+int sound_createEx(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z, float vx, float vy, float vz) {
     if(!sound_enabled)
-        return;
+        return 0;
 
     int i = sound_free_index();
     sound_sources_free[i] = 0;
@@ -60,11 +60,11 @@ void sound_createEx(struct Sound_source* s, int option, struct Sound_wav* w, flo
     alGenSources(1,&sound_sources[i].openal_handle);
     alSourcef(sound_sources[i].openal_handle,AL_PITCH,1.0F);
     alSourcef(sound_sources[i].openal_handle,AL_GAIN,1.0F);
-    alSourcef(sound_sources[i].openal_handle,AL_REFERENCE_DISTANCE,option==SOUND_LOCAL?0.0F:w->min);
-    alSourcef(sound_sources[i].openal_handle,AL_MAX_DISTANCE,option==SOUND_LOCAL?2048.0F:w->max);
+    alSourcef(sound_sources[i].openal_handle,AL_REFERENCE_DISTANCE,(option==SOUND_LOCAL)?0.0F:w->min);
+    alSourcef(sound_sources[i].openal_handle,AL_MAX_DISTANCE,(option==SOUND_LOCAL)?2048.0F:w->max);
     alSource3f(sound_sources[i].openal_handle,AL_POSITION,(option==SOUND_LOCAL)?0.0F:x*SOUND_SCALE,(option==SOUND_LOCAL)?0.0F:y*SOUND_SCALE,(option==SOUND_LOCAL)?0.0F:z*SOUND_SCALE);
-    alSource3f(sound_sources[i].openal_handle,AL_VELOCITY,(option==SOUND_LOCAL)?0.0F:vx,(option==SOUND_LOCAL)?0.0F:vy,(option==SOUND_LOCAL)?0.0F:vz);
-    alSourcei(sound_sources[i].openal_handle,AL_SOURCE_RELATIVE,option==SOUND_LOCAL);
+    alSource3f(sound_sources[i].openal_handle,AL_VELOCITY,(option==SOUND_LOCAL)?0.0F:vx*SOUND_SCALE,(option==SOUND_LOCAL)?0.0F:vy*SOUND_SCALE,(option==SOUND_LOCAL)?0.0F:vz*SOUND_SCALE);
+    alSourcei(sound_sources[i].openal_handle,AL_SOURCE_RELATIVE,(option==SOUND_LOCAL));
     alSourcei(sound_sources[i].openal_handle,AL_LOOPING,AL_FALSE);
     alSourcei(sound_sources[i].openal_handle,AL_BUFFER,w->openal_buffer);
 
@@ -72,6 +72,8 @@ void sound_createEx(struct Sound_source* s, int option, struct Sound_wav* w, flo
 
     if(s!=NULL)
         memcpy(s,&sound_sources[i],sizeof(struct Sound_source));
+
+    return sound_sources[i].openal_handle;
 }
 
 void sound_velocity(struct Sound_source* s, float vx, float vy, float vz) {
@@ -106,11 +108,7 @@ void sound_update() {
                 sound_sources[k].active = 0;
                 alDeleteSources(1,&sound_sources[k].openal_handle);
                 sound_sources_free[k] = 1;
-            } /*else {
-                if(sound_sources[k].local) {
-                    sound_position(&sound_sources[k],players[local_player_id].pos.x,players[local_player_id].pos.y,players[local_player_id].pos.z);
-                }
-            }*/
+            }
         }
     }
 
@@ -129,8 +127,17 @@ void sound_load(struct Sound_wav* wav, char* name, float min, float max) {
         exit(1);
     }
 
+    short* audio;
+    if(channels>1) {
+        audio = malloc(samplecount*sizeof(short)/2);
+        for(int k=0;k<samplecount/2;k++) {
+            audio[k] = ((int)samples[k*2]+(int)samples[k*2+1])/2; //prevent overflow
+        }
+        free(samples);
+    }
+
     alGenBuffers(1,&wav->openal_buffer);
-    alBufferData(wav->openal_buffer,(channels==1)?AL_FORMAT_MONO16:AL_FORMAT_STEREO16,samples,samplecount*sizeof(short),samplerate);
+    alBufferData(wav->openal_buffer,AL_FORMAT_MONO16,(channels>1)?audio:samples,samplecount*sizeof(short)/channels,samplerate);
 
     wav->min = min;
     wav->max = max;

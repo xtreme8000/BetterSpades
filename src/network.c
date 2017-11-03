@@ -1,6 +1,6 @@
 #include "common.h"
 
-void (*packets[31]) (void* data, int len) = {NULL};
+void (*packets[35]) (void* data, int len) = {NULL};
 int network_connected = 0;
 int network_logged_in = 0;
 
@@ -74,7 +74,7 @@ void read_PacketChatMessage(void* data, int len) {
 			color = 0xFFFFFF;
 			break;
 	}
-	chat_add(color,m);
+	chat_add(0,color,m);
 }
 
 void read_PacketBlockAction(void* data, int len) {
@@ -291,7 +291,7 @@ void read_PacketMapStart(void* data, int len) {
 void read_PacketWorldUpdate(void* data, int len) {
 	for(int k=0;k<(len/sizeof(struct PacketWorldUpdate));k++) { //supports up to 256 players
 		struct PacketWorldUpdate* p = (struct PacketWorldUpdate*)(data+k*sizeof(struct PacketWorldUpdate));
-		if(players[k].connected && k!=local_player_id) {
+		if(players[k].connected && players[k].alive && k!=local_player_id) {
 			players[k].pos.x = p->x;
 			players[k].pos.y = 63.0F-p->z;
 			players[k].pos.z = p->y;
@@ -362,33 +362,47 @@ void read_PacketKillAction(void* data, int len) {
 			cameracontroller_bodyview_player = local_player_id;
 		}
 		players[p->player_id].alive = 0;
+		players[p->player_id].input.keys.packed = 0;
+		players[p->player_id].input.buttons.packed = 0;
 		if(p->player_id!=p->killer_id) {
 			players[p->killer_id].score++;
 		}
-		printf("[KILLFEED] ");
 		char* gun_name[3] = {"Rifle","SMG","Shotgun"};
+		char m[256];
 		switch(p->kill_type) {
 			case KILLTYPE_WEAPON:
-				printf("%s was killed by %s (%s)\n",players[p->player_id].name,players[p->killer_id].name,gun_name[players[p->killer_id].weapon]);
+				sprintf(m,"%s killed %s (%s)",players[p->killer_id].name,players[p->player_id].name,gun_name[players[p->killer_id].weapon]);
 				break;
 			case KILLTYPE_HEADSHOT:
-				printf("%s was killed by %s (Headshot)\n",players[p->player_id].name,players[p->killer_id].name);
+				sprintf(m,"%s killed %s (Headshot)",players[p->killer_id].name,players[p->player_id].name);
 				break;
 			case KILLTYPE_MELEE:
-				printf("%s was killed by %s (Spade)\n",players[p->player_id].name,players[p->killer_id].name);
+				sprintf(m,"%s killed %s (Spade)",players[p->killer_id].name,players[p->player_id].name);
 				break;
 			case KILLTYPE_GRENADE:
-				printf("%s was killed by %s (Grenade)\n",players[p->player_id].name,players[p->killer_id].name);
+				sprintf(m,"%s killed %s (Grenade)",players[p->killer_id].name,players[p->player_id].name);
 				break;
 			case KILLTYPE_FALL:
-				printf("%s fell to far\n",players[p->player_id].name);
+				sprintf(m,"%s fell to far",players[p->player_id].name);
 				break;
 			case KILLTYPE_TEAMCHANGE:
-				printf("%s changed teams\n",players[p->player_id].name);
+				sprintf(m,"%s changed teams",players[p->player_id].name);
 				break;
 			case KILLTYPE_CLASSCHANGE:
-				printf("%s changed weapons\n",players[p->player_id].name);
+				sprintf(m,"%s changed weapons",players[p->player_id].name);
 				break;
+		}
+		if(p->killer_id==local_player_id || p->player_id==local_player_id) {
+			chat_add(1,0x0000FF,m);
+		} else {
+			switch(players[p->killer_id].team) {
+				case TEAM_1:
+					chat_add(1,rgb(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue),m);
+					break;
+				case TEAM_2:
+					chat_add(1,rgb(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue),m);
+					break;
+			}
 		}
 	}
 }
@@ -543,6 +557,21 @@ void read_PacketProgressBar(void* data, int len) {
 	}
 }
 
+void read_PacketHandshakeInit(void* data, int len) {
+	network_send(PACKET_HANDSHAKERETURN_ID,data,len);
+}
+
+void read_PacketVersionGet(void* data, int len) {
+	struct PacketVersionSend ver;
+	ver.client = 'B';
+	ver.major = 0;
+	ver.minor = 77;
+	ver.revision = 0;
+	char* os = "Windows; BetterSpades";
+	strcpy(ver.operatingsystem,os);
+	network_send(PACKET_VERSIONSEND_ID,&ver,sizeof(ver)-sizeof(ver.operatingsystem)+strlen(os));
+}
+
 void network_updateColor() {
 	struct PacketSetColor c;
 	c.player_id = local_player_id;
@@ -612,7 +641,7 @@ void network_update() {
 				case ENET_EVENT_TYPE_RECEIVE:
 				{
 					int id = event.packet->data[0];
-					if(id<31 && *packets[id]!=NULL) {
+					if(id<35 && *packets[id]!=NULL) {
 						//printf("packet id %i\n",id);
 						(*packets[id]) (event.packet->data+1,event.packet->dataLength-1);
 					} else {
@@ -716,4 +745,6 @@ void network_init() {
 	packets[PACKET_WEAPONRELOAD_ID]		= read_PacketWeaponReload;
 	//29
 	packets[PACKET_CHANGEWEAPON_ID]		= read_PacketChangeWeapon;
+	packets[PACKET_HANDSHAKEINIT_ID]	= read_PacketHandshakeInit;
+	packets[PACKET_VERSIONGET_ID]		= read_PacketVersionGet;
 }

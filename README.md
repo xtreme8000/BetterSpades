@@ -26,13 +26,21 @@ You will need to compile
 
 by yourself or get hold of precompiled binaries. Place produced static libaries in `lib/`.
 
-dr_wav and LodePNG need to be copied to the `src/` directory.
+Some files need to be copied to the `src/` directory.
+
+This means:
+| source         | &rightarrow; | destination |
+| -------------- | ------------ | ----------- |
+| `dr_wav.h`     | &rightarrow; | `src/dr_wav.c` <br /> Make sure to define `DR_WAV_IMPLEMENTATION` in *Line 9* |
+| `lodepng.h`    | &rightarrow; | `src/lodepng/lodepng.h` |
+| `lodepng.cpp`  | &rightarrow; | `src/lodepng/lodepng.c` |
+| `libdeflate.h` | &rightarrow; | `src/libdeflate.h` |
 
 Because state of copyright of 0.75 assets is unknown, you will need to get them *[here](http://aos.party/bsresources.zip)*. Unzip the file and extract all contents to `resources/` manually.
 
 #### Windows
 
-This project uses CMake to generate all Makefiles automatically. It's best to use MinGW for gcc on windows. You can generate the required files by opening cmd.exe in the `build/` directory and typing:
+This project uses CMake to generate all Makefiles automatically. It's best to use MinGW for gcc on windows. You can generate the required files by opening `cmd.exe` in the `build/` directory and typing:
 ```
 cmake -G "MinGW Makefiles" ..
 make
@@ -49,6 +57,11 @@ See the client's source to understand what each value inside the script means.
 #### Linux
 
 Compilation now works the same on linux. Just change the build system to `Unix Makefiles`.
+
+You can build each library yourself, or install them with your distro's package manager:
+```
+apt-get install libgl1-mesa libgl1-mesa-dev libopenal1 libopenal-dev libglfw-dev libenet-dev
+```
 
 ## Gallery
 

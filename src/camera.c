@@ -113,11 +113,12 @@ void camera_ExtractFrustum() {
    float   clip[16];
    float   t;
 
-   /* Get the current PROJECTION matrix from OpenGL */
-   glGetFloatv( GL_PROJECTION_MATRIX, proj );
+   /* Get the current PROJECTION matrix */
+   memcpy(proj,matrix_projection,16*sizeof(float));
 
-   /* Get the current MODELVIEW matrix from OpenGL */
-   glGetFloatv( GL_MODELVIEW_MATRIX, modl );
+   /* Get the current MODELVIEW matrix */
+   matrix_upload();
+   glGetFloatv(GL_MODELVIEW_MATRIX,modl);
 
    /* Combine the two matrices (multiply projection by modelview) */
    clip[ 0] = modl[ 0] * proj[ 0] + modl[ 1] * proj[ 4] + modl[ 2] * proj[ 8] + modl[ 3] * proj[12];

@@ -36,8 +36,10 @@ void read_PacketIntelDrop(void* data, int len);
 void read_PacketIntelPickup(void* data, int len);
 void read_PacketTerritoryCapture(void* data, int len);
 void read_PacketProgressBar(void* data, int len);
+void read_PacketHandshakeInit(void* data, int len);
+void read_PacketVersionGet(void* data, int len);
 
-extern void (*packets[31]) (void* data, int len);
+extern void (*packets[35]) (void* data, int len);
 extern int network_connected;
 extern int network_logged_in;
 
@@ -55,6 +57,25 @@ extern int compressed_chunk_data_size;
 extern int compressed_chunk_data_offset;
 
 #pragma pack(push,1)
+
+#define PACKET_HANDSHAKEINIT_ID 31
+struct PacketHandshakeInit {
+	int challenge;
+};
+
+#define PACKET_HANDSHAKERETURN_ID 32
+struct PacketHandshakeReturn {
+	int challenge;
+};
+
+#define PACKET_VERSIONGET_ID 33
+
+#define PACKET_VERSIONSEND_ID 34
+struct PacketVersionSend {
+	unsigned char client;
+	unsigned char major, minor, revision;
+	char operatingsystem[64];
+};
 
 #define PACKET_MAPCHUNK_ID 19
 
@@ -128,6 +149,18 @@ struct PacketSetHP {
 	unsigned char type;
 	float x,y,z;
 };
+
+#define PACKET_HIT_ID 5
+struct PacketHit {
+	unsigned char player_id;
+	unsigned char hit_type;
+};
+#define HITTYPE_TORSO	0
+#define HITTYPE_HEAD	1
+#define HITTYPE_ARMS	2
+#define HITTYPE_LEGS	3
+#define HITTYPE_SPADE	4
+
 
 #define PACKET_KILLACTION_ID 16
 struct PacketKillAction {

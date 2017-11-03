@@ -52,10 +52,10 @@ typedef unsigned char boolean;
 #include "sound.h"
 #include "chunk.h"
 #include "map.h"
+#include "aabb.h"
 #include "model.h"
 #include "file.h"
 #include "camera.h"
-#include "aabb.h"
 #include "particle.h"
 #include "network.h"
 #include "player.h"
@@ -64,6 +64,8 @@ typedef unsigned char boolean;
 #include "font.h"
 #include "texture.h"
 #include "weapon.h"
+#include "matrix.h"
+#include "tracer.h"
 
 unsigned char key_map[512];
 unsigned char button_map[3];
@@ -84,9 +86,6 @@ PFNGLUNIFORM4FPROC glUniform4f;
 PFNGLUNIFORM1IPROC glUniform1i;
 PFNGLTEXIMAGE3DPROC glTexImage3D;
 
-
-void matrix_pointAt(float dx, float dy, float dz);
-
 extern struct RENDER_OPTIONS {
 	boolean opengl14;
 	boolean color_correction;
@@ -106,6 +105,10 @@ extern struct RENDER_OPTIONS {
 
 extern int chat_input_mode;
 
-extern char chat[10][256];
-extern unsigned int chat_color[10];
-void chat_add(unsigned int color, char* msg);
+extern char chat[2][10][256];
+extern unsigned int chat_color[2][10];
+extern float chat_timer[2][10];
+void chat_add(int channel, unsigned int color, char* msg);
+
+#define team_execute(t,team1,team2) switch(t) { case TEAM_1:{team1; break;} case TEAM_2:{team2; break;} }
+#define team_setcolor(t) team_execute(t,glColor3ub(gamestate.gamemode.team_1.red,gamestate.gamemode.team_1.green,gamestate.gamemode.team_1.blue),glColor3ub(gamestate.gamemode.team_2.red,gamestate.gamemode.team_2.green,gamestate.gamemode.team_2.blue))

@@ -195,6 +195,7 @@ void chunk_draw_shadow_volume(float* data, int max) {
 	glEnd();
 }
 
+//see this for details: https://github.com/infogulch/pyspades/blob/protocol075/pyspades/vxl_c.cpp#L380
 float sunblock(int x, int y, int z) {
     int dec = 18;
     int i = 127;

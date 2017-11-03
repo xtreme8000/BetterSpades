@@ -4,7 +4,7 @@ float weapon_reload_start, weapon_last_shot;
 unsigned char weapon_reload_inprogress = 0;
 
 void weapon_update() {
-    float t, delay = weapon_delay();
+    float t, delay = weapon_delay(players[local_player_id].weapon);
     int bullets = weapon_can_reload();
     switch(players[local_player_id].weapon) {
         case WEAPON_RIFLE:
@@ -51,14 +51,25 @@ void weapon_update() {
     //printf("%i %f %i %i\n",weapon_reload_inprogress,glfwGetTime()-weapon_reload_start,local_player_ammo,local_player_ammo_reserved);
 }
 
-float weapon_delay() {
-    switch(players[local_player_id].weapon) {
+float weapon_delay(int gun) {
+    switch(gun) {
         case WEAPON_RIFLE:
             return 0.5F;
         case WEAPON_SMG:
             return 0.1F;
         case WEAPON_SHOTGUN:
             return 1.0F;
+    }
+}
+
+struct Sound_wav* weapon_sound(int gun) {
+    switch(gun) {
+        case WEAPON_RIFLE:
+            return &sound_rifle_shoot;
+        case WEAPON_SMG:
+            return &sound_smg_shoot;
+        case WEAPON_SHOTGUN:
+            return &sound_shotgun_shoot;
     }
 }
 
@@ -141,6 +152,14 @@ void weapon_shoot() {
     //https://pastebin.com/raw/TMjKSTXG
     //http://paste.quacknet.org/view/a3ea2743
 
+    if(player_intersection_type>=0) {
+        struct PacketHit hit;
+        hit.player_id = player_intersection_player;
+        hit.hit_type = player_intersection_type;
+        network_send(PACKET_HIT_ID,&hit,sizeof(hit));
+        printf("hit on %s (%i)\n",players[player_intersection_player].name,hit.hit_type);
+    }
+
     double horiz_recoil, vert_recoil;
     switch(players[local_player_id].weapon) {
         case WEAPON_RIFLE:
@@ -203,7 +222,10 @@ void weapon_shoot() {
             break;
     }
 
-    sound_create(NULL,SOUND_LOCAL,shoot,players[local_player_id].pos.x,players[local_player_id].pos.y,players[local_player_id].pos.z);
-
     camera_overflow_adjust();
+
+    sound_create(NULL,SOUND_LOCAL,shoot,players[local_player_id].pos.x,players[local_player_id].pos.y,players[local_player_id].pos.z);
+    tracer_add(players[local_player_id].weapon,players[local_player_id].gun_pos.x,players[local_player_id].gun_pos.y,players[local_player_id].gun_pos.z,
+               players[local_player_id].orientation.x,players[local_player_id].orientation.y,players[local_player_id].orientation.z
+              );
 }

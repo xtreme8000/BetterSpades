@@ -113,10 +113,11 @@ void grenade_update(float dt) {
                     );
                 }
                 //TODO: position grenade on ground properly
-                glPushMatrix();
-                glTranslatef(grenades[k].pos.x,grenades[k].pos.y+(model_grenade.zpiv+model_grenade.zsiz*2)*model_grenade.scale,grenades[k].pos.z);
+                matrix_push();
+                matrix_translate(grenades[k].pos.x,grenades[k].pos.y+(model_grenade.zpiv+model_grenade.zsiz*2)*model_grenade.scale,grenades[k].pos.z);
+                matrix_upload();
                 kv6_render(&model_grenade,TEAM_1);
-                glPopMatrix();
+                matrix_pop();
             }
         }
     }

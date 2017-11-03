@@ -16,11 +16,13 @@ struct texture texture_zoom_smg;
 struct texture texture_zoom_shotgun;
 
 struct texture texture_white;
+struct texture texture_target;
 
 struct texture texture_player;
 struct texture texture_medical;
 struct texture texture_intel;
 struct texture texture_command;
+struct texture texture_tracer;
 
 int texture_create(struct texture* t, char* filename) {
     int error = lodepng_decode32_file(&t->pixels,&t->width,&t->height,filename);
@@ -168,11 +170,13 @@ void texture_init() {
     texture_create(&texture_zoom_shotgun,"png/shotgun.png");
 
     texture_create(&texture_white,"png/white.png");
+    texture_create(&texture_target,"png/target.png");
 
     texture_create(&texture_player,"png/player.png");
     texture_create(&texture_medical,"png/medical.png");
     texture_create(&texture_intel,"png/intel.png");
     texture_create(&texture_command,"png/command.png");
+    texture_create(&texture_tracer,"png/tracer.png");
 
 
     unsigned int* pixels = malloc(64*64*sizeof(unsigned int));

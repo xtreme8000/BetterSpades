@@ -12,6 +12,7 @@ struct kv6_t {
 	float red, green, blue;
 };
 
+extern struct kv6_t model_playerdead;
 extern struct kv6_t model_playerhead;
 extern struct kv6_t model_playertorso;
 extern struct kv6_t model_playertorsoc;
@@ -28,6 +29,11 @@ extern struct kv6_t model_spade;
 extern struct kv6_t model_block;
 extern struct kv6_t model_grenade;
 
+extern struct kv6_t model_semi_tracer;
+extern struct kv6_t model_smg_tracer;
+extern struct kv6_t model_shotgun_tracer;
+
+char kv6_intersection(struct kv6_t* kv6, Ray r);
 void kv6_render(struct kv6_t* kv6, unsigned char team);
 struct kv6_t kv6_load(unsigned char* bytes, float scale);
 void kv6_init(void);

@@ -31,6 +31,26 @@ void aabb_render(AABB* a) {
 	glEnd();
 }
 
+char aabb_intersection_ray(AABB* a, Ray* r) {
+	double t1 = (a->min_x-r->origin.x)/r->direction.x;
+    double t2 = (a->max_x-r->origin.x)/r->direction.x;
+
+    double tmin = min(t1, t2);
+    double tmax = max(t1, t2);
+
+	t1 = (a->min_y - r->origin.y)/r->direction.y;
+	t2 = (a->max_y - r->origin.y)/r->direction.y;
+	tmin = max(tmin, min(min(t1, t2), tmax));
+	tmax = min(tmax, max(max(t1, t2), tmin));
+
+	t1 = (a->min_z - r->origin.z)/r->direction.z;
+	t2 = (a->max_z - r->origin.z)/r->direction.z;
+	tmin = max(tmin, min(min(t1, t2), tmax));
+	tmax = min(tmax, max(max(t1, t2), tmin));
+
+    return tmax > max(tmin, 0.0);
+}
+
 void aabb_set_center(AABB* a, float x, float y, float z) {
 	float size_x = a->max_x-a->min_x;
 	float size_y = a->max_y-a->min_y;

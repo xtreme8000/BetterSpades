@@ -18,11 +18,13 @@ extern struct texture texture_zoom_smg;
 extern struct texture texture_zoom_shotgun;
 
 extern struct texture texture_white;
+extern struct texture texture_target;
 
 extern struct texture texture_player;
 extern struct texture texture_medical;
 extern struct texture texture_intel;
 extern struct texture texture_command;
+extern struct texture texture_tracer;
 
 void texture_init(void);
 int texture_create(struct texture* t, char* filename);
