@@ -4,6 +4,12 @@
 * runs on very old systems back to OpenGL 1.1
 * shares similiar if not even better performance to voxlap
 
+#### Why should I use this instead of ...?
+
+* free of any Jagex code, they can't shut it down
+* open for future expansion
+* no hidden bugs
+
 ## Build requirements
 
 These libraries and files are needed:
@@ -66,8 +72,8 @@ apt-get install libgl1-mesa libgl1-mesa-dev libopenal1 libopenal-dev libglfw-dev
 
 ## Gallery
 
-| <img src="/docs/pic01.png" width="250px"> | <img src="/docs/pic02.png" width="250px"> |
-| :-: | :-: |
+| <img src="/docs/pic01.png" width="250px"> | <img src="/docs/pic02.png" width="250px"> | <img src="/docs/pic03.png" width="250px"> |
+| :-: | :-: | :-: |
 
 ##
 
