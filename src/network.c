@@ -3,6 +3,7 @@
 void (*packets[35]) (void* data, int len) = {NULL};
 int network_connected = 0;
 int network_logged_in = 0;
+int network_map_transfer = 0;
 
 float network_pos_update = 0.0F;
 float network_orient_update = 0.0F;
@@ -13,6 +14,7 @@ unsigned char network_tool_last = 255;
 void* compressed_chunk_data;
 int compressed_chunk_data_size;
 int compressed_chunk_data_offset = 0;
+int compressed_chunk_data_estimate = 0;
 
 ENetHost* client;
 ENetPeer* peer;
@@ -84,6 +86,9 @@ void read_PacketBlockAction(void* data, int len) {
 			if((63-p->z)>1) {
 				map_set(p->x,63-p->z,p->y,0xFFFFFFFF);
 				map_update_physics(p->x,63-p->z,p->y);
+				sound_create(NULL,SOUND_WORLD,&sound_hitground,
+							 p->x+0.5F,63-p->z+0.5F,p->y+0.5F
+						 	);
 			}
 			break;
 		case ACTION_GRENADE:
@@ -111,6 +116,9 @@ void read_PacketBlockAction(void* data, int len) {
 				map_set(p->x,63-p->z+1,p->y,0xFFFFFFFF);
 				map_update_physics(p->x,63-p->z+1,p->y);
 			}
+			sound_create(NULL,SOUND_WORLD,&sound_hitground,
+						 p->x+0.5F,63-p->z+0.5F,p->y+0.5F
+					 	);
 			break;
 		case ACTION_BUILD:
 			if(p->player_id<PLAYERS_MAX) {
@@ -118,6 +126,9 @@ void read_PacketBlockAction(void* data, int len) {
 					players[p->player_id].block.red |
 					(players[p->player_id].block.green<<8) |
 					(players[p->player_id].block.blue<<16));
+				sound_create(NULL,SOUND_WORLD,&sound_build,
+							 p->x+0.5F,63-p->z+0.5F,p->y+0.5F
+						 	);
 			}
 			break;
 	}
@@ -149,10 +160,6 @@ void read_PacketBlockLine(void* data, int len) {
 void read_PacketStateData(void* data, int len) {
 	struct PacketStateData* p = (struct PacketStateData*)data;
 
-	for(int k=0;k<PLAYERS_MAX;k++) {
-		player_reset(&players[k]);
-	}
-
 	strcpy(gamestate.team_1.name,p->team_1_name);
 	gamestate.team_1.red = p->team_1_red;
 	gamestate.team_1.green = p->team_1_green;
@@ -182,6 +189,8 @@ void read_PacketStateData(void* data, int len) {
 	players[local_player_id].block.blue = 111;
 
 	camera_mode = CAMERAMODE_SELECTION;
+	screen_current = SCREEN_TEAM_SELECT;
+	network_map_transfer = 0;
 
 	printf("map data was %i bytes\n",compressed_chunk_data_offset);
 	int avail_size = 1024*1024;
@@ -207,6 +216,8 @@ void read_PacketStateData(void* data, int len) {
 	free(decompressed);
 	free(compressed_chunk_data);
 	libdeflate_free_decompressor(d);
+
+	kv6_rebuild_all();
 }
 
 void read_PacketFogColor(void* data, int len) {
@@ -218,7 +229,7 @@ void read_PacketFogColor(void* data, int len) {
 
 void read_PacketExistingPlayer(void* data, int len) {
 	struct PacketExistingPlayer* p = (struct PacketExistingPlayer*)data;
-	if(p->player_id<PLAYERS_MAX && p->team<3 && p->weapon<3 && p->held_item<4) {
+	if(p->player_id<PLAYERS_MAX) {
 		player_reset(&players[p->player_id]);
 		players[p->player_id].connected = 1;
 		players[p->player_id].alive = 1;
@@ -230,13 +241,28 @@ void read_PacketExistingPlayer(void* data, int len) {
 		players[p->player_id].block.green = p->green;
 		players[p->player_id].block.blue = p->blue;
 		strcpy(players[p->player_id].name,p->name);
-		printf("existingplayer name: %s\n",p->name);
+		char* t;
+		switch(p->team) {
+			case TEAM_1:
+				t = gamestate.team_1.name;
+				break;
+			case TEAM_2:
+				t = gamestate.team_2.name;
+				break;
+			default:
+			case TEAM_SPECTATOR:
+				t = "Spectator";
+				break;
+		}
+		char s[64];
+		sprintf(s,"%s joined the %s team",p->name,t);
+		chat_add(0,0x0000FF,s);
 	}
 }
 
 void read_PacketCreatePlayer(void* data, int len) {
 	struct PacketCreatePlayer* p = (struct PacketCreatePlayer*)data;
-	if(p->player_id<PLAYERS_MAX && p->team<3 && p->weapon<3) {
+	if(p->player_id<PLAYERS_MAX) {
 		player_reset(&players[p->player_id]);
 		players[p->player_id].connected = 1;
 		players[p->player_id].alive = 1;
@@ -256,7 +282,7 @@ void read_PacketCreatePlayer(void* data, int len) {
 		if(p->player_id==local_player_id) {
 			camera_mode = (p->team==TEAM_SPECTATOR)?CAMERAMODE_SPECTATOR:CAMERAMODE_FPS;
 			camera_rot_x = (p->team==TEAM_1)?0.5F*PI:1.5F*PI;
-			camera_rot_y = 90.0F;
+			camera_rot_y = 0.5F*PI;
 			network_logged_in = 1;
 			local_player_health = 100;
 			local_player_blocks = 50;
@@ -271,21 +297,23 @@ void read_PacketPlayerLeft(void* data, int len) {
 	if(p->player_id<PLAYERS_MAX) {
 		players[p->player_id].connected = 0;
 		players[p->player_id].alive = 0;
+		char s[32];
+		sprintf(s,"%s disconnected",players[p->player_id].name);
+		chat_add(0,0x0000FF,s);
 	}
 }
 
 void read_PacketMapStart(void* data, int len) {
 	struct PacketMapStart* p = (struct PacketMapStart*)data;
+	compressed_chunk_data_estimate = p->map_size;
 	//ffs someone fix the wrong map size of 1.5mb
 	compressed_chunk_data_size = 1024*1024;
 	compressed_chunk_data = malloc(compressed_chunk_data_size);
 	compressed_chunk_data_offset = 0;
 	network_logged_in = 0;
+	network_map_transfer = 1;
 
-	for(int k=0;k<PLAYERS_MAX;k++) {
-		players[k].connected = 0;
-		players[k].alive = 0;
-	}
+	player_init();
 }
 
 void read_PacketWorldUpdate(void* data, int len) {
@@ -327,7 +355,7 @@ void read_PacketSetColor(void* data, int len) {
 
 void read_PacketInputData(void* data, int len) {
 	struct PacketInputData* p = (struct PacketInputData*)data;
-	if(p->player_id<PLAYERS_MAX && p->player_id!=local_player_id) {
+	if(p->player_id<PLAYERS_MAX) {
 		players[p->player_id].input.keys.packed = p->keys;
 		players[p->player_id].physics.jump = players[p->player_id].input.keys.jump;
 	}
@@ -360,6 +388,10 @@ void read_PacketKillAction(void* data, int len) {
 		if(p->player_id==local_player_id) {
 			camera_mode = CAMERAMODE_BODYVIEW;
 			cameracontroller_bodyview_player = local_player_id;
+			local_player_death_time = glfwGetTime();
+			local_player_respawn_time = p->respawn_time;
+			local_player_respawn_cnt_last = 255;
+			sound_create(NULL,SOUND_LOCAL,&sound_death,0.0F,0.0F,0.0F);
 		}
 		players[p->player_id].alive = 0;
 		players[p->player_id].input.keys.packed = 0;
@@ -410,7 +442,7 @@ void read_PacketKillAction(void* data, int len) {
 void read_PacketShortPlayerData(void* data, int len) {
 	//should never be received, but process it anyway
 	struct PacketShortPlayerData* p = (struct PacketShortPlayerData*)data;
-	if(p->player_id<PLAYERS_MAX && p->team<3 && p->weapon<3) {
+	if(p->player_id<PLAYERS_MAX) {
 		players[p->player_id].team = p->team;
 		players[p->player_id].weapon = p->weapon;
 	}
@@ -455,6 +487,10 @@ void read_PacketWeaponReload(void* data, int len) {
 		weapon_set();
 		local_player_ammo = p->ammo;
 		local_player_ammo_reserved = p->reserved;
+	} else {
+		sound_create(NULL,SOUND_WORLD,weapon_sound_reload(players[p->player_id].weapon),
+					 players[p->player_id].pos.x,players[p->player_id].pos.y,players[p->player_id].pos.z
+				 )->stick_to_player = p->player_id;
 	}
 }
 
@@ -496,9 +532,9 @@ void read_PacketMoveObject(void* data, int len) {
 
 void read_PacketIntelCapture(void* data, int len) {
 	struct PacketIntelCapture* p = (struct PacketIntelCapture*)data;
-	if(gamestate.gamemode_type==GAMEMODE_CTF && p->player_id<PLAYERS_MAX && p->winning) {
+	if(gamestate.gamemode_type==GAMEMODE_CTF && p->player_id<PLAYERS_MAX) {
 		//TODO: play horn.wav, show win message etc.
-		sound_create(NULL,SOUND_LOCAL,p->winning?&sound_horn:&sound_pickup,players[local_player_id].pos.x,players[local_player_id].pos.y,players[local_player_id].pos.z);
+		sound_create(NULL,SOUND_LOCAL,p->winning?&sound_horn:&sound_pickup,0.0F,0.0F,0.0F);
 	}
 }
 
@@ -542,7 +578,7 @@ void read_PacketTerritoryCapture(void* data, int len) {
 	struct PacketTerritoryCapture* p = (struct PacketTerritoryCapture*)data;
 	if(gamestate.gamemode_type==GAMEMODE_TC && p->tent<gamestate.gamemode.tc.territory_count) {
 		gamestate.gamemode.tc.territory[p->tent].team = p->team;
-		sound_create(NULL,SOUND_LOCAL,p->winning?&sound_horn:&sound_pickup,players[local_player_id].pos.x,players[local_player_id].pos.y,players[local_player_id].pos.z);
+		sound_create(NULL,SOUND_LOCAL,p->winning?&sound_horn:&sound_pickup,0.0F,0.0F,0.0F);
 	}
 }
 
@@ -567,7 +603,7 @@ void read_PacketVersionGet(void* data, int len) {
 	ver.major = 0;
 	ver.minor = 77;
 	ver.revision = 0;
-	char* os = "Windows; BetterSpades";
+	char* os = "BetterSpades";
 	strcpy(ver.operatingsystem,os);
 	network_send(PACKET_VERSIONSEND_ID,&ver,sizeof(ver)-sizeof(ver.operatingsystem)+strlen(os));
 }
@@ -641,7 +677,7 @@ void network_update() {
 				case ENET_EVENT_TYPE_RECEIVE:
 				{
 					int id = event.packet->data[0];
-					if(id<35 && *packets[id]!=NULL) {
+					if(id<sizeof(packets) && *packets[id]!=NULL) {
 						//printf("packet id %i\n",id);
 						(*packets[id]) (event.packet->data+1,event.packet->dataLength-1);
 					} else {
@@ -651,6 +687,7 @@ void network_update() {
 					break;
 				}
 				case ENET_EVENT_TYPE_DISCONNECT:
+					printf("server disconnected!");
 					event.peer->data = NULL;
 					network_connected = 0;
 					network_logged_in = 0;
@@ -693,7 +730,7 @@ void network_update() {
 				pos.z = 63.0F-players[local_player_id].pos.y;
 				network_send(PACKET_POSITIONDATA_ID,&pos,sizeof(pos));
 			}
-			if(glfwGetTime()-network_orient_update>0.05F) {
+			if(glfwGetTime()-network_orient_update>0.1F) {
 				network_orient_update = glfwGetTime();
 				struct PacketPositionData orient;
 				orient.x = players[local_player_id].orientation.x;

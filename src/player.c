@@ -7,6 +7,10 @@ unsigned char local_player_health = 100;
 unsigned char local_player_blocks = 50;
 unsigned char local_player_grenades = 3;
 unsigned char local_player_ammo, local_player_ammo_reserved;
+unsigned char local_player_respawn_time = 0;
+float         local_player_death_time = 0.0F;
+unsigned char local_player_respawn_cnt_last = 255;
+unsigned char local_player_newteam;
 
 int player_intersection_type = -1;
 int player_intersection_player = 0;
@@ -19,6 +23,11 @@ struct Player players[PLAYERS_MAX];
 #define SQRT 0.70710678F
 #define WEAPON_PRIMARY 1
 #define FALL_DAMAGE_SCALAR 4096
+
+void player_init() {
+    for(int k=0;k<PLAYERS_MAX;k++)
+        player_reset(&players[k]);
+}
 
 void player_reset(struct Player* p) {
     p->connected = 0;
@@ -47,23 +56,28 @@ float player_spade_func(float x) {
 }
 
 float player_tool_func(struct Player* p) {
-    if(p->input.buttons.lmb) {
-        switch(p->held_item) {
-            case TOOL_SPADE:
-                if(p==&players[local_player_id] && camera_mode==CAMERAMODE_FPS) {
-                    return player_spade_func(glfwGetTime()-p->input.buttons.lmb_start)*90.0F;
-                } else {
-                    return (player_swing_func((glfwGetTime()-p->input.buttons.lmb_start)*5.0F)+1.0F)/2.0F*90.0F;
-                }
-            case TOOL_GRENADE:
+    switch(p->held_item) {
+        case TOOL_SPADE:
+            if(glfwGetTime()-p->spade_use_timer>0.2F) {
+                return 0.0F;
+            }
+            if(p==&players[local_player_id] && camera_mode==CAMERAMODE_FPS) {
+                return player_spade_func(glfwGetTime()-p->spade_use_timer)*90.0F;
+            } else {
+                return (player_swing_func((glfwGetTime()-p->spade_use_timer)*5.0F)+1.0F)/2.0F*60.0F;
+            }
+        case TOOL_GRENADE:
+            if(p->input.buttons.lmb) {
                 return max(-(glfwGetTime()-p->input.buttons.lmb_start)*35.0F,-35.0F);
-        }
+            } else {
+                return 0.0F;
+            }
     }
     return 0.0F;
 }
 
 float player_tool_translate_func(struct Player* p) {
-    if(p==&players[local_player_id]) {
+    if(p==&players[local_player_id] && camera_mode==CAMERAMODE_FPS) {
         if(glfwGetTime()-p->item_showup<0.5F) {
             return 0.0F;
         }
@@ -74,42 +88,122 @@ float player_tool_translate_func(struct Player* p) {
     return 0.0F;
 }
 
+float player_height(struct Player* p) {
+    return p->input.keys.crouch?1.0F:1.05F;
+}
+
 void player_update(float dt) {
     player_intersection_type = -1;
     player_intersection_dist = 1024.0F;
+
+    Ray ray;
+    ray.origin.x = camera_x;
+    ray.origin.y = camera_y;
+    ray.origin.z = camera_z;
+    ray.direction.x = sin(camera_rot_x)*sin(camera_rot_y);
+    ray.direction.y = cos(camera_rot_y);
+    ray.direction.z = cos(camera_rot_x)*sin(camera_rot_y);
+
     for(int k=0;k<PLAYERS_MAX;k++) {
+        if(players[k].connected && players[k].alive && players[k].held_item==TOOL_SPADE
+            && glfwGetTime()-players[k].spade_use_timer>0.2F && players[k].input.buttons.lmb
+            && glfwGetTime()-players[k].item_showup>=0.5F) {
+            //now run a hitscan and see if any block or player is in the way
+            char hit_type = 0;
+            float hit_dist = 1e10;
+            int* pos = camera_terrain_pickEx(1,players[k].physics.eye.x,players[k].physics.eye.y+player_height(&players[k]),players[k].physics.eye.z,
+                                               players[k].orientation.x,players[k].orientation.y,players[k].orientation.z);
+            if((int)pos!=0 && pos[1]>1 && distance3D(players[k].pos.x,players[k].pos.y,players[k].pos.z,pos[0],pos[1],pos[2])<=3.0F*3.0F) {
+                hit_type = 1;
+                hit_dist = distance3D(players[k].pos.x,players[k].pos.y,players[k].pos.z,pos[0],pos[1],pos[2]);
+            }
+
+            Ray dir;
+            dir.origin.x = players[k].physics.eye.x;
+            dir.origin.y = players[k].physics.eye.y+player_height(&players[k]);
+            dir.origin.z = players[k].physics.eye.z;
+            dir.direction.x = players[k].orientation.x;
+            dir.direction.y = players[k].orientation.y;
+            dir.direction.z = players[k].orientation.z;
+
+            float player_nearest = 1e10;
+            int player_nearest_id;
+            for(int i=0;i<PLAYERS_MAX;i++) {
+                float l = distance2D(players[k].pos.x,players[k].pos.z,players[i].pos.x,players[i].pos.z);
+                if(players[i].connected && players[i].alive && i!=k && l<128.0F*128.0F) {
+                    int intersections = player_render(&players[i],i,&dir,0);
+                    if(intersections && l<player_nearest) {
+                        player_nearest = l;
+                        player_nearest_id = i;
+                    }
+                }
+            }
+            if(player_nearest<=3.0F*3.0F && player_nearest<hit_dist) {
+                hit_type = 2;
+                hit_dist = player_nearest;
+            }
+
+            switch(hit_type) {
+                case 1:
+                    sound_create(NULL,SOUND_WORLD,&sound_hitground,pos[0]+0.5F,pos[1]+0.5F,pos[2]+0.5F);
+                    if(k==local_player_id && map_damage(pos[0],pos[1],pos[2],50)==100) {
+                        struct PacketBlockAction blk;
+                        blk.action_type = ACTION_DESTROY;
+                        blk.player_id = local_player_id;
+                        blk.x = pos[0];
+                        blk.y = pos[2];
+                        blk.z = 63-pos[1];
+                        network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
+                        //read_PacketBlockAction(&blk,sizeof(blk));
+                    }
+                    break;
+                case 2:
+                    sound_create(NULL,SOUND_WORLD,&sound_spade_whack,players[k].pos.x,players[k].pos.y,players[k].pos.z)->stick_to_player = k;
+                    if(k==local_player_id) {
+                        struct PacketHit hit;
+                        hit.player_id = player_nearest_id;
+                        hit.hit_type = HITTYPE_SPADE;
+                        network_send(PACKET_HIT_ID,&hit,sizeof(hit));
+                    }
+                    break;
+                default:
+                    sound_create(NULL,SOUND_WORLD,&sound_spade_woosh,players[k].pos.x,players[k].pos.y,players[k].pos.z)->stick_to_player = k;
+            }
+
+            players[k].spade_use_timer = glfwGetTime();
+        }
         if(players[k].connected && k!=local_player_id) {
-            player_move(&players[k],dt);
-            int intersections = player_render(&players[k],k);
-            float d = (camera_x-players[k].pos.x)*(camera_x-players[k].pos.x)
-                     +(camera_y-players[k].pos.y)*(camera_y-players[k].pos.y)
-                     +(camera_z-players[k].pos.z)*(camera_z-players[k].pos.z);
-            if(intersections && d<player_intersection_dist*player_intersection_dist) {
-                player_intersection_dist = sqrt(d);
-                player_intersection_player = k;
-                player_intersection_type = -1;
-                if(intersections & (1<<HITTYPE_ARMS)) {
-                    player_intersection_type = HITTYPE_ARMS;
-                }
-                if(intersections & (1<<HITTYPE_LEGS)) {
-                    player_intersection_type = HITTYPE_LEGS;
-                }
-                if(intersections & (1<<HITTYPE_TORSO)) {
-                    player_intersection_type = HITTYPE_TORSO;
-                }
-                if(intersections & (1<<HITTYPE_HEAD)) {
-                    player_intersection_type = HITTYPE_HEAD;
+            player_move(&players[k],dt,k);
+            if(camera_CubeInFrustum(players[k].pos.x,players[k].pos.y,players[k].pos.z,1.0F,2.0F)) {
+                int intersections = player_render(&players[k],k,&ray,1);
+                float d = (camera_x-players[k].pos.x)*(camera_x-players[k].pos.x)
+                         +(camera_y-players[k].pos.y)*(camera_y-players[k].pos.y)
+                         +(camera_z-players[k].pos.z)*(camera_z-players[k].pos.z);
+                if(intersections && d<player_intersection_dist*player_intersection_dist) {
+                    player_intersection_dist = sqrt(d);
+                    player_intersection_player = k;
+                    player_intersection_type = -1;
+                    if(intersections & (1<<HITTYPE_ARMS)) {
+                        player_intersection_type = HITTYPE_ARMS;
+                    }
+                    if(intersections & (1<<HITTYPE_LEGS)) {
+                        player_intersection_type = HITTYPE_LEGS;
+                    }
+                    if(intersections & (1<<HITTYPE_TORSO)) {
+                        player_intersection_type = HITTYPE_TORSO;
+                    }
+                    if(intersections & (1<<HITTYPE_HEAD)) {
+                        player_intersection_type = HITTYPE_HEAD;
+                    }
                 }
             }
 
             if(players[k].alive && players[k].held_item==TOOL_GUN && players[k].input.buttons.lmb) {
                 if(glfwGetTime()-players[k].gun_shoot_timer>weapon_delay(players[k].weapon)) {
-
-                    sound_createEx(NULL,SOUND_WORLD,weapon_sound(players[k].weapon),
-                                   players[k].gun_pos.x,players[k].gun_pos.y,players[k].gun_pos.z,
-                                   players[k].physics.velocity.x,players[k].physics.velocity.y,players[k].physics.velocity.z
-                               );
-                    tracer_add(players[k].weapon,players[k].gun_pos.x,players[k].gun_pos.y,players[k].gun_pos.z,players[k].orientation.x,players[k].orientation.y,players[k].orientation.z);
+                    sound_create(NULL,SOUND_WORLD,weapon_sound(players[k].weapon),
+                                   players[k].pos.x,players[k].pos.y,players[k].pos.z
+                               )->stick_to_player = k;
+                    tracer_add(players[k].weapon,players[k].input.buttons.rmb,players[k].gun_pos.x,players[k].gun_pos.y,players[k].gun_pos.z,players[k].orientation.x,players[k].orientation.y,players[k].orientation.z);
                     players[k].gun_shoot_timer = glfwGetTime();
                 }
             }
@@ -117,14 +211,15 @@ void player_update(float dt) {
     }
 }
 
-int player_render(struct Player* p, int id) {
+int player_render(struct Player* p, int id, Ray* ray, char render) {
     if(!p->alive) {
         matrix_push();
-        matrix_translate(p->pos.x,p->pos.y,p->pos.z);
+        matrix_translate(p->pos.x,p->pos.y+0.25F,p->pos.z);
         matrix_pointAt(p->orientation.x,0.0F,p->orientation.z);
         matrix_rotate(90.0F,0.0F,1.0F,0.0F);
         matrix_upload();
-        kv6_render(&model_playerdead,p->team);
+        if(render)
+            kv6_render(&model_playerdead,p->team);
         matrix_pop();
         return 0;
     }
@@ -133,7 +228,7 @@ int player_render(struct Player* p, int id) {
 
     struct kv6_t* torso = p->input.keys.crouch?&model_playertorsoc:&model_playertorso;
     struct kv6_t* leg = p->input.keys.crouch?&model_playerlegc:&model_playerleg;
-    float height = p->input.keys.crouch?0.8F:0.9F;
+    float height = p->input.keys.crouch?1.0F:1.05F;
 
 
     float len = sqrt(pow(p->orientation.x,2.0F)+pow(p->orientation.z,2.0F));
@@ -147,22 +242,15 @@ int player_render(struct Player* p, int id) {
 
     int intersections = 0;
 
-    Ray ray;
-    ray.origin.x = camera_x;
-    ray.origin.y = camera_y;
-    ray.origin.z = camera_z;
-    ray.direction.x = sin(camera_rot_x)*sin(camera_rot_y);
-    ray.direction.y = cos(camera_rot_y);
-    ray.direction.z = cos(camera_rot_x)*sin(camera_rot_y);
-
     if(id!=local_player_id || !p->alive || camera_mode!=CAMERAMODE_FPS) {
         matrix_push();
         matrix_translate(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
         matrix_pointAt(p->orientation.x,p->orientation.y,p->orientation.z);
         matrix_rotate(90.0F,0.0F,1.0F,0.0F);
         matrix_upload();
-        kv6_render(&model_playerhead,p->team);
-        if(kv6_intersection(&model_playerhead,ray)) {
+        if(render)
+            kv6_render(&model_playerhead,p->team);
+        if(ray!=NULL && kv6_intersection(&model_playerhead,ray)) {
             intersections |= (1<<HITTYPE_HEAD);
         }
         matrix_pop();
@@ -172,8 +260,9 @@ int player_render(struct Player* p, int id) {
         matrix_pointAt(p->orientation.x,0.0F,p->orientation.z);
         matrix_rotate(90.0F,0.0F,1.0F,0.0F);
         matrix_upload();
-        kv6_render(torso,p->team);
-        if(kv6_intersection(torso,ray)) {
+        if(render)
+            kv6_render(torso,p->team);
+        if(ray!=NULL && kv6_intersection(torso,ray)) {
             intersections |= (1<<HITTYPE_TORSO);
         }
         matrix_pop();
@@ -196,8 +285,9 @@ int player_render(struct Player* p, int id) {
         matrix_rotate(45.0F*sin(time*DOUBLEPI/1000.0F)*a,1.0F,0.0F,0.0F);
         matrix_rotate(45.0F*sin(time*DOUBLEPI/1000.0F)*b,0.0F,0.0F,1.0F);
         matrix_upload();
-        kv6_render(leg,p->team);
-        if(kv6_intersection(leg,ray)) {
+        if(render)
+            kv6_render(leg,p->team);
+        if(ray!=NULL && kv6_intersection(leg,ray)) {
             intersections |= (1<<HITTYPE_LEGS);
         }
         matrix_pop();
@@ -210,8 +300,9 @@ int player_render(struct Player* p, int id) {
         matrix_rotate(-45.0F*sin(time*DOUBLEPI/1000.0F)*a,1.0F,0.0F,0.0F);
         matrix_rotate(-45.0F*sin(time*DOUBLEPI/1000.0F)*b,0.0F,0.0F,1.0F);
         matrix_upload();
-        kv6_render(leg,p->team);
-        if(kv6_intersection(leg,ray)) {
+        if(render)
+            kv6_render(leg,p->team);
+        if(ray!=NULL && kv6_intersection(leg,ray)) {
             intersections |= (1<<HITTYPE_LEGS);
         }
         matrix_pop();
@@ -235,25 +326,24 @@ int player_render(struct Player* p, int id) {
     if(p->input.keys.sprint && !p->input.keys.crouch) {
         matrix_rotate(45.0F,1.0F,0.0F,0.0F);
     }
-    /*if(p->input.buttons.lmb || p->input.buttons.rmb) {
-        glRotatef(22.5F*player_spade_func(glfwGetTime()-p->input.buttons.lmb_start),1.0F,0.0F,0.0F);
-    }*/
+
     if(id==local_player_id && glfwGetTime()-p->item_showup<0.5F) {
         matrix_rotate(45.0F-(glfwGetTime()-p->item_showup)*90.0F,1.0F,0.0F,0.0F);
     }
-    if(p->held_item!=TOOL_SPADE || (p->held_item==TOOL_SPADE && id!=local_player_id)) {
+    if(!(p->held_item==TOOL_SPADE && id==local_player_id && camera_mode==CAMERAMODE_FPS)) {
         matrix_rotate(player_tool_func(p),1.0F,0.0F,0.0F);
     }
     if(id!=local_player_id || settings.player_arms || camera_mode!=CAMERAMODE_FPS) {
         matrix_upload();
-        kv6_render(&model_playerarms,p->team);
-        if(kv6_intersection(&model_playerarms,ray)) {
+        if(render)
+            kv6_render(&model_playerarms,p->team);
+        if(ray!=NULL && kv6_intersection(&model_playerarms,ray)) {
             intersections |= (1<<HITTYPE_ARMS);
         }
     }
 
     matrix_translate(-3.5F*0.1F+0.01F,0.0F,10*0.1F);
-    if(p->held_item==TOOL_SPADE && id==local_player_id && glfwGetTime()-p->item_showup>=0.5F) {
+    if(p->held_item==TOOL_SPADE && id==local_player_id && glfwGetTime()-p->item_showup>=0.5F && camera_mode==CAMERAMODE_FPS) {
         matrix_translate(0.0F,(model_spade.zpiv-model_spade.zsiz)*0.05F,0.0F);
         matrix_rotate(player_tool_func(p),1.0F,0.0F,0.0F);
         matrix_translate(0.0F,-(model_spade.zpiv-model_spade.zsiz)*0.05F,0.0F);
@@ -262,31 +352,37 @@ int player_render(struct Player* p, int id) {
     matrix_upload();
     switch(p->held_item) {
         case TOOL_SPADE:
-            kv6_render(&model_spade,p->team);
+            if(render)
+                kv6_render(&model_spade,p->team);
             break;
         case TOOL_BLOCK:
             model_block.red = p->block.red/255.0F;
             model_block.green = p->block.green/255.0F;
             model_block.blue = p->block.blue/255.0F;
-            kv6_render(&model_block,p->team);
+            if(render)
+                kv6_render(&model_block,p->team);
             break;
         case TOOL_GUN:
             if(!(camera_mode==CAMERAMODE_FPS && players[local_player_id].input.buttons.rmb)) {
                 switch(p->weapon) {
                     case WEAPON_RIFLE:
-                        kv6_render(&model_semi,p->team);
+                        if(render)
+                            kv6_render(&model_semi,p->team);
                         break;
                     case WEAPON_SMG:
-                        kv6_render(&model_smg,p->team);
+                        if(render)
+                            kv6_render(&model_smg,p->team);
                         break;
                     case WEAPON_SHOTGUN:
-                        kv6_render(&model_shotgun,p->team);
+                        if(render)
+                            kv6_render(&model_shotgun,p->team);
                         break;
                 }
             }
             break;
         case TOOL_GRENADE:
-            kv6_render(&model_grenade,p->team);
+            if(render)
+                kv6_render(&model_grenade,p->team);
             break;
     }
     float v[4] = {0,0,0,1};
@@ -300,17 +396,11 @@ int player_render(struct Player* p, int id) {
     p->gun_pos.y = v[1];
     p->gun_pos.z = v[2];
 
+    p->casing_dir.x = v2[0]-v[0];
+    p->casing_dir.y = v2[1]-v[1];
+    p->casing_dir.z = v2[2]-v[2];
+
     matrix_pop();
-    matrix_identity();
-    matrix_upload();
-    glDisable(GL_DEPTH_TEST);
-    glBegin(GL_LINES);
-    glVertex3f(v[0],v[1],v[2]);
-    glVertex3f(v2[0],v2[1],v2[2]);
-    glVertex3f(v[0],v[1],v[2]);
-    glVertex3f(v3[0],v3[1],v3[2]);
-    glEnd();
-    glEnable(GL_DEPTH_TEST);
 
     return intersections;
 }
@@ -478,7 +568,7 @@ void player_boxclipmove(struct Player* p, float fsynctics) {
     player_reposition(p);
 }
 
-int player_move(struct Player* p, float fsynctics) {
+int player_move(struct Player* p, float fsynctics, int id) {
     if(!p->alive) {
         p->physics.velocity.y -= fsynctics;
         if(map_get(p->pos.x+p->physics.velocity.x*fsynctics*32.0F,p->pos.y+p->physics.velocity.y*fsynctics*32.0F,p->pos.z+p->physics.velocity.z*fsynctics*32.0F)==0xFFFFFFFF) {
@@ -493,7 +583,7 @@ int player_move(struct Player* p, float fsynctics) {
         return 0;
     }
 
-    unsigned char local = (p==&players[local_player_id] && camera_mode==CAMERAMODE_FPS);
+    unsigned char local = (id==local_player_id && camera_mode==CAMERAMODE_FPS);
 
     player_coordsystem_adjust1(p);
     float f, f2;
@@ -585,12 +675,12 @@ int player_move(struct Player* p, float fsynctics) {
 
         struct Sound_wav* footstep[8] = {&sound_footstep1,&sound_footstep2,&sound_footstep3,&sound_footstep4,
                                          &sound_wade1,&sound_wade2,&sound_wade3,&sound_wade4};
-        sound_create(&p->sound.feet,local?SOUND_LOCAL:SOUND_WORLD,footstep[(rand()%4)+(p->physics.wade?4:0)],p->pos.x,p->pos.y,p->pos.z);
+        sound_create(NULL,local?SOUND_LOCAL:SOUND_WORLD,footstep[(rand()%4)+(p->physics.wade?4:0)],p->pos.x,p->pos.y,p->pos.z)->stick_to_player = id;
         p->sound.feet_started = glfwGetTime();
     }
 
-    sound_position(&p->sound.feet,p->pos.x,p->pos.y,p->pos.z);
-    sound_velocity(&p->sound.feet,p->physics.velocity.x,p->physics.velocity.y,p->physics.velocity.z);
+    //sound_position(&p->sound.feet,p->pos.x,p->pos.y,p->pos.z);
+    //sound_velocity(&p->sound.feet,p->physics.velocity.x,p->physics.velocity.y,p->physics.velocity.z);
 
     return ret;
 }

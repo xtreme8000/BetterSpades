@@ -4,6 +4,8 @@ struct texture {
     unsigned char* pixels;
 };
 
+extern struct texture texture_splash;
+
 extern struct texture texture_health;
 extern struct texture texture_block;
 extern struct texture texture_grenade;

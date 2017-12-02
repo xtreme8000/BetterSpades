@@ -18,6 +18,83 @@ int map_checked_voxels_y[MAX_VOXEL_CHECKS];
 int map_checked_voxels_z[MAX_VOXEL_CHECKS];
 int map_checked_voxels_index = 0;
 
+struct DamagedVoxel map_damaged_voxels[8] = {0};
+
+int map_damage(int x, int y, int z, int damage) {
+	for(int k=0;k<8;k++) {
+		if(glfwGetTime()-map_damaged_voxels[k].timer<=10.0F && map_damaged_voxels[k].x==x && map_damaged_voxels[k].y==y && map_damaged_voxels[k].z==z) {
+			map_damaged_voxels[k].damage = min(damage+map_damaged_voxels[k].damage,100);
+			map_damaged_voxels[k].timer = glfwGetTime();
+			return map_damaged_voxels[k].damage;
+		}
+	}
+	int r = 0;
+	for(int k=0;k<8;k++) {
+		if(glfwGetTime()-map_damaged_voxels[k].timer>5.0F) {
+			r = k;
+			break;
+		}
+	}
+	map_damaged_voxels[r].x = x;
+	map_damaged_voxels[r].y = y;
+	map_damaged_voxels[r].z = z;
+	map_damaged_voxels[r].damage = damage;
+	map_damaged_voxels[r].timer = glfwGetTime();
+	return damage;
+}
+
+void map_damaged_voxels_render() {
+	matrix_identity();
+	matrix_upload();
+	glEnable(GL_POLYGON_OFFSET_FILL);
+	glPolygonOffset(0.0F,-100.0F);
+	glEnable(GL_BLEND);
+	glBegin(GL_QUADS);
+	for(int k=0;k<8;k++) {
+		if(map_get(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z)==0xFFFFFFFF) {
+			map_damaged_voxels[k].timer = 0;
+		} else {
+			if(glfwGetTime()-map_damaged_voxels[k].timer<=10.0F) {
+				glColor4f(0.0F,0.0F,0.0F,(float)map_damaged_voxels[k].damage/100.0F*0.75F);
+				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
+				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
+				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+
+				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
+				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
+				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
+				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
+
+				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
+				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
+				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+
+				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
+				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
+				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
+				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
+
+				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
+				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
+				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
+
+				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
+				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
+				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
+			}
+		}
+	}
+	glEnd();
+	glDisable(GL_BLEND);
+	glPolygonOffset(0.0F,0.0F);
+	glDisable(GL_POLYGON_OFFSET_FILL);
+	glColor4f(1.0F,1.0F,1.0F,1.0F);
+}
+
 void map_update_physics(int x, int y, int z) {
 	if((map_get(x,y+1,z)&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(x,y+1,z)) {
 		map_apply_gravity();

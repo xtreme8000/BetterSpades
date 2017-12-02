@@ -24,6 +24,10 @@ extern unsigned char local_player_health;
 extern unsigned char local_player_blocks;
 extern unsigned char local_player_grenades;
 extern unsigned char local_player_ammo, local_player_ammo_reserved;
+extern unsigned char local_player_respawn_time;
+extern float		 local_player_death_time;
+extern unsigned char local_player_respawn_cnt_last;
+extern unsigned char local_player_newteam;
 
 extern int player_intersection_type;
 extern int player_intersection_player;
@@ -38,7 +42,9 @@ extern struct Player {
 		float x,y,z;
 	} orientation;
 	struct Position gun_pos;
+	struct Position casing_dir;
 	float gun_shoot_timer;
+	float spade_use_timer;
 	unsigned int score;
 	unsigned char team, weapon, held_item;
 	unsigned char alive, connected;
@@ -91,7 +97,10 @@ extern struct Player {
 } players[PLAYERS_MAX];
 //pyspades/pysnip/piqueserver sometime uses ids that are out of range
 
+void player_init(void);
+float player_height(struct Player* p);
+void player_reposition(struct Player* p);
 void player_update(float dt);
-int player_render(struct Player* p, int id);
+int player_render(struct Player* p, int id, Ray* ray, char render);
 void player_reset(struct Player* p);
-int player_move(struct Player* p, float fsynctics);
+int player_move(struct Player* p, float fsynctics, int id);

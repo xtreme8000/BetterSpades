@@ -81,6 +81,8 @@ void font_render(float x, float y, float h, char* text) {
     if(font_type==FONT_FIXEDSYS) {
         glBindTexture(GL_TEXTURE_2D,font_fixedsys.texture_id);
     }
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
     glAlphaFunc(GL_GREATER,0.5F);
     glEnable(GL_ALPHA_TEST);
 

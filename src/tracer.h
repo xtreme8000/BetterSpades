@@ -9,7 +9,7 @@ struct Tracer {
 
 extern struct Tracer* tracers;
 
-void tracer_add(unsigned char type, float x, float y, float z, float dx, float dy, float dz);
+void tracer_add(unsigned char type, char scoped, float x, float y, float z, float dx, float dy, float dz);
 void tracer_update(float dt);
 void tracer_render(void);
 void tracer_init(void);

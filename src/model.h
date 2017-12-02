@@ -33,7 +33,9 @@ extern struct kv6_t model_semi_tracer;
 extern struct kv6_t model_smg_tracer;
 extern struct kv6_t model_shotgun_tracer;
 
-char kv6_intersection(struct kv6_t* kv6, Ray r);
+char kv6_intersection(struct kv6_t* kv6, Ray* r);
+void kv6_rebuild_all(void);
+void kv6_rebuild(struct kv6_t* kv6);
 void kv6_render(struct kv6_t* kv6, unsigned char team);
 struct kv6_t kv6_load(unsigned char* bytes, float scale);
 void kv6_init(void);

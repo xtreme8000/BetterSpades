@@ -47,6 +47,18 @@ void kv6_init() {
 	model_shotgun_tracer = kv6_load(file_load("kv6/shotguntracer.kv6"),0.05F);
 }
 
+void kv6_rebuild_all() {
+	kv6_rebuild(&model_playerdead);
+	kv6_rebuild(&model_playerhead);
+	kv6_rebuild(&model_playertorso);
+	kv6_rebuild(&model_playertorsoc);
+	kv6_rebuild(&model_playerarms);
+	kv6_rebuild(&model_playerleg);
+	kv6_rebuild(&model_playerlegc);
+	kv6_rebuild(&model_intel);
+	kv6_rebuild(&model_tent);
+}
+
 struct kv6_t kv6_load(unsigned char* bytes, float scale) {
 	struct kv6_t ret;
 	ret.colorize = 0;
@@ -139,7 +151,7 @@ void mul_matrix_vector(float* out, double* m, float* v) {
 	out[15] = a[3]*b[12]+a[7]*b[13]+a[11]*b[14]+a[15]*b[15];
 }*/
 
-char kv6_intersection(struct kv6_t* kv6, Ray r) {
+char kv6_intersection(struct kv6_t* kv6, Ray* r) {
 	AABB bb;
 
 	for(int k=0;k<8;k++) {
@@ -154,11 +166,22 @@ char kv6_intersection(struct kv6_t* kv6, Ray r) {
 		bb.max_z = (k==0)?v[2]:max(bb.max_z,v[2]);
 	}
 
-	return aabb_intersection_ray(&bb,&r);
+	return aabb_intersection_ray(&bb,r);
+}
+
+void kv6_rebuild(struct kv6_t* kv6) {
+	if(kv6->has_display_list) {
+		glDeleteLists(kv6->display_list,3);
+		if(kv6->colorize) {
+			free(kv6->vertices_final);
+			free(kv6->colors_final);
+			free(kv6->normals_final);
+		}
+		kv6->has_display_list = 0;
+	}
 }
 
 void kv6_render(struct kv6_t* kv6, unsigned char team) {
-	printf("%i %i\n",(unsigned int)kv6,team);
 	//if(!network_logged_in)
 		//return;
 
@@ -189,6 +212,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 
 		if(!kv6->colorize) {
 			kv6->display_list = glGenLists(3);
+			glxcheckErrors(__FILE__,__LINE__);
 		}
 
 		int v,c,n;
@@ -225,6 +249,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 							int i = 0;
 							float alpha[6];
 
+							//negative y
 							if(z==kv6->zsiz-1 || !kv6->color[x+(y+(z+1)*kv6->ysiz)*kv6->xsiz]) {
 								kv6->vertices_final[v++] = p[0];
 								kv6->vertices_final[v++] = p[1]+kv6->scale;
@@ -241,6 +266,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 								alpha[i++] = 1.0F;
 							}
 
+							//positive y
 							if(z==0 || !kv6->color[x+(y+(z-1)*kv6->ysiz)*kv6->xsiz]) {
 								kv6->vertices_final[v++] = p[0];
 								kv6->vertices_final[v++] = p[1];
@@ -257,6 +283,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 								alpha[i++] = 0.6F;
 							}
 
+							//negative z
 							if(y==0 || !kv6->color[x+((y-1)+z*kv6->ysiz)*kv6->xsiz]) {
 								kv6->vertices_final[v++] = p[0];
 								kv6->vertices_final[v++] = p[1];
@@ -273,6 +300,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 								alpha[i++] = 0.95F;
 							}
 
+							//positive z
 							if(y==kv6->ysiz-1 || !kv6->color[x+((y+1)+z*kv6->ysiz)*kv6->xsiz]) {
 								kv6->vertices_final[v++] = p[0];
 								kv6->vertices_final[v++] = p[1];
@@ -289,6 +317,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 								alpha[i++] = 0.9F;
 							}
 
+							//negative x
 							if(x==0 || !kv6->color[(x-1)+(y+z*kv6->ysiz)*kv6->xsiz]) {
 								kv6->vertices_final[v++] = p[0];
 								kv6->vertices_final[v++] = p[1];
@@ -305,6 +334,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 								alpha[i++] = 0.85F;
 							}
 
+							//positive x
 							if(x==kv6->xsiz-1 || !kv6->color[(x+1)+(y+z*kv6->ysiz)*kv6->xsiz]) {
 								kv6->vertices_final[v++] = p[0]+kv6->scale;
 								kv6->vertices_final[v++] = p[1];
@@ -336,7 +366,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 			}
 
 			if(!kv6->colorize) {
-				glNewList(kv6->display_list+t,GL_COMPILE_AND_EXECUTE);
+				glNewList(kv6->display_list+t,GL_COMPILE);
 				glEnable(GL_NORMALIZE);
 				glEnableClientState(GL_VERTEX_ARRAY);
 				glEnableClientState(GL_COLOR_ARRAY);
@@ -350,6 +380,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 				glDisableClientState(GL_VERTEX_ARRAY);
 				glDisable(GL_NORMALIZE);
 				glEndList();
+				glxcheckErrors(__FILE__,__LINE__);
 			}
 		}
 

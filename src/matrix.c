@@ -12,6 +12,35 @@ void matrix_select(float* m) {
     matrix_current = m;
 }
 
+void matrix_multiply(float* a) {
+    float m[16];
+    memcpy(m,matrix_current,16*sizeof(float));
+
+    matrix_current[0] = a[0]*m[0]+a[4]*m[1]+a[8]*m[2]+a[12]*m[3];
+	matrix_current[1] = a[1]*m[0]+a[5]*m[1]+a[9]*m[2]+a[13]*m[3];
+	matrix_current[2] = a[2]*m[0]+a[6]*m[1]+a[10]*m[2]+a[14]*m[3];
+	matrix_current[3] = a[3]*m[0]+a[7]*m[1]+a[11]*m[2]+a[15]*m[3];
+
+	matrix_current[4] = a[0]*m[4]+a[4]*m[5]+a[8]*m[6]+a[12]*m[7];
+	matrix_current[5] = a[1]*m[4]+a[5]*m[5]+a[9]*m[6]+a[13]*m[7];
+	matrix_current[6] = a[2]*m[4]+a[6]*m[5]+a[10]*m[6]+a[14]*m[7];
+	matrix_current[7] = a[3]*m[4]+a[7]*m[5]+a[11]*m[6]+a[15]*m[7];
+
+	matrix_current[8] = a[0]*m[8]+a[4]*m[9]+a[8]*m[10]+a[12]*m[11];
+	matrix_current[9] = a[1]*m[8]+a[5]*m[9]+a[9]*m[10]+a[13]*m[11];
+	matrix_current[10] = a[2]*m[8]+a[6]*m[9]+a[10]*m[10]+a[14]*m[11];
+	matrix_current[11] = a[3]*m[8]+a[7]*m[9]+a[11]*m[10]+a[15]*m[11];
+
+	matrix_current[12] = a[0]*m[12]+a[4]*m[13]+a[8]*m[14]+a[12]*m[15];
+	matrix_current[13] = a[1]*m[12]+a[5]*m[13]+a[9]*m[14]+a[13]*m[15];
+    matrix_current[14] = a[2]*m[12]+a[6]*m[13]+a[10]*m[14]+a[14]*m[15];
+	matrix_current[15] = a[3]*m[12]+a[7]*m[13]+a[11]*m[14]+a[15]*m[15];
+}
+
+void matrix_load(float* m) {
+    memcpy(matrix_current,m,16*sizeof(float));
+}
+
 void matrix_rotate(float angle, float x, float y, float z) {
     float len = sqrt(x*x+y*y+z*z);
     if(len==0.0F) {
@@ -117,6 +146,36 @@ void matrix_pointAt(float dx, float dy, float dz) {
         float ry = asin(dy/sqrt(dx*dx+dy*dy+dz*dz))/3.1415926535F*180.0F;
         matrix_rotate(ry,0.0F,0.0F,1.0F);
     }
+}
+
+void matrix_ortho(float left, float right, float bottom, float top, float nearv, float farv) {
+    float a = right-left;
+	float b = top-bottom;
+	float c = farv-nearv;
+
+	float d = -(right+left)/a;
+	float e = -(top+bottom)/b;
+	float f = -(farv+nearv)/c;
+
+	matrix_current[12] += matrix_current[0]*d+matrix_current[4]*e+matrix_current[8]*f;
+	matrix_current[13] += matrix_current[1]*d+matrix_current[5]*e+matrix_current[9]*f;
+	matrix_current[14] += matrix_current[2]*d+matrix_current[6]*e+matrix_current[10]*f;
+	matrix_current[15] += matrix_current[3]*d+matrix_current[7]*e+matrix_current[11]*f;
+	d = 2.0F/a;
+	matrix_current[0] *= d;
+	matrix_current[1] *= d;
+	matrix_current[2] *= d;
+	matrix_current[3] *= d;
+	d = 2.0F/b;
+    matrix_current[4] *= d;
+	matrix_current[5] *= d;
+	matrix_current[6] *= d;
+	matrix_current[7] *= d;
+	d = -2.0F/c;
+	matrix_current[8] *= d;
+	matrix_current[9] *= d;
+	matrix_current[10] *= d;
+	matrix_current[11] *= d;
 }
 
 void matrix_perspective(float fovy, float aspect, float zNear, float zFar) {

@@ -23,5 +23,6 @@ void camera_ExtractFrustum(void);
 unsigned char camera_PointInFrustum(float x, float y, float z);
 int camera_CubeInFrustum(float x, float y, float z, float size, float size_y);
 int* camera_terrain_pick(unsigned char mode);
+int* camera_terrain_pickEx(unsigned char mode, float x, float y, float z, float ray_x, float ray_y, float ray_z);
 void camera_overflow_adjust(void);
 void camera_apply(float dt);

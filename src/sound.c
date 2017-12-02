@@ -26,6 +26,7 @@ struct Sound_wav sound_hurt_fall;
 struct Sound_wav sound_explode;
 struct Sound_wav sound_explode_water;
 struct Sound_wav sound_grenade_bounce;
+struct Sound_wav sound_grenade_pin;
 
 struct Sound_wav sound_pickup;
 struct Sound_wav sound_horn;
@@ -36,32 +37,55 @@ struct Sound_wav sound_smg_shoot;
 struct Sound_wav sound_smg_reload;
 struct Sound_wav sound_shotgun_shoot;
 struct Sound_wav sound_shotgun_reload;
+struct Sound_wav sound_shotgun_cock;
+
+struct Sound_wav sound_hitground;
+struct Sound_wav sound_build;
+
+struct Sound_wav sound_spade_woosh;
+struct Sound_wav sound_spade_whack;
+
+struct Sound_wav sound_death;
+struct Sound_wav sound_beep1;
+struct Sound_wav sound_beep2;
+struct Sound_wav sound_switch;
+struct Sound_wav sound_empty;
+
 
 int sound_free_index() {
     for(int k=0;k<SOUND_VOICES_MAX;k++)
         if(sound_sources_free[k])
             return k;
+    printf("Could not find free sound channel!\n");
     return 0;
 }
 
-int sound_create(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z) {
+struct Sound_source* sound_create(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z) {
     return sound_createEx(s,option,w,x,y,z,0.0F,0.0F,0.0F);
 }
 
-int sound_createEx(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z, float vx, float vy, float vz) {
+
+static struct Sound_source dummy;
+struct Sound_source* sound_createEx(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z, float vx, float vy, float vz) {
     if(!sound_enabled)
-        return 0;
+        return &dummy;
+
+    if(option==SOUND_WORLD && distance3D(camera_x,camera_y,camera_z,x,y,z)>128.0F*128.0F) {
+        return &dummy;
+    }
 
     int i = sound_free_index();
     sound_sources_free[i] = 0;
 
     sound_sources[i].local = option==SOUND_LOCAL;
+    sound_sources[i].stick_to_player = -1;
+    sound_sources[i].active = 1;
 
     alGenSources(1,&sound_sources[i].openal_handle);
     alSourcef(sound_sources[i].openal_handle,AL_PITCH,1.0F);
     alSourcef(sound_sources[i].openal_handle,AL_GAIN,1.0F);
-    alSourcef(sound_sources[i].openal_handle,AL_REFERENCE_DISTANCE,(option==SOUND_LOCAL)?0.0F:w->min);
-    alSourcef(sound_sources[i].openal_handle,AL_MAX_DISTANCE,(option==SOUND_LOCAL)?2048.0F:w->max);
+    alSourcef(sound_sources[i].openal_handle,AL_REFERENCE_DISTANCE,(option==SOUND_LOCAL)?0.0F:w->min*SOUND_SCALE);
+    alSourcef(sound_sources[i].openal_handle,AL_MAX_DISTANCE,(option==SOUND_LOCAL)?2048.0F:w->max*SOUND_SCALE);
     alSource3f(sound_sources[i].openal_handle,AL_POSITION,(option==SOUND_LOCAL)?0.0F:x*SOUND_SCALE,(option==SOUND_LOCAL)?0.0F:y*SOUND_SCALE,(option==SOUND_LOCAL)?0.0F:z*SOUND_SCALE);
     alSource3f(sound_sources[i].openal_handle,AL_VELOCITY,(option==SOUND_LOCAL)?0.0F:vx*SOUND_SCALE,(option==SOUND_LOCAL)?0.0F:vy*SOUND_SCALE,(option==SOUND_LOCAL)?0.0F:vz*SOUND_SCALE);
     alSourcei(sound_sources[i].openal_handle,AL_SOURCE_RELATIVE,(option==SOUND_LOCAL));
@@ -73,7 +97,7 @@ int sound_createEx(struct Sound_source* s, int option, struct Sound_wav* w, floa
     if(s!=NULL)
         memcpy(s,&sound_sources[i],sizeof(struct Sound_source));
 
-    return sound_sources[i].openal_handle;
+    return &sound_sources[i];
 }
 
 void sound_velocity(struct Sound_source* s, float vx, float vy, float vz) {
@@ -104,10 +128,21 @@ void sound_update() {
         if(!sound_sources_free[k]) {
             int source_state;
             alGetSourcei(sound_sources[k].openal_handle,AL_SOURCE_STATE,&source_state);
-            if(source_state==AL_STOPPED) {
+            if(source_state==AL_STOPPED || (sound_sources[k].stick_to_player>=0 && !players[sound_sources[k].stick_to_player].connected)) {
                 sound_sources[k].active = 0;
                 alDeleteSources(1,&sound_sources[k].openal_handle);
                 sound_sources_free[k] = 1;
+            } else {
+                if(sound_sources[k].stick_to_player>=0) {
+                    sound_position(&sound_sources[k],
+                        players[sound_sources[k].stick_to_player].pos.x,
+                        players[sound_sources[k].stick_to_player].pos.y,
+                        players[sound_sources[k].stick_to_player].pos.z);
+                    sound_velocity(&sound_sources[k],
+                        players[sound_sources[k].stick_to_player].physics.velocity.x,
+                        players[sound_sources[k].stick_to_player].physics.velocity.y,
+                        players[sound_sources[k].stick_to_player].physics.velocity.z);
+                }
             }
         }
     }
@@ -128,7 +163,7 @@ void sound_load(struct Sound_wav* wav, char* name, float min, float max) {
     }
 
     short* audio;
-    if(channels>1) {
+    if(channels>1) { //convert stereo to mono
         audio = malloc(samplecount*sizeof(short)/2);
         for(int k=0;k<samplecount/2;k++) {
             audio[k] = ((int)samples[k*2]+(int)samples[k*2+1])/2; //prevent overflow
@@ -178,7 +213,8 @@ void sound_init() {
 
     sound_load(&sound_explode,"wav/explode.wav",0.1F,53.0F);
     sound_load(&sound_explode_water,"wav/waterexplode.wav",0.1F,53.0F);
-    sound_load(&sound_grenade_bounce,"wav/grenadebounce.wav",0.1F,16.0F);
+    sound_load(&sound_grenade_bounce,"wav/grenadebounce.wav",0.1F,48.0F);
+    sound_load(&sound_grenade_pin,"wav/pin.wav",0.1F,48.0F);
 
     sound_load(&sound_hurt_fall,"wav/fallhurt.wav",0.1F,32.0F);
 
@@ -191,6 +227,20 @@ void sound_init() {
     sound_load(&sound_smg_reload,"wav/smgreload.wav",0.1F,16.0F);
     sound_load(&sound_shotgun_shoot,"wav/shotgunshoot.wav",0.1F,48.0F);
     sound_load(&sound_shotgun_reload,"wav/shotgunreload.wav",0.1F,16.0F);
+    sound_load(&sound_shotgun_cock,"wav/cock.wav",0.1F,16.0F);
+
+    sound_load(&sound_hitground,"wav/hitground.wav",0.1F,32.0F);
+    sound_load(&sound_build,"wav/build.wav",0.1F,32.0F);
+
+    sound_load(&sound_spade_woosh,"wav/woosh.wav",0.1F,32.0F);
+    sound_load(&sound_spade_whack,"wav/whack.wav",0.1F,32.0F);
+
+    sound_load(&sound_death,"wav/death.wav",0.1F,24.0F);
+    sound_load(&sound_beep1,"wav/beep1.wav",0.1F,1024.0F);
+    sound_load(&sound_beep2,"wav/beep2.wav",0.1F,1024.0F);
+    sound_load(&sound_beep2,"wav/beep2.wav",0.1F,1024.0F);
+    sound_load(&sound_switch,"wav/switch.wav",0.1F,1024.0F);
+    sound_load(&sound_empty,"wav/empty.wav",0.1F,1024.0F);
 
     memset(sound_sources_free,1,sizeof(sound_sources_free));
 }

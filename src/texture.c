@@ -2,6 +2,8 @@
 
 #include "lodepng/lodepng.c"
 
+struct texture texture_splash;
+
 struct texture texture_health;
 struct texture texture_block;
 struct texture texture_grenade;
@@ -35,6 +37,7 @@ int texture_create(struct texture* t, char* filename) {
 
     glEnable(GL_TEXTURE_2D);
     glGenTextures(1,&t->texture_id);
+    glxcheckErrors(__FILE__,__LINE__);
     glBindTexture(GL_TEXTURE_2D,t->texture_id);
     glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,t->width,t->height,0,GL_RGBA,GL_UNSIGNED_BYTE,t->pixels);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
@@ -43,6 +46,7 @@ int texture_create(struct texture* t, char* filename) {
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
     glBindTexture(GL_TEXTURE_2D,0);
     glDisable(GL_TEXTURE_2D);
+    glxcheckErrors(__FILE__,__LINE__);
 }
 
 int texture_create_buffer(struct texture* t, int width, int height, unsigned char* buff) {
@@ -158,6 +162,8 @@ unsigned int texture_block_color(int x, int y) {
 }
 
 void texture_init() {
+    texture_create(&texture_splash,"png/splash.png");
+
     texture_create(&texture_health,"png/health.png");
     texture_create(&texture_block,"png/block.png");
     texture_create(&texture_grenade,"png/grenade.png");

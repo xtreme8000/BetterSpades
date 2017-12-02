@@ -6,6 +6,9 @@
 #include <math.h>
 #include <float.h>
 #include <stdio.h>
+#include <assert.h>
+#include <signal.h>
+
 #include "GL/glext.h"
 
 #include "GLFW/glfw3.h"
@@ -34,6 +37,9 @@
 #define max(a,b) ((a)>(b)?(a):(b))
 #endif
 
+#define distance2D(x1,y1,x2,y2) (((x2)-(x1))*((x2)-(x1))+((y2)-(y1))*((y2)-(y1)))
+#define distance3D(x1,y1,z1,x2,y2,z2) (((x2)-(x1))*((x2)-(x1))+((y2)-(y1))*((y2)-(y1))+((z2)-(z1))*((z2)-(z1)))
+
 typedef unsigned char boolean;
 #define true 1
 #define false 0
@@ -48,6 +54,8 @@ typedef unsigned char boolean;
 #define DOUBLEPI	(PI*2.0F)
 #define HALFPI		(PI*0.5F)
 #define EPSILON		0.005F
+
+#include "glx.h"
 
 #include "sound.h"
 #include "chunk.h"
@@ -108,7 +116,18 @@ extern int chat_input_mode;
 extern char chat[2][10][256];
 extern unsigned int chat_color[2][10];
 extern float chat_timer[2][10];
-void chat_add(int channel, unsigned int color, char* msg);
+extern char chat_popup[256];
+extern float chat_popup_timer;
+void chat_add(int channel, unsigned int color, const char* msg);
+void chat_showpopup(const char* msg);
 
 #define team_execute(t,team1,team2) switch(t) { case TEAM_1:{team1; break;} case TEAM_2:{team2; break;} }
 #define team_setcolor(t) team_execute(t,glColor3ub(gamestate.gamemode.team_1.red,gamestate.gamemode.team_1.green,gamestate.gamemode.team_1.blue),glColor3ub(gamestate.gamemode.team_2.red,gamestate.gamemode.team_2.green,gamestate.gamemode.team_2.blue))
+
+void glxcheckErrors(char* file, int line);
+
+#define SCREEN_NONE			0
+#define SCREEN_TEAM_SELECT	1
+#define SCREEN_GUN_SELECT	2
+
+extern int screen_current;

@@ -191,13 +191,15 @@ int particle_render() {
 		}
 	}
 
-	glEnableClientState(GL_COLOR_ARRAY);
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3,GL_FLOAT,0,particles_vertices);
-	glColorPointer(3,GL_UNSIGNED_BYTE,0,particles_colors);
-	glDrawArrays(GL_QUADS,0,vertex_index/3);
-	glDisableClientState(GL_COLOR_ARRAY);
-	glDisableClientState(GL_VERTEX_ARRAY);
+	if(vertex_index>0) {
+		glEnableClientState(GL_COLOR_ARRAY);
+		glEnableClientState(GL_VERTEX_ARRAY);
+		glVertexPointer(3,GL_FLOAT,0,particles_vertices);
+		glColorPointer(3,GL_UNSIGNED_BYTE,0,particles_colors);
+		glDrawArrays(GL_QUADS,0,vertex_index/3);
+		glDisableClientState(GL_COLOR_ARRAY);
+		glDisableClientState(GL_VERTEX_ARRAY);
+	}
 	return vertex_index/72;
 }
 

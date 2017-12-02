@@ -42,6 +42,7 @@ void read_PacketVersionGet(void* data, int len);
 extern void (*packets[35]) (void* data, int len);
 extern int network_connected;
 extern int network_logged_in;
+extern int network_map_transfer;
 
 extern float network_pos_update;
 extern float network_orient_update;
@@ -55,6 +56,7 @@ extern unsigned char network_tool_last;
 extern void* compressed_chunk_data;
 extern int compressed_chunk_data_size;
 extern int compressed_chunk_data_offset;
+extern int compressed_chunk_data_estimate;
 
 #pragma pack(push,1)
 
@@ -277,6 +279,12 @@ struct PacketChatMessage {
 #define PACKET_FOGCOLOR_ID 27
 struct PacketFogColor {
 	unsigned char alpha,red,green,blue;
+};
+
+#define PACKET_CHANGETEAM_ID 29
+struct PacketChangeTeam {
+	unsigned char player_id;
+	unsigned char team;
 };
 
 #define PACKET_CHANGEWEAPON_ID 30

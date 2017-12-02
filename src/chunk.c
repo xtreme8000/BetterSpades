@@ -1,16 +1,16 @@
 #include "common.h"
-
-unsigned char chunk_geometry_rebuild = 1;
-int chunk_geometry_rebuild_state = 0;
+#include <pthread.h>
+#include <signal.h>
 
 int chunk_display_lists[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
 int chunk_max_height[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
 float chunk_last_update[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
+int chunk_created[CHUNKS_PER_DIM*CHUNKS_PER_DIM] = {0};
 
-int chunk_geometry_changed[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
+int chunk_geometry_changed[CHUNKS_PER_DIM*CHUNKS_PER_DIM*2];
 int chunk_geometry_changed_lenght = 0;
 
-int chunk_lighting_changed[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
+int chunk_lighting_changed[CHUNKS_PER_DIM*CHUNKS_PER_DIM*2];
 int chunk_lighting_changed_lenght = 0;
 
 boolean chunk_render_mode = 0;
@@ -79,13 +79,15 @@ void chunk_set_render_mode(boolean r) {
 }
 
 void chunk_rebuild_all() {
-	chunk_geometry_rebuild = 1;
-	chunk_geometry_rebuild_state = 0;
+	for(int d=0;d<CHUNKS_PER_DIM*CHUNKS_PER_DIM;d++) {
+		chunk_geometry_changed[d] = d;
+	}
+	chunk_geometry_changed_lenght = CHUNKS_PER_DIM*CHUNKS_PER_DIM;
 }
 
 void chunk_render(int x, int y) {
-	glPushMatrix();
-	glTranslatef((x<0)*-map_size_x+(x>=CHUNKS_PER_DIM)*map_size_x,0.0F,(y<0)*-map_size_z+(y>=CHUNKS_PER_DIM)*map_size_z);
+	matrix_push();
+	matrix_translate((x<0)*-map_size_x+(x>=CHUNKS_PER_DIM)*map_size_x,0.0F,(y<0)*-map_size_z+(y>=CHUNKS_PER_DIM)*map_size_z);
 	if(x<0) {
 		x += CHUNKS_PER_DIM;
 	}
@@ -99,13 +101,16 @@ void chunk_render(int x, int y) {
 		y -= CHUNKS_PER_DIM;
 	}
 
-	if(chunk_render_mode) {
-		glLineWidth(4.0F);
-		glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-	}
-	glCallList(chunk_display_lists[((y*CHUNKS_PER_DIM)|x)]);
-	if(chunk_render_mode) {
-		glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+	if(chunk_created[((y*CHUNKS_PER_DIM)|x)]) {
+		if(chunk_render_mode) {
+			glLineWidth(4.0F);
+			glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+		}
+		matrix_upload();
+		glCallList(chunk_display_lists[((y*CHUNKS_PER_DIM)|x)]);
+		if(chunk_render_mode) {
+			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+		}
 	}
 
 	/*glBegin(GL_QUADS);
@@ -115,7 +120,7 @@ void chunk_render(int x, int y) {
 	glVertex3f(x*CHUNK_SIZE+CHUNK_SIZE,chunk_max_height[((y*CHUNKS_PER_DIM)|x)]+0.1F,y*CHUNK_SIZE);
 	glEnd();*/
 
-	glPopMatrix();
+	matrix_pop();
 }
 
 //return type is important
@@ -405,7 +410,7 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 								}
 							}
 
-							for(unsigned char a=0;a<(chunk_x+CHUNK_SIZE-x);a++) {
+							/*for(unsigned char a=0;a<(chunk_x+CHUNK_SIZE-x);a++) {
 								if((map_colors[x+(y*map_size_z+z)*map_size_x+a]&0xF00000E0FFFFFF)==(col&0xF00000E0FFFFFF) && checked_voxels2[0][y+(x+a-chunk_x)*map_size_y]==0 && ((z==0 && map_colors[x+(y*map_size_z+map_size_z-1)*map_size_x+a]==0xFFFFFFFF) || (z>0 && map_colors[x+(y*map_size_z+z-1)*map_size_x+a]==0xFFFFFFFF))) {
 									len_x2++;
 								} else {
@@ -425,7 +430,7 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 								} else {
 									break;
 								}
-							}
+							}*/
 
 							unsigned char len_x, len_y;
 
@@ -436,9 +441,6 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 								len_y = len_y2;
 								len_x = len_x2;
 							}
-							#ifdef DISABLE_GREEDY_MESHING
-							len_x = len_y = 1;
-							#endif
 
 							for(unsigned char b=0;b<len_x;b++) {
 								for(unsigned char a=0;a<len_y;a++) {
@@ -554,7 +556,7 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 							}
 
 
-							for(unsigned char a=0;a<(chunk_x+CHUNK_SIZE-x);a++) {
+							/*for(unsigned char a=0;a<(chunk_x+CHUNK_SIZE-x);a++) {
 								if((map_colors[x+(y*map_size_z+z)*map_size_x+a]&0xF0000D0FFFFFF)==(col&0xF0000D0FFFFFF) && checked_voxels2[1][y+(x+a-chunk_x)*map_size_y]==0 && ((z==map_size_z-1 && map_colors[x+(y*map_size_z)*map_size_x+a]==0xFFFFFFFF) || (z<map_size_z-1 && map_colors[x+(y*map_size_z+z+1)*map_size_x+a]==0xFFFFFFFF))) {
 									len_x2++;
 								} else {
@@ -574,7 +576,7 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 								} else {
 									break;
 								}
-							}
+							}*/
 
 							unsigned char len_x, len_y;
 
@@ -585,9 +587,6 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 								len_y = len_y2;
 								len_x = len_x2;
 							}
-							#ifdef DISABLE_GREEDY_MESHING
-							len_x = len_y = 1;
-							#endif
 
 							for(unsigned char b=0;b<len_x;b++) {
 								for(unsigned char a=0;a<len_y;a++) {
@@ -720,7 +719,7 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 							}
 
 
-							for(unsigned char a=0;a<(chunk_y+CHUNK_SIZE-z);a++) {
+							/*for(unsigned char a=0;a<(chunk_y+CHUNK_SIZE-z);a++) {
 								if((map_colors[x+(y*map_size_z+z+a)*map_size_x]&0xF000C8FFFFFF)==(col&0xF000C8FFFFFF) && checked_voxels2[0][y+(z+a-chunk_y)*map_size_y]==0 && ((x==0 && map_colors[map_size_x-1+(y*map_size_z+z+a)*map_size_x]==0xFFFFFFFF) || (x>0 && map_colors[x+(y*map_size_z+z+a)*map_size_x-1]==0xFFFFFFFF))) {
 									len_z2++;
 								} else {
@@ -740,7 +739,7 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 								} else {
 									break;
 								}
-							}
+							}*/
 
 							unsigned char len_y, len_z;
 
@@ -751,9 +750,6 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 								len_y = len_y2;
 								len_z = len_z2;
 							}
-							#ifdef DISABLE_GREEDY_MESHING
-							len_y = len_z = 1;
-							#endif
 
 							for(unsigned char b=0;b<len_z;b++) {
 								for(unsigned char a=0;a<len_y;a++) {
@@ -868,7 +864,7 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 							}
 
 
-							for(unsigned char a=0;a<(chunk_y+CHUNK_SIZE-z);a++) {
+							/*for(unsigned char a=0;a<(chunk_y+CHUNK_SIZE-z);a++) {
 								if((map_colors[x+(y*map_size_z+z+a)*map_size_x]&0xF00C4FFFFFF)==(col&0xF00C4FFFFFF) && checked_voxels2[1][y+(z+a-chunk_y)*map_size_y]==0 && ((x==map_size_x-1 && map_colors[(y*map_size_z+z+a)*map_size_x]==0xFFFFFFFF) || (x<map_size_x-1 && map_colors[x+(y*map_size_z+z+a)*map_size_x+1]==0xFFFFFFFF))) {
 									len_z2++;
 								} else {
@@ -888,7 +884,7 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 								} else {
 									break;
 								}
-							}
+							}*/
 
 							unsigned char len_y, len_z;
 
@@ -899,9 +895,6 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 								len_y = len_y2;
 								len_z = len_z2;
 							}
-							#ifdef DISABLE_GREEDY_MESHING
-							len_y = len_z = 1;
-							#endif
 
 							for(unsigned char b=0;b<len_z;b++) {
 								for(unsigned char a=0;a<len_y;a++) {
@@ -1033,7 +1026,7 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 							}
 
 
-							for(unsigned char a=0;a<(chunk_y+CHUNK_SIZE-z);a++) {
+							/*for(unsigned char a=0;a<(chunk_y+CHUNK_SIZE-z);a++) {
 								if((map_colors[x+(y*map_size_z+z+a)*map_size_x]&0xFC1FFFFFF)==(col&0xFC1FFFFFF) && checked_voxels[0][(x-chunk_x)+(z+a-chunk_y)*CHUNK_SIZE]==0 && (y==map_size_y-1 || map_colors[x+((y+1)*map_size_z+z+a)*map_size_x]==0xFFFFFFFF)) {
 									len_z2++;
 								} else {
@@ -1053,7 +1046,7 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 								} else {
 									break;
 								}
-							}
+							}*/
 
 							unsigned char len_x, len_z;
 
@@ -1064,9 +1057,6 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 								len_x = len_x2;
 								len_z = len_z2;
 							}
-							#ifdef DISABLE_GREEDY_MESHING
-							len_x = len_z = 1;
-							#endif
 
 							for(unsigned char b=0;b<len_z;b++) {
 								for(unsigned char a=0;a<len_x;a++) {
@@ -1182,7 +1172,7 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 							}
 
 
-							for(unsigned char a=0;a<(chunk_y+CHUNK_SIZE-z);a++) {
+							/*for(unsigned char a=0;a<(chunk_y+CHUNK_SIZE-z);a++) {
 								if((map_colors[x+(y*map_size_z+z+a)*map_size_x]&0xF0C2FFFFFF)==(col&0xF0C2FFFFFF) && checked_voxels[1][(x-chunk_x)+(z+a-chunk_y)*CHUNK_SIZE]==0 && (y>0 && map_colors[x+((y-1)*map_size_z+z)*map_size_x+a]==0xFFFFFFFF)) {
 									len_z2++;
 								} else {
@@ -1202,7 +1192,7 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 								} else {
 									break;
 								}
-							}
+							}*/
 
 							unsigned char len_x, len_z;
 
@@ -1213,9 +1203,6 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 								len_x = len_x2;
 								len_z = len_z2;
 							}
-							#ifdef DISABLE_GREEDY_MESHING
-							len_x = len_z = 1;
-							#endif
 
 							for(unsigned char b=0;b<len_z;b++) {
 								for(unsigned char a=0;a<len_x;a++) {
@@ -1308,9 +1295,11 @@ int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {
 	glEnableClientState(GL_VERTEX_ARRAY);
 
 	glNewList(displaylist,GL_COMPILE);
-	glColorPointer(3,GL_UNSIGNED_BYTE,0,chunk_color_data);
-	glVertexPointer(3,GL_SHORT,0,chunk_vertex_data);
-	glDrawArrays(GL_QUADS,0,chunk_vertex_index/3);
+	if(chunk_vertex_index>0) {
+		glColorPointer(3,GL_UNSIGNED_BYTE,0,chunk_color_data);
+		glVertexPointer(3,GL_SHORT,0,chunk_vertex_data);
+		glDrawArrays(GL_QUADS,0,chunk_vertex_index/3);
+	}
 	glEndList();
 
 	/*if(settings.shadow_entities) {
@@ -1837,9 +1826,11 @@ int chunk_generate_naive(int displaylist, int chunk_x, int chunk_y) {
 	glEnableClientState(GL_VERTEX_ARRAY);
 
 	glNewList(displaylist,GL_COMPILE);
-	glColorPointer(3,GL_UNSIGNED_BYTE,0,chunk_color_data);
-	glVertexPointer(3,GL_SHORT,0,chunk_vertex_data);
-	glDrawArrays(GL_QUADS,0,chunk_vertex_index/3);
+	if(chunk_vertex_index>0) {
+		glColorPointer(3,GL_UNSIGNED_BYTE,0,chunk_color_data);
+		glVertexPointer(3,GL_SHORT,0,chunk_vertex_data);
+		glDrawArrays(GL_QUADS,0,chunk_vertex_index/3);
+	}
 	glEndList();
 
 	glDisableClientState(GL_COLOR_ARRAY);
@@ -1847,58 +1838,41 @@ int chunk_generate_naive(int displaylist, int chunk_x, int chunk_y) {
 
 	free(chunk_vertex_data);
 	free(chunk_color_data);
-	//free(chunk_shadow_data);
 	return max_height;
 }
 
 void chunk_update_all() {
-	if(chunk_geometry_rebuild) {
-		for(unsigned char k=0;k<CHUNKS_PER_DIM;k++) {
-			int chunk_x = (chunk_geometry_rebuild_state%CHUNKS_PER_DIM)*CHUNK_SIZE;
-			int chunk_y = (chunk_geometry_rebuild_state/CHUNKS_PER_DIM)*CHUNK_SIZE;
-			if(glIsList(chunk_display_lists[chunk_geometry_rebuild_state])) {
-				glDeleteLists(chunk_display_lists[chunk_geometry_rebuild_state],1);
-			}
-			chunk_display_lists[chunk_geometry_rebuild_state] = glGenLists(1);
-			chunk_max_height[chunk_geometry_rebuild_state] = chunk_generate(chunk_display_lists[chunk_geometry_rebuild_state], chunk_x, chunk_y);
-			chunk_last_update[chunk_geometry_rebuild_state] = glfwGetTime();
-			printf("Generating chunks %.1f\n",((float)chunk_geometry_rebuild_state/(float)(CHUNKS_PER_DIM*CHUNKS_PER_DIM))*100.0F);
-			chunk_geometry_rebuild_state++;
-			if(chunk_geometry_rebuild_state==CHUNKS_PER_DIM*CHUNKS_PER_DIM) {
-				chunk_geometry_rebuild = 0;
-				break;
-			}
-		}
-	}
-
 	if(chunk_geometry_changed_lenght>0) {
+		float closest_dist = 1e10;
+		int closest_index = 0;
 		for(int k=0;k<chunk_geometry_changed_lenght;k++) {
-			//printf("UPDATE GEOMETRY: %i %i\n",chunk_geometry_changed[k]%CHUNKS_PER_DIM,chunk_geometry_changed[k]/CHUNKS_PER_DIM);
 			int chunk_x = (chunk_geometry_changed[k]%CHUNKS_PER_DIM)*CHUNK_SIZE;
 			int chunk_y = (chunk_geometry_changed[k]/CHUNKS_PER_DIM)*CHUNK_SIZE;
-			if(glIsList(chunk_display_lists[chunk_geometry_changed[k]])) {
-				glDeleteLists(chunk_display_lists[chunk_geometry_changed[k]],1);
+			float l = (chunk_x-camera_x)*(chunk_x-camera_x)+(chunk_y-camera_z)*(chunk_y-camera_z);
+			if(l<closest_dist) {
+				closest_dist = l;
+				closest_index = k;
 			}
-			chunk_display_lists[chunk_geometry_changed[k]] = glGenLists(1);
-			chunk_max_height[chunk_geometry_changed[k]] = chunk_generate(chunk_display_lists[chunk_geometry_changed[k]], chunk_x, chunk_y);
-			chunk_last_update[chunk_geometry_changed[k]] = glfwGetTime();
-			/*for(int l=0;l<((chunk_max_height[chunk_geometry_changed[k]]+(CHUNK_SIZE-1))/CHUNK_SIZE);l++) {
-				int needs_update = chunk_geometry_changed[k]-CHUNKS_PER_DIM*(l+1);
-				int j;
-				for(j=0;j<chunk_lighting_changed_lenght;j++) {
-					if(chunk_lighting_changed[j]==needs_update) {
-						break;
-					}
-				}
-				if(!(j<chunk_lighting_changed_lenght)) {
-					chunk_lighting_changed[chunk_lighting_changed_lenght++] = needs_update;
-				}
-			}*/
 		}
-		chunk_geometry_changed_lenght = 0;
+		//printf("UPDATE GEOMETRY: %i %i\n",chunk_geometry_changed[closest_index]%CHUNKS_PER_DIM,chunk_geometry_changed[closest_index]/CHUNKS_PER_DIM);
+		int chunk_x = (chunk_geometry_changed[closest_index]%CHUNKS_PER_DIM)*CHUNK_SIZE;
+		int chunk_y = (chunk_geometry_changed[closest_index]/CHUNKS_PER_DIM)*CHUNK_SIZE;
+		if(!glIsList(chunk_display_lists[chunk_geometry_changed[closest_index]])) {
+			chunk_display_lists[chunk_geometry_changed[closest_index]] = glGenLists(1);
+		}
+		glxcheckErrors(__FILE__,__LINE__);
+		chunk_max_height[chunk_geometry_changed[closest_index]] = chunk_generate(chunk_display_lists[chunk_geometry_changed[closest_index]], chunk_x, chunk_y);
+		glxcheckErrors(__FILE__,__LINE__);
+		chunk_last_update[chunk_geometry_changed[closest_index]] = glfwGetTime();
+		chunk_created[chunk_geometry_changed[closest_index]] = 1;
+
+		for(int i=closest_index;i<chunk_geometry_changed_lenght-1;i++) {
+			chunk_geometry_changed[i] = chunk_geometry_changed[i+1];
+		}
+		chunk_geometry_changed_lenght--;
 	}
 
-	if(chunk_lighting_changed_lenght>0) {
+	/*if(chunk_lighting_changed_lenght>0) {
 		for(int k=0;k<chunk_lighting_changed_lenght;k++) {
 			//printf("UPDATE LIGHTING: %i %i\n",chunk_lighting_changed[k]%CHUNKS_PER_DIM,chunk_lighting_changed[k]/CHUNKS_PER_DIM);
 			int chunk_x = (chunk_lighting_changed[k]%CHUNKS_PER_DIM)*CHUNK_SIZE;
@@ -1911,7 +1885,7 @@ void chunk_update_all() {
 			chunk_last_update[chunk_lighting_changed[k]] = glfwGetTime();
 		}
 		chunk_lighting_changed_lenght = 0;
-	}
+	}*/
 }
 
 void chunk_block_update(int x, int y, int z) {

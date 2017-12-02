@@ -8,10 +8,18 @@ extern float map_sun[4];
 
 extern unsigned char* map_minimap;
 
+extern struct DamagedVoxel {
+	int x,y,z;
+	char damage;
+	float timer;
+} map_damaged_voxels[8];
+
 struct Point {
 	int x,y,z;
 };
 
+int map_damage(int x, int y, int z, int damage);
+void map_damaged_voxels_render();
 void map_update_physics(int x, int y, int z);
 void map_ground_connected_sub(int x, int y, int z, int depth);
 boolean map_ground_connected(int x, int y, int z);

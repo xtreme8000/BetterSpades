@@ -1,17 +1,15 @@
 #define CHUNK_SIZE      16
 #define CHUNKS_PER_DIM  32
 
-extern unsigned char chunk_geometry_rebuild;
-extern int chunk_geometry_rebuild_state;
-
 extern int chunk_display_lists[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
 extern int chunk_max_height[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
 extern float chunk_last_update[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
+extern int chunk_created[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
 
-extern int chunk_geometry_changed[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
+extern int chunk_geometry_changed[CHUNKS_PER_DIM*CHUNKS_PER_DIM*2];
 extern int chunk_geometry_changed_lenght;
 
-extern int chunk_lighting_changed[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
+extern int chunk_lighting_changed[CHUNKS_PER_DIM*CHUNKS_PER_DIM*2];
 extern int chunk_lighting_changed_lenght;
 
 extern boolean chunk_render_mode;
