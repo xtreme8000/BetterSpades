@@ -328,6 +328,18 @@ void display(float dt) {
 	float last_cy = players[local_player_id].physics.eye.y;
 	player_move(&players[local_player_id],dt,local_player_id);
 
+	//following two if-statements disable smooth crouching on local player
+	if(!players[local_player_id].input.keys.crouch && key_map[GLFW_KEY_LEFT_CONTROL]) {
+		players[local_player_id].pos.y -= 0.9F;
+		players[local_player_id].physics.eye.y -= 0.9F;
+		last_cy -= 0.9F;
+	}
+	if(players[local_player_id].input.keys.crouch && !key_map[GLFW_KEY_LEFT_CONTROL]) {
+		players[local_player_id].pos.y += 0.9F;
+		players[local_player_id].physics.eye.y += 0.9F;
+		last_cy += 0.9F;
+	}
+
 	float fov = camera_fov;
 	if(camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN && players[local_player_id].input.buttons.rmb) {
 		fov *= 0.75F;

@@ -425,7 +425,7 @@ void player_reposition(struct Player* p)  {
     p->physics.eye.y = p->pos.y;
     p->physics.eye.z = p->pos.z;
     float f = p->physics.lastclimb-glfwGetTime();
-    if(f>-0.25F) {
+    if(f>-0.25F && !p->input.keys.crouch) {
         p->physics.eye.z += (f+0.25F)/0.25F;
     }
 }
