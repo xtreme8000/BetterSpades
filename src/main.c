@@ -1309,8 +1309,15 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 			if(key==GLFW_KEY_J || key==GLFW_KEY_K) {
 				printf("Changed render distance to: %f blocks\n",settings.render_distance);
 			}*/
-			if(key==GLFW_KEY_F) {
-				//glutFullScreenToggle();
+			if(key==GLFW_KEY_F11) {
+				const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+				if(!settings.fullscreen) {
+					glfwSetWindowMonitor(window,glfwGetPrimaryMonitor(),0,0,mode->width,mode->height,mode->refreshRate);
+					settings.fullscreen = 1;
+				} else {
+					glfwSetWindowMonitor(window,NULL,(mode->width-800)/2,(mode->height-600)/2,800,600,0);
+					settings.fullscreen = 0;
+				}
 			}
 			if(key==GLFW_KEY_E) {
 				int* pos = camera_terrain_pick(1);
