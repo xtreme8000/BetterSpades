@@ -671,6 +671,11 @@ void display(float dt) {
 				texture_draw(&texture_target,(settings.window_width-16)/2.0F,(settings.window_height+16)/2.0F,16,16);
 			}
 
+			if(glfwGetTime()-local_player_last_damage_timer<=0.5F) {
+				float ang = atan2(players[local_player_id].orientation.z,players[local_player_id].orientation.x)-atan2(camera_z-local_player_last_damage_z,camera_x-local_player_last_damage_x)+PI;
+				texture_draw_rotated(&texture_indicator,settings.window_width/2.0F,settings.window_height/2.0F,200,200,ang);
+			}
+
 			if(local_player_health<=30) {
 				glColor3f(1,0,0);
 			} else {
@@ -1265,7 +1270,7 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 			}
 
 			if(key==GLFW_KEY_8) {
-				char* addr = "aos://151723184:32888:0.75";
+				char* addr = "aos://4135049907:32887:0.75";
 				int ip_start = 1;
 				for(;addr[ip_start-1]!='/' && addr[ip_start]!='/' && addr[ip_start];ip_start++);
 				int port_start = ip_start;
@@ -1279,28 +1284,13 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 				}
 			}
 
-			/*if(key==GLFW_KEY_9 && !network_logged_in) {
-				struct PacketExistingPlayer login;
-				login.player_id = local_player_id;
-				login.team = TEAM_1;
-				login.weapon = WEAPON_SMG;
-				login.held_item = TOOL_GUN;
-				login.kills = 0;
-				login.blue = players[local_player_id].block.blue;
-				login.green = players[local_player_id].block.green;
-				login.red = players[local_player_id].block.red;
-				char* n = "DEV_CLIENT";
-				strcpy(login.name,n);
-				network_send(PACKET_EXISTINGPLAYER_ID,&login,sizeof(login)-sizeof(login.name)+strlen(n)+1);
-			}*/
-
-			if(key==GLFW_KEY_O) {
+			/*if(key==GLFW_KEY_O) {
 				draw_outline = (~draw_outline)&0x01;
 				chunk_set_render_mode(draw_outline);
 			}
 			if(key==GLFW_KEY_C) {
 				particle_create(0x00FFFFFF,hj,hk,hl,5.0F,3.0F,64,0.1F,0.25F);
-			}
+			}*/
 			if(key==GLFW_KEY_V) {
 				printf("%f,%f,%f,%f,%f\n",camera_x,camera_y,camera_z,camera_rot_x,camera_rot_y);
 				players[local_player_id].pos.x = 256.0F;
@@ -1310,7 +1300,7 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 				hk = camera_y;
 				hl = camera_z;
 			}
-			if(key==GLFW_KEY_J) {
+			/*if(key==GLFW_KEY_J) {
 				settings.render_distance -= 10.0F;
 			}
 			if(key==GLFW_KEY_K) {
@@ -1318,16 +1308,20 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 			}
 			if(key==GLFW_KEY_J || key==GLFW_KEY_K) {
 				printf("Changed render distance to: %f blocks\n",settings.render_distance);
-			}
+			}*/
 			if(key==GLFW_KEY_F) {
 				//glutFullScreenToggle();
 			}
 			if(key==GLFW_KEY_E) {
-				int* pos = camera_terrain_pick(2);
-				if((int)pos!=0) {
+				int* pos = camera_terrain_pick(1);
+				if(pos!=NULL) {
 					players[local_player_id].block.packed = map_get(pos[0],pos[1],pos[2]);
-					network_updateColor();
+				} else {
+					players[local_player_id].block.red = fog_color[0]*255;
+					players[local_player_id].block.green = fog_color[1]*255;
+					players[local_player_id].block.blue = fog_color[2]*255;
 				}
+				network_updateColor();
 			}
 		}
 	} else {
@@ -1359,7 +1353,7 @@ void mouse_click(GLFWwindow* window, int button, int action, int mods) {
 		button_map[0] = (action==GLFW_PRESS);
 	}
 	if(button==GLFW_MOUSE_BUTTON_RIGHT) {
-		if(action==GLFW_PRESS) {
+		if(action==GLFW_PRESS && players[local_player_id].held_item==TOOL_GUN) {
 			players[local_player_id].input.buttons.rmb ^= 1;
 			if(players[local_player_id].items_show) {
 				players[local_player_id].input.buttons.rmb = 0;

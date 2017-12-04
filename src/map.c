@@ -57,9 +57,9 @@ void map_damaged_voxels_render() {
 			if(glfwGetTime()-map_damaged_voxels[k].timer<=10.0F) {
 				glColor4f(0.0F,0.0F,0.0F,(float)map_damaged_voxels[k].damage/100.0F*0.75F);
 				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
-				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
-				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
 				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
+				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
 
 				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
 				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);

@@ -7,8 +7,8 @@ int network_map_transfer = 0;
 
 float network_pos_update = 0.0F;
 float network_orient_update = 0.0F;
-unsigned char network_keys_last;
-unsigned char network_buttons_last;
+unsigned char network_keys_last = 0;
+unsigned char network_buttons_last = 0;
 unsigned char network_tool_last = 255;
 
 void* compressed_chunk_data;
@@ -86,9 +86,9 @@ void read_PacketBlockAction(void* data, int len) {
 			if((63-p->z)>1) {
 				map_set(p->x,63-p->z,p->y,0xFFFFFFFF);
 				map_update_physics(p->x,63-p->z,p->y);
-				sound_create(NULL,SOUND_WORLD,&sound_hitground,
+				/*sound_create(NULL,SOUND_WORLD,&sound_hitground,
 							 p->x+0.5F,63-p->z+0.5F,p->y+0.5F
-						 	);
+						 );*/
 			}
 			break;
 		case ACTION_GRENADE:
@@ -317,15 +317,36 @@ void read_PacketMapStart(void* data, int len) {
 }
 
 void read_PacketWorldUpdate(void* data, int len) {
-	for(int k=0;k<(len/sizeof(struct PacketWorldUpdate));k++) { //supports up to 256 players
-		struct PacketWorldUpdate* p = (struct PacketWorldUpdate*)(data+k*sizeof(struct PacketWorldUpdate));
-		if(players[k].connected && players[k].alive && k!=local_player_id) {
-			players[k].pos.x = p->x;
-			players[k].pos.y = 63.0F-p->z;
-			players[k].pos.z = p->y;
-			players[k].orientation.x = p->ox;
-			players[k].orientation.y = -p->oz;
-			players[k].orientation.z = p->oy;
+	if(len>0) {
+		char is_075 = (len%sizeof(struct PacketWorldUpdate075)==0);
+		char is_076 = (len%sizeof(struct PacketWorldUpdate076)==0);
+
+		if(is_075) {
+			for(int k=0;k<(len/sizeof(struct PacketWorldUpdate075));k++) { //supports up to 256 players
+				struct PacketWorldUpdate075* p = (struct PacketWorldUpdate075*)(data+k*sizeof(struct PacketWorldUpdate075));
+				if(players[k].connected && players[k].alive && k!=local_player_id) {
+					players[k].pos.x = p->x;
+					players[k].pos.y = 63.0F-p->z;
+					players[k].pos.z = p->y;
+					players[k].orientation.x = p->ox;
+					players[k].orientation.y = -p->oz;
+					players[k].orientation.z = p->oy;
+				}
+			}
+		} else {
+			if(is_076) {
+				for(int k=0;k<(len/sizeof(struct PacketWorldUpdate076));k++) {
+					struct PacketWorldUpdate076* p = (struct PacketWorldUpdate076*)(data+k*sizeof(struct PacketWorldUpdate076));
+					if(players[p->player_id].connected && players[p->player_id].alive && p->player_id!=local_player_id) {
+						players[p->player_id].pos.x = p->x;
+						players[p->player_id].pos.y = 63.0F-p->z;
+						players[p->player_id].pos.z = p->y;
+						players[p->player_id].orientation.x = p->ox;
+						players[p->player_id].orientation.y = -p->oz;
+						players[p->player_id].orientation.z = p->oy;
+					}
+				}
+			}
 		}
 	}
 }
@@ -464,6 +485,13 @@ void read_PacketGrenade(void* data, int len) {
 void read_PacketSetHP(void* data, int len) {
 	struct PacketSetHP* p = (struct PacketSetHP*)data;
 	local_player_health = p->hp;
+	if(p->type==DAMAGE_SOURCE_GUN) {
+		local_player_last_damage_timer = glfwGetTime();
+		local_player_last_damage_x = p->x;
+		local_player_last_damage_y = 63.0F-p->z;
+		local_player_last_damage_z = p->y;
+		sound_create(NULL,SOUND_LOCAL,&sound_hitplayer,0.0F,0.0F,0.0F);
+	}
 }
 
 void read_PacketRestock(void* data, int len) {
@@ -472,6 +500,7 @@ void read_PacketRestock(void* data, int len) {
 	local_player_blocks = 50;
 	local_player_grenades = 3;
 	weapon_set();
+	sound_create(NULL,SOUND_LOCAL,&sound_switch,0.0F,0.0F,0.0F);
 }
 
 void read_PacketChangeWeapon(void* data, int len) {
@@ -533,6 +562,14 @@ void read_PacketMoveObject(void* data, int len) {
 void read_PacketIntelCapture(void* data, int len) {
 	struct PacketIntelCapture* p = (struct PacketIntelCapture*)data;
 	if(gamestate.gamemode_type==GAMEMODE_CTF && p->player_id<PLAYERS_MAX) {
+		switch(players[p->player_id].team) {
+			case TEAM_1:
+				gamestate.gamemode.ctf.team_1_score++;
+				break;
+			case TEAM_2:
+				gamestate.gamemode.ctf.team_2_score++;
+				break;
+		}
 		//TODO: play horn.wav, show win message etc.
 		sound_create(NULL,SOUND_LOCAL,p->winning?&sound_horn:&sound_pickup,0.0F,0.0F,0.0F);
 	}

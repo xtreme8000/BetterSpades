@@ -21,6 +21,7 @@ extern struct texture texture_zoom_shotgun;
 
 extern struct texture texture_white;
 extern struct texture texture_target;
+extern struct texture texture_indicator;
 
 extern struct texture texture_player;
 extern struct texture texture_medical;

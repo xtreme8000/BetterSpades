@@ -92,7 +92,13 @@ struct PacketOrientationData {
 };
 
 #define PACKET_WORLDUPDATE_ID 2
-struct PacketWorldUpdate {
+struct PacketWorldUpdate075 {
+	float x,y,z;
+	float ox,oy,oz;
+};
+
+struct PacketWorldUpdate076 {
+	unsigned char player_id;
 	float x,y,z;
 	float ox,oy,oz;
 };
@@ -151,6 +157,8 @@ struct PacketSetHP {
 	unsigned char type;
 	float x,y,z;
 };
+#define DAMAGE_SOURCE_FALL	0
+#define DAMAGE_SOURCE_GUN	1
 
 #define PACKET_HIT_ID 5
 struct PacketHit {

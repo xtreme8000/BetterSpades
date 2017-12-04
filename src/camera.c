@@ -47,17 +47,160 @@ void camera_apply(float dt) {
 	}
 }
 
+void camera_hit_fromplayer(struct Camera_HitType* hit, int player_id, float range) {
+	camera_hit(hit,player_id,
+			   players[player_id].physics.eye.x,players[player_id].physics.eye.y+player_height(&players[player_id]),players[player_id].physics.eye.z,
+			   players[player_id].orientation.x,players[player_id].orientation.y,players[player_id].orientation.z,
+			   range);
+}
+
+void camera_hit(struct Camera_HitType* hit, int exclude_player, float x, float y, float z, float ray_x, float ray_y, float ray_z, float range) {
+	hit->type = CAMERA_HITTYPE_NONE;
+	hit->distance = FLT_MAX;
+	int* pos = camera_terrain_pickEx(1,x,y,z,ray_x,ray_y,ray_z);
+	if(pos!=NULL && pos[1]>1 && distance3D(x,y,z,pos[0],pos[1],pos[2])<=range*range) {
+		hit->type = CAMERA_HITTYPE_BLOCK;
+		hit->distance = distance3D(x,y,z,pos[0],pos[1],pos[2]);
+		hit->x = pos[0];
+		hit->y = pos[1];
+		hit->z = pos[2];
+	}
+
+	Ray dir;
+	dir.origin.x = x;
+	dir.origin.y = y;
+	dir.origin.z = z;
+	dir.direction.x = ray_x;
+	dir.direction.y = ray_y;
+	dir.direction.z = ray_z;
+
+	float player_nearest = 1e10;
+	int player_nearest_id, player_nearest_section;
+	for(int i=0;i<PLAYERS_MAX;i++) {
+		float l = distance3D(x,y,z,players[i].pos.x,players[i].pos.y,players[i].pos.z);
+		if(players[i].connected && players[i].alive && l<range*range && (exclude_player<0 || (exclude_player>=0 && exclude_player!=i))) {
+			int intersections = player_render(&players[i],i,&dir,0);
+			if(intersections && l<player_nearest) {
+				player_nearest = l;
+				player_nearest_id = i;
+				player_nearest_section = intersections;
+			}
+		}
+	}
+	if(player_nearest<=range*range && player_nearest<hit->distance) {
+		hit->type = CAMERA_HITTYPE_PLAYER;
+		hit->x = players[player_nearest_id].pos.x;
+		hit->y = players[player_nearest_id].pos.y;
+		hit->z = players[player_nearest_id].pos.z;
+		hit->player_id = player_nearest_id;
+		hit->player_section = player_nearest_section;
+		hit->distance = player_nearest;
+	}
+}
+
 int* camera_terrain_pick(unsigned char mode) {
 	return camera_terrain_pickEx(mode,camera_x,camera_y,camera_z,sin(camera_rot_x)*sin(camera_rot_y),cos(camera_rot_y),cos(camera_rot_x)*sin(camera_rot_y));
 }
 
-int* camera_terrain_pickEx(unsigned char mode, float x, float y, float z, float ray_x, float ray_y, float ray_z) {
-	//naive approach until I find something better without glitches
-	ray_x *= 0.01F;
-	ray_y *= 0.01F;
-	ray_z *= 0.01F;
+//kindly borrowed from https://stackoverflow.com/questions/16505905/walk-a-line-between-two-points-in-a-3d-voxel-space-visiting-all-cells
+//adapted, original code by Wivlaro
+int* camera_terrain_pickEx(unsigned char mode, float gx0, float gy0, float gz0, float ray_x, float ray_y, float ray_z) {
+	float gx1 = gx0+ray_x*128.0F;
+	float gy1 = gy0+ray_y*128.0F;
+	float gz1 = gz0+ray_z*128.0F;
 
-	if(mode==0) {
+	int gx0idx = floor(gx0);
+    int gy0idx = floor(gy0);
+    int gz0idx = floor(gz0);
+
+    int gx1idx = floor(gx1);
+    int gy1idx = floor(gy1);
+    int gz1idx = floor(gz1);
+
+    int sx = gx1idx > gx0idx ? 1 : gx1idx < gx0idx ? -1 : 0;
+    int sy = gy1idx > gy0idx ? 1 : gy1idx < gy0idx ? -1 : 0;
+    int sz = gz1idx > gz0idx ? 1 : gz1idx < gz0idx ? -1 : 0;
+
+    int gx = gx0idx;
+    int gy = gy0idx;
+    int gz = gz0idx;
+
+    int gxp = gx0idx + (gx1idx > gx0idx ? 1 : 0);
+    int gyp = gy0idx + (gy1idx > gy0idx ? 1 : 0);
+    int gzp = gz0idx + (gz1idx > gz0idx ? 1 : 0);
+
+    float vx = gx1 == gx0 ? 1 : gx1 - gx0;
+    float vy = gy1 == gy0 ? 1 : gy1 - gy0;
+    float vz = gz1 == gz0 ? 1 : gz1 - gz0;
+
+    float vxvy = vx * vy;
+    float vxvz = vx * vz;
+    float vyvz = vy * vz;
+
+    float errx = (gxp - gx0) * vyvz;
+    float erry = (gyp - gy0) * vxvz;
+    float errz = (gzp - gz0) * vxvy;
+
+    float derrx = sx * vyvz;
+    float derry = sy * vxvz;
+    float derrz = sz * vxvy;
+
+	int gx_pre = gx, gy_pre = gy, gz_pre = gz;
+
+	static int ret[3];
+
+    while(1) {
+		switch(mode) {
+			case 0:
+				if(map_get(gx,gy,gz)!=0xFFFFFFFF && map_get(gx_pre,gy_pre,gz_pre)==0xFFFFFFFF) {
+					ret[0] = gx_pre;
+					ret[1] = gy_pre;
+					ret[2] = gz_pre;
+					return ret;
+				}
+				break;
+			case 1:
+				if(map_get(gx,gy,gz)!=0xFFFFFFFF) {
+					ret[0] = gx;
+					ret[1] = gy;
+					ret[2] = gz;
+					return ret;
+				}
+				break;
+		}
+		gx_pre = gx;
+		gy_pre = gy;
+		gz_pre = gz;
+
+        if (gx == gx1idx && gy == gy1idx && gz == gz1idx) break;
+
+        int xr = abs(errx);
+        int yr = abs(erry);
+        int zr = abs(errz);
+
+        if (sx != 0 && (sy == 0 || xr < yr) && (sz == 0 || xr < zr)) {
+            gx += sx;
+            errx += derrx;
+        }
+        else if (sy != 0 && (sz == 0 || yr < zr)) {
+            gy += sy;
+            erry += derry;
+        }
+        else if (sz != 0) {
+            gz += sz;
+            errz += derrz;
+        }
+    }
+
+	return NULL;
+
+
+	//naive approach until I find something better without glitches
+	//ray_x *= 0.01F;
+	//ray_y *= 0.01F;
+	//ray_z *= 0.01F;
+
+	/*if(mode==0) {
 		unsigned long long now,next;
 		for(int k=0;k<2000;k++) {
 			now = map_get(x,y,z);
@@ -105,7 +248,7 @@ int* camera_terrain_pickEx(unsigned char mode, float x, float y, float z, float 
 			}
 		}
 	}
-	return (int*)0;
+	return (int*)0;*/
 }
 
 void camera_ExtractFrustum() {

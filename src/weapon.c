@@ -166,36 +166,31 @@ void weapon_shoot() {
     //https://pastebin.com/raw/TMjKSTXG
     //http://paste.quacknet.org/view/a3ea2743
 
-    float hit_dist = 1e10;
-    int* pos = camera_terrain_pickEx(1,players[local_player_id].physics.eye.x,players[local_player_id].physics.eye.y+player_height(&players[local_player_id]),players[local_player_id].physics.eye.z,
-                                       players[local_player_id].orientation.x,players[local_player_id].orientation.y,players[local_player_id].orientation.z);
-    if((int)pos!=0 && pos[1]>1) {
-        hit_dist = distance3D(players[local_player_id].pos.x,players[local_player_id].pos.y,players[local_player_id].pos.z,pos[0],pos[1],pos[2]);
-    }
+    struct Camera_HitType hit;
+    camera_hit_fromplayer(&hit,local_player_id,128.0F);
 
-    if(player_intersection_type>=0
-        && distance3D(players[player_intersection_player].pos.x,
-                      players[player_intersection_player].pos.y,
-                      players[player_intersection_player].pos.z,
-                      players[local_player_id].pos.x,
-                      players[local_player_id].pos.y,
-                      players[local_player_id].pos.z)<hit_dist) {
-        struct PacketHit hit;
-        hit.player_id = player_intersection_player;
-        hit.hit_type = player_intersection_type;
-        network_send(PACKET_HIT_ID,&hit,sizeof(hit));
-        printf("hit on %s (%i)\n",players[player_intersection_player].name,hit.hit_type);
-    } else {
-        if((int)pos!=0 && map_damage(pos[0],pos[1],pos[2],weapon_block_damage(players[local_player_id].weapon))==100) {
-            struct PacketBlockAction blk;
-            blk.action_type = ACTION_DESTROY;
-            blk.player_id = local_player_id;
-            blk.x = pos[0];
-            blk.y = pos[2];
-            blk.z = 63-pos[1];
-            network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
-            read_PacketBlockAction(&blk,sizeof(blk));
+    switch(hit.type) {
+        case CAMERA_HITTYPE_PLAYER:
+        {
+            struct PacketHit h;
+            h.player_id = hit.player_id;
+            h.hit_type = player_intersection_type; //TODO: use hit.player_section
+            network_send(PACKET_HIT_ID,&h,sizeof(h));
+            printf("hit on %s (%i)\n",players[hit.player_id].name,h.hit_type);
+            break;
         }
+        case CAMERA_HITTYPE_BLOCK:
+            if(map_damage(hit.x,hit.y,hit.z,weapon_block_damage(players[local_player_id].weapon))==100) {
+                struct PacketBlockAction blk;
+                blk.action_type = ACTION_DESTROY;
+                blk.player_id = local_player_id;
+                blk.x = hit.x;
+                blk.y = hit.z;
+                blk.z = 63-hit.y;
+                network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
+                //read_PacketBlockAction(&blk,sizeof(blk));
+            }
+            break;
     }
 
     double horiz_recoil, vert_recoil;

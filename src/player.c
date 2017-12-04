@@ -12,6 +12,11 @@ float         local_player_death_time = 0.0F;
 unsigned char local_player_respawn_cnt_last = 255;
 unsigned char local_player_newteam;
 
+float local_player_last_damage_timer;
+float local_player_last_damage_x;
+float local_player_last_damage_y;
+float local_player_last_damage_z;
+
 int player_intersection_type = -1;
 int player_intersection_player = 0;
 float player_intersection_dist = 1024.0F;
@@ -55,25 +60,55 @@ float player_spade_func(float x) {
     return 1.0F-(x*5-(int)(x*5));
 }
 
-float player_tool_func(struct Player* p) {
+float* player_tool_func(struct Player* p) {
+    static float ret[3];
+    ret[0] = ret[1] = ret[2] = 0.0F;
     switch(p->held_item) {
         case TOOL_SPADE:
-            if(glfwGetTime()-p->spade_use_timer>0.2F) {
-                return 0.0F;
+        {
+            float t = glfwGetTime()-p->spade_use_timer;
+            if(p->spade_use_type==1 && t>0.2F) {
+                return ret;
+            }
+            if(p->spade_use_type==2 && t>1.0F) {
+                return ret;
             }
             if(p==&players[local_player_id] && camera_mode==CAMERAMODE_FPS) {
-                return player_spade_func(glfwGetTime()-p->spade_use_timer)*90.0F;
+                if(p->spade_use_type==1) {
+                    ret[0] = player_spade_func(t)*90.0F;
+                    return ret;
+                }
+                if(p->spade_use_type==2) {
+                    if(t<=0.4F) {
+                        ret[0] = 60.0F-player_spade_func(t/2.0F)*60.0F;
+                        ret[1] = -t/0.4F*22.5F;
+                        return ret;
+                    }
+                    if(t<=0.7F) {
+                        ret[0] = 60.0F;
+                        ret[1] = -22.5F;
+                        return ret;
+                    }
+                    if(t<=1.0F) {
+                        ret[0] = player_spade_func((t-0.7F)/5/0.3F)*60.0F;
+                        ret[1] = (t-0.7F)/0.4F*22.5F-22.5F;
+                        return ret;
+                    }
+                }
             } else {
-                return (player_swing_func((glfwGetTime()-p->spade_use_timer)*5.0F)+1.0F)/2.0F*60.0F;
+                ret[0] = (player_swing_func((glfwGetTime()-p->spade_use_timer)*5.0F)+1.0F)/2.0F*60.0F;
+                return ret;
             }
+        }
         case TOOL_GRENADE:
             if(p->input.buttons.lmb) {
-                return max(-(glfwGetTime()-p->input.buttons.lmb_start)*35.0F,-35.0F);
+                ret[0] = max(-(glfwGetTime()-p->input.buttons.lmb_start)*35.0F,-35.0F);
+                return ret;
             } else {
-                return 0.0F;
+                return ret;
             }
     }
-    return 0.0F;
+    return ret;
 }
 
 float player_tool_translate_func(struct Player* p) {
@@ -81,8 +116,23 @@ float player_tool_translate_func(struct Player* p) {
         if(glfwGetTime()-p->item_showup<0.5F) {
             return 0.0F;
         }
-        if(camera_mode==CAMERAMODE_FPS && p->held_item==TOOL_GUN && glfwGetTime()-weapon_last_shot<weapon_delay(players[local_player_id].weapon)) {
+        if(p->held_item==TOOL_GUN && glfwGetTime()-weapon_last_shot<weapon_delay(players[local_player_id].weapon)) {
             return -(weapon_delay(players[local_player_id].weapon)-(glfwGetTime()-weapon_last_shot))/weapon_delay(players[local_player_id].weapon)*0.125F*(local_player_ammo>0);
+        }
+
+        if(p->held_item==TOOL_SPADE) {
+            float t = glfwGetTime()-p->spade_use_timer;
+            if(t>1.0F) {
+                return 0.0F;
+            }
+            if(p->spade_use_type==2) {
+                if(t>0.4F && t<=0.7F) {
+                    return (t-0.4F)/0.3F*0.8F;
+                }
+                if(t>0.7F) {
+                    return (0.3F-(t-0.7F))/0.3F*0.8F;
+                }
+            }
         }
     }
     return 0.0F;
@@ -105,72 +155,69 @@ void player_update(float dt) {
     ray.direction.z = cos(camera_rot_x)*sin(camera_rot_y);
 
     for(int k=0;k<PLAYERS_MAX;k++) {
+        if(!players[k].input.buttons.lmb && !players[k].input.buttons.rmb) {
+            players[k].spade_used = 0;
+        }
         if(players[k].connected && players[k].alive && players[k].held_item==TOOL_SPADE
-            && glfwGetTime()-players[k].spade_use_timer>0.2F && players[k].input.buttons.lmb
+            && (players[k].input.buttons.lmb || players[k].input.buttons.rmb)
             && glfwGetTime()-players[k].item_showup>=0.5F) {
             //now run a hitscan and see if any block or player is in the way
-            char hit_type = 0;
-            float hit_dist = 1e10;
-            int* pos = camera_terrain_pickEx(1,players[k].physics.eye.x,players[k].physics.eye.y+player_height(&players[k]),players[k].physics.eye.z,
-                                               players[k].orientation.x,players[k].orientation.y,players[k].orientation.z);
-            if((int)pos!=0 && pos[1]>1 && distance3D(players[k].pos.x,players[k].pos.y,players[k].pos.z,pos[0],pos[1],pos[2])<=3.0F*3.0F) {
-                hit_type = 1;
-                hit_dist = distance3D(players[k].pos.x,players[k].pos.y,players[k].pos.z,pos[0],pos[1],pos[2]);
+            struct Camera_HitType hit;
+            if(players[k].input.buttons.lmb && glfwGetTime()-players[k].spade_use_timer>0.2F) {
+                camera_hit_fromplayer(&hit,k,4.0F);
+                switch(hit.type) {
+                    case CAMERA_HITTYPE_BLOCK:
+                        sound_create(NULL,SOUND_WORLD,&sound_hitground,hit.x+0.5F,hit.y+0.5F,hit.z+0.5F);
+                        if(k==local_player_id && map_damage(hit.x,hit.y,hit.z,50)==100) {
+                            struct PacketBlockAction blk;
+                            blk.action_type = ACTION_DESTROY;
+                            blk.player_id = local_player_id;
+                            blk.x = hit.x;
+                            blk.y = hit.z;
+                            blk.z = 63-hit.y;
+                            network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
+                            local_player_blocks = min(local_player_blocks+1,50);
+                        }
+                        break;
+                    case CAMERA_HITTYPE_PLAYER:
+                        sound_create(NULL,SOUND_WORLD,&sound_spade_whack,players[k].pos.x,players[k].pos.y,players[k].pos.z)->stick_to_player = k;
+                        if(k==local_player_id) {
+                            struct PacketHit h;
+                            h.player_id = hit.player_id;
+                            h.hit_type = HITTYPE_SPADE;
+                            network_send(PACKET_HIT_ID,&h,sizeof(h));
+                        }
+                        break;
+                    case CAMERA_HITTYPE_NONE:
+                        sound_create(NULL,SOUND_WORLD,&sound_spade_woosh,players[k].pos.x,players[k].pos.y,players[k].pos.z)->stick_to_player = k;
+                }
+                players[k].spade_use_type = 1;
+                players[k].spade_used = 1;
+                players[k].spade_use_timer = glfwGetTime();
             }
 
-            Ray dir;
-            dir.origin.x = players[k].physics.eye.x;
-            dir.origin.y = players[k].physics.eye.y+player_height(&players[k]);
-            dir.origin.z = players[k].physics.eye.z;
-            dir.direction.x = players[k].orientation.x;
-            dir.direction.y = players[k].orientation.y;
-            dir.direction.z = players[k].orientation.z;
-
-            float player_nearest = 1e10;
-            int player_nearest_id;
-            for(int i=0;i<PLAYERS_MAX;i++) {
-                float l = distance2D(players[k].pos.x,players[k].pos.z,players[i].pos.x,players[i].pos.z);
-                if(players[i].connected && players[i].alive && i!=k && l<128.0F*128.0F) {
-                    int intersections = player_render(&players[i],i,&dir,0);
-                    if(intersections && l<player_nearest) {
-                        player_nearest = l;
-                        player_nearest_id = i;
+            if(players[k].input.buttons.rmb && glfwGetTime()-players[k].spade_use_timer>1.0F) {
+                if(players[k].spade_used) {
+                    camera_hit_fromplayer(&hit,k,4.0F);
+                    if(hit.type==CAMERA_HITTYPE_BLOCK) {
+                        sound_create(NULL,SOUND_WORLD,&sound_hitground,hit.x+0.5F,hit.y+0.5F,hit.z+0.5F);
+                        if(k==local_player_id) {
+                            struct PacketBlockAction blk;
+                            blk.action_type = ACTION_SPADE;
+                            blk.player_id = local_player_id;
+                            blk.x = hit.x;
+                            blk.y = hit.z;
+                            blk.z = 63-hit.y;
+                            network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
+                        }
+                    } else {
+                        sound_create(NULL,SOUND_WORLD,&sound_spade_woosh,players[k].pos.x,players[k].pos.y,players[k].pos.z)->stick_to_player = k;
                     }
                 }
+                players[k].spade_use_type = 2;
+                players[k].spade_used = 1;
+                players[k].spade_use_timer = glfwGetTime();
             }
-            if(player_nearest<=3.0F*3.0F && player_nearest<hit_dist) {
-                hit_type = 2;
-                hit_dist = player_nearest;
-            }
-
-            switch(hit_type) {
-                case 1:
-                    sound_create(NULL,SOUND_WORLD,&sound_hitground,pos[0]+0.5F,pos[1]+0.5F,pos[2]+0.5F);
-                    if(k==local_player_id && map_damage(pos[0],pos[1],pos[2],50)==100) {
-                        struct PacketBlockAction blk;
-                        blk.action_type = ACTION_DESTROY;
-                        blk.player_id = local_player_id;
-                        blk.x = pos[0];
-                        blk.y = pos[2];
-                        blk.z = 63-pos[1];
-                        network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
-                        //read_PacketBlockAction(&blk,sizeof(blk));
-                    }
-                    break;
-                case 2:
-                    sound_create(NULL,SOUND_WORLD,&sound_spade_whack,players[k].pos.x,players[k].pos.y,players[k].pos.z)->stick_to_player = k;
-                    if(k==local_player_id) {
-                        struct PacketHit hit;
-                        hit.player_id = player_nearest_id;
-                        hit.hit_type = HITTYPE_SPADE;
-                        network_send(PACKET_HIT_ID,&hit,sizeof(hit));
-                    }
-                    break;
-                default:
-                    sound_create(NULL,SOUND_WORLD,&sound_spade_woosh,players[k].pos.x,players[k].pos.y,players[k].pos.z)->stick_to_player = k;
-            }
-
-            players[k].spade_use_timer = glfwGetTime();
         }
         if(players[k].connected && k!=local_player_id) {
             player_move(&players[k],dt,k);
@@ -331,7 +378,9 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
         matrix_rotate(45.0F-(glfwGetTime()-p->item_showup)*90.0F,1.0F,0.0F,0.0F);
     }
     if(!(p->held_item==TOOL_SPADE && id==local_player_id && camera_mode==CAMERAMODE_FPS)) {
-        matrix_rotate(player_tool_func(p),1.0F,0.0F,0.0F);
+        float* angles = player_tool_func(p);
+        matrix_rotate(angles[0],1.0F,0.0F,0.0F);
+        matrix_rotate(angles[1],0.0F,1.0F,0.0F);
     }
     if(id!=local_player_id || settings.player_arms || camera_mode!=CAMERAMODE_FPS) {
         matrix_upload();
@@ -344,8 +393,10 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 
     matrix_translate(-3.5F*0.1F+0.01F,0.0F,10*0.1F);
     if(p->held_item==TOOL_SPADE && id==local_player_id && glfwGetTime()-p->item_showup>=0.5F && camera_mode==CAMERAMODE_FPS) {
+        float* angles = player_tool_func(p);
         matrix_translate(0.0F,(model_spade.zpiv-model_spade.zsiz)*0.05F,0.0F);
-        matrix_rotate(player_tool_func(p),1.0F,0.0F,0.0F);
+        matrix_rotate(angles[0],1.0F,0.0F,0.0F);
+        matrix_rotate(angles[1],0.0F,1.0F,0.0F);
         matrix_translate(0.0F,-(model_spade.zpiv-model_spade.zsiz)*0.05F,0.0F);
     }
 

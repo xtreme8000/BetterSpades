@@ -31,7 +31,9 @@ void cameracontroller_fps(float dt) {
     }
 
     players[local_player_id].input.buttons.lmb = button_map[0];
-    //players[local_player_id].input.buttons.rmb = button_map[1];
+    if(players[local_player_id].held_item!=TOOL_GUN) {
+        players[local_player_id].input.buttons.rmb = button_map[1];
+    }
 
     if(key_map[GLFW_KEY_SPACE] && !players[local_player_id].physics.airborne) {
         players[local_player_id].physics.jump = 1;

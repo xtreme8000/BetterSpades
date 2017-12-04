@@ -60,6 +60,7 @@ extern struct Sound_wav sound_shotgun_reload;
 extern struct Sound_wav sound_shotgun_cock;
 
 extern struct Sound_wav sound_hitground;
+extern struct Sound_wav sound_hitplayer;
 extern struct Sound_wav sound_build;
 
 extern struct Sound_wav sound_spade_woosh;

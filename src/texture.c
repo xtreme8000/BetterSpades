@@ -19,6 +19,7 @@ struct texture texture_zoom_shotgun;
 
 struct texture texture_white;
 struct texture texture_target;
+struct texture texture_indicator;
 
 struct texture texture_player;
 struct texture texture_medical;
@@ -177,6 +178,7 @@ void texture_init() {
 
     texture_create(&texture_white,"png/white.png");
     texture_create(&texture_target,"png/target.png");
+    texture_create(&texture_indicator,"png/indicator.png");
 
     texture_create(&texture_player,"png/player.png");
     texture_create(&texture_medical,"png/medical.png");

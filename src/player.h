@@ -29,6 +29,11 @@ extern float		 local_player_death_time;
 extern unsigned char local_player_respawn_cnt_last;
 extern unsigned char local_player_newteam;
 
+extern float local_player_last_damage_timer;
+extern float local_player_last_damage_x;
+extern float local_player_last_damage_y;
+extern float local_player_last_damage_z;
+
 extern int player_intersection_type;
 extern int player_intersection_player;
 extern float player_intersection_dist;
@@ -45,6 +50,7 @@ extern struct Player {
 	struct Position casing_dir;
 	float gun_shoot_timer;
 	float spade_use_timer;
+	unsigned char spade_used, spade_use_type;
 	unsigned int score;
 	unsigned char team, weapon, held_item;
 	unsigned char alive, connected;
@@ -73,7 +79,8 @@ extern struct Player {
 		union {
 			unsigned char packed;
 			struct {
-				unsigned char lmb, rmb;
+				unsigned char lmb : 1;
+				unsigned char rmb : 1;
 				float lmb_start, rmb_start;
 			};
 		} buttons;

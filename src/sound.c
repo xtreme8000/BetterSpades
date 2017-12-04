@@ -40,6 +40,7 @@ struct Sound_wav sound_shotgun_reload;
 struct Sound_wav sound_shotgun_cock;
 
 struct Sound_wav sound_hitground;
+struct Sound_wav sound_hitplayer;
 struct Sound_wav sound_build;
 
 struct Sound_wav sound_spade_woosh;
@@ -230,6 +231,7 @@ void sound_init() {
     sound_load(&sound_shotgun_cock,"wav/cock.wav",0.1F,16.0F);
 
     sound_load(&sound_hitground,"wav/hitground.wav",0.1F,32.0F);
+    sound_load(&sound_hitplayer,"wav/hitplayer.wav",0.1F,32.0F);
     sound_load(&sound_build,"wav/build.wav",0.1F,32.0F);
 
     sound_load(&sound_spade_woosh,"wav/woosh.wav",0.1F,32.0F);
