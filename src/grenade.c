@@ -103,6 +103,7 @@ void grenade_update(float dt) {
                     grenades[k].pos.x,grenades[k].pos.y,grenades[k].pos.z,
                     grenades[k].velocity.x,grenades[k].velocity.y,grenades[k].velocity.z
                 );
+                particle_create(0x505050,grenades[k].pos.x,grenades[k].pos.y+1.5F,grenades[k].pos.z,20.0F,1.5F,64,0.1F,0.5F);
                 grenades[k].active = 0;
             } else {
                 if(grenade_move(&grenades[k],dt)==2) {

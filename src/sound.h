@@ -72,6 +72,9 @@ extern struct Sound_wav sound_beep2;
 extern struct Sound_wav sound_switch;
 extern struct Sound_wav sound_empty;
 
+extern struct Sound_wav sound_debris;
+extern struct Sound_wav sound_bounce;
+
 
 struct Sound_source* sound_create(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z);
 struct Sound_source* sound_createEx(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z, float vx, float vy, float vz);

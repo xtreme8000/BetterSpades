@@ -1842,34 +1842,36 @@ int chunk_generate_naive(int displaylist, int chunk_x, int chunk_y) {
 }
 
 void chunk_update_all() {
-	if(chunk_geometry_changed_lenght>0) {
-		float closest_dist = 1e10;
-		int closest_index = 0;
-		for(int k=0;k<chunk_geometry_changed_lenght;k++) {
-			int chunk_x = (chunk_geometry_changed[k]%CHUNKS_PER_DIM)*CHUNK_SIZE;
-			int chunk_y = (chunk_geometry_changed[k]/CHUNKS_PER_DIM)*CHUNK_SIZE;
-			float l = (chunk_x-camera_x)*(chunk_x-camera_x)+(chunk_y-camera_z)*(chunk_y-camera_z);
-			if(l<closest_dist) {
-				closest_dist = l;
-				closest_index = k;
+	for(int i=0;i<3;i++) {
+		if(chunk_geometry_changed_lenght>0) {
+			float closest_dist = 1e10;
+			int closest_index = 0;
+			for(int k=0;k<chunk_geometry_changed_lenght;k++) {
+				int chunk_x = (chunk_geometry_changed[k]%CHUNKS_PER_DIM)*CHUNK_SIZE;
+				int chunk_y = (chunk_geometry_changed[k]/CHUNKS_PER_DIM)*CHUNK_SIZE;
+				float l = (chunk_x-camera_x)*(chunk_x-camera_x)+(chunk_y-camera_z)*(chunk_y-camera_z);
+				if(l<closest_dist) {
+					closest_dist = l;
+					closest_index = k;
+				}
 			}
-		}
-		//printf("UPDATE GEOMETRY: %i %i\n",chunk_geometry_changed[closest_index]%CHUNKS_PER_DIM,chunk_geometry_changed[closest_index]/CHUNKS_PER_DIM);
-		int chunk_x = (chunk_geometry_changed[closest_index]%CHUNKS_PER_DIM)*CHUNK_SIZE;
-		int chunk_y = (chunk_geometry_changed[closest_index]/CHUNKS_PER_DIM)*CHUNK_SIZE;
-		if(!glIsList(chunk_display_lists[chunk_geometry_changed[closest_index]])) {
-			chunk_display_lists[chunk_geometry_changed[closest_index]] = glGenLists(1);
-		}
-		glxcheckErrors(__FILE__,__LINE__);
-		chunk_max_height[chunk_geometry_changed[closest_index]] = chunk_generate(chunk_display_lists[chunk_geometry_changed[closest_index]], chunk_x, chunk_y);
-		glxcheckErrors(__FILE__,__LINE__);
-		chunk_last_update[chunk_geometry_changed[closest_index]] = glfwGetTime();
-		chunk_created[chunk_geometry_changed[closest_index]] = 1;
+			//printf("UPDATE GEOMETRY: %i %i\n",chunk_geometry_changed[closest_index]%CHUNKS_PER_DIM,chunk_geometry_changed[closest_index]/CHUNKS_PER_DIM);
+			int chunk_x = (chunk_geometry_changed[closest_index]%CHUNKS_PER_DIM)*CHUNK_SIZE;
+			int chunk_y = (chunk_geometry_changed[closest_index]/CHUNKS_PER_DIM)*CHUNK_SIZE;
+			if(!glIsList(chunk_display_lists[chunk_geometry_changed[closest_index]])) {
+				chunk_display_lists[chunk_geometry_changed[closest_index]] = glGenLists(1);
+			}
+			glxcheckErrors(__FILE__,__LINE__);
+			chunk_max_height[chunk_geometry_changed[closest_index]] = chunk_generate(chunk_display_lists[chunk_geometry_changed[closest_index]], chunk_x, chunk_y);
+			glxcheckErrors(__FILE__,__LINE__);
+			chunk_last_update[chunk_geometry_changed[closest_index]] = glfwGetTime();
+			chunk_created[chunk_geometry_changed[closest_index]] = 1;
 
-		for(int i=closest_index;i<chunk_geometry_changed_lenght-1;i++) {
-			chunk_geometry_changed[i] = chunk_geometry_changed[i+1];
+			for(int i=closest_index;i<chunk_geometry_changed_lenght-1;i++) {
+				chunk_geometry_changed[i] = chunk_geometry_changed[i+1];
+			}
+			chunk_geometry_changed_lenght--;
 		}
-		chunk_geometry_changed_lenght--;
 	}
 
 	/*if(chunk_lighting_changed_lenght>0) {

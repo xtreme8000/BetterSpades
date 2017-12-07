@@ -82,6 +82,10 @@ void matrix_translate(float x, float y, float z) {
     matrix_current[15] += matrix_current[3]*x+matrix_current[7]*y+matrix_current[11]*z;
 }
 
+void matrix_scale3(float s) {
+    matrix_scale(s,s,s);
+}
+
 void matrix_scale(float sx, float sy, float sz) {
     matrix_current[0] *= sx;
     matrix_current[1] *= sx;

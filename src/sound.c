@@ -52,6 +52,9 @@ struct Sound_wav sound_beep2;
 struct Sound_wav sound_switch;
 struct Sound_wav sound_empty;
 
+struct Sound_wav sound_debris;
+struct Sound_wav sound_bounce;
+
 
 int sound_free_index() {
     for(int k=0;k<SOUND_VOICES_MAX;k++)
@@ -102,13 +105,13 @@ struct Sound_source* sound_createEx(struct Sound_source* s, int option, struct S
 }
 
 void sound_velocity(struct Sound_source* s, float vx, float vy, float vz) {
-    if(!s->active || !sound_enabled || s->local)
+    if(!sound_enabled || s->local)
         return;
     alSource3f(s->openal_handle,AL_VELOCITY,vx*SOUND_SCALE,vy*SOUND_SCALE,vz*SOUND_SCALE);
 }
 
 void sound_position(struct Sound_source* s, float x, float y, float z) {
-    if(!s->active || !sound_enabled || s->local)
+    if(!sound_enabled || s->local)
         return;
     alSource3f(s->openal_handle,AL_POSITION,x*SOUND_SCALE,y*SOUND_SCALE,z*SOUND_SCALE);
 }
@@ -243,6 +246,9 @@ void sound_init() {
     sound_load(&sound_beep2,"wav/beep2.wav",0.1F,1024.0F);
     sound_load(&sound_switch,"wav/switch.wav",0.1F,1024.0F);
     sound_load(&sound_empty,"wav/empty.wav",0.1F,1024.0F);
+
+    sound_load(&sound_debris,"wav/debris.wav",0.1F,53.0F);
+    sound_load(&sound_bounce,"wav/bounce.wav",0.1F,32.0F);
 
     memset(sound_sources_free,1,sizeof(sound_sources_free));
 }

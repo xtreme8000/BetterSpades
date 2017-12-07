@@ -23,28 +23,28 @@ struct kv6_t model_smg_tracer;
 struct kv6_t model_shotgun_tracer;
 
 void kv6_init() {
-	model_playerdead = kv6_load(file_load("kv6/playerdead.kv6"),0.1F);
-	model_playerhead = kv6_load(file_load("kv6/playerhead.kv6"),0.1F);
-	model_playertorso = kv6_load(file_load("kv6/playertorso.kv6"),0.1F);
-	model_playertorsoc = kv6_load(file_load("kv6/playertorsoc.kv6"),0.1F);
-	model_playerarms = kv6_load(file_load("kv6/playerarms.kv6"),0.1F);
-	model_playerleg = kv6_load(file_load("kv6/playerleg.kv6"),0.1F);
-	model_playerlegc = kv6_load(file_load("kv6/playerlegc.kv6"),0.1F);
+	kv6_load(&model_playerdead,file_load("kv6/playerdead.kv6"),0.1F);
+	kv6_load(&model_playerhead,file_load("kv6/playerhead.kv6"),0.1F);
+	kv6_load(&model_playertorso,file_load("kv6/playertorso.kv6"),0.1F);
+	kv6_load(&model_playertorsoc,file_load("kv6/playertorsoc.kv6"),0.1F);
+	kv6_load(&model_playerarms,file_load("kv6/playerarms.kv6"),0.1F);
+	kv6_load(&model_playerleg,file_load("kv6/playerleg.kv6"),0.1F);
+	kv6_load(&model_playerlegc,file_load("kv6/playerlegc.kv6"),0.1F);
 
-	model_intel = kv6_load(file_load("kv6/intel.kv6"),0.278F);
-	model_tent = kv6_load(file_load("kv6/cp.kv6"),0.278F);
+	kv6_load(&model_intel,file_load("kv6/intel.kv6"),0.278F);
+	kv6_load(&model_tent,file_load("kv6/cp.kv6"),0.278F);
 
-	model_semi = kv6_load(file_load("kv6/semi.kv6"),0.05F);
-	model_smg = kv6_load(file_load("kv6/smg.kv6"),0.05F);
-	model_shotgun = kv6_load(file_load("kv6/shotgun.kv6"),0.05F);
-	model_spade = kv6_load(file_load("kv6/spade.kv6"),0.05F);
-	model_block = kv6_load(file_load("kv6/block.kv6"),0.05F);
+	kv6_load(&model_semi,file_load("kv6/semi.kv6"),0.05F);
+	kv6_load(&model_smg,file_load("kv6/smg.kv6"),0.05F);
+	kv6_load(&model_shotgun,file_load("kv6/shotgun.kv6"),0.05F);
+	kv6_load(&model_spade,file_load("kv6/spade.kv6"),0.05F);
+	kv6_load(&model_block,file_load("kv6/block.kv6"),0.05F);
 	model_block.colorize = 1;
-	model_grenade = kv6_load(file_load("kv6/grenade.kv6"),0.05F);
+	kv6_load(&model_grenade,file_load("kv6/grenade.kv6"),0.05F);
 
-	model_semi_tracer = kv6_load(file_load("kv6/semitracer.kv6"),0.05F);
-	model_smg_tracer = kv6_load(file_load("kv6/smgtracer.kv6"),0.05F);
-	model_shotgun_tracer = kv6_load(file_load("kv6/shotguntracer.kv6"),0.05F);
+	kv6_load(&model_semi_tracer,file_load("kv6/semitracer.kv6"),0.05F);
+	kv6_load(&model_smg_tracer,file_load("kv6/smgtracer.kv6"),0.05F);
+	kv6_load(&model_shotgun_tracer,file_load("kv6/shotguntracer.kv6"),0.05F);
 }
 
 void kv6_rebuild_all() {
@@ -59,28 +59,25 @@ void kv6_rebuild_all() {
 	kv6_rebuild(&model_tent);
 }
 
-struct kv6_t kv6_load(unsigned char* bytes, float scale) {
-	struct kv6_t ret;
-	ret.colorize = 0;
-	ret.has_display_list = 0;
-	ret.scale = scale;
+void kv6_load(struct kv6_t* kv6, unsigned char* bytes, float scale) {
+	kv6->colorize = 0;
+	kv6->has_display_list = 0;
+	kv6->scale = scale;
 	int index = 0;
 	if(buffer_read32(bytes,index)==0x6C78764B) { //"Kvxl"
 		index += 4;
-		ret.xsiz = buffer_read32(bytes,index);
+		kv6->xsiz = buffer_read32(bytes,index);
 		index += 4;
-		ret.ysiz = buffer_read32(bytes,index);
+		kv6->ysiz = buffer_read32(bytes,index);
 		index += 4;
-		ret.zsiz = buffer_read32(bytes,index);
+		kv6->zsiz = buffer_read32(bytes,index);
 		index += 4;
-		ret.color = malloc(ret.xsiz*ret.ysiz*ret.zsiz*sizeof(unsigned int));
-		memset(ret.color,0,ret.xsiz*ret.ysiz*ret.zsiz*sizeof(unsigned int));
 
-		ret.xpiv = buffer_readf(bytes,index);
+		kv6->xpiv = buffer_readf(bytes,index);
 		index += 4;
-		ret.ypiv = buffer_readf(bytes,index);
+		kv6->ypiv = buffer_readf(bytes,index);
 		index += 4;
-		ret.zpiv = ret.zsiz-buffer_readf(bytes,index);
+		kv6->zpiv = kv6->zsiz-buffer_readf(bytes,index);
 		index += 4;
 
 		int blklen = buffer_read32(bytes,index);
@@ -94,62 +91,34 @@ struct kv6_t kv6_load(unsigned char* bytes, float scale) {
 			index += 4;
 			blkdata_zpos[k] = buffer_read16(bytes,index);
 			index += 2;
-			blkdata_visfaces[k] = buffer_read8(bytes,index++);
+			blkdata_visfaces[k] = buffer_read8(bytes,index++); //0x00zZyYxX
 			blkdata_lighting[k] = buffer_read8(bytes,index++); //compressed normal vector (also referred to as lighting)
 		}
-		index += 4*ret.xsiz;
-		int blkdata_offset = 0;
-		for(int x=0;x<ret.xsiz;x++) {
-			for(int y=0;y<ret.ysiz;y++) {
+		index += 4*kv6->xsiz;
+		kv6->voxels = malloc(kv6->xsiz*kv6->ysiz*kv6->zsiz*sizeof(struct kv6_voxel));
+		kv6->voxel_count = 0;
+		for(int x=0;x<kv6->xsiz;x++) {
+			for(int y=0;y<kv6->ysiz;y++) {
 				int size = buffer_read16(bytes,index);
 				index += 2;
 				for(int z=0;z<size;z++) {
-					ret.color[x+y*ret.xsiz+((ret.zsiz-1)-blkdata_zpos[blkdata_offset])*ret.xsiz*ret.ysiz] = (blkdata_color[blkdata_offset]&0xFFFFFF)|(blkdata_lighting[blkdata_offset]<<24);
-					blkdata_offset++;
+					struct kv6_voxel* voxel = &kv6->voxels[kv6->voxel_count];
+					voxel->x = x;
+					voxel->y = y;
+					voxel->z = (kv6->zsiz-1)-blkdata_zpos[kv6->voxel_count];
+					voxel->color = (blkdata_color[kv6->voxel_count]&0xFFFFFF)|(blkdata_lighting[kv6->voxel_count]<<24);
+					voxel->visfaces = blkdata_visfaces[kv6->voxel_count];
+					kv6->voxel_count++;
 				}
 			}
 		}
+		kv6->voxels = realloc(kv6->voxels,kv6->voxel_count*sizeof(struct kv6_voxel));
 		free(blkdata_color);
 		free(blkdata_zpos);
 		free(blkdata_visfaces);
 		free(blkdata_lighting);
 	}
-	return ret;
 }
-
-void mul_matrix_vector(float* out, double* m, float* v) {
-	float tmp[4];
-	tmp[0] = m[0]*v[0]+m[4]*v[1]+m[ 8]*v[2]+m[12]*v[3];
-	tmp[1] = m[1]*v[0]+m[5]*v[1]+m[ 9]*v[2]+m[13]*v[3];
-	tmp[2] = m[2]*v[0]+m[6]*v[1]+m[10]*v[2]+m[14]*v[3];
-	tmp[3] = m[3]*v[0]+m[7]*v[1]+m[11]*v[2]+m[15]*v[3];
-	out[0] = tmp[0];
-	out[1] = tmp[1];
-	out[2] = tmp[2];
-	out[3] = tmp[3];
-}
-
-/*void mul_matrix_matrix(double* out, double* a, double* b) {
-	out[0]  = a[0]*b[0]+a[4]*b[1]+a[ 8]*b[2]+a[12]*b[3];
-	out[1]  = a[1]*b[0]+a[5]*b[1]+a[ 9]*b[2]+a[13]*b[3];
-	out[2]  = a[2]*b[0]+a[6]*b[1]+a[10]*b[2]+a[14]*b[3];
-	out[3]  = a[3]*b[0]+a[7]*b[1]+a[11]*b[2]+a[15]*b[3];
-
-	out[4]  = a[0]*b[4]+a[4]*b[5]+a[ 8]*b[6]+a[12]*b[7];
-	out[5]  = a[1]*b[4]+a[5]*b[5]+a[ 9]*b[6]+a[13]*b[7];
-	out[6]  = a[2]*b[4]+a[6]*b[5]+a[10]*b[6]+a[14]*b[7];
-	out[7]  = a[3]*b[4]+a[7]*b[5]+a[11]*b[6]+a[15]*b[7];
-
-	out[8]  = a[0]*b[8]+a[4]*b[9]+a[ 8]*b[10]+a[12]*b[11];
-	out[9]  = a[1]*b[8]+a[5]*b[9]+a[ 9]*b[10]+a[13]*b[11];
-	out[10] = a[2]*b[8]+a[6]*b[9]+a[10]*b[10]+a[14]*b[11];
-	out[11] = a[3]*b[8]+a[7]*b[9]+a[11]*b[10]+a[15]*b[11];
-
-	out[12] = a[0]*b[12]+a[4]*b[13]+a[ 8]*b[14]+a[12]*b[15];
-	out[13] = a[1]*b[12]+a[5]*b[13]+a[ 9]*b[14]+a[13]*b[15];
-	out[14] = a[2]*b[12]+a[6]*b[13]+a[10]*b[14]+a[14]*b[15];
-	out[15] = a[3]*b[12]+a[7]*b[13]+a[11]*b[14]+a[15]*b[15];
-}*/
 
 char kv6_intersection(struct kv6_t* kv6, Ray* r) {
 	AABB bb;
@@ -186,25 +155,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		//return;
 
 	if(!kv6->has_display_list) {
-		int size = 0;
-		for(int x=0;x<kv6->xsiz;x++) {
-			for(int y=0;y<kv6->ysiz;y++) {
-				for(int z=0;z<kv6->zsiz;z++) {
-					if(z==kv6->zsiz-1 || !kv6->color[x+(y+(z+1)*kv6->ysiz)*kv6->xsiz])
-						size++;
-					if(z==0 || !kv6->color[x+(y+(z-1)*kv6->ysiz)*kv6->xsiz])
-						size++;
-					if(y==0 || !kv6->color[x+((y-1)+z*kv6->ysiz)*kv6->xsiz])
-						size++;
-					if(y==kv6->ysiz-1 || !kv6->color[x+((y+1)+z*kv6->ysiz)*kv6->xsiz])
-						size++;
-					if(x==0 || !kv6->color[(x-1)+(y+z*kv6->ysiz)*kv6->xsiz])
-						size++;
-					if(x==kv6->xsiz-1 || !kv6->color[(x+1)+(y+z*kv6->ysiz)*kv6->xsiz])
-						size++;
-				}
-			}
-		}
+		int size = kv6->voxel_count*6;
 
 		kv6->vertices_final = malloc(size*12*sizeof(float));
 		kv6->colors_final = malloc(size*12*sizeof(unsigned char)*2);
@@ -219,14 +170,20 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		for(int t=0;t<3;t++) {
 			v = c = n = 0;
 
-			for(int x=0;x<kv6->xsiz;x++) {
+			/*for(int x=0;x<kv6->xsiz;x++) {
 				for(int y=0;y<kv6->ysiz;y++) {
-					for(int z=0;z<kv6->zsiz;z++) {
-						if(kv6->color[x+y*kv6->xsiz+z*kv6->xsiz*kv6->ysiz]!=0) {
-							int b = kv6->color[x+y*kv6->xsiz+z*kv6->xsiz*kv6->ysiz] & 0xFF;
-							int g = (kv6->color[x+y*kv6->xsiz+z*kv6->xsiz*kv6->ysiz]>>8) & 0xFF;
-							int r = (kv6->color[x+y*kv6->xsiz+z*kv6->xsiz*kv6->ysiz]>>16) & 0xFF;
-							int a = (kv6->color[x+y*kv6->xsiz+z*kv6->xsiz*kv6->ysiz]>>24) & 0xFF;
+					for(int z=0;z<kv6->zsiz;z++) {*/
+					for(int k=0;k<kv6->voxel_count;k++) {
+
+						if(kv6->voxels[k].color!=0) {
+							int x = kv6->voxels[k].x;
+							int y = kv6->voxels[k].y;
+							int z = kv6->voxels[k].z;
+							int vis = kv6->voxels[k].visfaces; //zZyYxX
+							int b = kv6->voxels[k].color & 0xFF;
+							int g = (kv6->voxels[k].color>>8) & 0xFF;
+							int r = (kv6->voxels[k].color>>16) & 0xFF;
+							int a = (kv6->voxels[k].color>>24) & 0xFF;
 							if(r==0 && g==0 && b==0) {
 								switch(t) {
 									case TEAM_1:
@@ -250,7 +207,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 							float alpha[6];
 
 							//negative y
-							if(z==kv6->zsiz-1 || !kv6->color[x+(y+(z+1)*kv6->ysiz)*kv6->xsiz]) {
+							if(vis&16) {//z==kv6->zsiz-1 || !kv6->color[x+(y+(z+1)*kv6->ysiz)*kv6->xsiz]) {
 								kv6->vertices_final[v++] = p[0];
 								kv6->vertices_final[v++] = p[1]+kv6->scale;
 								kv6->vertices_final[v++] = p[2];
@@ -267,7 +224,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 							}
 
 							//positive y
-							if(z==0 || !kv6->color[x+(y+(z-1)*kv6->ysiz)*kv6->xsiz]) {
+							if(vis&32) {//z==0 || !kv6->color[x+(y+(z-1)*kv6->ysiz)*kv6->xsiz]) {
 								kv6->vertices_final[v++] = p[0];
 								kv6->vertices_final[v++] = p[1];
 								kv6->vertices_final[v++] = p[2];
@@ -284,7 +241,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 							}
 
 							//negative z
-							if(y==0 || !kv6->color[x+((y-1)+z*kv6->ysiz)*kv6->xsiz]) {
+							if(vis&4) {//y==0 || !kv6->color[x+((y-1)+z*kv6->ysiz)*kv6->xsiz]) {
 								kv6->vertices_final[v++] = p[0];
 								kv6->vertices_final[v++] = p[1];
 								kv6->vertices_final[v++] = p[2];
@@ -301,7 +258,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 							}
 
 							//positive z
-							if(y==kv6->ysiz-1 || !kv6->color[x+((y+1)+z*kv6->ysiz)*kv6->xsiz]) {
+							if(vis&8) {//y==kv6->ysiz-1 || !kv6->color[x+((y+1)+z*kv6->ysiz)*kv6->xsiz]) {
 								kv6->vertices_final[v++] = p[0];
 								kv6->vertices_final[v++] = p[1];
 								kv6->vertices_final[v++] = p[2]+kv6->scale;
@@ -318,7 +275,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 							}
 
 							//negative x
-							if(x==0 || !kv6->color[(x-1)+(y+z*kv6->ysiz)*kv6->xsiz]) {
+							if(vis&1) {//x==0 || !kv6->color[(x-1)+(y+z*kv6->ysiz)*kv6->xsiz]) {
 								kv6->vertices_final[v++] = p[0];
 								kv6->vertices_final[v++] = p[1];
 								kv6->vertices_final[v++] = p[2];
@@ -335,7 +292,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 							}
 
 							//positive x
-							if(x==kv6->xsiz-1 || !kv6->color[(x+1)+(y+z*kv6->ysiz)*kv6->xsiz]) {
+							if(vis&2) {//x==kv6->xsiz-1 || !kv6->color[(x+1)+(y+z*kv6->ysiz)*kv6->xsiz]) {
 								kv6->vertices_final[v++] = p[0]+kv6->scale;
 								kv6->vertices_final[v++] = p[1];
 								kv6->vertices_final[v++] = p[2];
@@ -361,8 +318,8 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 								kv6->normals_final[n++] = kv6_normals[a][1]*128;
 							}
 						}
-					}
-				}
+					//}
+				//}
 			}
 
 			if(!kv6->colorize) {

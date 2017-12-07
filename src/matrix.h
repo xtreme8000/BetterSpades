@@ -13,6 +13,7 @@ void matrix_multiply(float* m);
 void matrix_load(float* m);
 void matrix_rotate(float angle, float x, float y, float z);
 void matrix_translate(float x, float y, float z);
+void matrix_scale3(float s);
 void matrix_scale(float sx, float sy, float sz);
 void matrix_identity(void);
 void matrix_push(void);

@@ -86,9 +86,6 @@ void read_PacketBlockAction(void* data, int len) {
 			if((63-p->z)>1) {
 				map_set(p->x,63-p->z,p->y,0xFFFFFFFF);
 				map_update_physics(p->x,63-p->z,p->y);
-				/*sound_create(NULL,SOUND_WORLD,&sound_hitground,
-							 p->x+0.5F,63-p->z+0.5F,p->y+0.5F
-						 );*/
 			}
 			break;
 		case ACTION_GRENADE:
@@ -116,9 +113,9 @@ void read_PacketBlockAction(void* data, int len) {
 				map_set(p->x,63-p->z+1,p->y,0xFFFFFFFF);
 				map_update_physics(p->x,63-p->z+1,p->y);
 			}
-			sound_create(NULL,SOUND_WORLD,&sound_hitground,
+			/*sound_create(NULL,SOUND_WORLD,&sound_hitground,
 						 p->x+0.5F,63-p->z+0.5F,p->y+0.5F
-					 	);
+					 );*/
 			break;
 		case ACTION_BUILD:
 			if(p->player_id<PLAYERS_MAX) {
@@ -126,6 +123,7 @@ void read_PacketBlockAction(void* data, int len) {
 					players[p->player_id].block.red |
 					(players[p->player_id].block.green<<8) |
 					(players[p->player_id].block.blue<<16));
+				map_update_physics(p->x,63-p->z,p->y);
 				sound_create(NULL,SOUND_WORLD,&sound_build,
 							 p->x+0.5F,63-p->z+0.5F,p->y+0.5F
 						 	);
@@ -144,6 +142,7 @@ void read_PacketBlockLine(void* data, int len) {
 			players[p->player_id].block.red |
 			(players[p->player_id].block.green>>8) |
 			(players[p->player_id].block.blue>>16));
+		map_update_physics(p->sx,63-p->sz,p->sy);
 	} else {
 		struct Point blocks[64];
 		int len = map_cube_line(p->sx,p->sy,p->sz,p->ex,p->ey,p->ez,blocks);
@@ -155,6 +154,7 @@ void read_PacketBlockLine(void* data, int len) {
 			len--;
 		}
 	}
+	sound_create(NULL,SOUND_WORLD,&sound_build,(p->sx+p->ex)*0.5F+0.5F,(63-p->sz+63-p->ez)*0.5F+0.5F,(p->sy+p->ey)*0.5F+0.5F);
 }
 
 void read_PacketStateData(void* data, int len) {
@@ -195,7 +195,7 @@ void read_PacketStateData(void* data, int len) {
 	printf("map data was %i bytes\n",compressed_chunk_data_offset);
 	int avail_size = 1024*1024;
 	void* decompressed = malloc(avail_size);
-	int decompressed_size;
+	size_t decompressed_size;
 	struct libdeflate_decompressor* d = libdeflate_alloc_decompressor();
 	while(1) {
 		int r = libdeflate_zlib_decompress(d,compressed_chunk_data,compressed_chunk_data_offset,decompressed,avail_size,&decompressed_size);
@@ -666,6 +666,10 @@ void network_send(int id, void* data, int len) {
 	}
 }
 
+unsigned int network_ping() {
+	return network_connected?peer->roundTripTime:0;
+}
+
 void network_disconnect() {
 	enet_peer_disconnect(peer,0);
 	network_connected = 0;
@@ -718,7 +722,7 @@ void network_update() {
 						//printf("packet id %i\n",id);
 						(*packets[id]) (event.packet->data+1,event.packet->dataLength-1);
 					} else {
-						printf("Invalid packet id %i, length: %i\n",id,event.packet->dataLength-1);
+						printf("Invalid packet id %i, length: %i\n",id,(int)event.packet->dataLength-1);
 					}
 					enet_packet_destroy(event.packet);
 					break;

@@ -28,8 +28,9 @@ void chat_showpopup(const char* msg) {
 }
 
 int screen_current = SCREEN_NONE;
+int show_exit = 0;
 
-float drawScene() {
+float drawScene(float dt) {
 	if(settings.ambient_occlusion) {
 		glShadeModel(GL_SMOOTH);
 	} else {
@@ -44,10 +45,13 @@ float drawScene() {
 	glDisableClientState(GL_COLOR_ARRAY);
 
 	glShadeModel(GL_FLAT);
+	matrix_upload();
 	particle_render();
 	tracer_render();
 
 	map_damaged_voxels_render();
+	map_collapsing_render(dt);
+	matrix_upload();
 
 	if(gamestate.gamemode_type==GAMEMODE_CTF) {
 		if(!gamestate.gamemode.ctf.team_1_intel) {
@@ -329,15 +333,17 @@ void display(float dt) {
 	player_move(&players[local_player_id],dt,local_player_id);
 
 	//following two if-statements disable smooth crouching on local player
-	if(!players[local_player_id].input.keys.crouch && key_map[GLFW_KEY_LEFT_CONTROL]) {
-		players[local_player_id].pos.y -= 0.9F;
-		players[local_player_id].physics.eye.y -= 0.9F;
-		last_cy -= 0.9F;
-	}
-	if(players[local_player_id].input.keys.crouch && !key_map[GLFW_KEY_LEFT_CONTROL]) {
-		players[local_player_id].pos.y += 0.9F;
-		players[local_player_id].physics.eye.y += 0.9F;
-		last_cy += 0.9F;
+	if(camera_mode==CAMERAMODE_FPS) {
+		if(!players[local_player_id].input.keys.crouch && key_map[GLFW_KEY_LEFT_CONTROL]) {
+			players[local_player_id].pos.y -= 0.9F;
+			players[local_player_id].physics.eye.y -= 0.9F;
+			last_cy -= 0.9F;
+		}
+		/*if(players[local_player_id].input.keys.crouch && !key_map[GLFW_KEY_LEFT_CONTROL]) {
+			players[local_player_id].pos.y += 0.9F;
+			players[local_player_id].physics.eye.y += 0.9F;
+			last_cy += 0.9F;
+		}*/
 	}
 
 	float fov = camera_fov;
@@ -365,10 +371,14 @@ void display(float dt) {
 		glLightfv(GL_LIGHT0,GL_AMBIENT,lambient);
 		glLightfv(GL_LIGHT0,GL_DIFFUSE,ldiffuse);
 
-		double view[16];
-		glGetDoublev(GL_MODELVIEW_MATRIX,view);
-		float light[4] = {1.0F,-3.0F,1.0F,0.0F};
-		mul_matrix_vector(map_sun,view,light);
+		map_sun[0] = 1.0F;
+		map_sun[1] = -3.0F;
+		map_sun[2] = 1.0F;
+		map_sun[3] = 0.0F;
+		matrix_push();
+		matrix_load(matrix_view);
+		matrix_vector(map_sun);
+		matrix_pop();
 		float map_sun_len = sqrt(map_sun[0]*map_sun[0]+map_sun[1]*map_sun[1]+map_sun[2]*map_sun[2]);
 		map_sun[0] /= map_sun_len;
 		map_sun[1] /= map_sun_len;
@@ -382,7 +392,7 @@ void display(float dt) {
 
 	if(!network_map_transfer) {
 
-		drawScene();
+		drawScene(dt);
 
 		grenade_update(dt);
 		tracer_update(dt);
@@ -398,7 +408,7 @@ void display(float dt) {
 				&& (glfwGetTime()-players[local_player_id].item_showup)>=0.5F
 				&& local_player_blocks>0) {
 				int* pos = camera_terrain_pick(0);
-				if((int)pos!=0 && pos[1]>1) {
+				if(pos!=NULL && pos[1]>1) {
 					players[local_player_id].item_showup = glfwGetTime();
 					local_player_blocks = max(local_player_blocks-1,0);
 
@@ -409,6 +419,7 @@ void display(float dt) {
 					blk.y = pos[2];
 					blk.z = 63-pos[1];
 					network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
+					//read_PacketBlockAction(&blk,sizeof(blk));
 				}
 			}
 		}
@@ -423,38 +434,57 @@ void display(float dt) {
 		}
 		if(pos!=NULL && (pow(pos[0]-camera_x,2)+pow(pos[1]-camera_y,2)+pow(pos[2]-camera_z,2))<5*5) {
 			matrix_upload();
-			glColor3f(1.0F,1.0F,1.0F);
+			glColor3f(1.0F,0.0F,0.0F);
 			glLineWidth(1.0F);
 			glDisable(GL_DEPTH_TEST);
 			glDepthMask(GL_FALSE);
-			glBegin(GL_LINES);
-			glVertex3s(pos[0],pos[1],pos[2]);
-			glVertex3s(pos[0],pos[1],pos[2]+1);
-			glVertex3s(pos[0],pos[1],pos[2]);
-			glVertex3s(pos[0]+1,pos[1],pos[2]);
-			glVertex3s(pos[0]+1,pos[1],pos[2]+1);
-			glVertex3s(pos[0]+1,pos[1],pos[2]);
-			glVertex3s(pos[0]+1,pos[1],pos[2]+1);
-			glVertex3s(pos[0],pos[1],pos[2]+1);
+			struct Point cubes[64];
+			int amount = 0;
+			if(local_player_drag_active && players[local_player_id].input.buttons.rmb && players[local_player_id].held_item==TOOL_BLOCK) {
+				amount = map_cube_line(local_player_drag_x,local_player_drag_z,63-local_player_drag_y,pos[0],pos[2],63-pos[1],cubes);
+			} else {
+				amount = 1;
+				cubes[0].x = pos[0];
+				cubes[0].y = pos[2];
+				cubes[0].z = 63-pos[1];
+			}
+			while(amount>0) {
+				int tmp = cubes[amount-1].y;
+				cubes[amount-1].y = 63-cubes[amount-1].z;
+				cubes[amount-1].z = tmp;
+				if(amount<=local_player_blocks) {
+					glColor3f(1.0F,1.0F,1.0F);
+				}
+				glBegin(GL_LINES);
+				glVertex3s(cubes[amount-1].x,cubes[amount-1].y,cubes[amount-1].z);
+				glVertex3s(cubes[amount-1].x,cubes[amount-1].y,cubes[amount-1].z+1);
+				glVertex3s(cubes[amount-1].x,cubes[amount-1].y,cubes[amount-1].z);
+				glVertex3s(cubes[amount-1].x+1,cubes[amount-1].y,cubes[amount-1].z);
+				glVertex3s(cubes[amount-1].x+1,cubes[amount-1].y,cubes[amount-1].z+1);
+				glVertex3s(cubes[amount-1].x+1,cubes[amount-1].y,cubes[amount-1].z);
+				glVertex3s(cubes[amount-1].x+1,cubes[amount-1].y,cubes[amount-1].z+1);
+				glVertex3s(cubes[amount-1].x,cubes[amount-1].y,cubes[amount-1].z+1);
 
-			glVertex3s(pos[0],pos[1]+1,pos[2]);
-			glVertex3s(pos[0],pos[1]+1,pos[2]+1);
-			glVertex3s(pos[0],pos[1]+1,pos[2]);
-			glVertex3s(pos[0]+1,pos[1]+1,pos[2]);
-			glVertex3s(pos[0]+1,pos[1]+1,pos[2]+1);
-			glVertex3s(pos[0]+1,pos[1]+1,pos[2]);
-			glVertex3s(pos[0]+1,pos[1]+1,pos[2]+1);
-			glVertex3s(pos[0],pos[1]+1,pos[2]+1);
+				glVertex3s(cubes[amount-1].x,cubes[amount-1].y+1,cubes[amount-1].z);
+				glVertex3s(cubes[amount-1].x,cubes[amount-1].y+1,cubes[amount-1].z+1);
+				glVertex3s(cubes[amount-1].x,cubes[amount-1].y+1,cubes[amount-1].z);
+				glVertex3s(cubes[amount-1].x+1,cubes[amount-1].y+1,cubes[amount-1].z);
+				glVertex3s(cubes[amount-1].x+1,cubes[amount-1].y+1,cubes[amount-1].z+1);
+				glVertex3s(cubes[amount-1].x+1,cubes[amount-1].y+1,cubes[amount-1].z);
+				glVertex3s(cubes[amount-1].x+1,cubes[amount-1].y+1,cubes[amount-1].z+1);
+				glVertex3s(cubes[amount-1].x,cubes[amount-1].y+1,cubes[amount-1].z+1);
 
-			glVertex3s(pos[0],pos[1],pos[2]);
-			glVertex3s(pos[0],pos[1]+1,pos[2]);
-			glVertex3s(pos[0]+1,pos[1],pos[2]);
-			glVertex3s(pos[0]+1,pos[1]+1,pos[2]);
-			glVertex3s(pos[0]+1,pos[1],pos[2]+1);
-			glVertex3s(pos[0]+1,pos[1]+1,pos[2]+1);
-			glVertex3s(pos[0],pos[1],pos[2]+1);
-			glVertex3s(pos[0],pos[1]+1,pos[2]+1);
-			glEnd();
+				glVertex3s(cubes[amount-1].x,cubes[amount-1].y,cubes[amount-1].z);
+				glVertex3s(cubes[amount-1].x,cubes[amount-1].y+1,cubes[amount-1].z);
+				glVertex3s(cubes[amount-1].x+1,cubes[amount-1].y,cubes[amount-1].z);
+				glVertex3s(cubes[amount-1].x+1,cubes[amount-1].y+1,cubes[amount-1].z);
+				glVertex3s(cubes[amount-1].x+1,cubes[amount-1].y,cubes[amount-1].z+1);
+				glVertex3s(cubes[amount-1].x+1,cubes[amount-1].y+1,cubes[amount-1].z+1);
+				glVertex3s(cubes[amount-1].x,cubes[amount-1].y,cubes[amount-1].z+1);
+				glVertex3s(cubes[amount-1].x,cubes[amount-1].y+1,cubes[amount-1].z+1);
+				glEnd();
+				amount--;
+			}
 			glEnable(GL_DEPTH_TEST);
 			glDepthMask(GL_TRUE);
 		}
@@ -484,6 +514,9 @@ void display(float dt) {
 			players[local_player_id].physics.eye.y = tmp2;
 		}
 
+
+		matrix_upload_p();
+		matrix_upload();
 		player_update(dt);
 
 	}
@@ -517,6 +550,10 @@ void display(float dt) {
 		texture_draw(&texture_white,(settings.window_width-440.0F*scalef)/2.0F+440.0F*scalef*p,settings.window_height*0.25F,440.0F*scalef*(1.0F-p),20.0F*scalef);
 		glColor3ub(255,255,50);
 		texture_draw(&texture_white,(settings.window_width-440.0F*scalef)/2.0F,settings.window_height*0.25F,440.0F*scalef*p,20.0F*scalef);
+		glColor3ub(69,69,69);
+		char str[128];
+		sprintf(str,"Loading Map %i/%i",compressed_chunk_data_offset,compressed_chunk_data_estimate);
+		font_centered(settings.window_width/2.0F,130*scalef,27*scalef,str);
 	} else {
 
 		if(players[local_player_id].held_item==TOOL_GRENADE && local_player_grenades==0) {
@@ -549,6 +586,15 @@ void display(float dt) {
 		}
 
 		if(key_map[GLFW_KEY_TAB] || camera_mode==CAMERAMODE_SELECTION) {
+			if(network_connected && network_logged_in) {
+				char ping_str[16];
+				sprintf(ping_str,"PING: %ims",network_ping());
+				font_select(FONT_SMALLFNT);
+				glColor3f(1.0F,0.0F,0.0F);
+				font_centered(settings.window_width/2.0F,settings.window_height*0.92F,8.0F*scalef,ping_str);
+				font_select(FONT_FIXEDSYS);
+			}
+
 			//struct Player* p = malloc(sizeof(players));
 			//memcpy(p,players,sizeof(players));
 			//qsort(p,PLAYERS_MAX,sizeof(players)/PLAYERS_MAX,cmp);
@@ -780,6 +826,22 @@ void display(float dt) {
 			glColor3f(1.0F,1.0F,1.0F);
 		} else {
 			texture_draw(&texture_splash,(settings.window_width-240*scalef)*0.5F,599*scalef,240*scalef,180*scalef);
+			glColor3f(1.0F,1.0F,0.0F);
+			font_centered(settings.window_width/2.0F,420*scalef,27*scalef,"CONTROLS");
+			char help_str[2][18][16] = {{"Movement","Fire","Gunsight","Weapons",
+										 "Reload","Jump","Crouch","Sneak","Sprint",
+										 "View Score","Map","Change Team",
+										 "Change Weapon","Global Chat","Team Chat",
+										 "Color Select","Grab Color","Quit"},
+										{"W S A D","L. Mouse","R. Mouse","1-4/Wheel",
+										 "R","Space","CTRL","V","SHIFT","TAB","M",
+										 ",",".","T","Y","Arrow Keys","E","ESC"}
+										};
+			for(int k=0;k<18;k++) {
+				font_render(settings.window_width/2.0F-font_length(18*scalef,help_str[0][k]),(420-27-18*k)*scalef,18*scalef,help_str[0][k]);
+				font_render(settings.window_width/2.0F+font_length(18*scalef," "),(420-27-18*k)*scalef,18*scalef,help_str[1][k]);
+			}
+			glColor3f(1.0F,1.0F,1.0F);
 		}
 
 		if(gamestate.gamemode_type==GAMEMODE_TC
@@ -987,10 +1049,12 @@ void display(float dt) {
 									break;
 							}
 						}
-						float player_x = min(max((k==local_player_id)?camera_x:players[k].pos.x,view_x),view_x+128.0F)-view_x;
-						float player_y = min(max((k==local_player_id)?camera_z:players[k].pos.z,view_z),view_z+128.0F)-view_z;
-						float ang = (k==local_player_id)?camera_rot_x+PI:-atan2(players[k].orientation.z,players[k].orientation.x)-HALFPI;
-						texture_draw_rotated(&texture_player,settings.window_width-143*scalef+player_x*scalef,(585-player_y)*scalef,12*scalef,12*scalef,ang);
+						float player_x = ((k==local_player_id)?camera_x:players[k].pos.x)-view_x;
+						float player_y = ((k==local_player_id)?camera_z:players[k].pos.z)-view_z;
+						if(player_x>0.0F && player_x<128.0F && player_y>0.0F && player_y<128.0F) {
+							float ang = (k==local_player_id)?camera_rot_x+PI:-atan2(players[k].orientation.z,players[k].orientation.x)-HALFPI;
+							texture_draw_rotated(&texture_player,settings.window_width-143*scalef+player_x*scalef,(585-player_y)*scalef,12*scalef,12*scalef,ang);
+						}
 					}
 				}
 
@@ -1094,6 +1158,12 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 		}
 		if(action==GLFW_PRESS) {
 			key_map[key] = 1;
+
+			if(key==GLFW_KEY_ESCAPE) {
+				show_exit ^= 1;
+				glfwSetInputMode(window,GLFW_CURSOR,show_exit?GLFW_CURSOR_NORMAL:GLFW_CURSOR_DISABLED);
+			}
+
 			if(key==GLFW_KEY_F1) {
 				camera_mode = 0;
 			}
@@ -1257,7 +1327,7 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 						login.blue = players[local_player_id].block.blue;
 						login.green = players[local_player_id].block.green;
 						login.red = players[local_player_id].block.red;
-						char* n = "DEV_CLIENT";
+						char* n = "Kunni";
 						strcpy(login.name,n);
 						network_send(PACKET_EXISTINGPLAYER_ID,&login,sizeof(login)-sizeof(login.name)+strlen(n)+1);
 					}
@@ -1283,32 +1353,15 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 					printf("connection failed ;(\n");
 				}
 			}
-
-			/*if(key==GLFW_KEY_O) {
-				draw_outline = (~draw_outline)&0x01;
-				chunk_set_render_mode(draw_outline);
-			}
-			if(key==GLFW_KEY_C) {
-				particle_create(0x00FFFFFF,hj,hk,hl,5.0F,3.0F,64,0.1F,0.25F);
-			}*/
 			if(key==GLFW_KEY_V) {
 				printf("%f,%f,%f,%f,%f\n",camera_x,camera_y,camera_z,camera_rot_x,camera_rot_y);
 				players[local_player_id].pos.x = 256.0F;
-				players[local_player_id].pos.y = 50.0F;
+				players[local_player_id].pos.y = 63.0F;
 				players[local_player_id].pos.z = 256.0F;
 				hj = camera_x;
 				hk = camera_y;
 				hl = camera_z;
 			}
-			/*if(key==GLFW_KEY_J) {
-				settings.render_distance -= 10.0F;
-			}
-			if(key==GLFW_KEY_K) {
-				settings.render_distance += 10.0F;
-			}
-			if(key==GLFW_KEY_J || key==GLFW_KEY_K) {
-				printf("Changed render distance to: %f blocks\n",settings.render_distance);
-			}*/
 			if(key==GLFW_KEY_F11) {
 				const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 				if(!settings.fullscreen) {
@@ -1364,6 +1417,34 @@ void mouse_click(GLFWwindow* window, int button, int action, int mods) {
 			players[local_player_id].input.buttons.rmb ^= 1;
 			if(players[local_player_id].items_show) {
 				players[local_player_id].input.buttons.rmb = 0;
+			}
+		}
+		if(local_player_drag_active && action==GLFW_RELEASE && players[local_player_id].held_item==TOOL_BLOCK) {
+			int* pos = camera_terrain_pick(0);
+			if(pos!=NULL && (pow(pos[0]-camera_x,2)+pow(pos[1]-camera_y,2)+pow(pos[2]-camera_z,2))<5*5) {
+				int amount = map_cube_line(local_player_drag_x,local_player_drag_z,63-local_player_drag_y,pos[0],pos[2],63-pos[1],NULL);
+				if(amount<=local_player_blocks) {
+					struct PacketBlockLine line;
+					line.player_id = local_player_id;
+					line.sx = local_player_drag_x;
+					line.sy = local_player_drag_z;
+					line.sz = 63-local_player_drag_y;
+					line.ex = pos[0];
+					line.ey = pos[2];
+					line.ez = 63-pos[1];
+					network_send(PACKET_BLOCKLINE_ID,&line,sizeof(line));
+					local_player_blocks -= amount;
+				}
+			}
+		}
+		local_player_drag_active = 0;
+		if(action==GLFW_PRESS && players[local_player_id].held_item==TOOL_BLOCK) {
+			int* pos = camera_terrain_pick(0);
+			if(pos!=NULL && pos[1]>0 && distance3D(camera_x,camera_y,camera_z,pos[0],pos[1],pos[2])<5.0F*5.0F) {
+				local_player_drag_active = 1;
+				local_player_drag_x = pos[0];
+				local_player_drag_y = pos[1];
+				local_player_drag_z = pos[2];
 			}
 		}
 		button_map[1] = (action==GLFW_PRESS);
@@ -1459,6 +1540,9 @@ void mouse_click(GLFWwindow* window, int button, int action, int mods) {
 
 double last_x, last_y;
 void mouse(GLFWwindow* window, double x, double y) {
+	if(show_exit) {
+		return;
+	}
     int dx = x-last_x;
     int dy = y-last_y;
 	last_x = x;
@@ -1563,7 +1647,7 @@ int main(int argc, char** argv) {
 		printf("MSAA on, GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d\n", iMultiSample, iNumSamples);
 	}
 
-	//glfwSwapInterval(0); uncomment this to disable vsync
+	//glfwSwapInterval(0); //uncomment this to disable vsync
 
 	if(!settings.opengl14) {
 		/*#ifdef OS_WINDOWS
@@ -1630,7 +1714,7 @@ int main(int argc, char** argv) {
 	init();
 
 	float last_frame;
-	while(!glfwWindowShouldClose(window) && !key_map[GLFW_KEY_ESCAPE]) {
+	while(!glfwWindowShouldClose(window)) {
 		float t = glfwGetTime();
 		float dt = t-last_frame;
 		last_frame = t;

@@ -15,7 +15,7 @@ void particle_update(float dt) {
 	AABB a;
 	for(int k=0;k<PARTICLES_MAX;k++) {
 		if(particles[k].alive) {
-			if(!particles[k].fade && glfwGetTime()-particles[k].created>=30.0F) {
+			if(!particles[k].fade /*&& glfwGetTime()-particles[k].created>=30.0F*/) {
 				particles[k].fade = glfwGetTime();
 			}
 
@@ -29,7 +29,7 @@ void particle_update(float dt) {
 			} else {
 				a.max_x = a.max_y = a.max_z = size;
 
-				float acc_y = -9.81F*(1.0F/0.64F)*dt;
+				float acc_y = -32.0F*dt;
 				aabb_set_center(&a,particles[k].x,particles[k].y+acc_y*dt,particles[k].z);
 				if(!aabb_intersection_terrain(&a)) {
 					particles[k].vy += acc_y;

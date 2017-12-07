@@ -1,3 +1,4 @@
+unsigned int network_ping(void);
 void network_send(int id, void* data, int len);
 void network_updateColor(void);
 void network_disconnect(void);

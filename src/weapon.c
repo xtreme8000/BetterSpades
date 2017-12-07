@@ -172,9 +172,12 @@ void weapon_shoot() {
     switch(hit.type) {
         case CAMERA_HITTYPE_PLAYER:
         {
+            int type = player_damage(hit.player_section);
+            sound_create(NULL,SOUND_WORLD,(type==HITTYPE_HEAD)?&sound_spade_whack:&sound_hitplayer,players[hit.player_id].pos.x,players[hit.player_id].pos.y,players[hit.player_id].pos.z)->stick_to_player = hit.player_id;
+            particle_create(0x0000FF,players[hit.player_id].physics.eye.x,players[hit.player_id].physics.eye.y+player_section_height(type),players[hit.player_id].physics.eye.z,2.0F,1.0F,16,0.1F,0.4F);
             struct PacketHit h;
             h.player_id = hit.player_id;
-            h.hit_type = player_intersection_type; //TODO: use hit.player_section
+            h.hit_type = type;
             network_send(PACKET_HIT_ID,&h,sizeof(h));
             printf("hit on %s (%i)\n",players[hit.player_id].name,h.hit_type);
             break;

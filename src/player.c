@@ -17,6 +17,11 @@ float local_player_last_damage_x;
 float local_player_last_damage_y;
 float local_player_last_damage_z;
 
+char local_player_drag_active = 0;
+int local_player_drag_x;
+int local_player_drag_y;
+int local_player_drag_z;
+
 int player_intersection_type = -1;
 int player_intersection_player = 0;
 float player_intersection_dist = 1024.0F;
@@ -139,7 +144,39 @@ float player_tool_translate_func(struct Player* p) {
 }
 
 float player_height(struct Player* p) {
-    return p->input.keys.crouch?1.0F:1.05F;
+    return p->input.keys.crouch?0.95F:1.0F;
+}
+
+int player_damage(int damage_sections) {
+    int type = -1;
+    if(damage_sections & (1<<HITTYPE_ARMS)) {
+        type = HITTYPE_ARMS;
+    }
+    if(damage_sections & (1<<HITTYPE_LEGS)) {
+        type = HITTYPE_LEGS;
+    }
+    if(damage_sections & (1<<HITTYPE_TORSO)) {
+        type = HITTYPE_TORSO;
+    }
+    if(damage_sections & (1<<HITTYPE_HEAD)) {
+        type = HITTYPE_HEAD;
+    }
+    return type;
+}
+
+float player_section_height(int section) {
+    switch(section) {
+        case HITTYPE_HEAD:
+            return 1.0F;
+        case HITTYPE_TORSO:
+            return 0.0F;
+        case HITTYPE_ARMS:
+            return 0.25F;
+        case HITTYPE_LEGS:
+            return -1.0F;
+        default:
+            return 0.0F;
+    }
 }
 
 void player_update(float dt) {
@@ -177,6 +214,7 @@ void player_update(float dt) {
                             blk.z = 63-hit.y;
                             network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
                             local_player_blocks = min(local_player_blocks+1,50);
+                            //read_PacketBlockAction(&blk,sizeof(blk));
                         }
                         break;
                     case CAMERA_HITTYPE_PLAYER:
@@ -251,6 +289,13 @@ void player_update(float dt) {
                                    players[k].pos.x,players[k].pos.y,players[k].pos.z
                                )->stick_to_player = k;
                     tracer_add(players[k].weapon,players[k].input.buttons.rmb,players[k].gun_pos.x,players[k].gun_pos.y,players[k].gun_pos.z,players[k].orientation.x,players[k].orientation.y,players[k].orientation.z);
+                    struct Camera_HitType hit;
+                    camera_hit_fromplayer(&hit,k,128.0F);
+                    if(hit.type==CAMERA_HITTYPE_PLAYER) {
+                        int type = player_damage(hit.player_section);
+                        sound_create(NULL,SOUND_WORLD,(type==HITTYPE_HEAD)?&sound_spade_whack:&sound_hitplayer,players[hit.player_id].pos.x,players[hit.player_id].pos.y,players[hit.player_id].pos.z)->stick_to_player = hit.player_id;
+                        particle_create(0x0000FF,players[hit.player_id].physics.eye.x,players[hit.player_id].physics.eye.y+player_section_height(type),players[hit.player_id].physics.eye.z,2.0F,1.0F,16,0.1F,0.4F);
+                    }
                     players[k].gun_shoot_timer = glfwGetTime();
                 }
             }
@@ -275,7 +320,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 
     struct kv6_t* torso = p->input.keys.crouch?&model_playertorsoc:&model_playertorso;
     struct kv6_t* leg = p->input.keys.crouch?&model_playerlegc:&model_playerleg;
-    float height = p->input.keys.crouch?1.0F:1.05F;
+    float height = player_height(p);
 
 
     float len = sqrt(pow(p->orientation.x,2.0F)+pow(p->orientation.z,2.0F));
@@ -314,15 +359,28 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
         }
         matrix_pop();
 
-        /*if(map.gamemode==PacketStateData.STATE_CTF) {
-            mat4.translate(mov_matrix,mov_matrix,[0.0,-models.playerhead.zsiz*0.125-torso.zsiz*0.125*0.125,-torso.ysiz*0.125]);
-            if(player.team==0 && "player" in map.gamestate.team_2_intel && map.players[map.gamestate.team_2_intel.player]==player) {
-                models.intel.draw(0,0,0,0.125,1);
+        if(gamestate.gamemode_type==GAMEMODE_CTF &&
+            ((gamestate.gamemode.ctf.team_1_intel && gamestate.gamemode.ctf.team_1_intel_location.held.player_id==id) ||
+            (gamestate.gamemode.ctf.team_2_intel && gamestate.gamemode.ctf.team_2_intel_location.held.player_id==id))) {
+            matrix_push();
+            matrix_translate(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
+            matrix_pointAt(-p->orientation.z,0.0F,p->orientation.x);
+            matrix_translate((torso->xsiz-model_intel.xsiz)*0.5F*torso->scale,
+                            -(torso->zpiv-torso->zsiz*0.5F+model_intel.zsiz*(p->input.keys.crouch?0.125F:0.25F))*torso->scale,
+                            (torso->ypiv+model_intel.ypiv)*torso->scale);
+            matrix_scale3(torso->scale/model_intel.scale);
+            if(p->input.keys.crouch) {
+                matrix_rotate(-45.0F,1.0F,0.0F,0.0F);
             }
-            if(player.team==1 && "player" in map.gamestate.team_1_intel && map.players[map.gamestate.team_1_intel.player]==player) {
-                models.intel.draw(0,0,0,0.125,0);
-            }
-        }*/
+            matrix_upload();
+            int t = TEAM_SPECTATOR;
+            if(gamestate.gamemode.ctf.team_1_intel && gamestate.gamemode.ctf.team_1_intel_location.held.player_id==id)
+                t = TEAM_1;
+            if(gamestate.gamemode.ctf.team_2_intel && gamestate.gamemode.ctf.team_2_intel_location.held.player_id==id)
+                t = TEAM_2;
+            kv6_render(&model_intel,t);
+            matrix_pop();
+        }
 
         matrix_push();
         matrix_translate(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
@@ -734,4 +792,36 @@ int player_move(struct Player* p, float fsynctics, int id) {
     //sound_velocity(&p->sound.feet,p->physics.velocity.x,p->physics.velocity.y,p->physics.velocity.z);
 
     return ret;
+}
+
+int player_uncrouch(struct Player* p) {
+    player_coordsystem_adjust1(p);
+    float x1 = p->pos.x + 0.45F;
+    float x2 = p->pos.x - 0.45F;
+    float y1 = p->pos.y + 0.45F;
+    float y2 = p->pos.y - 0.45F;
+    float z1 = p->pos.z + 2.25F;
+    float z2 = p->pos.z - 1.35F;
+
+    //first check if player can lower feet (in midair)
+    if(p->physics.airborne && !(
+        player_clipbox(x1, y1, z1) ||
+        player_clipbox(x1, y2, z1) ||
+        player_clipbox(x2, y1, z1) ||
+        player_clipbox(x2, y2, z1))) {
+        player_coordsystem_adjust2(p);
+        return 1;
+    //then check if they can raise their head
+    } else if(!(player_clipbox(x1, y1, z2) ||
+        player_clipbox(x1, y2, z2) ||
+        player_clipbox(x2, y1, z2) ||
+        player_clipbox(x2, y2, z2)))
+    {
+        p->pos.z -= 0.9F;
+        p->physics.eye.z -= 0.9F;
+        player_coordsystem_adjust2(p);
+        return 1;
+    }
+    player_coordsystem_adjust2(p);
+    return 0;
 }

@@ -11,14 +11,19 @@ void cameracontroller_fps(float dt) {
 	players[local_player_id].input.keys.down = key_map[GLFW_KEY_S];
 	players[local_player_id].input.keys.left = key_map[GLFW_KEY_A];
 	players[local_player_id].input.keys.right = key_map[GLFW_KEY_D];
-	players[local_player_id].input.keys.crouch = key_map[GLFW_KEY_LEFT_CONTROL];
+    if(players[local_player_id].input.keys.crouch && !key_map[GLFW_KEY_LEFT_CONTROL] && player_uncrouch(&players[local_player_id])) {
+        players[local_player_id].input.keys.crouch = 0;
+    }
+    if(key_map[GLFW_KEY_LEFT_CONTROL]) {
+        players[local_player_id].input.keys.crouch = 1;
+    }
+	//players[local_player_id].input.keys.crouch = key_map[GLFW_KEY_LEFT_CONTROL];
 	players[local_player_id].input.keys.sprint = key_map[GLFW_KEY_LEFT_SHIFT];
     players[local_player_id].input.keys.jump = key_map[GLFW_KEY_SPACE];
     players[local_player_id].input.keys.sneak = key_map[GLFW_KEY_V];
 
     camera_x = players[local_player_id].physics.eye.x;
-    float height = players[local_player_id].input.keys.crouch?1.0F:1.05F;
-    camera_y = players[local_player_id].physics.eye.y+height;
+    camera_y = players[local_player_id].physics.eye.y+player_height(&players[local_player_id]);
     camera_z = players[local_player_id].physics.eye.z;
 
     if(key_map[GLFW_KEY_LEFT_SHIFT]) {

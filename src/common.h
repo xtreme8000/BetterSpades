@@ -81,7 +81,7 @@ unsigned char key_map[512];
 unsigned char button_map[3];
 unsigned char draw_outline;
 
-PFNGLPOINTPARAMETERFVPROC glPointParameterfv;
+/*PFNGLPOINTPARAMETERFVPROC glPointParameterfv;
 PFNGLPOINTPARAMETERFPROC glPointParameterf;
 PFNGLCREATESHADERPROC glCreateShader;
 PFNGLSHADERSOURCEPROC glShaderSource;
@@ -94,7 +94,7 @@ PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
 PFNGLUNIFORM1FPROC glUniform1f;
 PFNGLUNIFORM4FPROC glUniform4f;
 PFNGLUNIFORM1IPROC glUniform1i;
-PFNGLTEXIMAGE3DPROC glTexImage3D;
+PFNGLTEXIMAGE3DPROC glTexImage3D;*/
 
 extern struct RENDER_OPTIONS {
 	boolean opengl14;

@@ -79,11 +79,17 @@ void camera_hit(struct Camera_HitType* hit, int exclude_player, float x, float y
 	for(int i=0;i<PLAYERS_MAX;i++) {
 		float l = distance3D(x,y,z,players[i].pos.x,players[i].pos.y,players[i].pos.z);
 		if(players[i].connected && players[i].alive && l<range*range && (exclude_player<0 || (exclude_player>=0 && exclude_player!=i))) {
-			int intersections = player_render(&players[i],i,&dir,0);
-			if(intersections && l<player_nearest) {
-				player_nearest = l;
-				player_nearest_id = i;
-				player_nearest_section = intersections;
+			float px = players[i].pos.x-x;
+			float py = players[i].pos.y-y;
+			float pz = players[i].pos.z-z;
+			float angle = acos(((px*ray_x)+(py*ray_y)+(pz*ray_z))/sqrt(px*px+py*py+pz*pz));
+			if(angle<5.0F) {
+				int intersections = player_render(&players[i],i,&dir,0);
+				if(intersections && l<player_nearest) {
+					player_nearest = l;
+					player_nearest_id = i;
+					player_nearest_section = intersections;
+				}
 			}
 		}
 	}
@@ -148,8 +154,12 @@ int* camera_terrain_pickEx(unsigned char mode, float gx0, float gy0, float gz0, 
 	int gx_pre = gx, gy_pre = gy, gz_pre = gz;
 
 	static int ret[3];
+	ret[0] = ret[1] = ret[2] = 0;
 
     while(1) {
+		if(gx>=map_size_x || gx<0 || gy>=map_size_y || gy<0 || gz>=map_size_z || gz<0) {
+			return ret;
+		}
 		switch(mode) {
 			case 0:
 				if(map_get(gx,gy,gz)!=0xFFFFFFFF && map_get(gx_pre,gy_pre,gz_pre)==0xFFFFFFFF) {
@@ -193,62 +203,6 @@ int* camera_terrain_pickEx(unsigned char mode, float gx0, float gy0, float gz0, 
     }
 
 	return NULL;
-
-
-	//naive approach until I find something better without glitches
-	//ray_x *= 0.01F;
-	//ray_y *= 0.01F;
-	//ray_z *= 0.01F;
-
-	/*if(mode==0) {
-		unsigned long long now,next;
-		for(int k=0;k<2000;k++) {
-			now = map_get(x,y,z);
-			next = map_get(x+ray_x,y+ray_y,z+ray_z);
-			if(next!=0xFFFFFFFF && now==0xFFFFFFFF) {
-				if(floor(y+ray_y)<1 || floor(y)<1) {
-					return (int*)0;
-				}
-				static int ret[3];
-				ret[0] = floor(x);
-				ret[1] = floor(y);
-				ret[2] = floor(z);
-				return ret;
-			}
-			x += ray_x;
-			y += ray_y;
-			z += ray_z;
-		}
-	} else {
-		if(mode==1) {
-			for(int k=0;k<2000;k++) {
-				if(floor(y)>0 && map_get(x,y,z)!=0xFFFFFFFF) {
-					static int ret[3];
-					ret[0] = floor(x);
-					ret[1] = floor(y);
-					ret[2] = floor(z);
-					return ret;
-				}
-				x += ray_x;
-				y += ray_y;
-				z += ray_z;
-			}
-		} else {
-			for(int k=0;k<2000;k++) {
-				if(map_get(x,y,z)!=0xFFFFFFFF) {
-					static int ret[3];
-					ret[0] = floor(x);
-					ret[1] = floor(y);
-					ret[2] = floor(z);
-					return ret;
-				}
-				x += ray_x;
-				y += ray_y;
-				z += ray_z;
-			}
-		}
-	}
-	return (int*)0;*/
 }
 
 void camera_ExtractFrustum() {

@@ -34,6 +34,11 @@ extern float local_player_last_damage_x;
 extern float local_player_last_damage_y;
 extern float local_player_last_damage_z;
 
+extern char local_player_drag_active;
+extern int local_player_drag_x;
+extern int local_player_drag_y;
+extern int local_player_drag_z;
+
 extern int player_intersection_type;
 extern int player_intersection_player;
 extern float player_intersection_dist;
@@ -104,6 +109,8 @@ extern struct Player {
 } players[PLAYERS_MAX];
 //pyspades/pysnip/piqueserver sometime uses ids that are out of range
 
+float player_section_height(int section);
+int player_damage(int damage_sections);
 void player_init(void);
 float player_height(struct Player* p);
 void player_reposition(struct Player* p);
@@ -111,3 +118,4 @@ void player_update(float dt);
 int player_render(struct Player* p, int id, Ray* ray, char render);
 void player_reset(struct Player* p);
 int player_move(struct Player* p, float fsynctics, int id);
+int player_uncrouch(struct Player* p);

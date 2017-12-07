@@ -11,13 +11,6 @@ float map_sun[4];
 
 unsigned char* map_minimap;
 
-
-#define MAX_VOXEL_CHECKS 8192
-int map_checked_voxels_x[MAX_VOXEL_CHECKS];
-int map_checked_voxels_y[MAX_VOXEL_CHECKS];
-int map_checked_voxels_z[MAX_VOXEL_CHECKS];
-int map_checked_voxels_index = 0;
-
 struct DamagedVoxel map_damaged_voxels[8] = {0};
 
 int map_damage(int x, int y, int z, int damage) {
@@ -95,98 +88,288 @@ void map_damaged_voxels_render() {
 	glColor4f(1.0F,1.0F,1.0F,1.0F);
 }
 
+struct voxel {
+	float x,y,z; //float makes it easier to reuse structure for rendering
+	char processed;
+};
+
+static char stack_contains(struct voxel* stack, int len, int x, int y, int z) {
+	for(int k=0;k<len;k++)
+		if(stack[k].x==x && stack[k].y==y && stack[k].z==z)
+			return 1;
+	return 0;
+}
+
+static struct {
+	struct voxel* voxels;
+	unsigned int* voxels_color;
+	int voxel_count;
+	struct Velocity v;
+	struct Position p;
+	struct Orientation o;
+	char used, rotation;
+} map_collapsing_structures[32] = {0};
+
+
+static void map_update_physics_sub(int x, int y, int z) {
+	//TODO: remove calls to malloc and realloc
+	struct voxel* stack = malloc(4096*sizeof(struct voxel));
+	int stack_depth = 1, stack_size = 64;
+	stack[0].x = x;
+	stack[0].y = y;
+	stack[0].z = z;
+	stack[0].processed = 1;
+
+	while(1) { //find all connected blocks
+		if(map_get(x,y-1,z)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x,y-1,z)) {
+			if(y<=2) {
+				free(stack);
+				return;
+			}
+			stack[stack_depth].processed = 0;
+			stack[stack_depth].x = x;
+			stack[stack_depth].y = y-1;
+			stack[stack_depth++].z = z;
+			if(stack_depth==stack_size) {
+				stack_size += 4096;
+				stack = realloc(stack,stack_size*sizeof(struct voxel));
+			}
+		}
+		if(map_get(x,y+1,z)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x,y+1,z)) {
+			stack[stack_depth].processed = 0;
+			stack[stack_depth].x = x;
+			stack[stack_depth].y = y+1;
+			stack[stack_depth++].z = z;
+			if(stack_depth==stack_size) {
+				stack_size += 4096;
+				stack = realloc(stack,stack_size*sizeof(struct voxel));
+			}
+		}
+		if(map_get(x+1,y,z)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x+1,y,z)) {
+			stack[stack_depth].processed = 0;
+			stack[stack_depth].x = x+1;
+			stack[stack_depth].y = y;
+			stack[stack_depth++].z = z;
+			if(stack_depth==stack_size) {
+				stack_size += 4096;
+				stack = realloc(stack,stack_size*sizeof(struct voxel));
+			}
+		}
+		if(map_get(x-1,y,z)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x-1,y,z)) {
+			stack[stack_depth].processed = 0;
+			stack[stack_depth].x = x-1;
+			stack[stack_depth].y = y;
+			stack[stack_depth++].z = z;
+			if(stack_depth==stack_size) {
+				stack_size += 4096;
+				stack = realloc(stack,stack_size*sizeof(struct voxel));
+			}
+		}
+		if(map_get(x,y,z+1)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x,y,z+1)) {
+			stack[stack_depth].processed = 0;
+			stack[stack_depth].x = x;
+			stack[stack_depth].y = y;
+			stack[stack_depth++].z = z+1;
+			if(stack_depth==stack_size) {
+				stack_size += 4096;
+				stack = realloc(stack,stack_size*sizeof(struct voxel));
+			}
+		}
+		if(map_get(x,y,z-1)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x,y,z-1)) {
+			stack[stack_depth].processed = 0;
+			stack[stack_depth].x = x;
+			stack[stack_depth].y = y;
+			stack[stack_depth++].z = z-1;
+			if(stack_depth==stack_size) {
+				stack_size += 4096;
+				stack = realloc(stack,stack_size*sizeof(struct voxel));
+			}
+		}
+
+
+		//find the next best block to work on
+		//first: lower y coord, second: equal y coord, last: everything else
+		int k, level = -1, level_best = 0;
+		for(k=0;k<stack_depth;k++) {
+			if(!stack[k].processed) {
+				if(stack[k].y==y-1 && stack[k].x==x && stack[k].z==z) {
+					level = 4;
+					level_best = k;
+					break;
+				}
+				if(stack[k].y<y && level<3) {
+					level = 3;
+					level_best = k;
+					continue;
+				}
+				if(stack[k].y==y && level<2) {
+					level = 2;
+					level_best = k;
+					continue;
+				}
+				if(level<1) {
+					level = 1;
+					level_best = k;
+				}
+			}
+		}
+		if(level<0) { //all connected blocks processed
+			break;
+		} else {
+			x = stack[level_best].x;
+			y = stack[level_best].y;
+			z = stack[level_best].z;
+			stack[level_best].processed = 1;
+		}
+	}
+
+	if(stack_depth==0) {
+		return;
+	}
+
+	for(int k=0;k<32;k++) {
+		if(!map_collapsing_structures[k].used) {
+			float px,py,pz;
+			map_collapsing_structures[k].voxels_color = malloc(stack_depth*sizeof(unsigned int));
+			for(int i=0;i<stack_depth;i++) {
+				px += stack[i].x+0.5F;
+				py += stack[i].y+0.5F;
+				pz += stack[i].z+0.5F;
+				map_collapsing_structures[k].voxels_color[i] = map_get(stack[i].x,stack[i].y,stack[i].z);
+				map_set(stack[i].x,stack[i].y,stack[i].z,0xFFFFFFFF);
+			}
+
+			px /= (float)stack_depth;
+			py /= (float)stack_depth;
+			pz /= (float)stack_depth;
+
+			for(int i=0;i<stack_depth;i++) {
+				stack[i].x -= px;
+				stack[i].y -= py;
+				stack[i].z -= pz;
+			}
+
+			sound_create(NULL,SOUND_WORLD,&sound_debris,px,py,pz);
+
+			map_collapsing_structures[k].used = 1;
+			map_collapsing_structures[k].voxels = stack;
+			map_collapsing_structures[k].v = (struct Velocity) {0,0,0};
+			map_collapsing_structures[k].o = (struct Orientation) {0,0,0};
+			map_collapsing_structures[k].p = (struct Position) {px,py,pz};
+			map_collapsing_structures[k].rotation = 1;
+			map_collapsing_structures[k].voxel_count = stack_depth;
+			return;
+		}
+	}
+}
+
+void map_collapsing_render(float dt) {
+	for(int k=0;k<32;k++) {
+		if(map_collapsing_structures[k].used) {
+			map_collapsing_structures[k].v.y -= dt;
+			char hit_floor = 0;
+	        if(map_get(map_collapsing_structures[k].p.x+map_collapsing_structures[k].v.x*dt*32.0F,
+					   map_collapsing_structures[k].p.y+map_collapsing_structures[k].v.y*dt*32.0F,
+					   map_collapsing_structures[k].p.z+map_collapsing_structures[k].v.z*dt*32.0F)==0xFFFFFFFF) {
+	            map_collapsing_structures[k].p.x += map_collapsing_structures[k].v.x*dt*32.0F;
+	            map_collapsing_structures[k].p.y += map_collapsing_structures[k].v.y*dt*32.0F;
+	            map_collapsing_structures[k].p.z += map_collapsing_structures[k].v.z*dt*32.0F;
+	        } else {
+	            map_collapsing_structures[k].v.x *= 0.6F;
+				map_collapsing_structures[k].v.y *= -0.6F;
+	            map_collapsing_structures[k].v.z *= 0.6F;
+				map_collapsing_structures[k].rotation++;
+				map_collapsing_structures[k].rotation &= 3;
+				sound_create(NULL,SOUND_WORLD,&sound_bounce,map_collapsing_structures[k].p.x,map_collapsing_structures[k].p.y,map_collapsing_structures[k].p.z);
+				hit_floor = 1;
+	        }
+			matrix_push();
+			matrix_identity();
+			matrix_translate(map_collapsing_structures[k].p.x,map_collapsing_structures[k].p.y,map_collapsing_structures[k].p.z);
+			map_collapsing_structures[k].o.x += ((map_collapsing_structures[k].rotation&1)?1.0F:-1.0F)*dt*100.0F;
+			map_collapsing_structures[k].o.y += ((map_collapsing_structures[k].rotation&2)?1.0F:-1.0F)*dt*100.0F;
+			matrix_rotate(map_collapsing_structures[k].o.x,1.0F,0.0F,0.0F);
+			matrix_rotate(map_collapsing_structures[k].o.y,0.0F,1.0F,0.0F);
+			matrix_upload();
+			glBegin(GL_QUADS);
+			for(int i=0;i<map_collapsing_structures[k].voxel_count;i++) {
+				glColor3f(red(map_collapsing_structures[k].voxels_color[i])/255.0F,
+						  green(map_collapsing_structures[k].voxels_color[i])/255.0F,
+					  	  blue(map_collapsing_structures[k].voxels_color[i])/255.0F);
+				float x = map_collapsing_structures[k].voxels[i].x;
+				float y = map_collapsing_structures[k].voxels[i].y;
+				float z = map_collapsing_structures[k].voxels[i].z;
+
+				glVertex3f(x,y,z);
+				glVertex3f(x+1,y,z);
+				glVertex3f(x+1,y,z+1);
+				glVertex3f(x,y,z+1);
+
+				glVertex3f(x,y+1,z);
+				glVertex3f(x,y+1,z+1);
+				glVertex3f(x+1,y+1,z+1);
+				glVertex3f(x+1,y+1,z);
+
+				glVertex3f(x,y,z);
+				glVertex3f(x,y+1,z);
+				glVertex3f(x+1,y+1,z);
+				glVertex3f(x+1,y,z);
+
+				glVertex3f(x,y,z+1);
+				glVertex3f(x+1,y,z+1);
+				glVertex3f(x+1,y+1,z+1);
+				glVertex3f(x,y+1,z+1);
+
+				glVertex3f(x,y,z);
+				glVertex3f(x,y,z+1);
+				glVertex3f(x,y+1,z+1);
+				glVertex3f(x,y+1,z);
+
+				glVertex3f(x+1,y,z);
+				glVertex3f(x+1,y+1,z);
+				glVertex3f(x+1,y+1,z+1);
+				glVertex3f(x+1,y,z+1);
+			}
+			glEnd();
+
+			if(absf(map_collapsing_structures[k].v.y)<0.1F && hit_floor) {
+				for(int i=0;i<map_collapsing_structures[k].voxel_count;i++) {
+					float v[4] = {map_collapsing_structures[k].voxels[i].x+0.5F,
+								  map_collapsing_structures[k].voxels[i].y+0.5F,
+							  	  map_collapsing_structures[k].voxels[i].z+0.5F,
+							  	  1.0F};
+					matrix_vector(v);
+					particle_create(map_collapsing_structures[k].voxels_color[i],v[0],v[1],v[2],2.5F,1.0F,4,0.1F,0.25F);
+				}
+				free(map_collapsing_structures[k].voxels);
+				free(map_collapsing_structures[k].voxels_color);
+				map_collapsing_structures[k].used = 0;
+			}
+
+			matrix_pop();
+		}
+	}
+}
+
 void map_update_physics(int x, int y, int z) {
-	if((map_get(x,y+1,z)&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(x,y+1,z)) {
-		map_apply_gravity();
+	if(map_get(x+1,y,z)!=0xFFFFFFFF) {
+		map_update_physics_sub(x+1,y,z);
 	}
-	if((map_get(x,y-1,z)&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(x,y-1,z)) {
-		map_apply_gravity();
+	if(map_get(x-1,y,z)!=0xFFFFFFFF) {
+		map_update_physics_sub(x-1,y,z);
 	}
-	if((map_get(x+1,y,z)&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(x+1,y,z)) {
-		map_apply_gravity();
+	if(map_get(x,y,z+1)!=0xFFFFFFFF) {
+		map_update_physics_sub(x,y,z+1);
 	}
-	if((map_get(x-1,y,z)&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(x-1,y,z)) {
-		map_apply_gravity();
+	if(map_get(x,y,z-1)!=0xFFFFFFFF) {
+		map_update_physics_sub(x,y,z-1);
 	}
-	if((map_get(x,y,z+1)&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(x,y,z+1)) {
-		map_apply_gravity();
+	if(map_get(x,y-1,z)!=0xFFFFFFFF) {
+		map_update_physics_sub(x,y-1,z);
 	}
-	if((map_get(x,y,z-1)&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(x,y,z-1)) {
-		map_apply_gravity();
+	if(map_get(x,y+1,z)!=0xFFFFFFFF) {
+		map_update_physics_sub(x,y+1,z);
 	}
-}
-
-void map_apply_gravity() {
-	for(int k=0;k<map_checked_voxels_index;k++) {
-		unsigned int col = map_get(map_checked_voxels_x[k],map_checked_voxels_y[k],map_checked_voxels_z[k]);
-		if(col!=0xFFFFFFFF) {
-			map_set(map_checked_voxels_x[k],map_checked_voxels_y[k],map_checked_voxels_z[k],0xFFFFFFFF);
-			particle_create(col,map_checked_voxels_x[k]+0.5F,map_checked_voxels_y[k]+0.5F,map_checked_voxels_z[k]+0.5F,2.5F,1.0F,8,0.1F,0.25F);
-		}
-	}
-}
-
-boolean map_ground_connected_result = false;
-
-boolean map_checked_voxels_contains(int x, int y, int z) {
-	for(int k=map_checked_voxels_index-1;k>=0;k--) {
-		if(map_checked_voxels_x[k]==x && map_checked_voxels_y[k]==y && map_checked_voxels_z[k]==z) {
-			return true;
-		}
-	}
-	return false;
-}
-
-void map_ground_connected_sub(int x, int y, int z, int depth) {
-	map_checked_voxels_x[map_checked_voxels_index] = x;
-	map_checked_voxels_y[map_checked_voxels_index] = y;
-	map_checked_voxels_z[map_checked_voxels_index++] = z;
-
-	if(y==0) {
-		map_ground_connected_result = true;
-		return;
-	}
-
-	if((map_get(x,y-1,z)&0xFFFFFFFF)!=0xFFFFFFFF && !map_checked_voxels_contains(x,y-1,z)) {
-		map_ground_connected_sub(x,y-1,z,depth+1);
-	}
-	if(map_ground_connected_result) {
-		return;
-	}
-	if((map_get(x+1,y,z)&0xFFFFFFFF)!=0xFFFFFFFF && !map_checked_voxels_contains(x+1,y,z)) {
-		map_ground_connected_sub(x+1,y,z,depth+1);
-	}
-	if(map_ground_connected_result) {
-		return;
-	}
-	if((map_get(x-1,y,z)&0xFFFFFFFF)!=0xFFFFFFFF && !map_checked_voxels_contains(x-1,y,z)) {
-		map_ground_connected_sub(x-1,y,z,depth+1);
-	}
-	if(map_ground_connected_result) {
-		return;
-	}
-	if((map_get(x,y,z+1)&0xFFFFFFFF)!=0xFFFFFFFF && !map_checked_voxels_contains(x,y,z+1)) {
-		map_ground_connected_sub(x,y,z+1,depth+1);
-	}
-	if(map_ground_connected_result) {
-		return;
-	}
-	if((map_get(x,y,z-1)&0xFFFFFFFF)!=0xFFFFFFFF && !map_checked_voxels_contains(x,y,z-1)) {
-		map_ground_connected_sub(x,y,z-1,depth+1);
-	}
-	if(map_ground_connected_result) {
-		return;
-	}
-	if((map_get(x,y+1,z)&0xFFFFFFFF)!=0xFFFFFFFF && !map_checked_voxels_contains(x,y+1,z)) {
-		map_ground_connected_sub(x,y+1,z,depth+1);
-	}
-}
-
-boolean map_ground_connected(int x, int y, int z) {
-	map_checked_voxels_index = 0;
-	map_ground_connected_result = false;
-	map_ground_connected_sub(x,y,z,0);
-	return map_ground_connected_result;
 }
 
 unsigned long long map_get(int x, int y, int z) {
@@ -246,9 +429,6 @@ void map_vxl_setcolor(int x, int y, int z, unsigned int t, unsigned long long* m
 	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_z || z>=map_size_y) {
 		return;
 	}
-	/*x *= 2;
-	y *= 2;
-	z *= 2;*/
 	unsigned char r = t & 255;
 	unsigned char g = (t>>8) & 255;
 	unsigned char b = (t>>16) & 255;
@@ -286,24 +466,19 @@ int map_cube_line(int x1, int y1, int z1, int x2, int y2, int z2, struct Point* 
 	if (d.z < 0) izi = -1;
 	else izi = 1;
 
-	if ((abs(d.x) >= abs(d.y)) && (abs(d.x) >= abs(d.z)))
-	{
+	if ((abs(d.x) >= abs(d.y)) && (abs(d.x) >= abs(d.z))) {
 		dxi = 1024; dx = 512;
 		dyi = (long)(!d.y ? 0x3fffffff/512 : abs(d.x*1024/d.y));
 		dy = dyi/2;
 		dzi = (long)(!d.z ? 0x3fffffff/512 : abs(d.x*1024/d.z));
 		dz = dzi/2;
-	}
-	else if (abs(d.y) >= abs(d.z))
-	{
+	} else if (abs(d.y) >= abs(d.z)) {
 		dyi = 1024; dy = 512;
 		dxi = (long)(!d.x ? 0x3fffffff/512 : abs(d.y*1024/d.x));
 		dx = dxi/2;
 		dzi = (long)(!d.z ? 0x3fffffff/512 : abs(d.y*1024/d.z));
 		dz = dzi/2;
-	}
-	else
-	{
+	} else {
 		dzi = 1024; dz = 512;
 		dxi = (long)(!d.x ? 0x3fffffff/512 : abs(d.z*1024/d.x));
 		dx = dxi/2;
@@ -315,36 +490,29 @@ int map_cube_line(int x1, int y1, int z1, int x2, int y2, int z2, struct Point* 
 	if (izi >= 0) dz = dzi-dz;
 
 	while(1) {
-		cube_array[count] = c;
+		if(cube_array!=NULL)
+			cube_array[count] = c;
 
-		if(count++ == 64)
+		if(count++==64)
 			return count;
 
-		if(c.x == x2 &&
-			c.y == y2 &&
-			c.z == z2)
+		if(c.x==x2 && c.y==y2 && c.z==z2)
 			return count;
 
-		if ((dz <= dx) && (dz <= dy))
-		{
+		if (dz<=dx && dz<=dy) {
 			c.z += izi;
-			if (c.z < 0 || c.z >= 64)
+			if (c.z<0 || c.z>=64)
 				return count;
 			dz += dzi;
-		}
-		else
-		{
-			if (dx < dy)
-			{
+		} else {
+			if(dx < dy) {
 				c.x += ixi;
-				if ((unsigned long)c.x >= 512)
+				if ((unsigned long)c.x>=512)
 					return count;
 				dx += dxi;
-			}
-			else
-			{
+			} else {
 				c.y += iyi;
-				if ((unsigned long)c.y >= 512)
+				if((unsigned long)c.y>=512)
 					return count;
 				dy += dyi;
 			}
