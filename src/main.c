@@ -1327,7 +1327,7 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 						login.blue = players[local_player_id].block.blue;
 						login.green = players[local_player_id].block.green;
 						login.red = players[local_player_id].block.red;
-						char* n = "Kunni";
+						char* n = "DEV_CLIENT";
 						strcpy(login.name,n);
 						network_send(PACKET_EXISTINGPLAYER_ID,&login,sizeof(login)-sizeof(login.name)+strlen(n)+1);
 					}
