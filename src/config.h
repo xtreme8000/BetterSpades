@@ -12,6 +12,7 @@ extern struct RENDER_OPTIONS {
 	boolean fullscreen;
     boolean greedy_meshing;
     boolean vsync;
+    float mouse_sensitivity;
 } settings;
 
 void config_reload(void);

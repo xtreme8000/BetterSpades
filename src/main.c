@@ -434,7 +434,7 @@ void display(float dt) {
 			default:
 				pos = NULL;
 		}
-		if(pos!=NULL && (pow(pos[0]-camera_x,2)+pow(pos[1]-camera_y,2)+pow(pos[2]-camera_z,2))<5*5) {
+		if(pos!=NULL && pos[1]>1 && (pow(pos[0]-camera_x,2)+pow(pos[1]-camera_y,2)+pow(pos[2]-camera_z,2))<5*5) {
 			matrix_upload();
 			glColor3f(1.0F,0.0F,0.0F);
 			glLineWidth(1.0F);
@@ -1442,7 +1442,7 @@ void mouse_click(GLFWwindow* window, int button, int action, int mods) {
 		}
 		if(local_player_drag_active && action==GLFW_RELEASE && players[local_player_id].held_item==TOOL_BLOCK) {
 			int* pos = camera_terrain_pick(0);
-			if(pos!=NULL && (pow(pos[0]-camera_x,2)+pow(pos[1]-camera_y,2)+pow(pos[2]-camera_z,2))<5*5) {
+			if(pos!=NULL && pos[1]>1 && (pow(pos[0]-camera_x,2)+pow(pos[1]-camera_y,2)+pow(pos[2]-camera_z,2))<5*5) {
 				int amount = map_cube_line(local_player_drag_x,local_player_drag_z,63-local_player_drag_y,pos[0],pos[2],63-pos[1],NULL);
 				if(amount<=local_player_blocks) {
 					struct PacketBlockLine line;
@@ -1461,7 +1461,7 @@ void mouse_click(GLFWwindow* window, int button, int action, int mods) {
 		local_player_drag_active = 0;
 		if(action==GLFW_PRESS && players[local_player_id].held_item==TOOL_BLOCK) {
 			int* pos = camera_terrain_pick(0);
-			if(pos!=NULL && pos[1]>0 && distance3D(camera_x,camera_y,camera_z,pos[0],pos[1],pos[2])<5.0F*5.0F) {
+			if(pos!=NULL && pos[1]>1 && distance3D(camera_x,camera_y,camera_z,pos[0],pos[1],pos[2])<5.0F*5.0F) {
 				local_player_drag_active = 1;
 				local_player_drag_x = pos[0];
 				local_player_drag_y = pos[1];
@@ -1574,8 +1574,8 @@ void mouse(GLFWwindow* window, double x, double y) {
 		s = 0.5F;
 	}
 
-	camera_rot_x -= dx*MOUSE_SENSITIVITY*s;
-	camera_rot_y += dy*MOUSE_SENSITIVITY*s;
+	camera_rot_x -= dx*settings.mouse_sensitivity*s;
+	camera_rot_y += dy*settings.mouse_sensitivity*s;
 
 	camera_overflow_adjust();
 }
@@ -1614,6 +1614,7 @@ int main(int argc, char** argv) {
 	settings.player_arms = 0;
 	settings.fullscreen = 0;
 	settings.greedy_meshing = 0;
+	settings.mouse_sensitivity = MOUSE_SENSITIVITY;
 	strcpy(settings.name,"DEV_CLIENT");
 
 	config_reload();

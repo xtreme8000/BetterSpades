@@ -142,8 +142,8 @@ void read_PacketBlockLine(void* data, int len) {
 	if(p->sx==p->ex && p->sy==p->ey && p->sz==p->ez) {
 		map_set(p->sx,63-p->sz,p->sy,
 			players[p->player_id].block.red |
-			(players[p->player_id].block.green>>8) |
-			(players[p->player_id].block.blue>>16));
+			(players[p->player_id].block.green<<8) |
+			(players[p->player_id].block.blue<<16));
 		map_update_physics(p->sx,63-p->sz,p->sy);
 	} else {
 		struct Point blocks[64];
