@@ -164,17 +164,17 @@ void cameracontroller_bodyview(float dt) {
 
     //this is needed to determine which chunks need/can be rendered and for sound, minimap etc...
     camera_x = players[cameracontroller_bodyview_player].pos.x-sin(camera_rot_x)*sin(camera_rot_y)*k;
-    camera_y = players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*k;
+    camera_y = players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*k+(players[cameracontroller_bodyview_player].alive?0.0F:1.0F);
     camera_z = players[cameracontroller_bodyview_player].pos.z-cos(camera_rot_x)*sin(camera_rot_y)*k;
     camera_vx = players[cameracontroller_bodyview_player].physics.velocity.x;
     camera_vy = players[cameracontroller_bodyview_player].physics.velocity.y;
     camera_vz = players[cameracontroller_bodyview_player].physics.velocity.z;
 
     matrix_lookAt(players[cameracontroller_bodyview_player].pos.x-sin(camera_rot_x)*sin(camera_rot_y)*k,
-              players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*k,
+              players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*k+(players[cameracontroller_bodyview_player].alive?0.0F:1.0F),
               players[cameracontroller_bodyview_player].pos.z-cos(camera_rot_x)*sin(camera_rot_y)*k,
               players[cameracontroller_bodyview_player].pos.x,
-              players[cameracontroller_bodyview_player].pos.y,
+              players[cameracontroller_bodyview_player].pos.y+(players[cameracontroller_bodyview_player].alive?0.0F:1.0F),
               players[cameracontroller_bodyview_player].pos.z,
               0.0F,1.0F,0.0F);
 }
