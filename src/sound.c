@@ -51,9 +51,11 @@ struct Sound_wav sound_beep1;
 struct Sound_wav sound_beep2;
 struct Sound_wav sound_switch;
 struct Sound_wav sound_empty;
+struct Sound_wav sound_intro;
 
 struct Sound_wav sound_debris;
 struct Sound_wav sound_bounce;
+struct Sound_wav sound_impact;
 
 
 int sound_free_index() {
@@ -246,9 +248,11 @@ void sound_init() {
     sound_load(&sound_beep2,"wav/beep2.wav",0.1F,1024.0F);
     sound_load(&sound_switch,"wav/switch.wav",0.1F,1024.0F);
     sound_load(&sound_empty,"wav/empty.wav",0.1F,1024.0F);
+    sound_load(&sound_intro,"wav/intro.wav",0.1F,1024.0F);
 
     sound_load(&sound_debris,"wav/debris.wav",0.1F,53.0F);
     sound_load(&sound_bounce,"wav/bounce.wav",0.1F,32.0F);
+    sound_load(&sound_impact,"wav/impact.wav",0.1F,53.0F);
 
     memset(sound_sources_free,1,sizeof(sound_sources_free));
 }

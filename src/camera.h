@@ -22,6 +22,7 @@ extern long camera_last_key;
 struct Camera_HitType {
 	char type;
 	float x,y,z,distance;
+	int xb,yb,zb;
 	unsigned char player_id, player_section;
 };
 #define CAMERA_HITTYPE_NONE		0

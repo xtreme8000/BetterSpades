@@ -89,7 +89,7 @@ void map_damaged_voxels_render() {
 }
 
 struct voxel {
-	float x,y,z; //float makes it easier to reuse structure for rendering
+	int x,y,z; //float makes it easier to reuse structure for rendering
 	char processed;
 };
 
@@ -106,8 +106,10 @@ static struct {
 	int voxel_count;
 	struct Velocity v;
 	struct Position p;
+	struct Position p2;
 	struct Orientation o;
-	char used, rotation;
+	char used, rotation, has_displaylist;
+	int displaylist;
 } map_collapsing_structures[32] = {0};
 
 
@@ -229,7 +231,7 @@ static void map_update_physics_sub(int x, int y, int z) {
 
 	for(int k=0;k<32;k++) {
 		if(!map_collapsing_structures[k].used) {
-			float px,py,pz;
+			float px = 0.0F,py = 0.0F,pz = 0.0F;
 			map_collapsing_structures[k].voxels_color = malloc(stack_depth*sizeof(unsigned int));
 			for(int i=0;i<stack_depth;i++) {
 				px += stack[i].x+0.5F;
@@ -243,12 +245,6 @@ static void map_update_physics_sub(int x, int y, int z) {
 			py /= (float)stack_depth;
 			pz /= (float)stack_depth;
 
-			for(int i=0;i<stack_depth;i++) {
-				stack[i].x -= px;
-				stack[i].y -= py;
-				stack[i].z -= pz;
-			}
-
 			sound_create(NULL,SOUND_WORLD,&sound_debris,px,py,pz);
 
 			map_collapsing_structures[k].used = 1;
@@ -256,14 +252,17 @@ static void map_update_physics_sub(int x, int y, int z) {
 			map_collapsing_structures[k].v = (struct Velocity) {0,0,0};
 			map_collapsing_structures[k].o = (struct Orientation) {0,0,0};
 			map_collapsing_structures[k].p = (struct Position) {px,py,pz};
-			map_collapsing_structures[k].rotation = 1;
+			map_collapsing_structures[k].p2 = (struct Position) {px,py,pz};
+			map_collapsing_structures[k].rotation = rand()&3;
 			map_collapsing_structures[k].voxel_count = stack_depth;
+			map_collapsing_structures[k].has_displaylist = 0;
 			return;
 		}
 	}
 }
 
 void map_collapsing_render(float dt) {
+	glEnable(GL_BLEND);
 	for(int k=0;k<32;k++) {
 		if(map_collapsing_structures[k].used) {
 			map_collapsing_structures[k].v.y -= dt;
@@ -275,9 +274,9 @@ void map_collapsing_render(float dt) {
 	            map_collapsing_structures[k].p.y += map_collapsing_structures[k].v.y*dt*32.0F;
 	            map_collapsing_structures[k].p.z += map_collapsing_structures[k].v.z*dt*32.0F;
 	        } else {
-	            map_collapsing_structures[k].v.x *= 0.6F;
-				map_collapsing_structures[k].v.y *= -0.6F;
-	            map_collapsing_structures[k].v.z *= 0.6F;
+	            map_collapsing_structures[k].v.x *= 0.7F;
+				map_collapsing_structures[k].v.y *= -0.7F;
+	            map_collapsing_structures[k].v.z *= 0.7F;
 				map_collapsing_structures[k].rotation++;
 				map_collapsing_structures[k].rotation &= 3;
 				sound_create(NULL,SOUND_WORLD,&sound_bounce,map_collapsing_structures[k].p.x,map_collapsing_structures[k].p.y,map_collapsing_structures[k].p.z);
@@ -286,90 +285,124 @@ void map_collapsing_render(float dt) {
 			matrix_push();
 			matrix_identity();
 			matrix_translate(map_collapsing_structures[k].p.x,map_collapsing_structures[k].p.y,map_collapsing_structures[k].p.z);
-			map_collapsing_structures[k].o.x += ((map_collapsing_structures[k].rotation&1)?1.0F:-1.0F)*dt*100.0F;
-			map_collapsing_structures[k].o.y += ((map_collapsing_structures[k].rotation&2)?1.0F:-1.0F)*dt*100.0F;
+			map_collapsing_structures[k].o.x += ((map_collapsing_structures[k].rotation&1)?1.0F:-1.0F)*dt*75.0F;
+			map_collapsing_structures[k].o.y += ((map_collapsing_structures[k].rotation&2)?1.0F:-1.0F)*dt*75.0F;
 			matrix_rotate(map_collapsing_structures[k].o.x,1.0F,0.0F,0.0F);
 			matrix_rotate(map_collapsing_structures[k].o.y,0.0F,1.0F,0.0F);
 			matrix_upload();
-			glBegin(GL_QUADS);
-			for(int i=0;i<map_collapsing_structures[k].voxel_count;i++) {
-				glColor3f(red(map_collapsing_structures[k].voxels_color[i])/255.0F,
-						  green(map_collapsing_structures[k].voxels_color[i])/255.0F,
-					  	  blue(map_collapsing_structures[k].voxels_color[i])/255.0F);
-				float x = map_collapsing_structures[k].voxels[i].x;
-				float y = map_collapsing_structures[k].voxels[i].y;
-				float z = map_collapsing_structures[k].voxels[i].z;
+			if(!map_collapsing_structures[k].has_displaylist) {
+				map_collapsing_structures[k].has_displaylist = 1;
+				map_collapsing_structures[k].displaylist = glGenLists(1);
+				glNewList(map_collapsing_structures[k].displaylist,GL_COMPILE);
+				glBegin(GL_QUADS);
+				for(int i=0;i<map_collapsing_structures[k].voxel_count;i++) {
+					float x = map_collapsing_structures[k].voxels[i].x-map_collapsing_structures[k].p2.x;
+					float y = map_collapsing_structures[k].voxels[i].y-map_collapsing_structures[k].p2.y;
+					float z = map_collapsing_structures[k].voxels[i].z-map_collapsing_structures[k].p2.z;
 
-				glVertex3f(x,y,z);
-				glVertex3f(x+1,y,z);
-				glVertex3f(x+1,y,z+1);
-				glVertex3f(x,y,z+1);
+					int x2 = map_collapsing_structures[k].voxels[i].x;
+					int y2 = map_collapsing_structures[k].voxels[i].y;
+					int z2 = map_collapsing_structures[k].voxels[i].z;
 
-				glVertex3f(x,y+1,z);
-				glVertex3f(x,y+1,z+1);
-				glVertex3f(x+1,y+1,z+1);
-				glVertex3f(x+1,y+1,z);
+					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2,y2-1,z2)) {
+						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F*0.5F,
+								  green(map_collapsing_structures[k].voxels_color[i])/255.0F*0.5F,
+							  	  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.5F,0.8F);
+						glVertex3f(x,y,z);
+						glVertex3f(x+1,y,z);
+						glVertex3f(x+1,y,z+1);
+						glVertex3f(x,y,z+1);
+					}
 
-				glVertex3f(x,y,z);
-				glVertex3f(x,y+1,z);
-				glVertex3f(x+1,y+1,z);
-				glVertex3f(x+1,y,z);
+					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2,y2+1,z2)) {
+						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F,
+								  green(map_collapsing_structures[k].voxels_color[i])/255.0F,
+							  	  blue(map_collapsing_structures[k].voxels_color[i])/255.0F,0.8F);
+						glVertex3f(x,y+1,z);
+						glVertex3f(x,y+1,z+1);
+						glVertex3f(x+1,y+1,z+1);
+						glVertex3f(x+1,y+1,z);
+					}
 
-				glVertex3f(x,y,z+1);
-				glVertex3f(x+1,y,z+1);
-				glVertex3f(x+1,y+1,z+1);
-				glVertex3f(x,y+1,z+1);
+					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2,y2,z2-1)) {
+						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F*0.7F,
+								  green(map_collapsing_structures[k].voxels_color[i])/255.0F*0.7F,
+							  	  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.7F,0.8F);
+						glVertex3f(x,y,z);
+						glVertex3f(x,y+1,z);
+						glVertex3f(x+1,y+1,z);
+						glVertex3f(x+1,y,z);
+					}
 
-				glVertex3f(x,y,z);
-				glVertex3f(x,y,z+1);
-				glVertex3f(x,y+1,z+1);
-				glVertex3f(x,y+1,z);
+					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2,y2,z2+1)) {
+						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F*0.6F,
+								  green(map_collapsing_structures[k].voxels_color[i])/255.0F*0.6F,
+							  	  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.6F,0.8F);
+						glVertex3f(x,y,z+1);
+						glVertex3f(x+1,y,z+1);
+						glVertex3f(x+1,y+1,z+1);
+						glVertex3f(x,y+1,z+1);
+					}
 
-				glVertex3f(x+1,y,z);
-				glVertex3f(x+1,y+1,z);
-				glVertex3f(x+1,y+1,z+1);
-				glVertex3f(x+1,y,z+1);
+					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2-1,y2,z2)) {
+						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F*0.9F,
+								  green(map_collapsing_structures[k].voxels_color[i])/255.0F*0.9F,
+							  	  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.9F,0.8F);
+						glVertex3f(x,y,z);
+						glVertex3f(x,y,z+1);
+						glVertex3f(x,y+1,z+1);
+						glVertex3f(x,y+1,z);
+					}
+
+					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2+1,y2,z2)) {
+						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F*0.8F,
+								  green(map_collapsing_structures[k].voxels_color[i])/255.0F*0.8F,
+							  	  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.8F,0.8F);
+						glVertex3f(x+1,y,z);
+						glVertex3f(x+1,y+1,z);
+						glVertex3f(x+1,y+1,z+1);
+						glVertex3f(x+1,y,z+1);
+					}
+				}
+				glEnd();
+				glEndList();
 			}
-			glEnd();
+			glCallList(map_collapsing_structures[k].displaylist);
 
 			if(absf(map_collapsing_structures[k].v.y)<0.1F && hit_floor) {
 				for(int i=0;i<map_collapsing_structures[k].voxel_count;i++) {
-					float v[4] = {map_collapsing_structures[k].voxels[i].x+0.5F,
-								  map_collapsing_structures[k].voxels[i].y+0.5F,
-							  	  map_collapsing_structures[k].voxels[i].z+0.5F,
+					float v[4] = {map_collapsing_structures[k].voxels[i].x-map_collapsing_structures[k].p2.x+0.5F,
+								  map_collapsing_structures[k].voxels[i].y-map_collapsing_structures[k].p2.y+0.5F,
+							  	  map_collapsing_structures[k].voxels[i].z-map_collapsing_structures[k].p2.z+0.5F,
 							  	  1.0F};
 					matrix_vector(v);
-					particle_create(map_collapsing_structures[k].voxels_color[i],v[0],v[1],v[2],2.5F,1.0F,4,0.1F,0.25F);
+					particle_create(map_collapsing_structures[k].voxels_color[i],v[0],v[1],v[2],2.5F,1.0F,2,0.25F,0.4F);
 				}
 				free(map_collapsing_structures[k].voxels);
 				free(map_collapsing_structures[k].voxels_color);
+				glDeleteLists(map_collapsing_structures[k].displaylist,1);
 				map_collapsing_structures[k].used = 0;
 			}
 
 			matrix_pop();
 		}
 	}
+	glDisable(GL_BLEND);
 }
 
 void map_update_physics(int x, int y, int z) {
-	if(map_get(x+1,y,z)!=0xFFFFFFFF) {
+	if(map_get(x+1,y,z)!=0xFFFFFFFF)
 		map_update_physics_sub(x+1,y,z);
-	}
-	if(map_get(x-1,y,z)!=0xFFFFFFFF) {
+	if(map_get(x-1,y,z)!=0xFFFFFFFF)
 		map_update_physics_sub(x-1,y,z);
-	}
-	if(map_get(x,y,z+1)!=0xFFFFFFFF) {
+	if(map_get(x,y,z+1)!=0xFFFFFFFF)
 		map_update_physics_sub(x,y,z+1);
-	}
-	if(map_get(x,y,z-1)!=0xFFFFFFFF) {
+	if(map_get(x,y,z-1)!=0xFFFFFFFF)
 		map_update_physics_sub(x,y,z-1);
-	}
-	if(map_get(x,y-1,z)!=0xFFFFFFFF) {
+	if(map_get(x,y-1,z)!=0xFFFFFFFF)
 		map_update_physics_sub(x,y-1,z);
-	}
-	if(map_get(x,y+1,z)!=0xFFFFFFFF) {
+	if(map_get(x,y+1,z)!=0xFFFFFFFF)
 		map_update_physics_sub(x,y+1,z);
-	}
 }
 
 unsigned long long map_get(int x, int y, int z) {

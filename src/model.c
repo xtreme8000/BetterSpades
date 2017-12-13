@@ -22,6 +22,10 @@ struct kv6_t model_semi_tracer;
 struct kv6_t model_smg_tracer;
 struct kv6_t model_shotgun_tracer;
 
+struct kv6_t model_semi_casing;
+struct kv6_t model_smg_casing;
+struct kv6_t model_shotgun_casing;
+
 void kv6_init() {
 	kv6_load(&model_playerdead,file_load("kv6/playerdead.kv6"),0.1F);
 	kv6_load(&model_playerhead,file_load("kv6/playerhead.kv6"),0.1F);
@@ -45,9 +49,14 @@ void kv6_init() {
 	kv6_load(&model_semi_tracer,file_load("kv6/semitracer.kv6"),0.05F);
 	kv6_load(&model_smg_tracer,file_load("kv6/smgtracer.kv6"),0.05F);
 	kv6_load(&model_shotgun_tracer,file_load("kv6/shotguntracer.kv6"),0.05F);
+
+	kv6_load(&model_semi_casing,file_load("kv6/semicasing.kv6"),0.0125F);
+	kv6_load(&model_smg_casing,file_load("kv6/smgcasing.kv6"),0.0125F);
+	kv6_load(&model_shotgun_casing,file_load("kv6/shotguncasing.kv6"),0.0125F);
 }
 
 void kv6_rebuild_all() {
+	//only for models that contain team colors
 	kv6_rebuild(&model_playerdead);
 	kv6_rebuild(&model_playerhead);
 	kv6_rebuild(&model_playertorso);
@@ -151,9 +160,6 @@ void kv6_rebuild(struct kv6_t* kv6) {
 }
 
 void kv6_render(struct kv6_t* kv6, unsigned char team) {
-	//if(!network_logged_in)
-		//return;
-
 	if(!kv6->has_display_list) {
 		int size = kv6->voxel_count*6;
 
@@ -169,157 +175,149 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		int v,c,n;
 		for(int t=0;t<3;t++) {
 			v = c = n = 0;
-
-			/*for(int x=0;x<kv6->xsiz;x++) {
-				for(int y=0;y<kv6->ysiz;y++) {
-					for(int z=0;z<kv6->zsiz;z++) {*/
-					for(int k=0;k<kv6->voxel_count;k++) {
-
-						if(kv6->voxels[k].color!=0) {
-							int x = kv6->voxels[k].x;
-							int y = kv6->voxels[k].y;
-							int z = kv6->voxels[k].z;
-							int vis = kv6->voxels[k].visfaces; //zZyYxX
-							int b = kv6->voxels[k].color & 0xFF;
-							int g = (kv6->voxels[k].color>>8) & 0xFF;
-							int r = (kv6->voxels[k].color>>16) & 0xFF;
-							int a = (kv6->voxels[k].color>>24) & 0xFF;
-							if(r==0 && g==0 && b==0) {
-								switch(t) {
-									case TEAM_1:
-										r = gamestate.team_1.red;
-										g = gamestate.team_1.green;
-										b = gamestate.team_1.blue;
-										break;
-									case TEAM_2:
-										r = gamestate.team_2.red;
-										g = gamestate.team_2.green;
-										b = gamestate.team_2.blue;
-										break;
-									default:
-										r = g = b = 0;
-								}
-							}
-
-							float p[3] = {(x-kv6->xpiv)*kv6->scale,(z-kv6->zpiv)*kv6->scale,(y-kv6->ypiv)*kv6->scale};
-
-							int i = 0;
-							float alpha[6];
-
-							//negative y
-							if(vis&16) {//z==kv6->zsiz-1 || !kv6->color[x+(y+(z+1)*kv6->ysiz)*kv6->xsiz]) {
-								kv6->vertices_final[v++] = p[0];
-								kv6->vertices_final[v++] = p[1]+kv6->scale;
-								kv6->vertices_final[v++] = p[2];
-								kv6->vertices_final[v++] = p[0];
-								kv6->vertices_final[v++] = p[1]+kv6->scale;
-								kv6->vertices_final[v++] = p[2]+kv6->scale;
-								kv6->vertices_final[v++] = p[0]+kv6->scale;
-								kv6->vertices_final[v++] = p[1]+kv6->scale;
-								kv6->vertices_final[v++] = p[2]+kv6->scale;
-								kv6->vertices_final[v++] = p[0]+kv6->scale;
-								kv6->vertices_final[v++] = p[1]+kv6->scale;
-								kv6->vertices_final[v++] = p[2];
-								alpha[i++] = 1.0F;
-							}
-
-							//positive y
-							if(vis&32) {//z==0 || !kv6->color[x+(y+(z-1)*kv6->ysiz)*kv6->xsiz]) {
-								kv6->vertices_final[v++] = p[0];
-								kv6->vertices_final[v++] = p[1];
-								kv6->vertices_final[v++] = p[2];
-								kv6->vertices_final[v++] = p[0]+kv6->scale;
-								kv6->vertices_final[v++] = p[1];
-								kv6->vertices_final[v++] = p[2];
-								kv6->vertices_final[v++] = p[0]+kv6->scale;
-								kv6->vertices_final[v++] = p[1];
-								kv6->vertices_final[v++] = p[2]+kv6->scale;
-								kv6->vertices_final[v++] = p[0];
-								kv6->vertices_final[v++] = p[1];
-								kv6->vertices_final[v++] = p[2]+kv6->scale;
-								alpha[i++] = 0.6F;
-							}
-
-							//negative z
-							if(vis&4) {//y==0 || !kv6->color[x+((y-1)+z*kv6->ysiz)*kv6->xsiz]) {
-								kv6->vertices_final[v++] = p[0];
-								kv6->vertices_final[v++] = p[1];
-								kv6->vertices_final[v++] = p[2];
-								kv6->vertices_final[v++] = p[0];
-								kv6->vertices_final[v++] = p[1]+kv6->scale;
-								kv6->vertices_final[v++] = p[2];
-								kv6->vertices_final[v++] = p[0]+kv6->scale;
-								kv6->vertices_final[v++] = p[1]+kv6->scale;
-								kv6->vertices_final[v++] = p[2];
-								kv6->vertices_final[v++] = p[0]+kv6->scale;
-								kv6->vertices_final[v++] = p[1];
-								kv6->vertices_final[v++] = p[2];
-								alpha[i++] = 0.95F;
-							}
-
-							//positive z
-							if(vis&8) {//y==kv6->ysiz-1 || !kv6->color[x+((y+1)+z*kv6->ysiz)*kv6->xsiz]) {
-								kv6->vertices_final[v++] = p[0];
-								kv6->vertices_final[v++] = p[1];
-								kv6->vertices_final[v++] = p[2]+kv6->scale;
-								kv6->vertices_final[v++] = p[0]+kv6->scale;
-								kv6->vertices_final[v++] = p[1];
-								kv6->vertices_final[v++] = p[2]+kv6->scale;
-								kv6->vertices_final[v++] = p[0]+kv6->scale;
-								kv6->vertices_final[v++] = p[1]+kv6->scale;
-								kv6->vertices_final[v++] = p[2]+kv6->scale;
-								kv6->vertices_final[v++] = p[0];
-								kv6->vertices_final[v++] = p[1]+kv6->scale;
-								kv6->vertices_final[v++] = p[2]+kv6->scale;
-								alpha[i++] = 0.9F;
-							}
-
-							//negative x
-							if(vis&1) {//x==0 || !kv6->color[(x-1)+(y+z*kv6->ysiz)*kv6->xsiz]) {
-								kv6->vertices_final[v++] = p[0];
-								kv6->vertices_final[v++] = p[1];
-								kv6->vertices_final[v++] = p[2];
-								kv6->vertices_final[v++] = p[0];
-								kv6->vertices_final[v++] = p[1];
-								kv6->vertices_final[v++] = p[2]+kv6->scale;
-								kv6->vertices_final[v++] = p[0];
-								kv6->vertices_final[v++] = p[1]+kv6->scale;
-								kv6->vertices_final[v++] = p[2]+kv6->scale;
-								kv6->vertices_final[v++] = p[0];
-								kv6->vertices_final[v++] = p[1]+kv6->scale;
-								kv6->vertices_final[v++] = p[2];
-								alpha[i++] = 0.85F;
-							}
-
-							//positive x
-							if(vis&2) {//x==kv6->xsiz-1 || !kv6->color[(x+1)+(y+z*kv6->ysiz)*kv6->xsiz]) {
-								kv6->vertices_final[v++] = p[0]+kv6->scale;
-								kv6->vertices_final[v++] = p[1];
-								kv6->vertices_final[v++] = p[2];
-								kv6->vertices_final[v++] = p[0]+kv6->scale;
-								kv6->vertices_final[v++] = p[1]+kv6->scale;
-								kv6->vertices_final[v++] = p[2];
-								kv6->vertices_final[v++] = p[0]+kv6->scale;
-								kv6->vertices_final[v++] = p[1]+kv6->scale;
-								kv6->vertices_final[v++] = p[2]+kv6->scale;
-								kv6->vertices_final[v++] = p[0]+kv6->scale;
-								kv6->vertices_final[v++] = p[1];
-								kv6->vertices_final[v++] = p[2]+kv6->scale;
-								alpha[i++] = 0.8F;
-							}
-
-							for(int k=0;k<i*4;k++) {
-								kv6->colors_final[c++] = r*alpha[k/4];//(r/255.0F*(a/255.0F*0.5F+0.5F))*255.0F;//*alpha[k/4];
-								kv6->colors_final[c++] = g*alpha[k/4];//(g/255.0F*(a/255.0F*0.5F+0.5F))*255.0F;//*alpha[k/4];
-								kv6->colors_final[c++] = b*alpha[k/4];//(b/255.0F*(a/255.0F*0.5F+0.5F))*255.0F;//*alpha[k/4];
-
-								kv6->normals_final[n++] = kv6_normals[a][0]*128;
-								kv6->normals_final[n++] = -kv6_normals[a][2]*128;
-								kv6->normals_final[n++] = kv6_normals[a][1]*128;
-							}
+			for(int k=0;k<kv6->voxel_count;k++) {
+				if(kv6->voxels[k].color!=0) {
+					int x = kv6->voxels[k].x;
+					int y = kv6->voxels[k].y;
+					int z = kv6->voxels[k].z;
+					int b = kv6->voxels[k].color & 0xFF;
+					int g = (kv6->voxels[k].color>>8) & 0xFF;
+					int r = (kv6->voxels[k].color>>16) & 0xFF;
+					int a = (kv6->voxels[k].color>>24) & 0xFF;
+					if(r==0 && g==0 && b==0) {
+						switch(t) {
+							case TEAM_1:
+								r = gamestate.team_1.red;
+								g = gamestate.team_1.green;
+								b = gamestate.team_1.blue;
+								break;
+							case TEAM_2:
+								r = gamestate.team_2.red;
+								g = gamestate.team_2.green;
+								b = gamestate.team_2.blue;
+								break;
+							default:
+								r = g = b = 0;
 						}
-					//}
-				//}
+					}
+
+					float p[3] = {(x-kv6->xpiv)*kv6->scale,(z-kv6->zpiv)*kv6->scale,(y-kv6->ypiv)*kv6->scale};
+
+					int i = 0;
+					float alpha[6];
+
+					//negative y
+					if(kv6->voxels[k].visfaces&16) {
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2];
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2];
+						alpha[i++] = 1.0F;
+					}
+
+					//positive y
+					if(kv6->voxels[k].visfaces&32) {
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2];
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2];
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						alpha[i++] = 0.6F;
+					}
+
+					//negative z
+					if(kv6->voxels[k].visfaces&4) {
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2];
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2];
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2];
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2];
+						alpha[i++] = 0.95F;
+					}
+
+					//positive z
+					if(kv6->voxels[k].visfaces&8) {
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						alpha[i++] = 0.9F;
+					}
+
+					//negative x
+					if(kv6->voxels[k].visfaces&1) {
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2];
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2];
+						alpha[i++] = 0.85F;
+					}
+
+					//positive x
+					if(kv6->voxels[k].visfaces&2) {
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2];
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2];
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						alpha[i++] = 0.8F;
+					}
+
+					for(int k=0;k<i*4;k++) {
+						kv6->colors_final[c++] = r*alpha[k/4];//(r/255.0F*(a/255.0F*0.5F+0.5F))*255.0F;//*alpha[k/4];
+						kv6->colors_final[c++] = g*alpha[k/4];//(g/255.0F*(a/255.0F*0.5F+0.5F))*255.0F;//*alpha[k/4];
+						kv6->colors_final[c++] = b*alpha[k/4];//(b/255.0F*(a/255.0F*0.5F+0.5F))*255.0F;//*alpha[k/4];
+
+						kv6->normals_final[n++] = kv6_normals[a][0]*128;
+						kv6->normals_final[n++] = -kv6_normals[a][2]*128;
+						kv6->normals_final[n++] = kv6_normals[a][1]*128;
+					}
+				}
 			}
 
 			if(!kv6->colorize) {

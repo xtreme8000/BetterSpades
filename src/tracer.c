@@ -64,9 +64,19 @@ void tracer_update(float dt) {
             if(glfwGetTime()-tracers[k].created>0.5F) {
                 tracers[k].used = 0;
             } else {
-                tracers[k].r.origin.x += tracers[k].r.direction.x*256.0F*dt;
-                tracers[k].r.origin.y += tracers[k].r.direction.y*256.0F*dt;
-                tracers[k].r.origin.z += tracers[k].r.direction.z*256.0F*dt;
+                struct Camera_HitType hit;
+                camera_hit(&hit,-1,
+                           tracers[k].r.origin.x,tracers[k].r.origin.y,tracers[k].r.origin.z,
+                           tracers[k].r.direction.x,tracers[k].r.direction.y,tracers[k].r.direction.z,
+                           256.0F*dt);
+                if(hit.type==CAMERA_HITTYPE_BLOCK) {
+                    sound_create(NULL,SOUND_WORLD,&sound_impact,tracers[k].r.origin.x,tracers[k].r.origin.y,tracers[k].r.origin.z);
+                    tracers[k].used = 0;
+                } else {
+                    tracers[k].r.origin.x += tracers[k].r.direction.x*256.0F*dt;
+                    tracers[k].r.origin.y += tracers[k].r.direction.y*256.0F*dt;
+                    tracers[k].r.origin.z += tracers[k].r.direction.z*256.0F*dt;
+                }
             }
         }
     }

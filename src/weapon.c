@@ -53,7 +53,6 @@ void weapon_update() {
             }
         }
     }
-    //printf("%i %f %i %i\n",weapon_reload_inprogress,glfwGetTime()-weapon_reload_start,local_player_ammo,local_player_ammo_reserved);
 }
 
 int weapon_block_damage(int gun) {
@@ -98,6 +97,27 @@ struct Sound_wav* weapon_sound_reload(int gun) {
         case WEAPON_SHOTGUN:
             return &sound_shotgun_reload;
     }
+}
+
+void weapon_spread(int gun, char scoped, float* out) {
+    float spread = 0.0F;
+    switch(gun) {
+        case WEAPON_RIFLE:
+            spread = 0.0060000001F;
+            break;
+        case WEAPON_SMG:
+            spread = 0.012F;
+            break;
+        case WEAPON_SHOTGUN:
+            spread = 0.024F;
+            break;
+    }
+    float basex = (rand()-rand())/16383.0F*spread*(scoped?0.5F:1.0F);
+    float basey = (rand()-rand())/16383.0F*spread*(scoped?0.5F:1.0F);
+    float basez = (rand()-rand())/16383.0F*spread*(scoped?0.5F:1.0F);
+    out[0] += basex;
+    out[1] += basey;
+    out[2] += basez;
 }
 
 void weapon_set() {
@@ -166,20 +186,31 @@ void weapon_shoot() {
     //https://pastebin.com/raw/TMjKSTXG
     //http://paste.quacknet.org/view/a3ea2743
 
+    /*float o[3] = {players[local_player_id].orientation.x,
+                  players[local_player_id].orientation.y,
+                  players[local_player_id].orientation.z};
+
+    weapon_spread(players[local_player_id].weapon,players[local_player_id].input.buttons.rmb,o);*/
+
     struct Camera_HitType hit;
     camera_hit_fromplayer(&hit,local_player_id,128.0F);
+    /*camera_hit(&hit,local_player_id,
+               players[local_player_id].physics.eye.x,
+               players[local_player_id].physics.eye.y+player_height(&players[local_player_id]),
+               players[local_player_id].physics.eye.z,
+               o[0],o[1],o[2],128.0F);*/
 
     switch(hit.type) {
         case CAMERA_HITTYPE_PLAYER:
         {
             int type = player_damage(hit.player_section);
             sound_create(NULL,SOUND_WORLD,(type==HITTYPE_HEAD)?&sound_spade_whack:&sound_hitplayer,players[hit.player_id].pos.x,players[hit.player_id].pos.y,players[hit.player_id].pos.z)->stick_to_player = hit.player_id;
-            particle_create(0x0000FF,players[hit.player_id].physics.eye.x,players[hit.player_id].physics.eye.y+player_section_height(type),players[hit.player_id].physics.eye.z,2.0F,1.0F,16,0.1F,0.4F);
+            particle_create(0x0000FF,players[hit.player_id].physics.eye.x,players[hit.player_id].physics.eye.y+player_section_height(type),players[hit.player_id].physics.eye.z,2.0F,1.0F,8,0.1F,0.4F);
             struct PacketHit h;
             h.player_id = hit.player_id;
             h.hit_type = type;
             network_send(PACKET_HIT_ID,&h,sizeof(h));
-            printf("hit on %s (%i)\n",players[hit.player_id].name,h.hit_type);
+            //printf("hit on %s (%i)\n",players[hit.player_id].name,h.hit_type);
             break;
         }
         case CAMERA_HITTYPE_BLOCK:
@@ -192,6 +223,8 @@ void weapon_shoot() {
                 blk.z = 63-hit.y;
                 network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
                 //read_PacketBlockAction(&blk,sizeof(blk));
+            } else {
+                particle_create(map_get(hit.x,hit.y,hit.z),hit.xb+0.5F,hit.yb+0.5F,hit.zb+0.5F,2.5F,1.0F,4,0.1F,0.25F);
             }
             break;
     }
@@ -267,20 +300,5 @@ void weapon_shoot() {
                players[local_player_id].orientation.x,players[local_player_id].orientation.y,players[local_player_id].orientation.z
               );
 
-    for(int k=0;k<PARTICLES_MAX;k++) {
-        if(!particles[k].alive) {
-            particles[k].size = 0.1F;
-            particles[k].x = players[local_player_id].gun_pos.x;
-            particles[k].y = players[local_player_id].gun_pos.y;
-            particles[k].z = players[local_player_id].gun_pos.z;
-            particles[k].vx = players[local_player_id].casing_dir.x*4.0F;
-            particles[k].vy = players[local_player_id].casing_dir.y*4.0F;
-            particles[k].vz = players[local_player_id].casing_dir.z*4.0F;
-            particles[k].created = glfwGetTime()+1000000.0F;
-            particles[k].fade = 0;
-            particles[k].color = 0x00FFFF;
-            particles[k].alive = true;
-            break;
-        }
-    }
+    particle_create_casing(&players[local_player_id]);
 }

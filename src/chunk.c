@@ -228,7 +228,7 @@ int chunk_generate(int displaylist, int chunk_x, int chunk_y) {
 			}
 		}
 	}
-	return chunk_generate_naive(displaylist,chunk_x,chunk_y);
+	return settings.greedy_meshing?chunk_generate_greedy(displaylist,chunk_x,chunk_y):chunk_generate_naive(displaylist,chunk_x,chunk_y);
 }
 
 int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y) {

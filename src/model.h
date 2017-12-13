@@ -40,6 +40,10 @@ extern struct kv6_t model_semi_tracer;
 extern struct kv6_t model_smg_tracer;
 extern struct kv6_t model_shotgun_tracer;
 
+extern struct kv6_t model_semi_casing;
+extern struct kv6_t model_smg_casing;
+extern struct kv6_t model_shotgun_casing;
+
 char kv6_intersection(struct kv6_t* kv6, Ray* r);
 void kv6_rebuild_all(void);
 void kv6_rebuild(struct kv6_t* kv6);

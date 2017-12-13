@@ -2,8 +2,6 @@
 
 #define MOUSE_SENSITIVITY 0.002F
 
-struct RENDER_OPTIONS settings;
-
 int chat_input_mode = CHAT_NO_INPUT;
 
 char chat[2][10][256] = {0}; //chat[0] is current input
@@ -50,7 +48,6 @@ float drawScene(float dt) {
 	tracer_render();
 
 	map_damaged_voxels_render();
-	map_collapsing_render(dt);
 	matrix_upload();
 
 	if(gamestate.gamemode_type==GAMEMODE_CTF) {
@@ -98,6 +95,9 @@ float drawScene(float dt) {
 			matrix_pop();
 		}
 	}
+
+	map_collapsing_render(dt);
+	matrix_upload();
 
 	return r;
 }
@@ -211,6 +211,7 @@ void render_HUD_3D() {
 			matrix_upload();
 			struct Player p_hud;
 			memset(&p_hud,0,sizeof(struct Player));
+			p_hud.spade_use_timer = FLT_MAX;
 			p_hud.input.keys.packed = 0;
 			p_hud.held_item = TOOL_SPADE;
 			p_hud.input.buttons.packed = 0;
@@ -308,6 +309,7 @@ void render_HUD_3D() {
 	}
 }
 
+float last_cy;
 void display(float dt) {
 	if(network_map_transfer) {
 		glClearColor(0.0F,0.0F,0.0F,1.0F);
@@ -329,7 +331,7 @@ void display(float dt) {
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | (GL_STENCIL_BUFFER_BIT*settings.shadow_entities));
 
-	float last_cy = players[local_player_id].physics.eye.y;
+	last_cy = players[local_player_id].physics.eye.y;
 	player_move(&players[local_player_id],dt,local_player_id);
 
 	//following two if-statements disable smooth crouching on local player
@@ -496,22 +498,24 @@ void display(float dt) {
 			}
 			players[local_player_id].input.buttons.rmb = 0;
 		} else {
-			float tmp2 = players[local_player_id].physics.eye.y;
-			players[local_player_id].physics.eye.y = last_cy;
-			if(camera_mode==CAMERAMODE_FPS) {
-				glDepthRange(0.0F,0.05F);
+			if(players[local_player_id].team!=TEAM_SPECTATOR) {
+				float tmp2 = players[local_player_id].physics.eye.y;
+				players[local_player_id].physics.eye.y = last_cy;
+				if(camera_mode==CAMERAMODE_FPS) {
+					glDepthRange(0.0F,0.05F);
+				}
+				matrix_select(matrix_projection);
+				matrix_push();
+				matrix_translate(0.0F,-0.25F,0.0F);
+				matrix_upload_p();
+				matrix_select(matrix_model);
+				player_render(&players[local_player_id],local_player_id,NULL,1);
+				matrix_select(matrix_projection);
+				matrix_pop();
+				matrix_select(matrix_model);
+				glDepthRange(0.0F,1.0F);
+				players[local_player_id].physics.eye.y = tmp2;
 			}
-			matrix_select(matrix_projection);
-			matrix_push();
-			matrix_translate(0.0F,-0.25F,0.0F);
-			matrix_upload_p();
-			matrix_select(matrix_model);
-			player_render(&players[local_player_id],local_player_id,NULL,1);
-			matrix_select(matrix_projection);
-			matrix_pop();
-			matrix_select(matrix_model);
-			glDepthRange(0.0F,1.0F);
-			players[local_player_id].physics.eye.y = tmp2;
 		}
 
 
@@ -552,8 +556,13 @@ void display(float dt) {
 		texture_draw(&texture_white,(settings.window_width-440.0F*scalef)/2.0F,settings.window_height*0.25F,440.0F*scalef*p,20.0F*scalef);
 		glColor3ub(69,69,69);
 		char str[128];
-		sprintf(str,"Loading Map %i/%i",compressed_chunk_data_offset,compressed_chunk_data_estimate);
+		sprintf(str,"Loading Map %iKB/%iKB",compressed_chunk_data_offset/1024,compressed_chunk_data_estimate/1024);
 		font_centered(settings.window_width/2.0F,130*scalef,27*scalef,str);
+
+		font_select(FONT_SMALLFNT);
+		glColor3f(1.0F,1.0F,0.0F);
+		font_render(0.0F,8.0F*scalef,8.0F*scalef,"Created by ByteBit, visit https://github.com/xtreme8000/BetterSpades");
+		font_select(FONT_FIXEDSYS);
 	} else {
 
 		if(players[local_player_id].held_item==TOOL_GRENADE && local_player_grenades==0) {
@@ -691,7 +700,10 @@ void display(float dt) {
 		}
 
 		if(camera_mode==CAMERAMODE_FPS) {
-
+			if(show_exit) {
+				glColor3f(1.0F,0.0F,0.0F);
+				font_render((settings.window_width-font_length(53.0F*scalef,"EXIT GAME? Y/N"))/2.0F,settings.window_height/2.0F+53.0F*scalef,53.0F*scalef,"EXIT GAME? Y/N");
+			}
 			if(glfwGetTime()-chat_popup_timer<0.4F) {
 				glColor3f(1.0F,0.0F,0.0F);
 				font_render((settings.window_width-font_length(53.0F*scalef,chat_popup))/2.0F,settings.window_height/2.0F,53.0F*scalef,chat_popup);
@@ -1061,11 +1073,20 @@ void display(float dt) {
 			}
 		}
 
-		if(player_intersection_type>=0) {
-			glColor3f(1.0F,1.0F,1.0F);
+		if(player_intersection_type>=0 && (players[local_player_id].team==TEAM_SPECTATOR || players[player_intersection_player].team==players[local_player_id].team)) {
 			font_select(FONT_SMALLFNT);
-			char* th[4] = {"Torso","Head","Arms","Legs"};
+			char* th[4] = {"torso","head","arms","legs"};
 			char str[32];
+			switch(players[player_intersection_player].team) {
+				case TEAM_1:
+					glColor3ub(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue);
+					break;
+				case TEAM_2:
+					glColor3ub(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue);
+					break;
+				default:
+					glColor3f(1.0F,1.0F,1.0F);
+			}
 			sprintf(str,"%s's %s",players[player_intersection_player].name,th[player_intersection_type]);
 			font_centered(settings.window_width/2.0F,settings.window_height*0.2F,8.0F*scalef,str);
 			font_select(FONT_FIXEDSYS);
@@ -1127,15 +1148,13 @@ void init() {
 	for(int x=0;x<512;x++) { for(int z=0;z<512;z++) { for(int y=0;y<64;y++) {
 		map_colors[x+(y*map_size_z+z)*map_size_x] = 0xFFFFFFFF;
 	} } }
-	//memset(map_colors,0x00000000FFFFFFFF,map_size_x*map_size_y*map_size_z);
-	map_vxl_load(file_load("lastsav.vxl"),map_colors);
-	chunk_rebuild_all();
 }
 
 void reshape(GLFWwindow* window, int width, int height) {
 	glViewport(0,0,width,height);
 	settings.window_width = width;
 	settings.window_height = height;
+	glfwSwapInterval(settings.vsync);
 }
 
 void text_input(GLFWwindow* window, unsigned int codepoint) {
@@ -1164,23 +1183,35 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 				glfwSetInputMode(window,GLFW_CURSOR,show_exit?GLFW_CURSOR_NORMAL:GLFW_CURSOR_DISABLED);
 			}
 
-			if(key==GLFW_KEY_F1) {
-				camera_mode = 0;
-			}
-			if(key==GLFW_KEY_F2) {
-				camera_mode = 1;
-			}
-			if(key==GLFW_KEY_F3) {
-				camera_mode = 2;
-			}
-			if(key==GLFW_KEY_F4) {
-				camera_mode = 3;
+			if(!network_connected) {
+				if(key==GLFW_KEY_F1) {
+					camera_mode = 0;
+				}
+				if(key==GLFW_KEY_F2) {
+					camera_mode = 1;
+				}
+				if(key==GLFW_KEY_F3) {
+					camera_mode = 2;
+				}
+				if(key==GLFW_KEY_F4) {
+					camera_mode = 3;
+				}
+				if(key==GLFW_KEY_V) {
+					printf("%f,%f,%f,%f,%f\n",camera_x,camera_y,camera_z,camera_rot_x,camera_rot_y);
+					players[local_player_id].pos.x = 256.0F;
+					players[local_player_id].pos.y = 63.0F;
+					players[local_player_id].pos.z = 256.0F;
+					hj = camera_x;
+					hk = camera_y;
+					hl = camera_z;
+				}
 			}
 
 			if(key==GLFW_KEY_T) {
 				chat_input_mode = CHAT_ALL_INPUT;
 				chat[0][0][0] = 0;
 			}
+
 			if(key==GLFW_KEY_Y || key==GLFW_KEY_Z) {
 				chat_input_mode = CHAT_TEAM_INPUT;
 				chat[0][0][0] = 0;
@@ -1268,7 +1299,7 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 				}
 			}
 			if(screen_current==SCREEN_TEAM_SELECT) {
-				int new_team = 255;
+				int new_team = 256;
 				switch(key) {
 					case GLFW_KEY_1:
 						new_team = TEAM_1;
@@ -1280,7 +1311,7 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 						new_team = TEAM_SPECTATOR;
 						break;
 				}
-				if(new_team<255) {
+				if(new_team<=255) {
 					if(network_logged_in) {
 						struct PacketChangeTeam p;
 						p.player_id = local_player_id;
@@ -1290,11 +1321,26 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 						return;
 					} else {
 						local_player_newteam = new_team;
-						screen_current = SCREEN_GUN_SELECT;
+						if(new_team==TEAM_SPECTATOR) {
+							struct PacketExistingPlayer login;
+							login.player_id = local_player_id;
+							login.team = local_player_newteam;
+							login.weapon = WEAPON_RIFLE;
+							login.held_item = TOOL_GUN;
+							login.kills = 0;
+							login.blue = players[local_player_id].block.blue;
+							login.green = players[local_player_id].block.green;
+							login.red = players[local_player_id].block.red;
+							strcpy(login.name,settings.name);
+							network_send(PACKET_EXISTINGPLAYER_ID,&login,sizeof(login)-sizeof(login.name)+strlen(settings.name)+1);
+							screen_current = SCREEN_NONE;
+						} else {
+							screen_current = SCREEN_GUN_SELECT;
+						}
 						return;
 					}
 				}
-				if(key==GLFW_KEY_COMMA) {
+				if(key==GLFW_KEY_COMMA && (!network_connected || (network_connected && network_logged_in))) {
 					screen_current = SCREEN_NONE;
 				}
 			}
@@ -1327,40 +1373,15 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 						login.blue = players[local_player_id].block.blue;
 						login.green = players[local_player_id].block.green;
 						login.red = players[local_player_id].block.red;
-						char* n = "DEV_CLIENT";
-						strcpy(login.name,n);
-						network_send(PACKET_EXISTINGPLAYER_ID,&login,sizeof(login)-sizeof(login.name)+strlen(n)+1);
+						strcpy(login.name,settings.name);
+						network_send(PACKET_EXISTINGPLAYER_ID,&login,sizeof(login)-sizeof(login.name)+strlen(settings.name)+1);
 					}
 					screen_current = SCREEN_NONE;
 					return;
 				}
-				if(key==GLFW_KEY_PERIOD) {
+				if(key==GLFW_KEY_PERIOD && (!network_connected || (network_connected && network_logged_in))) {
 					screen_current = SCREEN_NONE;
 				}
-			}
-
-			if(key==GLFW_KEY_8) {
-				char* addr = "aos://4135049907:32887:0.75";
-				int ip_start = 1;
-				for(;addr[ip_start-1]!='/' && addr[ip_start]!='/' && addr[ip_start];ip_start++);
-				int port_start = ip_start;
-				for(;addr[port_start+1] && addr[port_start]!=':';port_start++);
-
-				int ip = atoi((char*)(addr+ip_start+2));
-				char ip_str[17];
-				sprintf(ip_str,"%i.%i.%i.%i",ip&255,(ip>>8)&255,(ip>>16)&255,(ip>>24)&255);
-				if(!network_connect(ip_str,atoi((char*)(addr+port_start+1)))) {
-					printf("connection failed ;(\n");
-				}
-			}
-			if(key==GLFW_KEY_V) {
-				printf("%f,%f,%f,%f,%f\n",camera_x,camera_y,camera_z,camera_rot_x,camera_rot_y);
-				players[local_player_id].pos.x = 256.0F;
-				players[local_player_id].pos.y = 63.0F;
-				players[local_player_id].pos.z = 256.0F;
-				hj = camera_x;
-				hk = camera_y;
-				hl = camera_z;
 			}
 			if(key==GLFW_KEY_F11) {
 				const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
@@ -1577,6 +1598,11 @@ void mouse_scroll(GLFWwindow* window, double xoffset, double yoffset) {
 }
 
 int main(int argc, char** argv) {
+	if(argc<2) {
+		printf("Error: Visit buildandshoot.com to join games\n");
+		printf("Usage: client -aos://<ip>:<port>\n");
+		return 0;
+	}
 	settings.opengl14 = true;
 	settings.color_correction = false;
 	settings.multisamples = 0;
@@ -1587,14 +1613,18 @@ int main(int argc, char** argv) {
 	settings.window_height = 600;
 	settings.player_arms = 0;
 	settings.fullscreen = 0;
+	settings.greedy_meshing = 0;
+	strcpy(settings.name,"DEV_CLIENT");
 
-	if(argc>2) {
+	config_reload();
+
+	/*if(argc>2) {
 		settings.opengl14 = atoi(argv[1]);
 		settings.color_correction = atoi(argv[2]);
 		settings.multisamples = atoi(argv[3]);
 		settings.shadow_entities = atoi(argv[4]);
 		settings.ambient_occlusion = atoi(argv[5]);
-	}
+	}*/
 
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,1);
@@ -1646,8 +1676,6 @@ int main(int argc, char** argv) {
 		glGetIntegerv(GL_SAMPLES,&iNumSamples);
 		printf("MSAA on, GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d\n", iMultiSample, iNumSamples);
 	}
-
-	//glfwSwapInterval(0); //uncomment this to disable vsync
 
 	if(!settings.opengl14) {
 		/*#ifdef OS_WINDOWS
@@ -1712,6 +1740,29 @@ int main(int argc, char** argv) {
 	while(glGetError()!=GL_NO_ERROR);
 
 	init();
+
+	char* addr = argv[1]+1;
+	int ip_start = 1;
+	for(;addr[ip_start-1]!='/' && addr[ip_start]!='/' && addr[ip_start];ip_start++);
+	int port_start = ip_start;
+	for(;addr[port_start+1] && addr[port_start]!=':';port_start++);
+
+	int ip = atoi((char*)(addr+ip_start+2));
+	char ipport_str[64];
+	sprintf(ipport_str,"%i.%i.%i.%i",ip&255,(ip>>8)&255,(ip>>16)&255,(ip>>24)&255);
+	if(!network_connect(ipport_str,atoi((char*)(addr+port_start+1)))) {
+		printf("Error: Connection failed\n");
+		if(!access("lastsav.vxl",F_OK)) {
+			map_vxl_load(file_load("lastsav.vxl"),map_colors);
+			chunk_rebuild_all();
+			camera_mode = CAMERAMODE_FPS;
+			players[local_player_id].pos.x = map_size_x/2.0F;
+			players[local_player_id].pos.y = map_size_y-1.0F;
+			players[local_player_id].pos.z = map_size_z/2.0F;
+		} else {
+			exit(1);
+		}
+	}
 
 	float last_frame;
 	while(!glfwWindowShouldClose(window)) {

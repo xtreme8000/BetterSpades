@@ -1,7 +1,7 @@
 #define PLAYERS_MAX		256 //just because 32 players are not enough
 #define TEAM_1			0
 #define TEAM_2			1
-#define TEAM_SPECTATOR	2
+#define TEAM_SPECTATOR	255
 
 extern struct GameState {
 	struct Team {

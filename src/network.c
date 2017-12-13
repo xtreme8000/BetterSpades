@@ -84,8 +84,10 @@ void read_PacketBlockAction(void* data, int len) {
 	switch(p->action_type) {
 		case ACTION_DESTROY:
 			if((63-p->z)>1) {
+				int col = map_get(p->x,63-p->z,p->y);
 				map_set(p->x,63-p->z,p->y,0xFFFFFFFF);
 				map_update_physics(p->x,63-p->z,p->y);
+				particle_create(col,p->x+0.5F,63-p->z+0.5F,p->y+0.5F,2.5F,1.0F,8,0.1F,0.25F);
 			}
 			break;
 		case ACTION_GRENADE:
@@ -173,6 +175,8 @@ void read_PacketStateData(void* data, int len) {
 	gamestate.gamemode_type = p->gamemode;
 
 	memcpy(&gamestate.gamemode,&p->gamemode_data,sizeof(union Gamemodes));
+
+	sound_create(NULL,SOUND_LOCAL,&sound_intro,0.0F,0.0F,0.0F);
 
 	fog_color[0] = p->fog_red/255.0F;
 	fog_color[1] = p->fog_green/255.0F;
@@ -771,7 +775,7 @@ void network_update() {
 				pos.z = 63.0F-players[local_player_id].pos.y;
 				network_send(PACKET_POSITIONDATA_ID,&pos,sizeof(pos));
 			}
-			if(glfwGetTime()-network_orient_update>0.1F) {
+			if(glfwGetTime()-network_orient_update>0.05F) {
 				network_orient_update = glfwGetTime();
 				struct PacketPositionData orient;
 				orient.x = players[local_player_id].orientation.x;

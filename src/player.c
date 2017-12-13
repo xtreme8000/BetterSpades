@@ -101,8 +101,14 @@ float* player_tool_func(struct Player* p) {
                     }
                 }
             } else {
-                ret[0] = (player_swing_func((glfwGetTime()-p->spade_use_timer)*5.0F)+1.0F)/2.0F*60.0F;
-                return ret;
+                if(p->input.buttons.lmb) {
+                    ret[0] = (player_swing_func((glfwGetTime()-p->spade_use_timer)*2.5F)+1.0F)/2.0F*60.0F;
+                    return ret;
+                }
+                if(p->input.buttons.rmb) {
+                    ret[0] = (player_swing_func((glfwGetTime()-p->spade_use_timer)*0.5F)+1.0F)/2.0F*60.0F;
+                    return ret;
+                }
             }
         }
         case TOOL_GRENADE:
@@ -205,20 +211,25 @@ void player_update(float dt) {
                 switch(hit.type) {
                     case CAMERA_HITTYPE_BLOCK:
                         sound_create(NULL,SOUND_WORLD,&sound_hitground,hit.x+0.5F,hit.y+0.5F,hit.z+0.5F);
-                        if(k==local_player_id && map_damage(hit.x,hit.y,hit.z,50)==100) {
-                            struct PacketBlockAction blk;
-                            blk.action_type = ACTION_DESTROY;
-                            blk.player_id = local_player_id;
-                            blk.x = hit.x;
-                            blk.y = hit.z;
-                            blk.z = 63-hit.y;
-                            network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
-                            local_player_blocks = min(local_player_blocks+1,50);
-                            //read_PacketBlockAction(&blk,sizeof(blk));
+                        if(map_damage(hit.x,hit.y,hit.z,50)==100) {
+                            if(k==local_player_id) {
+                                struct PacketBlockAction blk;
+                                blk.action_type = ACTION_DESTROY;
+                                blk.player_id = local_player_id;
+                                blk.x = hit.x;
+                                blk.y = hit.z;
+                                blk.z = 63-hit.y;
+                                network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
+                                local_player_blocks = min(local_player_blocks+1,50);
+                                //read_PacketBlockAction(&blk,sizeof(blk));
+                            }
+                        } else {
+                            particle_create(map_get(hit.x,hit.y,hit.z),hit.xb+0.5F,hit.yb+0.5F,hit.zb+0.5F,2.5F,1.0F,4,0.1F,0.25F);
                         }
                         break;
                     case CAMERA_HITTYPE_PLAYER:
                         sound_create(NULL,SOUND_WORLD,&sound_spade_whack,players[k].pos.x,players[k].pos.y,players[k].pos.z)->stick_to_player = k;
+                        particle_create(0x0000FF,players[hit.player_id].physics.eye.x,players[hit.player_id].physics.eye.y+player_section_height(player_damage(hit.player_section)),players[hit.player_id].physics.eye.z,2.0F,1.0F,8,0.1F,0.4F);
                         if(k==local_player_id) {
                             struct PacketHit h;
                             h.player_id = hit.player_id;
@@ -289,12 +300,20 @@ void player_update(float dt) {
                                    players[k].pos.x,players[k].pos.y,players[k].pos.z
                                )->stick_to_player = k;
                     tracer_add(players[k].weapon,players[k].input.buttons.rmb,players[k].gun_pos.x,players[k].gun_pos.y,players[k].gun_pos.z,players[k].orientation.x,players[k].orientation.y,players[k].orientation.z);
+                    particle_create_casing(&players[k]);
                     struct Camera_HitType hit;
                     camera_hit_fromplayer(&hit,k,128.0F);
-                    if(hit.type==CAMERA_HITTYPE_PLAYER) {
-                        int type = player_damage(hit.player_section);
-                        sound_create(NULL,SOUND_WORLD,(type==HITTYPE_HEAD)?&sound_spade_whack:&sound_hitplayer,players[hit.player_id].pos.x,players[hit.player_id].pos.y,players[hit.player_id].pos.z)->stick_to_player = hit.player_id;
-                        particle_create(0x0000FF,players[hit.player_id].physics.eye.x,players[hit.player_id].physics.eye.y+player_section_height(type),players[hit.player_id].physics.eye.z,2.0F,1.0F,16,0.1F,0.4F);
+                    switch(hit.type) {
+                        case CAMERA_HITTYPE_PLAYER:
+                        {
+                            int type = player_damage(hit.player_section);
+                            sound_create(NULL,SOUND_WORLD,(type==HITTYPE_HEAD)?&sound_spade_whack:&sound_hitplayer,players[hit.player_id].pos.x,players[hit.player_id].pos.y,players[hit.player_id].pos.z)->stick_to_player = hit.player_id;
+                            particle_create(0x0000FF,players[hit.player_id].physics.eye.x,players[hit.player_id].physics.eye.y+player_section_height(type),players[hit.player_id].physics.eye.z,2.0F,1.0F,8,0.1F,0.4F);
+                            break;
+                        }
+                        case CAMERA_HITTYPE_BLOCK:
+                            particle_create(map_get(hit.x,hit.y,hit.z),hit.xb+0.5F,hit.yb+0.5F,hit.zb+0.5F,2.5F,1.0F,4,0.1F,0.25F);
+                            break;
                     }
                     players[k].gun_shoot_timer = glfwGetTime();
                 }
@@ -494,20 +513,18 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
                 kv6_render(&model_grenade,p->team);
             break;
     }
-    float v[4] = {0,0,0,1};
+    float v[4] = {0.1F,0,-0.3F,1};
     matrix_vector(v);
-    float v2[4] = {1,0,0,1};
+    float v2[4] = {1.1F,0,-0.3F,1};
     matrix_vector(v2);
-    float v3[4] = {0,0,1,1};
-    matrix_vector(v3);
 
     p->gun_pos.x = v[0];
     p->gun_pos.y = v[1];
     p->gun_pos.z = v[2];
 
-    p->casing_dir.x = v2[0]-v[0];
-    p->casing_dir.y = v2[1]-v[1];
-    p->casing_dir.z = v2[2]-v[2];
+    p->casing_dir.x = v[0]-v2[0];
+    p->casing_dir.y = v[1]-v2[1];
+    p->casing_dir.z = v[2]-v2[2];
 
     matrix_pop();
 
@@ -536,6 +553,9 @@ void player_reposition(struct Player* p)  {
     float f = p->physics.lastclimb-glfwGetTime();
     if(f>-0.25F && !p->input.keys.crouch) {
         p->physics.eye.z += (f+0.25F)/0.25F;
+        if(&players[local_player_id]==p) {
+            last_cy = 63.0F-p->physics.eye.z;
+        }
     }
 }
 
@@ -819,6 +839,9 @@ int player_uncrouch(struct Player* p) {
     {
         p->pos.z -= 0.9F;
         p->physics.eye.z -= 0.9F;
+        if(&players[local_player_id]==p) {
+            last_cy += 0.9F;
+        }
         player_coordsystem_adjust2(p);
         return 1;
     }

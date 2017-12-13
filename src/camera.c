@@ -48,10 +48,17 @@ void camera_apply(float dt) {
 }
 
 void camera_hit_fromplayer(struct Camera_HitType* hit, int player_id, float range) {
-	camera_hit(hit,player_id,
-			   players[player_id].physics.eye.x,players[player_id].physics.eye.y+player_height(&players[player_id]),players[player_id].physics.eye.z,
-			   players[player_id].orientation.x,players[player_id].orientation.y,players[player_id].orientation.z,
-			   range);
+	if(player_id!=local_player_id) {
+		camera_hit(hit,player_id,
+				   players[player_id].physics.eye.x,players[player_id].physics.eye.y+player_height(&players[player_id]),players[player_id].physics.eye.z,
+				   players[player_id].orientation.x,players[player_id].orientation.y,players[player_id].orientation.z,
+				   range);
+	} else {
+		camera_hit(hit,player_id,
+				   players[player_id].physics.eye.x,players[player_id].physics.eye.y+player_height(&players[player_id]),players[player_id].physics.eye.z,
+				   sin(camera_rot_x)*sin(camera_rot_y),cos(camera_rot_y),cos(camera_rot_x)*sin(camera_rot_y),
+				   range);
+	}
 }
 
 void camera_hit(struct Camera_HitType* hit, int exclude_player, float x, float y, float z, float ray_x, float ray_y, float ray_z, float range) {
@@ -64,6 +71,9 @@ void camera_hit(struct Camera_HitType* hit, int exclude_player, float x, float y
 		hit->x = pos[0];
 		hit->y = pos[1];
 		hit->z = pos[2];
+		hit->xb = pos[3];
+		hit->yb = pos[4];
+		hit->zb = pos[5];
 	}
 
 	Ray dir;
@@ -153,8 +163,9 @@ int* camera_terrain_pickEx(unsigned char mode, float gx0, float gy0, float gz0, 
 
 	int gx_pre = gx, gy_pre = gy, gz_pre = gz;
 
-	static int ret[3];
+	static int ret[6];
 	ret[0] = ret[1] = ret[2] = 0;
+	ret[3] = ret[4] = ret[5] = 0;
 
     while(1) {
 		if(gx>=map_size_x || gx<0 || gy>=map_size_y || gy<0 || gz>=map_size_z || gz<0) {
@@ -174,6 +185,9 @@ int* camera_terrain_pickEx(unsigned char mode, float gx0, float gy0, float gz0, 
 					ret[0] = gx;
 					ret[1] = gy;
 					ret[2] = gz;
+					ret[3] = gx_pre;
+					ret[4] = gy_pre;
+					ret[5] = gz_pre;
 					return ret;
 				}
 				break;

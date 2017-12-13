@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <signal.h>
+#include <unistd.h>
 
 #include "GL/glext.h"
 
@@ -17,6 +18,8 @@
 
 #include <enet/enet.h>
 #include "libdeflate.h"
+
+#include "ini.h"
 
 #ifdef _WIN32
 #define OS_WINDOWS
@@ -66,9 +69,9 @@ typedef unsigned char boolean;
 #include "model.h"
 #include "file.h"
 #include "camera.h"
-#include "particle.h"
 #include "network.h"
 #include "player.h"
+#include "particle.h"
 #include "grenade.h"
 #include "cameracontroller.h"
 #include "font.h"
@@ -76,6 +79,7 @@ typedef unsigned char boolean;
 #include "weapon.h"
 #include "matrix.h"
 #include "tracer.h"
+#include "config.h"
 
 unsigned char key_map[512];
 unsigned char button_map[3];
@@ -96,24 +100,12 @@ PFNGLUNIFORM4FPROC glUniform4f;
 PFNGLUNIFORM1IPROC glUniform1i;
 PFNGLTEXIMAGE3DPROC glTexImage3D;*/
 
-extern struct RENDER_OPTIONS {
-	boolean opengl14;
-	boolean color_correction;
-	boolean shadow_entities;
-	boolean ambient_occlusion;
-	float render_distance;
-	int window_width;
-	int window_height;
-	unsigned char multisamples;
-	boolean player_arms;
-	boolean fullscreen;
-} settings;
-
 #define CHAT_NO_INPUT	0
 #define CHAT_ALL_INPUT	1
 #define CHAT_TEAM_INPUT	2
 
 extern int chat_input_mode;
+extern float last_cy;
 
 extern char chat[2][10][256];
 extern unsigned int chat_color[2][10];

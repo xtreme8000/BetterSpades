@@ -105,93 +105,105 @@ int particle_render() {
 				size *= 1.0F-((float)(glfwGetTime()-particles[k].fade)/2.0F);
 			}
 
-			for(int i=0;i<24;i++) {
-				particles_colors[color_index++] = particles[k].color&0xFF;
-				particles_colors[color_index++] = (particles[k].color>>8)&0xFF;
-				particles_colors[color_index++] = (particles[k].color>>16)&0xFF;
+			if(particles[k].type==255) {
+				for(int i=0;i<24;i++) {
+					particles_colors[color_index++] = particles[k].color&0xFF;
+					particles_colors[color_index++] = (particles[k].color>>8)&0xFF;
+					particles_colors[color_index++] = (particles[k].color>>16)&0xFF;
+				}
+
+				particles_vertices[vertex_index++] = particles[k].x-size;
+				particles_vertices[vertex_index++] = particles[k].y-size;
+				particles_vertices[vertex_index++] = particles[k].z-size;
+				particles_vertices[vertex_index++] = particles[k].x+size;
+				particles_vertices[vertex_index++] = particles[k].y-size;
+				particles_vertices[vertex_index++] = particles[k].z-size;
+				particles_vertices[vertex_index++] = particles[k].x+size;
+				particles_vertices[vertex_index++] = particles[k].y-size;
+				particles_vertices[vertex_index++] = particles[k].z+size;
+				particles_vertices[vertex_index++] = particles[k].x-size;
+				particles_vertices[vertex_index++] = particles[k].y-size;
+				particles_vertices[vertex_index++] = particles[k].z+size;
+
+				particles_vertices[vertex_index++] = particles[k].x-size;
+				particles_vertices[vertex_index++] = particles[k].y+size;
+				particles_vertices[vertex_index++] = particles[k].z-size;
+				particles_vertices[vertex_index++] = particles[k].x-size;
+				particles_vertices[vertex_index++] = particles[k].y+size;
+				particles_vertices[vertex_index++] = particles[k].z+size;
+				particles_vertices[vertex_index++] = particles[k].x+size;
+				particles_vertices[vertex_index++] = particles[k].y+size;
+				particles_vertices[vertex_index++] = particles[k].z+size;
+				particles_vertices[vertex_index++] = particles[k].x+size;
+				particles_vertices[vertex_index++] = particles[k].y+size;
+				particles_vertices[vertex_index++] = particles[k].z-size;
+
+				particles_vertices[vertex_index++] = particles[k].x-size;
+				particles_vertices[vertex_index++] = particles[k].y-size;
+				particles_vertices[vertex_index++] = particles[k].z-size;
+				particles_vertices[vertex_index++] = particles[k].x-size;
+				particles_vertices[vertex_index++] = particles[k].y-size;
+				particles_vertices[vertex_index++] = particles[k].z+size;
+				particles_vertices[vertex_index++] = particles[k].x-size;
+				particles_vertices[vertex_index++] = particles[k].y+size;
+				particles_vertices[vertex_index++] = particles[k].z+size;
+				particles_vertices[vertex_index++] = particles[k].x-size;
+				particles_vertices[vertex_index++] = particles[k].y+size;
+				particles_vertices[vertex_index++] = particles[k].z-size;
+
+				particles_vertices[vertex_index++] = particles[k].x+size;
+				particles_vertices[vertex_index++] = particles[k].y-size;
+				particles_vertices[vertex_index++] = particles[k].z-size;
+				particles_vertices[vertex_index++] = particles[k].x+size;
+				particles_vertices[vertex_index++] = particles[k].y+size;
+				particles_vertices[vertex_index++] = particles[k].z-size;
+				particles_vertices[vertex_index++] = particles[k].x+size;
+				particles_vertices[vertex_index++] = particles[k].y+size;
+				particles_vertices[vertex_index++] = particles[k].z+size;
+				particles_vertices[vertex_index++] = particles[k].x+size;
+				particles_vertices[vertex_index++] = particles[k].y-size;
+				particles_vertices[vertex_index++] = particles[k].z+size;
+
+				particles_vertices[vertex_index++] = particles[k].x-size;
+				particles_vertices[vertex_index++] = particles[k].y-size;
+				particles_vertices[vertex_index++] = particles[k].z-size;
+				particles_vertices[vertex_index++] = particles[k].x-size;
+				particles_vertices[vertex_index++] = particles[k].y+size;
+				particles_vertices[vertex_index++] = particles[k].z-size;
+				particles_vertices[vertex_index++] = particles[k].x+size;
+				particles_vertices[vertex_index++] = particles[k].y+size;
+				particles_vertices[vertex_index++] = particles[k].z-size;
+				particles_vertices[vertex_index++] = particles[k].x+size;
+				particles_vertices[vertex_index++] = particles[k].y-size;
+				particles_vertices[vertex_index++] = particles[k].z-size;
+
+				particles_vertices[vertex_index++] = particles[k].x-size;
+				particles_vertices[vertex_index++] = particles[k].y-size;
+				particles_vertices[vertex_index++] = particles[k].z+size;
+				particles_vertices[vertex_index++] = particles[k].x+size;
+				particles_vertices[vertex_index++] = particles[k].y-size;
+				particles_vertices[vertex_index++] = particles[k].z+size;
+				particles_vertices[vertex_index++] = particles[k].x+size;
+				particles_vertices[vertex_index++] = particles[k].y+size;
+				particles_vertices[vertex_index++] = particles[k].z+size;
+				particles_vertices[vertex_index++] = particles[k].x-size;
+				particles_vertices[vertex_index++] = particles[k].y+size;
+				particles_vertices[vertex_index++] = particles[k].z+size;
+			} else {
+				matrix_push();
+				matrix_identity();
+				matrix_translate(particles[k].x,particles[k].y,particles[k].z);
+				matrix_pointAt(particles[k].ox,particles[k].oy,particles[k].oz);
+				matrix_rotate(90.0F,0.0F,1.0F,0.0F);
+				matrix_upload();
+				kv6_render((struct kv6_t*[]){&model_semi_casing,&model_smg_casing,&model_shotgun_casing}[particles[k].type],TEAM_1);
+				matrix_pop();
 			}
-
-			particles_vertices[vertex_index++] = particles[k].x-size;
-			particles_vertices[vertex_index++] = particles[k].y-size;
-			particles_vertices[vertex_index++] = particles[k].z-size;
-			particles_vertices[vertex_index++] = particles[k].x+size;
-			particles_vertices[vertex_index++] = particles[k].y-size;
-			particles_vertices[vertex_index++] = particles[k].z-size;
-			particles_vertices[vertex_index++] = particles[k].x+size;
-			particles_vertices[vertex_index++] = particles[k].y-size;
-			particles_vertices[vertex_index++] = particles[k].z+size;
-			particles_vertices[vertex_index++] = particles[k].x-size;
-			particles_vertices[vertex_index++] = particles[k].y-size;
-			particles_vertices[vertex_index++] = particles[k].z+size;
-
-			particles_vertices[vertex_index++] = particles[k].x-size;
-			particles_vertices[vertex_index++] = particles[k].y+size;
-			particles_vertices[vertex_index++] = particles[k].z-size;
-			particles_vertices[vertex_index++] = particles[k].x-size;
-			particles_vertices[vertex_index++] = particles[k].y+size;
-			particles_vertices[vertex_index++] = particles[k].z+size;
-			particles_vertices[vertex_index++] = particles[k].x+size;
-			particles_vertices[vertex_index++] = particles[k].y+size;
-			particles_vertices[vertex_index++] = particles[k].z+size;
-			particles_vertices[vertex_index++] = particles[k].x+size;
-			particles_vertices[vertex_index++] = particles[k].y+size;
-			particles_vertices[vertex_index++] = particles[k].z-size;
-
-			particles_vertices[vertex_index++] = particles[k].x-size;
-			particles_vertices[vertex_index++] = particles[k].y-size;
-			particles_vertices[vertex_index++] = particles[k].z-size;
-			particles_vertices[vertex_index++] = particles[k].x-size;
-			particles_vertices[vertex_index++] = particles[k].y-size;
-			particles_vertices[vertex_index++] = particles[k].z+size;
-			particles_vertices[vertex_index++] = particles[k].x-size;
-			particles_vertices[vertex_index++] = particles[k].y+size;
-			particles_vertices[vertex_index++] = particles[k].z+size;
-			particles_vertices[vertex_index++] = particles[k].x-size;
-			particles_vertices[vertex_index++] = particles[k].y+size;
-			particles_vertices[vertex_index++] = particles[k].z-size;
-
-			particles_vertices[vertex_index++] = particles[k].x+size;
-			particles_vertices[vertex_index++] = particles[k].y-size;
-			particles_vertices[vertex_index++] = particles[k].z-size;
-			particles_vertices[vertex_index++] = particles[k].x+size;
-			particles_vertices[vertex_index++] = particles[k].y+size;
-			particles_vertices[vertex_index++] = particles[k].z-size;
-			particles_vertices[vertex_index++] = particles[k].x+size;
-			particles_vertices[vertex_index++] = particles[k].y+size;
-			particles_vertices[vertex_index++] = particles[k].z+size;
-			particles_vertices[vertex_index++] = particles[k].x+size;
-			particles_vertices[vertex_index++] = particles[k].y-size;
-			particles_vertices[vertex_index++] = particles[k].z+size;
-
-			particles_vertices[vertex_index++] = particles[k].x-size;
-			particles_vertices[vertex_index++] = particles[k].y-size;
-			particles_vertices[vertex_index++] = particles[k].z-size;
-			particles_vertices[vertex_index++] = particles[k].x-size;
-			particles_vertices[vertex_index++] = particles[k].y+size;
-			particles_vertices[vertex_index++] = particles[k].z-size;
-			particles_vertices[vertex_index++] = particles[k].x+size;
-			particles_vertices[vertex_index++] = particles[k].y+size;
-			particles_vertices[vertex_index++] = particles[k].z-size;
-			particles_vertices[vertex_index++] = particles[k].x+size;
-			particles_vertices[vertex_index++] = particles[k].y-size;
-			particles_vertices[vertex_index++] = particles[k].z-size;
-
-			particles_vertices[vertex_index++] = particles[k].x-size;
-			particles_vertices[vertex_index++] = particles[k].y-size;
-			particles_vertices[vertex_index++] = particles[k].z+size;
-			particles_vertices[vertex_index++] = particles[k].x+size;
-			particles_vertices[vertex_index++] = particles[k].y-size;
-			particles_vertices[vertex_index++] = particles[k].z+size;
-			particles_vertices[vertex_index++] = particles[k].x+size;
-			particles_vertices[vertex_index++] = particles[k].y+size;
-			particles_vertices[vertex_index++] = particles[k].z+size;
-			particles_vertices[vertex_index++] = particles[k].x-size;
-			particles_vertices[vertex_index++] = particles[k].y+size;
-			particles_vertices[vertex_index++] = particles[k].z+size;
 		}
 	}
 
 	if(vertex_index>0) {
+		matrix_upload();
 		glEnableClientState(GL_COLOR_ARRAY);
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glVertexPointer(3,GL_FLOAT,0,particles_vertices);
@@ -201,6 +213,29 @@ int particle_render() {
 		glDisableClientState(GL_VERTEX_ARRAY);
 	}
 	return vertex_index/72;
+}
+
+void particle_create_casing(struct Player* p) {
+	for(int k=0;k<PARTICLES_MAX;k++) {
+        if(!particles[k].alive) {
+            particles[k].size = 0.1F;
+            particles[k].x = p->gun_pos.x;
+            particles[k].y = p->gun_pos.y;
+            particles[k].z = p->gun_pos.z;
+            particles[k].ox = p->orientation.x;
+            particles[k].oy = p->orientation.y;
+            particles[k].oz = p->orientation.z;
+            particles[k].vx = p->casing_dir.x*3.5F;
+            particles[k].vy = p->casing_dir.y*3.5F;
+            particles[k].vz = p->casing_dir.z*3.5F;
+            particles[k].created = glfwGetTime();
+            particles[k].fade = 0;
+            particles[k].type = players[local_player_id].weapon;
+            particles[k].color = 0x00FFFF;
+            particles[k].alive = true;
+            break;
+        }
+    }
 }
 
 void particle_create(unsigned int color, float x, float y, float z, float velocity, float velocity_y, int amount, float min_size, float max_size) {
@@ -220,6 +255,7 @@ void particle_create(unsigned int color, float x, float y, float z, float veloci
 			particles[k].created = glfwGetTime();
 			particles[k].fade = 0;
 			particles[k].color = color;
+			particles[k].type = 255;
 			particles[k].alive = true;
 			amount--;
 			if(amount==0) {
