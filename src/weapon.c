@@ -120,6 +120,17 @@ void weapon_spread(int gun, char scoped, float* out) {
     out[2] += basez;
 }
 
+int weapon_ammo(int gun) {
+    switch(players[local_player_id].weapon) {
+        case WEAPON_RIFLE:
+            return 10;
+        case WEAPON_SMG:
+            return 30;
+        case WEAPON_SHOTGUN:
+            return 6;
+    }
+}
+
 void weapon_set() {
     //players[local_player_id].weapon = WEAPON_SMG;
     switch(players[local_player_id].weapon) {

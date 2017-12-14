@@ -295,7 +295,8 @@ void player_update(float dt) {
             }
 
             if(players[k].alive && players[k].held_item==TOOL_GUN && players[k].input.buttons.lmb) {
-                if(glfwGetTime()-players[k].gun_shoot_timer>weapon_delay(players[k].weapon)) {
+                if(glfwGetTime()-players[k].gun_shoot_timer>weapon_delay(players[k].weapon) && players[k].ammo>0) {
+                    players[k].ammo--;
                     sound_create(NULL,SOUND_WORLD,weapon_sound(players[k].weapon),
                                    players[k].pos.x,players[k].pos.y,players[k].pos.z
                                )->stick_to_player = k;

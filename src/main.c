@@ -410,7 +410,7 @@ void display(float dt) {
 				&& (glfwGetTime()-players[local_player_id].item_showup)>=0.5F
 				&& local_player_blocks>0) {
 				int* pos = camera_terrain_pick(0);
-				if(pos!=NULL && pos[1]>1) {
+				if(pos!=NULL && pos[1]>1 && distance3D(camera_x,camera_y,camera_z,pos[0],pos[1],pos[2])<5.0F*5.0F) {
 					players[local_player_id].item_showup = glfwGetTime();
 					local_player_blocks = max(local_player_blocks-1,0);
 

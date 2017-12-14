@@ -244,6 +244,7 @@ void read_PacketExistingPlayer(void* data, int len) {
 		players[p->player_id].block.red = p->red;
 		players[p->player_id].block.green = p->green;
 		players[p->player_id].block.blue = p->blue;
+		players[p->player_id].ammo = weapon_ammo(p->weapon);
 		strcpy(players[p->player_id].name,p->name);
 		char* t;
 		switch(p->team) {
@@ -283,6 +284,7 @@ void read_PacketCreatePlayer(void* data, int len) {
 		players[p->player_id].block.red = 111;
 		players[p->player_id].block.green = 111;
 		players[p->player_id].block.blue = 111;
+		players[p->player_id].ammo = weapon_ammo(p->weapon);
 		if(p->player_id==local_player_id) {
 			camera_mode = (p->team==TEAM_SPECTATOR)?CAMERAMODE_SPECTATOR:CAMERAMODE_FPS;
 			camera_rot_x = (p->team==TEAM_1)?0.5F*PI:1.5F*PI;
@@ -524,6 +526,7 @@ void read_PacketWeaponReload(void* data, int len) {
 		sound_create(NULL,SOUND_WORLD,weapon_sound_reload(players[p->player_id].weapon),
 					 players[p->player_id].pos.x,players[p->player_id].pos.y,players[p->player_id].pos.z
 				 )->stick_to_player = p->player_id;
+		players[p->player_id].ammo = p->ammo;
 	}
 }
 
