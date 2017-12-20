@@ -62,6 +62,10 @@ void camera_hit_fromplayer(struct Camera_HitType* hit, int player_id, float rang
 }
 
 void camera_hit(struct Camera_HitType* hit, int exclude_player, float x, float y, float z, float ray_x, float ray_y, float ray_z, float range) {
+	camera_hit_mask(hit,exclude_player,x,y,z,ray_x,ray_y,ray_z,range,0xFF);
+}
+
+void camera_hit_mask(struct Camera_HitType* hit, int exclude_player, float x, float y, float z, float ray_x, float ray_y, float ray_z, float range, int mask) {
 	hit->type = CAMERA_HITTYPE_NONE;
 	hit->distance = FLT_MAX;
 	int* pos = camera_terrain_pickEx(1,x,y,z,ray_x,ray_y,ray_z);
@@ -95,7 +99,7 @@ void camera_hit(struct Camera_HitType* hit, int exclude_player, float x, float y
 			float angle = acos(((px*ray_x)+(py*ray_y)+(pz*ray_z))/sqrt(px*px+py*py+pz*pz));
 			if(angle<5.0F) {
 				int intersections = player_render(&players[i],i,&dir,0);
-				if(intersections && l<player_nearest) {
+				if((intersections&mask) && l<player_nearest) {
 					player_nearest = l;
 					player_nearest_id = i;
 					player_nearest_section = intersections;
@@ -168,8 +172,8 @@ int* camera_terrain_pickEx(unsigned char mode, float gx0, float gy0, float gz0, 
 	ret[3] = ret[4] = ret[5] = 0;
 
     while(1) {
-		if(gx>=map_size_x || gx<0 || gy>=map_size_y || gy<0 || gz>=map_size_z || gz<0) {
-			return ret;
+		if(gx>=map_size_x || gx<0 || gy<0 || gz>=map_size_z || gz<0) {
+			return NULL;
 		}
 		switch(mode) {
 			case 0:

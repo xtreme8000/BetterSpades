@@ -75,16 +75,20 @@ void font_render(float x, float y, float h, char* text) {
     glMatrixMode(GL_MODELVIEW);
 
     glEnable(GL_TEXTURE_2D);
-    if(font_type==FONT_SMALLFNT) {
-        glBindTexture(GL_TEXTURE_2D,font_smallfnt.texture_id);
+    switch(font_type) {
+        case FONT_SMALLFNT:
+            glBindTexture(GL_TEXTURE_2D,font_smallfnt.texture_id);
+            break;
+        case FONT_FIXEDSYS:
+            glBindTexture(GL_TEXTURE_2D,font_fixedsys.texture_id);
+            break;
     }
-    if(font_type==FONT_FIXEDSYS) {
-        glBindTexture(GL_TEXTURE_2D,font_fixedsys.texture_id);
-    }
-    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
-    glAlphaFunc(GL_GREATER,0.5F);
-    glEnable(GL_ALPHA_TEST);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -94,7 +98,7 @@ void font_render(float x, float y, float h, char* text) {
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
 
-    glDisable(GL_ALPHA_TEST);
+    glDisable(GL_BLEND);
     glBindTexture(GL_TEXTURE_2D,0);
     glDisable(GL_TEXTURE_2D);
 

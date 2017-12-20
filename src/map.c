@@ -448,6 +448,15 @@ void map_set(int x, int y, int z, unsigned long long color) {
 	if(x<map_size_x-1 && z>0 && x_off==CHUNK_SIZE-1 && z_off==0) {
 		chunk_block_update(x+1,y,z-1);
 	}
+
+	if(x==0)
+		chunk_block_update(map_size_x-1,y,z);
+	if(x==map_size_x-1)
+		chunk_block_update(0,y,z);
+	if(z==0)
+		chunk_block_update(x,y,map_size_z-1);
+	if(z==map_size_z-1)
+		chunk_block_update(x,y,0);
 }
 
 void map_vxl_setgeom(int x, int y, int z, unsigned int t, unsigned long long* map) {

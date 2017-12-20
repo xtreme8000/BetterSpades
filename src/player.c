@@ -111,42 +111,56 @@ float* player_tool_func(struct Player* p) {
                 }
             }
         }
-        case TOOL_GRENADE:
-            if(p->input.buttons.lmb) {
+        //case TOOL_GRENADE:
+            /*if(p->input.buttons.lmb && p!=&players[local_player_id]) {
                 ret[0] = max(-(glfwGetTime()-p->input.buttons.lmb_start)*35.0F,-35.0F);
                 return ret;
             } else {
                 return ret;
-            }
+            }*/
     }
     return ret;
 }
 
-float player_tool_translate_func(struct Player* p) {
+float* player_tool_translate_func(struct Player* p) {
+    static float ret[3];
+    ret[0] = ret[1] = ret[2] = 0.0F;
     if(p==&players[local_player_id] && camera_mode==CAMERAMODE_FPS) {
         if(glfwGetTime()-p->item_showup<0.5F) {
-            return 0.0F;
+            return ret;
         }
         if(p->held_item==TOOL_GUN && glfwGetTime()-weapon_last_shot<weapon_delay(players[local_player_id].weapon)) {
-            return -(weapon_delay(players[local_player_id].weapon)-(glfwGetTime()-weapon_last_shot))/weapon_delay(players[local_player_id].weapon)*0.125F*(local_player_ammo>0);
+            ret[2] = -(weapon_delay(players[local_player_id].weapon)-(glfwGetTime()-weapon_last_shot))/weapon_delay(players[local_player_id].weapon)*0.125F*(local_player_ammo>0);
+            return ret;
         }
 
         if(p->held_item==TOOL_SPADE) {
             float t = glfwGetTime()-p->spade_use_timer;
             if(t>1.0F) {
-                return 0.0F;
+                return ret;
             }
             if(p->spade_use_type==2) {
                 if(t>0.4F && t<=0.7F) {
-                    return (t-0.4F)/0.3F*0.8F;
+                    ret[2] = (t-0.4F)/0.3F*0.8F;
+                    return ret;
                 }
                 if(t>0.7F) {
-                    return (0.3F-(t-0.7F))/0.3F*0.8F;
+                    ret[2] = (0.3F-(t-0.7F))/0.3F*0.8F;
+                    return ret;
                 }
             }
         }
+        if(p->held_item==TOOL_GRENADE) {
+            if(p->input.buttons.lmb) {
+                ret[1] = (glfwGetTime()-p->input.buttons.lmb_start)*1.3F;
+                ret[0] = -ret[1];
+                return ret;
+            } else {
+                return ret;
+            }
+        }
     }
-    return 0.0F;
+    return ret;
 }
 
 float player_height(struct Player* p) {
@@ -300,7 +314,9 @@ void player_update(float dt) {
                     sound_create(NULL,SOUND_WORLD,weapon_sound(players[k].weapon),
                                    players[k].pos.x,players[k].pos.y,players[k].pos.z
                                )->stick_to_player = k;
-                    tracer_add(players[k].weapon,players[k].input.buttons.rmb,players[k].gun_pos.x,players[k].gun_pos.y,players[k].gun_pos.z,players[k].orientation.x,players[k].orientation.y,players[k].orientation.z);
+                    tracer_add(players[k].weapon,players[k].input.buttons.rmb,
+                               players[k].physics.eye.x,players[k].physics.eye.y+player_height(&players[k]),players[k].physics.eye.z,
+                               players[k].orientation.x,players[k].orientation.y,players[k].orientation.z);
                     particle_create_casing(&players[k]);
                     struct Camera_HitType hit;
                     camera_hit_fromplayer(&hit,k,128.0F);
@@ -445,7 +461,8 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 
     if(id==local_player_id && p->alive) {
         float speed = sqrt(pow(p->physics.velocity.x,2)+pow(p->physics.velocity.z,2))/0.25F;
-        matrix_translate(0.0F,0.0F,0.1F*player_swing_func(time/1000.0F)*speed+player_tool_translate_func(p));
+        float* f = player_tool_translate_func(p);
+        matrix_translate(f[0],f[1],0.1F*player_swing_func(time/1000.0F)*speed+f[2]);
     }
 
     if(p->input.keys.sprint && !p->input.keys.crouch) {
@@ -730,7 +747,7 @@ int player_move(struct Player* p, float fsynctics, int id) {
 		f *= 0.1f;
 	else if(p->input.keys.crouch)
 		f *= 0.3f;
-	else if((p->input.buttons.rmb && p->weapon == WEAPON_PRIMARY) || p->input.keys.sneak)
+	else if((p->input.buttons.rmb && p->held_item == TOOL_GUN) || p->input.keys.sneak)
 		f *= 0.5f;
 	else if(p->input.keys.sprint)
 		f *= 1.3f;

@@ -60,6 +60,8 @@ typedef unsigned char boolean;
 #define HALFPI		(PI*0.5F)
 #define EPSILON		0.005F
 
+#define MOUSE_SENSITIVITY 0.002F
+
 #include "glx.h"
 
 #include "sound.h"

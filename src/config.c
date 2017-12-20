@@ -25,6 +25,9 @@ static int config_read_key(void* user, const char* section, const char* name, co
         if(!strcmp(name,"vsync")) {
             settings.vsync = atoi(value);
         }
+        if(!strcmp(name,"mouse_sensitivity")) {
+            settings.mouse_sensitivity = atof(value)/5.0F*MOUSE_SENSITIVITY;
+        }
     }
     return 1;
 }

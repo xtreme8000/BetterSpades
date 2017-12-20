@@ -1,7 +1,5 @@
 #include "common.h"
 
-#define MOUSE_SENSITIVITY 0.002F
-
 int chat_input_mode = CHAT_NO_INPUT;
 
 char chat[2][10][256] = {0}; //chat[0] is current input
@@ -95,9 +93,6 @@ float drawScene(float dt) {
 			matrix_pop();
 		}
 	}
-
-	map_collapsing_render(dt);
-	matrix_upload();
 
 	return r;
 }
@@ -331,12 +326,12 @@ void display(float dt) {
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | (GL_STENCIL_BUFFER_BIT*settings.shadow_entities));
 
-	last_cy = players[local_player_id].physics.eye.y;
 	player_move(&players[local_player_id],dt,local_player_id);
+	last_cy = players[local_player_id].physics.eye.y-players[local_player_id].physics.velocity.y*0.5F;
 
 	//following two if-statements disable smooth crouching on local player
 	if(camera_mode==CAMERAMODE_FPS) {
-		if(!players[local_player_id].input.keys.crouch && key_map[GLFW_KEY_LEFT_CONTROL]) {
+		if(!players[local_player_id].input.keys.crouch && key_map[GLFW_KEY_LEFT_CONTROL] && !players[local_player_id].physics.airborne) {
 			players[local_player_id].pos.y -= 0.9F;
 			players[local_player_id].physics.eye.y -= 0.9F;
 			last_cy -= 0.9F;
@@ -396,6 +391,10 @@ void display(float dt) {
 
 		drawScene(dt);
 
+		if(map_get(camera_x,camera_y,camera_z)!=0xFFFFFFFF) {
+			glClear(GL_COLOR_BUFFER_BIT);
+		}
+
 		grenade_update(dt);
 		tracer_update(dt);
 
@@ -410,7 +409,9 @@ void display(float dt) {
 				&& (glfwGetTime()-players[local_player_id].item_showup)>=0.5F
 				&& local_player_blocks>0) {
 				int* pos = camera_terrain_pick(0);
-				if(pos!=NULL && pos[1]>1 && distance3D(camera_x,camera_y,camera_z,pos[0],pos[1],pos[2])<5.0F*5.0F) {
+				if(pos!=NULL && pos[1]>1 && distance3D(camera_x,camera_y,camera_z,pos[0],pos[1],pos[2])<5.0F*5.0F
+					&& !(pos[0]==(int)camera_x && pos[1]==(int)camera_y+0 && pos[2]==(int)camera_z)
+					&& !(pos[0]==(int)camera_x && pos[1]==(int)camera_y-1 && pos[2]==(int)camera_z)) {
 					players[local_player_id].item_showup = glfwGetTime();
 					local_player_blocks = max(local_player_blocks-1,0);
 
@@ -421,15 +422,30 @@ void display(float dt) {
 					blk.y = pos[2];
 					blk.z = 63-pos[1];
 					network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
-					//read_PacketBlockAction(&blk,sizeof(blk));
+					read_PacketBlockAction(&blk,sizeof(blk));
 				}
+			}
+			if(players[local_player_id].input.buttons.lmb
+			   && players[local_player_id].held_item==TOOL_GRENADE
+			   && glfwGetTime()-players[local_player_id].input.buttons.lmb_start>3.0F) {
+				local_player_grenades = max(local_player_grenades-1,0);
+				struct PacketGrenade g;
+				g.player_id = local_player_id;
+				g.x = players[local_player_id].pos.x;
+				g.y = players[local_player_id].pos.z;
+				g.z = 63.0F-players[local_player_id].pos.y;
+				g.fuse_length = g.vx = g.vy = g.vz = 0.0F;
+				network_send(PACKET_GRENADE_ID,&g,sizeof(g));
+				read_PacketGrenade(&g,sizeof(g));
+				players[local_player_id].input.buttons.lmb_start = glfwGetTime();
 			}
 		}
 
 		int* pos;
 		switch(players[local_player_id].held_item) {
 			case TOOL_BLOCK:
-				pos = camera_terrain_pick(0);
+				if(!players[local_player_id].input.keys.sprint)
+					pos = camera_terrain_pick(0);
 				break;
 			default:
 				pos = NULL;
@@ -522,6 +538,10 @@ void display(float dt) {
 		matrix_upload_p();
 		matrix_upload();
 		player_update(dt);
+
+		matrix_upload();
+		map_collapsing_render(dt);
+		matrix_upload();
 
 	}
 
@@ -700,14 +720,6 @@ void display(float dt) {
 		}
 
 		if(camera_mode==CAMERAMODE_FPS) {
-			if(show_exit) {
-				glColor3f(1.0F,0.0F,0.0F);
-				font_render((settings.window_width-font_length(53.0F*scalef,"EXIT GAME? Y/N"))/2.0F,settings.window_height/2.0F+53.0F*scalef,53.0F*scalef,"EXIT GAME? Y/N");
-			}
-			if(glfwGetTime()-chat_popup_timer<0.4F) {
-				glColor3f(1.0F,0.0F,0.0F);
-				font_render((settings.window_width-font_length(53.0F*scalef,chat_popup))/2.0F,settings.window_height/2.0F,53.0F*scalef,chat_popup);
-			}
 			glColor3f(1.0F,1.0F,1.0F);
 
 			if(players[local_player_id].held_item==TOOL_GUN && players[local_player_id].input.buttons.rmb) {
@@ -728,6 +740,16 @@ void display(float dt) {
 			} else {
 				texture_draw(&texture_target,(settings.window_width-16)/2.0F,(settings.window_height+16)/2.0F,16,16);
 			}
+
+			if(show_exit) {
+				glColor3f(1.0F,0.0F,0.0F);
+				font_render((settings.window_width-font_length(53.0F*scalef,"EXIT GAME? Y/N"))/2.0F,settings.window_height/2.0F+53.0F*scalef,53.0F*scalef,"EXIT GAME? Y/N");
+			}
+			if(glfwGetTime()-chat_popup_timer<0.4F) {
+				glColor3f(1.0F,0.0F,0.0F);
+				font_render((settings.window_width-font_length(53.0F*scalef,chat_popup))/2.0F,settings.window_height/2.0F,53.0F*scalef,chat_popup);
+			}
+			glColor3f(1.0F,1.0F,1.0F);
 
 			if(glfwGetTime()-local_player_last_damage_timer<=0.5F) {
 				float ang = atan2(players[local_player_id].orientation.z,players[local_player_id].orientation.x)-atan2(camera_z-local_player_last_damage_z,camera_x-local_player_last_damage_x)+PI;
@@ -821,13 +843,11 @@ void display(float dt) {
 				chat[0][0][l] = 0;
 			}
 			for(int k=0;k<6;k++) {
-				if(glfwGetTime()-chat_timer[0][k+1]<10.0F) {
+				if(glfwGetTime()-chat_timer[0][k+1]<10.0F || chat_input_mode!=CHAT_NO_INPUT) {
 					glColor3ub(red(chat_color[0][k+1]),green(chat_color[0][k+1]),blue(chat_color[0][k+1]));
 					font_render(11.0F*scalef,settings.window_height*0.15F-10.0F*scalef*k,8.0F*scalef,chat[0][k+1]);
 				}
-			}
 
-			for(int k=0;k<6;k++) {
 				if(glfwGetTime()-chat_timer[1][k+1]<10.0F) {
 					glColor3ub(red(chat_color[1][k+1]),green(chat_color[1][k+1]),blue(chat_color[1][k+1]));
 					font_render(11.0F*scalef,settings.window_height-22.0F*scalef-10.0F*scalef*k,8.0F*scalef,chat[1][k+1]);
@@ -894,7 +914,7 @@ void display(float dt) {
 			glPixelStorei(GL_UNPACK_ALIGNMENT,1);
 			glColor3f(1.0F,1.0F,1.0F);
 			//large
-			if(key_map[GLFW_KEY_M]) {
+			if(chat_input_mode==CHAT_NO_INPUT && key_map[GLFW_KEY_M]) {
 				float minimap_x = (settings.window_width-(map_size_x+1)*scalef)/2.0F;
 				float minimap_y = ((600-map_size_z-1)/2.0F+map_size_z+1)*scalef;
 
@@ -921,23 +941,23 @@ void display(float dt) {
 			    }
 
 				if(gamestate.gamemode_type==GAMEMODE_CTF) {
-					glColor3f(gamestate.team_1.red*0.94F,gamestate.team_1.green*0.94F,gamestate.team_1.blue*0.94F);
-					texture_draw_empty_rotated(minimap_x+gamestate.gamemode.ctf.team_1_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_1_base.y*scalef,12*scalef,12*scalef,0.0F);
-					glColor3f(1.0F,1.0F,1.0F);
-					texture_draw_rotated(&texture_medical,minimap_x+gamestate.gamemode.ctf.team_1_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_1_base.y*scalef,12*scalef,12*scalef,0.0F);
 					if(!gamestate.gamemode.ctf.team_1_intel) {
 						glColor3ub(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue);
 						texture_draw_rotated(&texture_intel,minimap_x+gamestate.gamemode.ctf.team_1_intel_location.dropped.x*scalef,minimap_y-gamestate.gamemode.ctf.team_1_intel_location.dropped.y*scalef,12*scalef,12*scalef,0.0F);
 					}
-
-					glColor3f(gamestate.team_2.red*0.94F,gamestate.team_2.green*0.94F,gamestate.team_2.blue*0.94F);
-					texture_draw_empty_rotated(minimap_x+gamestate.gamemode.ctf.team_2_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_2_base.y*scalef,12*scalef,12*scalef,0.0F);
+					glColor3f(gamestate.team_1.red*0.94F,gamestate.team_1.green*0.94F,gamestate.team_1.blue*0.94F);
+					texture_draw_empty_rotated(minimap_x+gamestate.gamemode.ctf.team_1_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_1_base.y*scalef,12*scalef,12*scalef,0.0F);
 					glColor3f(1.0F,1.0F,1.0F);
-					texture_draw_rotated(&texture_medical,minimap_x+gamestate.gamemode.ctf.team_2_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_2_base.y*scalef,12*scalef,12*scalef,0.0F);
+					texture_draw_rotated(&texture_medical,minimap_x+gamestate.gamemode.ctf.team_1_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_1_base.y*scalef,12*scalef,12*scalef,0.0F);
+
 					if(!gamestate.gamemode.ctf.team_2_intel) {
 						glColor3ub(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue);
 						texture_draw_rotated(&texture_intel,minimap_x+gamestate.gamemode.ctf.team_2_intel_location.dropped.x*scalef,minimap_y-gamestate.gamemode.ctf.team_2_intel_location.dropped.y*scalef,12*scalef,12*scalef,0.0F);
 					}
+					glColor3f(gamestate.team_2.red*0.94F,gamestate.team_2.green*0.94F,gamestate.team_2.blue*0.94F);
+					texture_draw_empty_rotated(minimap_x+gamestate.gamemode.ctf.team_2_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_2_base.y*scalef,12*scalef,12*scalef,0.0F);
+					glColor3f(1.0F,1.0F,1.0F);
+					texture_draw_rotated(&texture_medical,minimap_x+gamestate.gamemode.ctf.team_2_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_2_base.y*scalef,12*scalef,12*scalef,0.0F);
 				}
 				if(gamestate.gamemode_type==GAMEMODE_TC) {
 					for(int k=0;k<gamestate.gamemode.tc.territory_count;k++) {
@@ -1157,8 +1177,13 @@ void reshape(GLFWwindow* window, int width, int height) {
 	glfwSwapInterval(settings.vsync);
 }
 
+char text_input_first;
 void text_input(GLFWwindow* window, unsigned int codepoint) {
 	if(chat_input_mode==CHAT_NO_INPUT) {
+		return;
+	}
+	if(text_input_first) {
+		text_input_first = 0;
 		return;
 	}
 
@@ -1171,13 +1196,17 @@ void text_input(GLFWwindow* window, unsigned int codepoint) {
 
 float hj,hk,hl;
 void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	if(chat_input_mode==CHAT_NO_INPUT) {
-		if(action==GLFW_RELEASE) {
+	if(action==GLFW_RELEASE) {
+		key_map[key] = 0;
+	}
+	if(action==GLFW_PRESS) {
+		key_map[key] = 1;
+		if(chat_input_mode!=CHAT_NO_INPUT && (key==GLFW_KEY_SPACE || key==GLFW_KEY_LEFT_CONTROL)) {
 			key_map[key] = 0;
 		}
+	}
+	if(chat_input_mode==CHAT_NO_INPUT) {
 		if(action==GLFW_PRESS) {
-			key_map[key] = 1;
-
 			if(key==GLFW_KEY_ESCAPE) {
 				show_exit ^= 1;
 				glfwSetInputMode(window,GLFW_CURSOR,show_exit?GLFW_CURSOR_NORMAL:GLFW_CURSOR_DISABLED);
@@ -1209,11 +1238,13 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 
 			if(key==GLFW_KEY_T) {
 				chat_input_mode = CHAT_ALL_INPUT;
+				text_input_first = 1;
 				chat[0][0][0] = 0;
 			}
 
 			if(key==GLFW_KEY_Y || key==GLFW_KEY_Z) {
 				chat_input_mode = CHAT_TEAM_INPUT;
+				text_input_first = 1;
 				chat[0][0][0] = 0;
 			}
 
@@ -1500,7 +1531,7 @@ void mouse_click(GLFWwindow* window, int button, int action, int mods) {
 					g.vy = (g.fuse_length==0.0F)?0.0F:players[local_player_id].orientation.z;
 					g.vz = (g.fuse_length==0.0F)?0.0F:(-players[local_player_id].orientation.y);
 					network_send(PACKET_GRENADE_ID,&g,sizeof(g));
-					read_PacketGrenade(&g,sizeof(g));
+					read_PacketGrenade(&g,sizeof(g)); //server won't loop packet back
 				}
 				if(action==GLFW_PRESS) {
 					sound_create(NULL,SOUND_LOCAL,&sound_grenade_pin,0.0F,0.0F,0.0F)->stick_to_player = local_player_id;
@@ -1523,30 +1554,6 @@ void mouse_click(GLFWwindow* window, int button, int action, int mods) {
 			}
 		}
 
-		/*int* pos = camera_terrain_pick(1);
-		if((int)pos!=0 && pos[1]>1) {
-			unsigned int col = map_get(pos[0],pos[1],pos[2]);
-			map_set(pos[0],pos[1],pos[2],0xFFFFFFFF);
-			particle_create(col,pos[0]+0.5F,pos[1]+0.5F,pos[2]+0.5F,2.5F,1.0F,16,0.1F,0.25F);
-			if((map_get(pos[0],pos[1]+1,pos[2])&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(pos[0],pos[1]+1,pos[2])) {
-				map_apply_gravity();
-			}
-			if((map_get(pos[0],pos[1]-1,pos[2])&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(pos[0],pos[1]-1,pos[2])) {
-				map_apply_gravity();
-			}
-			if((map_get(pos[0]+1,pos[1],pos[2])&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(pos[0]+1,pos[1],pos[2])) {
-				map_apply_gravity();
-			}
-			if((map_get(pos[0]-1,pos[1],pos[2])&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(pos[0]-1,pos[1],pos[2])) {
-				map_apply_gravity();
-			}
-			if((map_get(pos[0],pos[1],pos[2]+1)&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(pos[0],pos[1],pos[2]+1)) {
-				map_apply_gravity();
-			}
-			if((map_get(pos[0],pos[1],pos[2]-1)&0xFFFFFFFF)!=0xFFFFFFFF && !map_ground_connected(pos[0],pos[1],pos[2]-1)) {
-				map_apply_gravity();
-			}
-		}*/
 		if(camera_mode==CAMERAMODE_BODYVIEW) {
 			cameracontroller_bodyview_player = (cameracontroller_bodyview_player-1)%PLAYERS_MAX;
 			while(1) {

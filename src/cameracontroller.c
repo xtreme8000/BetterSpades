@@ -7,20 +7,22 @@ void cameracontroller_fps(float dt) {
     players[local_player_id].connected = 1;
 	players[local_player_id].alive = 1;
 
-	players[local_player_id].input.keys.up = key_map[GLFW_KEY_W];
-	players[local_player_id].input.keys.down = key_map[GLFW_KEY_S];
-	players[local_player_id].input.keys.left = key_map[GLFW_KEY_A];
-	players[local_player_id].input.keys.right = key_map[GLFW_KEY_D];
-    if(players[local_player_id].input.keys.crouch && !key_map[GLFW_KEY_LEFT_CONTROL] && player_uncrouch(&players[local_player_id])) {
-        players[local_player_id].input.keys.crouch = 0;
+    if(chat_input_mode==CHAT_NO_INPUT) {
+    	players[local_player_id].input.keys.up = key_map[GLFW_KEY_W];
+    	players[local_player_id].input.keys.down = key_map[GLFW_KEY_S];
+    	players[local_player_id].input.keys.left = key_map[GLFW_KEY_A];
+    	players[local_player_id].input.keys.right = key_map[GLFW_KEY_D];
+        if(players[local_player_id].input.keys.crouch && !key_map[GLFW_KEY_LEFT_CONTROL] && player_uncrouch(&players[local_player_id])) {
+            players[local_player_id].input.keys.crouch = 0;
+        }
+        if(key_map[GLFW_KEY_LEFT_CONTROL]) {
+            players[local_player_id].input.keys.crouch = 1;
+        }
+    	//players[local_player_id].input.keys.crouch = key_map[GLFW_KEY_LEFT_CONTROL];
+    	players[local_player_id].input.keys.sprint = key_map[GLFW_KEY_LEFT_SHIFT];
+        players[local_player_id].input.keys.jump = key_map[GLFW_KEY_SPACE];
+        players[local_player_id].input.keys.sneak = key_map[GLFW_KEY_V];
     }
-    if(key_map[GLFW_KEY_LEFT_CONTROL]) {
-        players[local_player_id].input.keys.crouch = 1;
-    }
-	//players[local_player_id].input.keys.crouch = key_map[GLFW_KEY_LEFT_CONTROL];
-	players[local_player_id].input.keys.sprint = key_map[GLFW_KEY_LEFT_SHIFT];
-    players[local_player_id].input.keys.jump = key_map[GLFW_KEY_SPACE];
-    players[local_player_id].input.keys.sneak = key_map[GLFW_KEY_V];
 
     camera_x = players[local_player_id].physics.eye.x;
     camera_y = players[local_player_id].physics.eye.y+player_height(&players[local_player_id]);
@@ -42,6 +44,11 @@ void cameracontroller_fps(float dt) {
 
     if(key_map[GLFW_KEY_SPACE] && !players[local_player_id].physics.airborne) {
         players[local_player_id].physics.jump = 1;
+    }
+
+    if(chat_input_mode!=CHAT_NO_INPUT) {
+        players[local_player_id].input.keys.packed = 0;
+        players[local_player_id].input.buttons.packed = 0;
     }
 
 	players[local_player_id].orientation.x = sin(last_rot_x)*sin(last_rot_y);

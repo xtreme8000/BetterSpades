@@ -41,9 +41,11 @@ void weapon_update() {
                 weapon_reload_inprogress = 0;
             }
         }
-        players[local_player_id].item_disabled = glfwGetTime();
-        players[local_player_id].items_show_start = glfwGetTime();
-        players[local_player_id].items_show = 1;
+        if(players[local_player_id].held_item==TOOL_GUN) {
+            players[local_player_id].item_disabled = glfwGetTime();
+            players[local_player_id].items_show_start = glfwGetTime();
+            players[local_player_id].items_show = 1;
+        }
     } else {
         if(glfwGetTime()-players[local_player_id].item_disabled>=0.5F) {
             if(players[local_player_id].input.buttons.lmb && players[local_player_id].held_item==TOOL_GUN && local_player_ammo>0 && glfwGetTime()-weapon_last_shot>=delay) {
@@ -217,6 +219,23 @@ void weapon_shoot() {
             int type = player_damage(hit.player_section);
             sound_create(NULL,SOUND_WORLD,(type==HITTYPE_HEAD)?&sound_spade_whack:&sound_hitplayer,players[hit.player_id].pos.x,players[hit.player_id].pos.y,players[hit.player_id].pos.z)->stick_to_player = hit.player_id;
             particle_create(0x0000FF,players[hit.player_id].physics.eye.x,players[hit.player_id].physics.eye.y+player_section_height(type),players[hit.player_id].physics.eye.z,2.0F,1.0F,8,0.1F,0.4F);
+
+            if(players[local_player_id].input.buttons.packed!=network_buttons_last) {
+				struct PacketWeaponInput in;
+				in.player_id = local_player_id;
+				in.primary = players[local_player_id].input.buttons.lmb;
+				in.secondary = players[local_player_id].input.buttons.rmb;
+				network_send(PACKET_WEAPONINPUT_ID,&in,sizeof(in));
+
+				network_buttons_last = players[local_player_id].input.buttons.packed;
+			}
+
+            struct PacketPositionData orient;
+            orient.x = players[local_player_id].orientation.x;
+            orient.y = players[local_player_id].orientation.z;
+            orient.z = -players[local_player_id].orientation.y;
+            network_send(PACKET_ORIENTATIONDATA_ID,&orient,sizeof(orient));
+
             struct PacketHit h;
             h.player_id = hit.player_id;
             h.hit_type = type;
@@ -281,11 +300,11 @@ void weapon_shoot() {
         }
     }
 
-    //not sure what this does, seems to have no effect?
-    /*horiz_recoil *= sqrt(1.0F-players[local_player_id].orientation.y
+    //converges to 0 for (+/-) 1.0, (only slowly, has no effect on usual orientation.y range)
+    horiz_recoil *= sqrt(1.0F-players[local_player_id].orientation.y
                             *players[local_player_id].orientation.y
                             *players[local_player_id].orientation.y
-                            *players[local_player_id].orientation.y);*/
+                            *players[local_player_id].orientation.y);
 
     camera_rot_x += horiz_recoil;
     camera_rot_y -= vert_recoil;
@@ -307,7 +326,7 @@ void weapon_shoot() {
 
     sound_create(NULL,SOUND_LOCAL,shoot,players[local_player_id].pos.x,players[local_player_id].pos.y,players[local_player_id].pos.z);
     tracer_add(players[local_player_id].weapon,players[local_player_id].input.buttons.rmb,
-               players[local_player_id].gun_pos.x,players[local_player_id].gun_pos.y,players[local_player_id].gun_pos.z,
+               players[local_player_id].physics.eye.x,players[local_player_id].physics.eye.y+player_height(&players[local_player_id]),players[local_player_id].physics.eye.z,
                players[local_player_id].orientation.x,players[local_player_id].orientation.y,players[local_player_id].orientation.z
               );
 
