@@ -1785,6 +1785,29 @@ int main(int argc, char** argv) {
 
 		network_update();
 
+		if(key_map[GLFW_KEY_F2]) { //take screenshot
+			time_t pic_time;
+			time(&pic_time);
+			char pic_name[128];
+			sprintf(pic_name,"screenshots/%i.png",pic_time);
+
+			unsigned char* pic_data = malloc(settings.window_width*settings.window_height*4*2);
+			glReadPixels(0,0,settings.window_width,settings.window_height,GL_RGBA,GL_UNSIGNED_BYTE,pic_data);
+
+			for(int y=0;y<settings.window_height;y++) { //mirror image
+				memcpy(pic_data+settings.window_width*4*(y+settings.window_height),
+					   pic_data+settings.window_width*4*(settings.window_height-y-1),
+					   settings.window_width*4);
+			}
+
+			lodepng_encode32_file(pic_name,pic_data+settings.window_width*settings.window_height*4,settings.window_width,settings.window_height);
+			free(pic_data);
+
+			sprintf(pic_name,"Saved screenshot as screenshots/%i.png",pic_time);
+			chat_add(0,0x0000FF,pic_name);
+			key_map[GLFW_KEY_F2] = 0;
+		}
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 	}

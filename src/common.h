@@ -9,6 +9,7 @@
 #include <assert.h>
 #include <signal.h>
 #include <unistd.h>
+#include <time.h>
 
 #include "GL/glext.h"
 
