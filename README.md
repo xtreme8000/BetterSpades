@@ -88,6 +88,14 @@ Start the client with the following inside the `build/bin/` directory:
 ./client -aos://16777343:32887
 ```
 
+#### macOS
+
+The same instructions for Linux work on macOS aside from some minor differences. First, use Homebrew or MacPorts to grab dependencies:
+```
+brew install glfw enet
+```
+The development headers for OpenAL and OpenGL don't have to be installed since they come with macOS by default. libdeflate and lodepng should be installed and placed manually in a way similar to Linux. See _Wiki/Building_ for more details.
+
 ## Gallery
 
 | <img src="/docs/pic01.png" width="250px"> | <img src="/docs/pic02.png" width="250px"> | <img src="/docs/pic03.png" width="250px"> |
