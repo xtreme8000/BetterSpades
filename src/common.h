@@ -1,5 +1,10 @@
+#if __APPLE__
+#include <OpenGL/gl.h>
+#include <OpenGL/glu.h>
+#else
 #include <GL/gl.h>
 #include <GL/glu.h>
+#endif
 
 #include <stdlib.h>
 #include <string.h>
@@ -11,7 +16,11 @@
 #include <unistd.h>
 #include <time.h>
 
+#if __APPLE__
+#include <OpenGL/glext.h>
+#else
 #include "GL/glext.h"
+#endif
 
 #include "GLFW/glfw3.h"
 
