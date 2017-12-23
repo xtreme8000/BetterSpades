@@ -5,6 +5,7 @@ struct texture {
 };
 
 extern struct texture texture_splash;
+extern struct texture texture_minimap;
 
 extern struct texture texture_health;
 extern struct texture texture_block;

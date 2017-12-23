@@ -94,12 +94,31 @@ float drawScene(float dt) {
 		}
 	}
 
+	/*matrix_upload();
+	glBegin(GL_QUADS);
+	glColor3f(fog_color[0],fog_color[1],fog_color[2]);
+	int step = 10;
+	float f = settings.render_distance;
+	for(int k=0;k<360;k+=step) {
+		glVertex3f(cos(k/180.0F*PI)*f+camera_x,0.0F,sin(k/180.0F*PI)*f+camera_z);
+		glVertex3f(cos((k+step)/180.0F*PI)*f+camera_x,0.0F,sin((k+step)/180.0F*PI)*f+camera_z);
+
+		glVertex3f(cos((k+step)/180.0F*PI)*f+camera_x,96.0F,sin((k+step)/180.0F*PI)*f+camera_z);
+		glVertex3f(cos(k/180.0F*PI)*f+camera_x,96.0F,sin(k/180.0F*PI)*f+camera_z);
+	}
+	glEnd();*/
+
 	return r;
 }
 
+struct player_table {
+	unsigned char id;
+	unsigned int score;
+};
+
 int cmp(const void* a, const void* b) {
-	struct Player* aa = (struct Player*)a;
-	struct Player* bb = (struct Player*)b;
+	struct player_table* aa = (struct player_table*)a;
+	struct player_table* bb = (struct player_table*)b;
 	return bb->score-aa->score;
 }
 
@@ -422,7 +441,7 @@ void display(float dt) {
 					blk.y = pos[2];
 					blk.z = 63-pos[1];
 					network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
-					read_PacketBlockAction(&blk,sizeof(blk));
+					//read_PacketBlockAction(&blk,sizeof(blk));
 				}
 			}
 			if(players[local_player_id].input.buttons.lmb
@@ -514,7 +533,7 @@ void display(float dt) {
 			}
 			players[local_player_id].input.buttons.rmb = 0;
 		} else {
-			if(players[local_player_id].team!=TEAM_SPECTATOR) {
+			if(players[local_player_id].team!=TEAM_SPECTATOR && (screen_current==SCREEN_NONE || camera_mode!=CAMERAMODE_FPS)) {
 				float tmp2 = players[local_player_id].physics.eye.y;
 				players[local_player_id].physics.eye.y = last_cy;
 				if(camera_mode==CAMERAMODE_FPS) {
@@ -624,11 +643,6 @@ void display(float dt) {
 				font_select(FONT_FIXEDSYS);
 			}
 
-			//struct Player* p = malloc(sizeof(players));
-			//memcpy(p,players,sizeof(players));
-			//qsort(p,PLAYERS_MAX,sizeof(players)/PLAYERS_MAX,cmp);
-			struct Player* p = players;
-
 			char score_str[8];
 			glColor3ub(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue);
 			switch(gamestate.gamemode_type) {
@@ -664,30 +678,42 @@ void display(float dt) {
 			font_centered(settings.window_width/4.0F*3.0F,487*scalef,53.0F*scalef,score_str);
 			glColor3f(1.0F,1.0F,1.0F);
 
-			unsigned char cntt[3] = {0};
+
+
+			struct player_table pt[PLAYERS_MAX];
+			int connected = 0;
 			for(int k=0;k<PLAYERS_MAX;k++) {
-				if(p[k].connected) {
-					int mul = 0;
-					switch(p[k].team) {
-						case TEAM_1:
-							mul = 1;
-							break;
-						case TEAM_2:
-							mul = 3;
-							break;
-						default:
-						case TEAM_SPECTATOR:
-							mul = 2;
-							break;
-					}
-					char id_str[16];
-					sprintf(id_str," #%i",k);
-					font_render(settings.window_width/4.0F*mul-font_length(18.0F*scalef,p[k].name),(427-18*cntt[mul-1])*scalef,18.0F*scalef,p[k].name);
-					font_render(settings.window_width/4.0F*mul,(427-18*cntt[mul-1])*scalef,18.0F*scalef,id_str);
-					sprintf(id_str,"     %i",p[k].score);
-					font_render(settings.window_width/4.0F*mul,(427-18*cntt[mul-1])*scalef,18.0F*scalef,id_str);
-					cntt[mul-1]++;
+				if(players[k].connected) {
+					pt[connected].id = k;
+					pt[connected++].score = players[k].score;
 				}
+			}
+			qsort(pt,connected,sizeof(struct player_table),cmp);
+
+			unsigned char cntt[3] = {0};
+			for(int k=0;k<connected;k++) {
+				int mul = 0;
+				switch(players[pt[k].id].team) {
+					case TEAM_1:
+						mul = 1;
+						break;
+					case TEAM_2:
+						mul = 3;
+						break;
+					default:
+					case TEAM_SPECTATOR:
+						mul = 2;
+						break;
+				}
+				char id_str[16];
+				sprintf(id_str," #%i",pt[k].id);
+				font_render(settings.window_width/4.0F*mul-font_length(18.0F*scalef,players[pt[k].id].name),(427-18*cntt[mul-1])*scalef,18.0F*scalef,players[pt[k].id].name);
+				font_render(settings.window_width/4.0F*mul,(427-18*cntt[mul-1])*scalef,18.0F*scalef,id_str);
+				if(mul!=2) {
+					sprintf(id_str,"     %i",pt[k].score);
+					font_render(settings.window_width/4.0F*mul,(427-18*cntt[mul-1])*scalef,18.0F*scalef,id_str);
+				}
+				cntt[mul-1]++;
 			}
 		}
 
@@ -911,17 +937,17 @@ void display(float dt) {
 
 		//draw the minimap
 		if(camera_mode!=CAMERAMODE_SELECTION) {
-			glPixelStorei(GL_UNPACK_ALIGNMENT,1);
 			glColor3f(1.0F,1.0F,1.0F);
 			//large
 			if(chat_input_mode==CHAT_NO_INPUT && key_map[GLFW_KEY_M]) {
 				float minimap_x = (settings.window_width-(map_size_x+1)*scalef)/2.0F;
 				float minimap_y = ((600-map_size_z-1)/2.0F+map_size_z+1)*scalef;
 
-				glPixelZoom(scalef,-scalef);
-				glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
-				glRasterPos2f((settings.window_width-(map_size_x+1)*scalef)/2.0F,settings.window_height-(settings.window_height-(map_size_z+1)*scalef)/2.0F);
-				glDrawPixels(map_size_x+1,map_size_z+1,GL_RGB,GL_UNSIGNED_BYTE,map_minimap);
+				//glPixelZoom(scalef,-scalef);
+				//glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
+				//glRasterPos2f((settings.window_width-(map_size_x+1)*scalef)/2.0F,settings.window_height-(settings.window_height-(map_size_z+1)*scalef)/2.0F);
+				//glDrawPixels(map_size_x+1,map_size_z+1,GL_RGB,GL_UNSIGNED_BYTE,map_minimap);
+				texture_draw(&texture_minimap,minimap_x,minimap_y,512*scalef,512*scalef);
 
 				font_select(FONT_SMALLFNT);
 				char c[2] = {0};
@@ -1003,10 +1029,14 @@ void display(float dt) {
 				texture_draw_empty(settings.window_width-144*scalef,586*scalef,130*scalef,130*scalef);
 				glColor3f(1.0F,1.0F,1.0F);
 
-				glPixelZoom(scalef,-scalef);
-				glPixelStorei(GL_UNPACK_ROW_LENGTH,map_size_x+1);
-				glRasterPos2f(settings.window_width-143*scalef,585*scalef);
-				glDrawPixels(128,128,GL_RGB,GL_UNSIGNED_BYTE,map_minimap+((int)view_x+(int)view_z*(map_size_x+1))*3);
+				//glPixelZoom(scalef,-scalef);
+				//glPixelStorei(GL_UNPACK_ROW_LENGTH,map_size_x+1);
+				//glRasterPos2f(settings.window_width-143*scalef,585*scalef);
+				//glDrawPixels(128,128,GL_RGB,GL_UNSIGNED_BYTE,map_minimap+((int)view_x+(int)view_z*(map_size_x+1))*3);
+				glEnable(GL_SCISSOR_TEST);
+				glScissor(settings.window_width-143*scalef,585*scalef-128*scalef,128*scalef,128*scalef);
+				texture_draw(&texture_minimap,settings.window_width-(143+(int)view_x)*scalef,(585+(int)view_z)*scalef,512*scalef,512*scalef);
+				glDisable(GL_SCISSOR_TEST);
 
 				for(int k=0;k<TRACER_MAX;k++) {
 			        if(tracers[k].used) {
@@ -1136,6 +1166,24 @@ void init() {
 
 	glxcheckErrors(__FILE__,__LINE__);
 
+	map_colors = malloc(map_size_x*map_size_y*map_size_z*sizeof(unsigned long long));
+	for(int x=0;x<512;x++) { for(int z=0;z<512;z++) { for(int y=0;y<64;y++) {
+		map_colors[x+(y*map_size_z+z)*map_size_x] = 0xFFFFFFFF;
+	} } }
+
+	map_minimap = malloc(map_size_x*map_size_z*sizeof(unsigned char)*4);
+
+	//set minimap borders (white on 64x64 chunks, black map border)
+	memset(map_minimap,0xCCCCCCFF,map_size_x*map_size_z*sizeof(unsigned char)*4);
+	/*for(int k=0;k<map_size_x;k++) {
+		map_minimap[k*4+0] = map_minimap[k*4+1] = map_minimap[k*4+2] = 0;
+		map_minimap[(k+(map_size_z-1)*map_size_x)*4+0] = map_minimap[(k+(map_size_z-1)*map_size_x)*4+1] = map_minimap[(k+(map_size_z-1)*map_size_x)*4+2] = 0;
+	}
+	/*for(int k=0;k<map_size_z;k++) {
+		map_minimap[(k*map_size_x)*4+0] = map_minimap[(k*map_size_x)*4+1] = map_minimap[(k*map_size_x)*4+2] = 0;
+		map_minimap[(map_size_x+k*map_size_x)*4+0] = map_minimap[(map_size_x+k*map_size_x)*3+1] = map_minimap[(map_size_x+k*map_size_x)*4+2] = 0;
+	}*/
+
 	font_init();
 	player_init();
 	particle_init();
@@ -1146,28 +1194,6 @@ void init() {
 	tracer_init();
 
 	weapon_set();
-
-	//tent = kv6_load(file_load("FullBody_Arms_3.kv6"));
-	//gun = kv6_load(file_load("Rifle_10mm.kv6"));
-
-	map_minimap = malloc((map_size_x+1)*(map_size_z+1)*sizeof(unsigned char)*3);
-
-	//set minimap borders (white on 64x64 chunks, black map border)
-	memset(map_minimap,0xCC,(map_size_x+1)*(map_size_z+1)*sizeof(unsigned char)*3);
-	for(int k=0;k<map_size_x+1;k++) {
-		map_minimap[k*3+0] = map_minimap[k*3+1] = map_minimap[k*3+2] = 0;
-		map_minimap[(k+map_size_z*(map_size_x+1))*3+0] = map_minimap[(k+map_size_z*(map_size_x+1))*3+1] = map_minimap[(k+map_size_z*(map_size_x+1))*3+2] = 0;
-	}
-	for(int k=0;k<map_size_z+1;k++) {
-		map_minimap[(k*(map_size_x+1))*3+0] = map_minimap[(k*(map_size_x+1))*3+1] = map_minimap[(k*(map_size_x+1))*3+2] = 0;
-		map_minimap[(map_size_x+k*(map_size_x+1))*3+0] = map_minimap[(map_size_x+k*(map_size_x+1))*3+1] = map_minimap[(map_size_x+k*(map_size_x+1))*3+2] = 0;
-	}
-
-
-	map_colors = malloc(map_size_x*map_size_y*map_size_z*8);
-	for(int x=0;x<512;x++) { for(int z=0;z<512;z++) { for(int y=0;y<64;y++) {
-		map_colors[x+(y*map_size_z+z)*map_size_x] = 0xFFFFFFFF;
-	} } }
 }
 
 void reshape(GLFWwindow* window, int width, int height) {
@@ -1785,7 +1811,7 @@ int main(int argc, char** argv) {
 
 		network_update();
 
-		if(key_map[GLFW_KEY_F2]) { //take screenshot
+		if(key_map[GLFW_KEY_F5]) { //take screenshot
 			time_t pic_time;
 			time(&pic_time);
 			char pic_name[128];
@@ -1794,7 +1820,7 @@ int main(int argc, char** argv) {
 			unsigned char* pic_data = malloc(settings.window_width*settings.window_height*4*2);
 			glReadPixels(0,0,settings.window_width,settings.window_height,GL_RGBA,GL_UNSIGNED_BYTE,pic_data);
 
-			for(int y=0;y<settings.window_height;y++) { //mirror image
+			for(int y=0;y<settings.window_height;y++) { //mirror image (top-down)
 				memcpy(pic_data+settings.window_width*4*(y+settings.window_height),
 					   pic_data+settings.window_width*4*(settings.window_height-y-1),
 					   settings.window_width*4);
@@ -1805,7 +1831,8 @@ int main(int argc, char** argv) {
 
 			sprintf(pic_name,"Saved screenshot as screenshots/%i.png",pic_time);
 			chat_add(0,0x0000FF,pic_name);
-			key_map[GLFW_KEY_F2] = 0;
+
+			key_map[GLFW_KEY_F5] = 0;
 		}
 
 		glfwSwapBuffers(window);

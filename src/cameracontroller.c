@@ -51,6 +51,8 @@ void cameracontroller_fps(float dt) {
         players[local_player_id].input.buttons.packed = 0;
     }
 
+    //float speedx = (camera_rot_x-last_rot_x)/dt*0.02F;
+    //float speedy = (camera_rot_y-last_rot_y)/dt*0.02F;
 	players[local_player_id].orientation.x = sin(last_rot_x)*sin(last_rot_y);
 	players[local_player_id].orientation.y = cos(last_rot_y);
 	players[local_player_id].orientation.z = cos(last_rot_x)*sin(last_rot_y);

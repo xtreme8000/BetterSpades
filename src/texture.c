@@ -3,6 +3,7 @@
 #include "lodepng/lodepng.c"
 
 struct texture texture_splash;
+struct texture texture_minimap;
 
 struct texture texture_health;
 struct texture texture_block;
@@ -36,6 +37,8 @@ int texture_create(struct texture* t, char* filename) {
 
     texture_resize_pow2(t);
 
+    glPixelStorei(GL_UNPACK_ROW_LENGTH,t->width);
+	glPixelStorei(GL_UNPACK_ALIGNMENT,1);
     glEnable(GL_TEXTURE_2D);
     glGenTextures(1,&t->texture_id);
     glxcheckErrors(__FILE__,__LINE__);
@@ -56,6 +59,8 @@ int texture_create_buffer(struct texture* t, int width, int height, unsigned cha
     t->pixels = buff;
     texture_resize_pow2(t);
 
+    glPixelStorei(GL_UNPACK_ROW_LENGTH,t->width);
+	glPixelStorei(GL_UNPACK_ALIGNMENT,1);
     glEnable(GL_TEXTURE_2D);
     glGenTextures(1,&t->texture_id);
     glBindTexture(GL_TEXTURE_2D,t->texture_id);
@@ -131,12 +136,28 @@ void texture_resize_pow2(struct texture* t) {
         h += h;
     }
 
+    if(t->width==w && t->height==h) {
+        return;
+    }
+
     printf("original: %i:%i now: %i:%i\n",t->width,t->height,w,h);
 
     unsigned int* pixels_new = malloc(w*h*sizeof(unsigned int));
     for(int y=0;y<h;y++) {
         for(int x=0;x<w;x++) {
-            pixels_new[x+y*w] = ((unsigned int*)t->pixels)[x*t->width/w+y*t->height/h*t->width];
+            float px = (float)x/(float)w*(float)t->width;
+            float py = (float)y/(float)h*(float)t->height;
+            float u = px-(int)px;
+            float v = py-(int)py;
+            unsigned int aa = ((unsigned int*)t->pixels)[(int)px+(int)py*t->width];
+            unsigned int ba = ((unsigned int*)t->pixels)[min((int)px+(int)py*t->width+1,t->width*t->height)];
+            unsigned int ab = ((unsigned int*)t->pixels)[min((int)px+(int)py*t->width+t->width,t->width*t->height)];
+            unsigned int bb = ((unsigned int*)t->pixels)[min((int)px+(int)py*t->width+1+t->width,t->width*t->height)];
+            pixels_new[x+y*w] = 0;
+            pixels_new[x+y*w] |= (int)((1.0F-v)*u*red(ba)+(1.0F-v)*(1.0F-u)*red(aa)+v*u*red(bb)+v*(1.0F-u)*red(ab));
+            pixels_new[x+y*w] |= (int)((1.0F-v)*u*green(ba)+(1.0F-v)*(1.0F-u)*green(aa)+v*u*green(bb)+v*(1.0F-u)*green(ab))<<8;
+            pixels_new[x+y*w] |= (int)((1.0F-v)*u*blue(ba)+(1.0F-v)*(1.0F-u)*blue(aa)+v*u*blue(bb)+v*(1.0F-u)*blue(ab))<<16;
+            pixels_new[x+y*w] |= (int)((1.0F-v)*u*alpha(ba)+(1.0F-v)*(1.0F-u)*alpha(aa)+v*u*alpha(bb)+v*(1.0F-u)*alpha(ab))<<24;
         }
     }
 
@@ -199,4 +220,6 @@ void texture_init() {
         }
     }
     texture_create_buffer(&texture_color_selection,64,64,(unsigned char*)pixels);
+
+    texture_create_buffer(&texture_minimap,map_size_x,map_size_z,map_minimap);
 }

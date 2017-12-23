@@ -64,7 +64,7 @@ int weapon_block_damage(int gun) {
         case WEAPON_SMG:
             return 34;
         case WEAPON_SHOTGUN:
-            return 100;
+            return 26;
     }
 }
 
@@ -101,11 +101,17 @@ struct Sound_wav* weapon_sound_reload(int gun) {
     }
 }
 
-void weapon_spread(int gun, char scoped, float* out) {
+static int seed = 1;
+static int ms_rand() {
+  seed = seed*0x343FD+0x269EC3;
+  return (seed>>0x10) & 0x7FFF;
+}
+
+void weapon_spread(struct Player* p, float* d) {
     float spread = 0.0F;
-    switch(gun) {
+    switch(p->weapon) {
         case WEAPON_RIFLE:
-            spread = 0.0060000001F;
+            spread = 0.006F;
             break;
         case WEAPON_SMG:
             spread = 0.012F;
@@ -114,12 +120,9 @@ void weapon_spread(int gun, char scoped, float* out) {
             spread = 0.024F;
             break;
     }
-    float basex = (rand()-rand())/16383.0F*spread*(scoped?0.5F:1.0F);
-    float basey = (rand()-rand())/16383.0F*spread*(scoped?0.5F:1.0F);
-    float basez = (rand()-rand())/16383.0F*spread*(scoped?0.5F:1.0F);
-    out[0] += basex;
-    out[1] += basey;
-    out[2] += basez;
+    d[0] += (ms_rand()-ms_rand())/16383.0F*spread*(p->input.buttons.rmb?0.5F:1.0F)*((p->input.keys.crouch && p->weapon!=WEAPON_SHOTGUN)?0.5F:1.0F);
+    d[1] += (ms_rand()-ms_rand())/16383.0F*spread*(p->input.buttons.rmb?0.5F:1.0F)*((p->input.keys.crouch && p->weapon!=WEAPON_SHOTGUN)?0.5F:1.0F);
+    d[2] += (ms_rand()-ms_rand())/16383.0F*spread*(p->input.buttons.rmb?0.5F:1.0F)*((p->input.keys.crouch && p->weapon!=WEAPON_SHOTGUN)?0.5F:1.0F);
 }
 
 int weapon_ammo(int gun) {
@@ -134,7 +137,7 @@ int weapon_ammo(int gun) {
 }
 
 void weapon_set() {
-    //players[local_player_id].weapon = WEAPON_SMG;
+    //players[local_player_id].weapon = WEAPON_SHOTGUN;
     switch(players[local_player_id].weapon) {
         case WEAPON_RIFLE:
             local_player_ammo = 10;
@@ -199,64 +202,71 @@ void weapon_shoot() {
     //https://pastebin.com/raw/TMjKSTXG
     //http://paste.quacknet.org/view/a3ea2743
 
-    /*float o[3] = {players[local_player_id].orientation.x,
-                  players[local_player_id].orientation.y,
-                  players[local_player_id].orientation.z};
+    for(int i=0;i<((players[local_player_id].weapon==WEAPON_SHOTGUN)?6:1);i++) {
+        float o[3] = {players[local_player_id].orientation.x,
+                      players[local_player_id].orientation.y,
+                      players[local_player_id].orientation.z};
 
-    weapon_spread(players[local_player_id].weapon,players[local_player_id].input.buttons.rmb,o);*/
+        weapon_spread(&players[local_player_id],o);
 
-    struct Camera_HitType hit;
-    camera_hit_fromplayer(&hit,local_player_id,128.0F);
-    /*camera_hit(&hit,local_player_id,
-               players[local_player_id].physics.eye.x,
-               players[local_player_id].physics.eye.y+player_height(&players[local_player_id]),
-               players[local_player_id].physics.eye.z,
-               o[0],o[1],o[2],128.0F);*/
+        struct Camera_HitType hit;
+        //camera_hit_fromplayer(&hit,local_player_id,128.0F);
+        camera_hit(&hit,local_player_id,
+                   players[local_player_id].physics.eye.x,
+                   players[local_player_id].physics.eye.y+player_height(&players[local_player_id]),
+                   players[local_player_id].physics.eye.z,
+                   o[0],o[1],o[2],128.0F);
 
-    switch(hit.type) {
-        case CAMERA_HITTYPE_PLAYER:
-        {
-            int type = player_damage(hit.player_section);
-            sound_create(NULL,SOUND_WORLD,(type==HITTYPE_HEAD)?&sound_spade_whack:&sound_hitplayer,players[hit.player_id].pos.x,players[hit.player_id].pos.y,players[hit.player_id].pos.z)->stick_to_player = hit.player_id;
-            particle_create(0x0000FF,players[hit.player_id].physics.eye.x,players[hit.player_id].physics.eye.y+player_section_height(type),players[hit.player_id].physics.eye.z,2.0F,1.0F,8,0.1F,0.4F);
+        switch(hit.type) {
+            case CAMERA_HITTYPE_PLAYER:
+            {
+                int type = player_damage(hit.player_section);
+                sound_create(NULL,SOUND_WORLD,(type==HITTYPE_HEAD)?&sound_spade_whack:&sound_hitplayer,players[hit.player_id].pos.x,players[hit.player_id].pos.y,players[hit.player_id].pos.z)->stick_to_player = hit.player_id;
+                particle_create(0x0000FF,players[hit.player_id].physics.eye.x,players[hit.player_id].physics.eye.y+player_section_height(type),players[hit.player_id].physics.eye.z,2.0F,1.0F,8,0.1F,0.4F);
 
-            if(players[local_player_id].input.buttons.packed!=network_buttons_last) {
-				struct PacketWeaponInput in;
-				in.player_id = local_player_id;
-				in.primary = players[local_player_id].input.buttons.lmb;
-				in.secondary = players[local_player_id].input.buttons.rmb;
-				network_send(PACKET_WEAPONINPUT_ID,&in,sizeof(in));
+                if(players[local_player_id].input.buttons.packed!=network_buttons_last) {
+    				struct PacketWeaponInput in;
+    				in.player_id = local_player_id;
+    				in.primary = players[local_player_id].input.buttons.lmb;
+    				in.secondary = players[local_player_id].input.buttons.rmb;
+    				network_send(PACKET_WEAPONINPUT_ID,&in,sizeof(in));
 
-				network_buttons_last = players[local_player_id].input.buttons.packed;
-			}
+    				network_buttons_last = players[local_player_id].input.buttons.packed;
+    			}
 
-            struct PacketPositionData orient;
-            orient.x = players[local_player_id].orientation.x;
-            orient.y = players[local_player_id].orientation.z;
-            orient.z = -players[local_player_id].orientation.y;
-            network_send(PACKET_ORIENTATIONDATA_ID,&orient,sizeof(orient));
+                struct PacketPositionData orient;
+                orient.x = players[local_player_id].orientation.x;
+                orient.y = players[local_player_id].orientation.z;
+                orient.z = -players[local_player_id].orientation.y;
+                network_send(PACKET_ORIENTATIONDATA_ID,&orient,sizeof(orient));
 
-            struct PacketHit h;
-            h.player_id = hit.player_id;
-            h.hit_type = type;
-            network_send(PACKET_HIT_ID,&h,sizeof(h));
-            //printf("hit on %s (%i)\n",players[hit.player_id].name,h.hit_type);
-            break;
-        }
-        case CAMERA_HITTYPE_BLOCK:
-            if(map_damage(hit.x,hit.y,hit.z,weapon_block_damage(players[local_player_id].weapon))==100) {
-                struct PacketBlockAction blk;
-                blk.action_type = ACTION_DESTROY;
-                blk.player_id = local_player_id;
-                blk.x = hit.x;
-                blk.y = hit.z;
-                blk.z = 63-hit.y;
-                network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
-                //read_PacketBlockAction(&blk,sizeof(blk));
-            } else {
-                particle_create(map_get(hit.x,hit.y,hit.z),hit.xb+0.5F,hit.yb+0.5F,hit.zb+0.5F,2.5F,1.0F,4,0.1F,0.25F);
+                struct PacketHit h;
+                h.player_id = hit.player_id;
+                h.hit_type = type;
+                network_send(PACKET_HIT_ID,&h,sizeof(h));
+                //printf("hit on %s (%i)\n",players[hit.player_id].name,h.hit_type);
+                break;
             }
-            break;
+            case CAMERA_HITTYPE_BLOCK:
+                if(map_damage(hit.x,hit.y,hit.z,weapon_block_damage(players[local_player_id].weapon))==100) {
+                    struct PacketBlockAction blk;
+                    blk.action_type = ACTION_DESTROY;
+                    blk.player_id = local_player_id;
+                    blk.x = hit.x;
+                    blk.y = hit.z;
+                    blk.z = 63-hit.y;
+                    network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
+                    //read_PacketBlockAction(&blk,sizeof(blk));
+                } else {
+                    particle_create(map_get(hit.x,hit.y,hit.z),hit.xb+0.5F,hit.yb+0.5F,hit.zb+0.5F,2.5F,1.0F,4,0.1F,0.25F);
+                }
+                break;
+        }
+
+        tracer_add(players[local_player_id].weapon,
+                   players[local_player_id].physics.eye.x,players[local_player_id].physics.eye.y+player_height(&players[local_player_id]),players[local_player_id].physics.eye.z,
+                   o[0],o[1],o[2]
+                  );
     }
 
     double horiz_recoil, vert_recoil;
@@ -309,6 +319,8 @@ void weapon_shoot() {
     camera_rot_x += horiz_recoil;
     camera_rot_y -= vert_recoil;
 
+    camera_overflow_adjust();
+
     struct Sound_wav* shoot;
     switch(players[local_player_id].weapon) {
         case WEAPON_RIFLE:
@@ -322,13 +334,6 @@ void weapon_shoot() {
             break;
     }
 
-    camera_overflow_adjust();
-
     sound_create(NULL,SOUND_LOCAL,shoot,players[local_player_id].pos.x,players[local_player_id].pos.y,players[local_player_id].pos.z);
-    tracer_add(players[local_player_id].weapon,players[local_player_id].input.buttons.rmb,
-               players[local_player_id].physics.eye.x,players[local_player_id].physics.eye.y+player_height(&players[local_player_id]),players[local_player_id].physics.eye.z,
-               players[local_player_id].orientation.x,players[local_player_id].orientation.y,players[local_player_id].orientation.z
-              );
-
     particle_create_casing(&players[local_player_id]);
 }

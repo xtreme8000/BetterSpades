@@ -2,31 +2,21 @@
 
 struct Tracer* tracers;
 
-void tracer_add(unsigned char type, char scoped, float x, float y, float z, float dx, float dy, float dz) {
-    int a = (type==WEAPON_SHOTGUN)?5:1;
+void tracer_add(unsigned char type, float x, float y, float z, float dx, float dy, float dz) {
     for(int k=0;k<TRACER_MAX;k++) {
         if(!tracers[k].used) {
             float spread = 0.0F;
             switch(type) {
                 case WEAPON_RIFLE:
                     tracers[k].type = 0;
-                    spread = 0.0060000001F;
                     break;
                 case WEAPON_SMG:
                     tracers[k].type = 1;
-                    spread = 0.012F;
                     break;
                 case WEAPON_SHOTGUN:
                     tracers[k].type = 2;
-                    spread = 0.024F;
                     break;
             }
-            float basex = (rand()-rand())/16383.0F*spread*(scoped?0.5F:1.0F);
-            float basey = (rand()-rand())/16383.0F*spread*(scoped?0.5F:1.0F);
-            float basez = (rand()-rand())/16383.0F*spread*(scoped?0.5F:1.0F);
-            dx += basex;
-            dy += basey;
-            dz += basez;
             tracers[k].r.origin.x = x+dx*3.0F;
             tracers[k].r.origin.y = y+dy*3.0F;
             tracers[k].r.origin.z = z+dz*3.0F;
@@ -35,10 +25,7 @@ void tracer_add(unsigned char type, char scoped, float x, float y, float z, floa
             tracers[k].r.direction.z = dz;
             tracers[k].created = glfwGetTime();
             tracers[k].used = 1;
-            a--;
-            if(a==0) {
-                break;
-            }
+            break;
         }
     }
 }

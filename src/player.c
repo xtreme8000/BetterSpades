@@ -164,7 +164,7 @@ float* player_tool_translate_func(struct Player* p) {
 }
 
 float player_height(struct Player* p) {
-    return p->input.keys.crouch?0.95F:1.0F;
+    return p->input.keys.crouch?1.05F:1.1F;
 }
 
 int player_damage(int damage_sections) {
@@ -314,12 +314,23 @@ void player_update(float dt) {
                     sound_create(NULL,SOUND_WORLD,weapon_sound(players[k].weapon),
                                    players[k].pos.x,players[k].pos.y,players[k].pos.z
                                )->stick_to_player = k;
-                    tracer_add(players[k].weapon,players[k].input.buttons.rmb,
-                               players[k].physics.eye.x,players[k].physics.eye.y+player_height(&players[k]),players[k].physics.eye.z,
-                               players[k].orientation.x,players[k].orientation.y,players[k].orientation.z);
-                    particle_create_casing(&players[k]);
+
+                    float o[3] = {players[k].orientation.x,
+                                  players[k].orientation.y,
+                                  players[k].orientation.z};
+
+                    weapon_spread(&players[k],o);
+
                     struct Camera_HitType hit;
-                    camera_hit_fromplayer(&hit,k,128.0F);
+                    camera_hit(&hit,k,
+                               players[k].physics.eye.x,
+                               players[k].physics.eye.y+player_height(&players[k]),
+                               players[k].physics.eye.z,
+                               o[0],o[1],o[2],128.0F);
+                    tracer_add(players[k].weapon,
+                               players[k].physics.eye.x,players[k].physics.eye.y+player_height(&players[k]),players[k].physics.eye.z,
+                               o[0],o[1],o[2]);
+                    particle_create_casing(&players[k]);
                     switch(hit.type) {
                         case CAMERA_HITTYPE_PLAYER:
                         {
@@ -337,6 +348,12 @@ void player_update(float dt) {
             }
         }
     }
+}
+
+static float foot_function(struct Player* p) {
+    float f = (glfwGetTime()-p->sound.feet_started_cycle)/(p->input.keys.sprint?(0.5F/1.3F):0.5F);
+    f = f*2.0F-1.0F;
+    return p->sound.feet_cylce?f:-f;
 }
 
 int player_render(struct Player* p, int id, Ray* ray, char render) {
@@ -423,8 +440,8 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
         matrix_pointAt(p->orientation.x,0.0F,p->orientation.z);
         matrix_rotate(90.0F,0.0F,1.0F,0.0F);
         matrix_translate(torso->xsiz*0.1F*0.5F-leg->xsiz*0.1F*0.5F,-torso->zsiz*0.1F*(p->input.keys.crouch?0.6F:1.0F),p->input.keys.crouch?(-torso->zsiz*0.1F*0.75F):0.0F);
-        matrix_rotate(45.0F*sin(time*DOUBLEPI/1000.0F)*a,1.0F,0.0F,0.0F);
-        matrix_rotate(45.0F*sin(time*DOUBLEPI/1000.0F)*b,0.0F,0.0F,1.0F);
+        matrix_rotate(45.0F*foot_function(p)*a,1.0F,0.0F,0.0F);
+        matrix_rotate(45.0F*foot_function(p)*b,0.0F,0.0F,1.0F);
         matrix_upload();
         if(render)
             kv6_render(leg,p->team);
@@ -438,8 +455,8 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
         matrix_pointAt(p->orientation.x,0.0F,p->orientation.z);
         matrix_rotate(90.0F,0.0F,1.0F,0.0F);
         matrix_translate(-torso->xsiz*0.1F*0.5F+leg->xsiz*0.1F*0.5F,-torso->zsiz*0.1F*(p->input.keys.crouch?0.6F:1.0F),p->input.keys.crouch?(-torso->zsiz*0.1F*0.75F):0.0F);
-        matrix_rotate(-45.0F*sin(time*DOUBLEPI/1000.0F)*a,1.0F,0.0F,0.0F);
-        matrix_rotate(-45.0F*sin(time*DOUBLEPI/1000.0F)*b,0.0F,0.0F,1.0F);
+        matrix_rotate(-45.0F*foot_function(p)*a,1.0F,0.0F,0.0F);
+        matrix_rotate(-45.0F*foot_function(p)*b,0.0F,0.0F,1.0F);
         matrix_upload();
         if(render)
             kv6_render(leg,p->team);
@@ -815,15 +832,21 @@ int player_move(struct Player* p, float fsynctics, int id) {
 
     player_coordsystem_adjust2(p);
 
-    if(sqrt(pow(p->physics.velocity.x,2.0F)+pow(p->physics.velocity.z,2.0F))>0.125F
-        && !p->physics.airborne
-        && (p->input.keys.up || p->input.keys.down || p->input.keys.left || p->input.keys.right)
-        && glfwGetTime()-p->sound.feet_started>(p->input.keys.sprint?(0.5F/1.3F):0.5F)) {
+    if(p->input.keys.up || p->input.keys.down || p->input.keys.left || p->input.keys.right) {
 
-        struct Sound_wav* footstep[8] = {&sound_footstep1,&sound_footstep2,&sound_footstep3,&sound_footstep4,
-                                         &sound_wade1,&sound_wade2,&sound_wade3,&sound_wade4};
-        sound_create(NULL,local?SOUND_LOCAL:SOUND_WORLD,footstep[(rand()%4)+(p->physics.wade?4:0)],p->pos.x,p->pos.y,p->pos.z)->stick_to_player = id;
-        p->sound.feet_started = glfwGetTime();
+
+        if(glfwGetTime()-p->sound.feet_started>(p->input.keys.sprint?(0.5F/1.3F):0.5F)
+           && sqrt(pow(p->physics.velocity.x,2.0F)+pow(p->physics.velocity.z,2.0F))>0.125F
+           && !p->physics.airborne) {
+            struct Sound_wav* footstep[8] = {&sound_footstep1,&sound_footstep2,&sound_footstep3,&sound_footstep4,
+                                             &sound_wade1,&sound_wade2,&sound_wade3,&sound_wade4};
+            sound_create(NULL,local?SOUND_LOCAL:SOUND_WORLD,footstep[(rand()%4)+(p->physics.wade?4:0)],p->pos.x,p->pos.y,p->pos.z)->stick_to_player = id;
+            p->sound.feet_started = glfwGetTime();
+        }
+        if(glfwGetTime()-p->sound.feet_started_cycle>(p->input.keys.sprint?(0.5F/1.3F):0.5F)) {
+            p->sound.feet_started_cycle = glfwGetTime();
+            p->sound.feet_cylce = !p->sound.feet_cylce;
+        }
     }
 
     //sound_position(&p->sound.feet,p->pos.x,p->pos.y,p->pos.z);

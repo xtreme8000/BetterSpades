@@ -103,7 +103,8 @@ extern struct Player {
 
 	struct {
 		struct Sound_source feet;
-		float feet_started;
+		float feet_started, feet_started_cycle;
+		char feet_cylce;
 		struct Sound_source tool;
 		float tool_started;
 	} sound;

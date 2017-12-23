@@ -579,6 +579,7 @@ void read_PacketIntelCapture(void* data, int len) {
 		}
 		//TODO: play horn.wav, show win message etc.
 		sound_create(NULL,SOUND_LOCAL,p->winning?&sound_horn:&sound_pickup,0.0F,0.0F,0.0F);
+		players[p->player_id].score += 10;
 	}
 }
 
@@ -696,24 +697,34 @@ void network_disconnect() {
 	enet_peer_reset(peer);
 }
 
-int network_connect(char* ip, int port) {
-	if(network_connected) {
-		network_disconnect();
-	}
+int network_connect_sub(char* ip, int port, int version) {
 	ENetAddress address;
 	ENetEvent event;
 	enet_address_set_host(&address,ip);
 	address.port = port;
-	peer = enet_host_connect(client,&address,1,VERSION_075);
+	peer = enet_host_connect(client,&address,1,version);
 	network_logged_in = 0;
 	if(peer==NULL) {
 		return 0;
 	}
-	if(enet_host_service(client,&event,5000)>0 && event.type == ENET_EVENT_TYPE_CONNECT) {
+	if(enet_host_service(client,&event,5000)>0 && event.type==ENET_EVENT_TYPE_CONNECT) {
 		network_connected = 1;
 		return 1;
 	}
 	enet_peer_reset(peer);
+	return 0;
+}
+
+int network_connect(char* ip, int port) {
+	if(network_connected) {
+		network_disconnect();
+	}
+	if(network_connect_sub(ip,port,VERSION_075)) {
+		return 1;
+	}
+	if(network_connect_sub(ip,port,VERSION_076)) {
+		return 1;
+	}
 	return 0;
 }
 

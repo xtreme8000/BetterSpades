@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <time.h>
+#include <pthread.h>
 
 #if __APPLE__
 #include <OpenGL/glext.h>
@@ -63,7 +64,7 @@ typedef unsigned char boolean;
 #define red(col)	((col)&0xFF)
 #define green(col)	(((col)>>8)&0xFF)
 #define blue(col)	(((col)>>16)&0xFF)
-
+#define alpha(col)	(((col)>>24)&0xFF)
 
 #define PI			3.1415F
 #define DOUBLEPI	(PI*2.0F)
@@ -75,6 +76,7 @@ typedef unsigned char boolean;
 #include "glx.h"
 
 #include "sound.h"
+#include "texture.h"
 #include "chunk.h"
 #include "map.h"
 #include "aabb.h"
@@ -87,7 +89,6 @@ typedef unsigned char boolean;
 #include "grenade.h"
 #include "cameracontroller.h"
 #include "font.h"
-#include "texture.h"
 #include "weapon.h"
 #include "matrix.h"
 #include "tracer.h"
