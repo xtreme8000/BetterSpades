@@ -158,7 +158,7 @@ void cameracontroller_spectator(float dt) {
 void cameracontroller_bodyview(float dt) {
 
     //check if we cant spectate the player anymore
-    while(1) {
+    for(int k=0;k<PLAYERS_MAX*2;k++) { //a while(1) loop caused it to get stuck on map change when playing on babel
         if(players[cameracontroller_bodyview_player].connected && players[cameracontroller_bodyview_player].team==players[local_player_id].team) {
             break;
         }
