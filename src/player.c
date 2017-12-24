@@ -526,7 +526,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
                 kv6_render(&model_block,p->team);
             break;
         case TOOL_GUN:
-            if(!(camera_mode==CAMERAMODE_FPS && players[local_player_id].input.buttons.rmb)) {
+            if((!(camera_mode==CAMERAMODE_FPS && players[local_player_id].input.buttons.rmb) && id==local_player_id) || id!=local_player_id) {
                 switch(p->weapon) {
                     case WEAPON_RIFLE:
                         if(render)
