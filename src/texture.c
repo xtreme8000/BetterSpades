@@ -4,6 +4,7 @@
 
 struct texture texture_splash;
 struct texture texture_minimap;
+struct texture texture_gradient;
 
 struct texture texture_health;
 struct texture texture_block;
@@ -39,7 +40,6 @@ int texture_create(struct texture* t, char* filename) {
 
     glPixelStorei(GL_UNPACK_ROW_LENGTH,t->width);
 	glPixelStorei(GL_UNPACK_ALIGNMENT,1);
-    glEnable(GL_TEXTURE_2D);
     glGenTextures(1,&t->texture_id);
     glxcheckErrors(__FILE__,__LINE__);
     glBindTexture(GL_TEXTURE_2D,t->texture_id);
@@ -49,11 +49,12 @@ int texture_create(struct texture* t, char* filename) {
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
     glBindTexture(GL_TEXTURE_2D,0);
-    glDisable(GL_TEXTURE_2D);
-    glxcheckErrors(__FILE__,__LINE__);
 }
 
 int texture_create_buffer(struct texture* t, int width, int height, unsigned char* buff) {
+    if(t->pixels==NULL) {
+        glGenTextures(1,&t->texture_id);
+    }
     t->width = width;
     t->height = height;
     t->pixels = buff;
@@ -61,8 +62,6 @@ int texture_create_buffer(struct texture* t, int width, int height, unsigned cha
 
     glPixelStorei(GL_UNPACK_ROW_LENGTH,t->width);
 	glPixelStorei(GL_UNPACK_ALIGNMENT,1);
-    glEnable(GL_TEXTURE_2D);
-    glGenTextures(1,&t->texture_id);
     glBindTexture(GL_TEXTURE_2D,t->texture_id);
     glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,t->width,t->height,0,GL_RGBA,GL_UNSIGNED_BYTE,t->pixels);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
@@ -70,7 +69,6 @@ int texture_create_buffer(struct texture* t, int width, int height, unsigned cha
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
     glBindTexture(GL_TEXTURE_2D,0);
-    glDisable(GL_TEXTURE_2D);
 }
 
 void texture_draw(struct texture* t, float x, float y, float w, float h) {
@@ -183,6 +181,15 @@ unsigned int texture_block_color(int x, int y) {
     }
 }
 
+void texture_gradient_fog(unsigned int* gradient) {
+    for(int y=0;y<256;y++) {
+        for(int x=0;x<256;x++) {
+            int d = min(sqrt(distance2D(128,128,x,y))/128.0F*255.0F,255);
+            gradient[x+y*256] = (d<<24)|rgb((int)(fog_color[0]*255.0F),(int)(fog_color[1]*255.0F),(int)(fog_color[2]*255.0F));
+        }
+    }
+}
+
 void texture_init() {
     texture_create(&texture_splash,"png/splash.png");
 
@@ -222,4 +229,8 @@ void texture_init() {
     texture_create_buffer(&texture_color_selection,64,64,(unsigned char*)pixels);
 
     texture_create_buffer(&texture_minimap,map_size_x,map_size_z,map_minimap);
+
+    unsigned int* gradient = malloc(256*256*sizeof(unsigned int));
+    texture_gradient_fog(gradient);
+    texture_create_buffer(&texture_gradient,256,256,(unsigned char*)gradient);
 }

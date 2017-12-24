@@ -6,6 +6,7 @@ struct texture {
 
 extern struct texture texture_splash;
 extern struct texture texture_minimap;
+extern struct texture texture_gradient;
 
 extern struct texture texture_health;
 extern struct texture texture_block;
@@ -39,3 +40,4 @@ void texture_draw_empty_rotated(float x, float y, float w, float h, float angle)
 void texture_draw_rotated(struct texture* t, float x, float y, float w, float h, float angle);
 void texture_resize_pow2(struct texture* t);
 unsigned int texture_block_color(int x, int y);
+void texture_gradient_fog(unsigned int* gradient);

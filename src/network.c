@@ -229,6 +229,8 @@ void read_PacketFogColor(void* data, int len) {
 	fog_color[0] = p->red/255.0F;
 	fog_color[1] = p->green/255.0F;
 	fog_color[2] = p->blue/255.0F;
+	texture_gradient_fog((unsigned int*)texture_gradient.pixels);
+    texture_create_buffer(&texture_gradient,256,256,texture_gradient.pixels);
 }
 
 void read_PacketExistingPlayer(void* data, int len) {

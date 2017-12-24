@@ -21,7 +21,7 @@ float chunk_draw_visible() {
 	//go through all possible chunks and store all in range and view
 	for(char y=-9;y<CHUNKS_PER_DIM+9;y++) {
 		for(char x=-9;x<CHUNKS_PER_DIM+9;x++) {
-			if(((x*CHUNK_SIZE-camera_x)*(x*CHUNK_SIZE-camera_x)+(y*CHUNK_SIZE-camera_z)*(y*CHUNK_SIZE-camera_z))<(settings.render_distance+CHUNK_SIZE*2.0F)*(settings.render_distance+CHUNK_SIZE*2.0F)) {
+			if(((x*CHUNK_SIZE-camera_x)*(x*CHUNK_SIZE-camera_x)+(y*CHUNK_SIZE-camera_z)*(y*CHUNK_SIZE-camera_z))<(settings.render_distance+CHUNK_SIZE)*(settings.render_distance+CHUNK_SIZE)) {
 				int tmp_x = x, tmp_y = y;
 				if(tmp_x<0) {
 					tmp_x += CHUNKS_PER_DIM;
@@ -85,25 +85,22 @@ void chunk_rebuild_all() {
 void chunk_render(int x, int y) {
 	matrix_push();
 	matrix_translate((x<0)*-map_size_x+(x>=CHUNKS_PER_DIM)*map_size_x,0.0F,(y<0)*-map_size_z+(y>=CHUNKS_PER_DIM)*map_size_z);
-	if(x<0) {
+	matrix_upload();
+	
+	if(x<0)
 		x += CHUNKS_PER_DIM;
-	}
-	if(y<0) {
+	if(y<0)
 		y += CHUNKS_PER_DIM;
-	}
-	if(x>=CHUNKS_PER_DIM) {
+	if(x>=CHUNKS_PER_DIM)
 		x -= CHUNKS_PER_DIM;
-	}
-	if(y>=CHUNKS_PER_DIM) {
+	if(y>=CHUNKS_PER_DIM)
 		y -= CHUNKS_PER_DIM;
-	}
 
 	if(chunks[((y*CHUNKS_PER_DIM)|x)].created) {
 		if(chunk_render_mode) {
 			glLineWidth(4.0F);
 			glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
 		}
-		matrix_upload();
 		glCallList(chunks[((y*CHUNKS_PER_DIM)|x)].display_list);
 		if(chunk_render_mode) {
 			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);

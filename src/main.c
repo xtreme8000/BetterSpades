@@ -94,20 +94,6 @@ float drawScene(float dt) {
 		}
 	}
 
-	/*matrix_upload();
-	glBegin(GL_QUADS);
-	glColor3f(fog_color[0],fog_color[1],fog_color[2]);
-	int step = 10;
-	float f = settings.render_distance;
-	for(int k=0;k<360;k+=step) {
-		glVertex3f(cos(k/180.0F*PI)*f+camera_x,0.0F,sin(k/180.0F*PI)*f+camera_z);
-		glVertex3f(cos((k+step)/180.0F*PI)*f+camera_x,0.0F,sin((k+step)/180.0F*PI)*f+camera_z);
-
-		glVertex3f(cos((k+step)/180.0F*PI)*f+camera_x,96.0F,sin((k+step)/180.0F*PI)*f+camera_z);
-		glVertex3f(cos(k/180.0F*PI)*f+camera_x,96.0F,sin(k/180.0F*PI)*f+camera_z);
-	}
-	glEnd();*/
-
 	return r;
 }
 
@@ -332,11 +318,6 @@ void display(float dt) {
 	}
 
 	if(settings.opengl14) {
-		glFogi(GL_FOG_MODE,GL_LINEAR);
-		glFogfv(GL_FOG_COLOR,fog_color);
-		glFogf(GL_FOG_START,0.0F);
-		glFogf(GL_FOG_END,settings.render_distance);
-		glEnable(GL_FOG);
 		glEnable(GL_DEPTH_TEST);
 		glDepthRange(0.0F,1.0F);
 	}
@@ -408,6 +389,7 @@ void display(float dt) {
 
 	if(!network_map_transfer) {
 
+		glx_enable_sphericalfog();
 		drawScene(dt);
 
 		if(map_get(camera_x,camera_y,camera_z)!=0xFFFFFFFF) {
@@ -562,10 +544,21 @@ void display(float dt) {
 		map_collapsing_render(dt);
 		matrix_upload();
 
-	}
+		glx_disable_sphericalfog();
 
-	if(settings.opengl14) {
-		glDisable(GL_FOG);
+		/*glBegin(GL_QUADS);
+		glColor3f(fog_color[0],fog_color[1],fog_color[2]);
+		int step = 15;
+		float f = settings.render_distance;
+		for(int k=0;k<360;k+=step) {
+			glVertex3f(cos(k/180.0F*PI)*f+camera_x,0.0F,sin(k/180.0F*PI)*f+camera_z);
+			glVertex3f(cos((k+step)/180.0F*PI)*f+camera_x,0.0F,sin((k+step)/180.0F*PI)*f+camera_z);
+
+			glVertex3f(cos((k+step)/180.0F*PI)*f+camera_x,72.0F,sin((k+step)/180.0F*PI)*f+camera_z);
+			glVertex3f(cos(k/180.0F*PI)*f+camera_x,72.0F,sin(k/180.0F*PI)*f+camera_z);
+		}
+		glEnd();*/
+
 	}
 
 	render_HUD_3D();
@@ -1138,10 +1131,6 @@ void display(float dt) {
 	if(settings.multisamples>0) {
 		glEnable(GL_MULTISAMPLE);
 	}
-
-	if(settings.opengl14) {
-		glEnable(GL_FOG);
-	}
 }
 
 void init() {
@@ -1153,6 +1142,7 @@ void init() {
 	glClearDepth(1.0F);
 	glDepthFunc(GL_LEQUAL);
 	glShadeModel(GL_SMOOTH);
+	glDisable(GL_FOG);
 
 	glxcheckErrors(__FILE__,__LINE__);
 
