@@ -7,6 +7,16 @@ void cameracontroller_fps(float dt) {
     players[local_player_id].connected = 1;
 	players[local_player_id].alive = 1;
 
+    if(players[local_player_id].held_item==TOOL_GRENADE && local_player_grenades==0) {
+        players[local_player_id].held_item--;
+    }
+    if(players[local_player_id].held_item==TOOL_GUN && local_player_ammo+local_player_ammo_reserved==0) {
+        players[local_player_id].held_item--;
+    }
+    if(players[local_player_id].held_item==TOOL_BLOCK && local_player_blocks==0) {
+        players[local_player_id].held_item--;
+    }
+
     if(chat_input_mode==CHAT_NO_INPUT) {
     	players[local_player_id].input.keys.up = key_map[GLFW_KEY_W];
     	players[local_player_id].input.keys.down = key_map[GLFW_KEY_S];

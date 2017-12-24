@@ -604,16 +604,6 @@ void display(float dt) {
 		font_select(FONT_FIXEDSYS);
 	} else {
 
-		if(players[local_player_id].held_item==TOOL_GRENADE && local_player_grenades==0) {
-			players[local_player_id].held_item--;
-		}
-		if(players[local_player_id].held_item==TOOL_GUN && local_player_ammo+local_player_ammo_reserved==0) {
-			players[local_player_id].held_item--;
-		}
-		if(players[local_player_id].held_item==TOOL_BLOCK && local_player_blocks==0) {
-			players[local_player_id].held_item--;
-		}
-
 		if(screen_current==SCREEN_TEAM_SELECT) {
 			glColor3f(1.0F,0.0F,0.0F);
 			char join_str[48];
@@ -1615,14 +1605,19 @@ void mouse(GLFWwindow* window, double x, double y) {
 
 void mouse_scroll(GLFWwindow* window, double xoffset, double yoffset) {
 	if(camera_mode==CAMERAMODE_FPS && yoffset!=0.0F) {
-		if(yoffset>0 && players[local_player_id].held_item==0) {
-			players[local_player_id].held_item = 3;
-		} else {
-			players[local_player_id].held_item += (yoffset<0)?1:-1;
-			if(players[local_player_id].held_item>3) {
-				players[local_player_id].held_item = 0;
-			}
-		}
+		int h = players[local_player_id].held_item;
+		h += (yoffset<0)?1:-1;
+		if(h<0)
+			h = 3;
+		if(h==TOOL_BLOCK && local_player_blocks==0)
+			h += (yoffset<0)?1:-1;
+		if(h==TOOL_GUN && local_player_ammo+local_player_ammo_reserved==0)
+			h += (yoffset<0)?1:-1;
+		if(h==TOOL_GRENADE && local_player_grenades==0)
+			h += (yoffset<0)?1:-1;
+		if(h>3)
+			h = 0;
+		players[local_player_id].held_item = h;
 		sound_create(NULL,SOUND_LOCAL,&sound_switch,0.0F,0.0F,0.0F)->stick_to_player = local_player_id;
 		players[local_player_id].item_disabled = glfwGetTime();
 		players[local_player_id].items_show_start = glfwGetTime();
