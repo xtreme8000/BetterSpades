@@ -35,7 +35,7 @@ void kv6_init() {
 	kv6_load(&model_playerleg,file_load("kv6/playerleg.kv6"),0.1F);
 	kv6_load(&model_playerlegc,file_load("kv6/playerlegc.kv6"),0.1F);
 
-	kv6_load(&model_intel,file_load("kv6/intel.kv6"),0.278F);
+	kv6_load(&model_intel,file_load("kv6/intel.kv6"),0.2F);
 	kv6_load(&model_tent,file_load("kv6/cp.kv6"),0.278F);
 
 	kv6_load(&model_semi,file_load("kv6/semi.kv6"),0.05F);
