@@ -83,7 +83,7 @@ void read_PacketBlockAction(void* data, int len) {
 	struct PacketBlockAction* p = (struct PacketBlockAction*)data;
 	switch(p->action_type) {
 		case ACTION_DESTROY:
-			if((63-p->z)>1) {
+			if((63-p->z)>0) {
 				int col = map_get(p->x,63-p->z,p->y);
 				map_set(p->x,63-p->z,p->y,0xFFFFFFFF);
 				map_update_physics(p->x,63-p->z,p->y);
