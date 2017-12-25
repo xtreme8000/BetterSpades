@@ -390,10 +390,6 @@ void display(float dt) {
 		glx_enable_sphericalfog();
 		drawScene(dt);
 
-		if(map_get(camera_x,camera_y,camera_z)!=0xFFFFFFFF) {
-			glClear(GL_COLOR_BUFFER_BIT);
-		}
-
 		grenade_update(dt);
 		tracer_update(dt);
 
@@ -541,6 +537,10 @@ void display(float dt) {
 		matrix_upload();
 		map_collapsing_render(dt);
 		matrix_upload();
+
+		if(map_get(camera_x,camera_y,camera_z)!=0xFFFFFFFF) {
+			glClear(GL_COLOR_BUFFER_BIT);
+		}
 
 		glx_disable_sphericalfog();
 
@@ -1451,7 +1451,7 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 				if(key==GLFW_KEY_ENTER && strlen(chat[0][0])>0) {
 					struct PacketChatMessage msg;
 					msg.player_id = local_player_id;
-					msg.chat_type = CHAT_ALL_INPUT?CHAT_ALL:CHAT_TEAM;
+					msg.chat_type = (chat_input_mode==CHAT_ALL_INPUT)?CHAT_ALL:CHAT_TEAM;
 					strcpy(msg.message,chat[0][0]);
 					network_send(PACKET_CHATMESSAGE_ID,&msg,sizeof(msg)-sizeof(msg.message)+strlen(chat[0][0])+1);
 				}
@@ -1643,15 +1643,15 @@ int main(int argc, char** argv) {
 	config_reload();
 
 
+	glfwWindowHint(GLFW_VISIBLE,0);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,1);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,1);
+	if(settings.multisamples>0) {
+		glfwWindowHint(GLFW_SAMPLES,settings.multisamples);
+	}
 	if(!glfwInit()) {
 		printf("GLFW3 init failed\n");
     	exit(1);
-	}
-
-	if(settings.multisamples>0) {
-		glfwWindowHint(GLFW_SAMPLES,settings.multisamples);
 	}
 
 	GLFWwindow* window = glfwCreateWindow(settings.window_width,settings.window_height,"BetterSpades",settings.fullscreen?glfwGetPrimaryMonitor():NULL,NULL);
@@ -1660,6 +1660,9 @@ int main(int argc, char** argv) {
 		glfwTerminate();
 		exit(1);
 	}
+	const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+	glfwSetWindowPos(window,(mode->width-settings.window_width)/2.0F,(mode->height-settings.window_height)/2.0F);
+	glfwShowWindow(window);
 
 	GLFWimage icon;
 
