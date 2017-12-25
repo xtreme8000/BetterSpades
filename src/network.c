@@ -125,7 +125,7 @@ void read_PacketBlockAction(void* data, int len) {
 					players[p->player_id].block.red |
 					(players[p->player_id].block.green<<8) |
 					(players[p->player_id].block.blue<<16));
-				map_update_physics(p->x,63-p->z,p->y);
+				//map_update_physics(p->x,63-p->z,p->y);
 				sound_create(NULL,SOUND_WORLD,&sound_build,
 							 p->x+0.5F,63-p->z+0.5F,p->y+0.5F
 						 	);
@@ -144,7 +144,7 @@ void read_PacketBlockLine(void* data, int len) {
 			players[p->player_id].block.red |
 			(players[p->player_id].block.green<<8) |
 			(players[p->player_id].block.blue<<16));
-		map_update_physics(p->sx,63-p->sz,p->sy);
+		//map_update_physics(p->sx,63-p->sz,p->sy);
 	} else {
 		struct Point blocks[64];
 		int len = map_cube_line(p->sx,p->sy,p->sz,p->ex,p->ey,p->ez,blocks);
