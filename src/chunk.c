@@ -12,63 +12,47 @@ int chunk_lighting_changed_lenght = 0;
 
 boolean chunk_render_mode = 0;
 
-float chunk_draw_visible() {
-	int chunks_to_draw_x[CHUNKS_PER_DIM*CHUNKS_PER_DIM*2];
-	int chunks_to_draw_y[CHUNKS_PER_DIM*CHUNKS_PER_DIM*2];
+struct chunk_d {
+	int x,y;
+};
+
+static int chunk_sort(const void* a, const void* b) {
+	struct chunk_d* aa = (struct chunk_d*)a;
+	struct chunk_d* bb = (struct chunk_d*)b;
+	return	distance2D(aa->x+CHUNK_SIZE/2,aa->y+CHUNK_SIZE/2,camera_x,camera_z)
+			-distance2D(bb->x+CHUNK_SIZE/2,bb->y+CHUNK_SIZE/2,camera_x,camera_z);
+}
+
+void chunk_draw_visible() {
+	struct chunk_d chunks_draw[CHUNKS_PER_DIM*CHUNKS_PER_DIM*2];
 	int index = 0;
-	int b = 0;
 
 	//go through all possible chunks and store all in range and view
 	for(char y=-9;y<CHUNKS_PER_DIM+9;y++) {
 		for(char x=-9;x<CHUNKS_PER_DIM+9;x++) {
 			if(((x*CHUNK_SIZE-camera_x)*(x*CHUNK_SIZE-camera_x)+(y*CHUNK_SIZE-camera_z)*(y*CHUNK_SIZE-camera_z))<(settings.render_distance+CHUNK_SIZE)*(settings.render_distance+CHUNK_SIZE)) {
 				int tmp_x = x, tmp_y = y;
-				if(tmp_x<0) {
+				if(tmp_x<0)
 					tmp_x += CHUNKS_PER_DIM;
-				}
-				if(tmp_y<0) {
+				if(tmp_y<0)
 					tmp_y += CHUNKS_PER_DIM;
-				}
-				if(tmp_x>=CHUNKS_PER_DIM) {
+				if(tmp_x>=CHUNKS_PER_DIM)
 					tmp_x -= CHUNKS_PER_DIM;
-				}
-				if(tmp_y>=CHUNKS_PER_DIM) {
+				if(tmp_y>=CHUNKS_PER_DIM)
 					tmp_y -= CHUNKS_PER_DIM;
-				}
-				if(camera_CubeInFrustum(x*CHUNK_SIZE+CHUNK_SIZE/2,0.0F,y*CHUNK_SIZE+CHUNK_SIZE/2,CHUNK_SIZE/2,chunks[tmp_y*CHUNKS_PER_DIM+tmp_x].max_height)) {
-					chunks_to_draw_x[index] = x*CHUNK_SIZE;
-					chunks_to_draw_y[index++] = y*CHUNK_SIZE;
-				}
-				b++;
+
+				if(camera_CubeInFrustum(x*CHUNK_SIZE+CHUNK_SIZE/2,0.0F,y*CHUNK_SIZE+CHUNK_SIZE/2,CHUNK_SIZE/2,chunks[tmp_y*CHUNKS_PER_DIM+tmp_x].max_height))
+					chunks_draw[index++] = (struct chunk_d){x*CHUNK_SIZE,y*CHUNK_SIZE};
 			}
 		}
 	}
 
 	//sort all chunks to draw those in front first
-	while(1) {
-		unsigned char found = 0;
-		for(int k=0;k<index-1;k++) {
-			if(((chunks_to_draw_x[k]-camera_x)*(chunks_to_draw_x[k]-camera_x)+(chunks_to_draw_y[k]-camera_z)*(chunks_to_draw_y[k]-camera_z))>((chunks_to_draw_x[k+1]-camera_x)*(chunks_to_draw_x[k+1]-camera_x)+(chunks_to_draw_y[k+1]-camera_z)*(chunks_to_draw_y[k+1]-camera_z))) {
-				int tmp = chunks_to_draw_x[k];
-				chunks_to_draw_x[k] = chunks_to_draw_x[k+1];
-				chunks_to_draw_x[k+1] = tmp;
-
-				tmp = chunks_to_draw_y[k];
-				chunks_to_draw_y[k] = chunks_to_draw_y[k+1];
-				chunks_to_draw_y[k+1] = tmp;
-				found = 1;
-			}
-		}
-		if(!found) {
-			break;
-		}
-	}
+	qsort(chunks_draw,index,sizeof(struct chunk_d),chunk_sort);
 
 	for(int k=0;k<index;k++) {
-		chunk_render(chunks_to_draw_x[k]/CHUNK_SIZE,chunks_to_draw_y[k]/CHUNK_SIZE);
+		chunk_render(chunks_draw[k].x/CHUNK_SIZE,chunks_draw[k].y/CHUNK_SIZE);
 	}
-
-	return ((float)index)/((float)b);
 }
 
 void chunk_set_render_mode(boolean r) {
@@ -86,7 +70,7 @@ void chunk_render(int x, int y) {
 	matrix_push();
 	matrix_translate((x<0)*-map_size_x+(x>=CHUNKS_PER_DIM)*map_size_x,0.0F,(y<0)*-map_size_z+(y>=CHUNKS_PER_DIM)*map_size_z);
 	matrix_upload();
-	
+
 	if(x<0)
 		x += CHUNKS_PER_DIM;
 	if(y<0)
@@ -97,14 +81,11 @@ void chunk_render(int x, int y) {
 		y -= CHUNKS_PER_DIM;
 
 	if(chunks[((y*CHUNKS_PER_DIM)|x)].created) {
-		if(chunk_render_mode) {
-			glLineWidth(4.0F);
+		if(chunk_render_mode)
 			glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-		}
 		glCallList(chunks[((y*CHUNKS_PER_DIM)|x)].display_list);
-		if(chunk_render_mode) {
+		if(chunk_render_mode)
 			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
-		}
 	}
 
 	/*glBegin(GL_QUADS);

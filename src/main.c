@@ -26,7 +26,7 @@ void chat_showpopup(const char* msg) {
 int screen_current = SCREEN_NONE;
 int show_exit = 0;
 
-float drawScene(float dt) {
+void drawScene(float dt) {
 	if(settings.ambient_occlusion) {
 		glShadeModel(GL_SMOOTH);
 	} else {
@@ -36,7 +36,7 @@ float drawScene(float dt) {
 	matrix_upload();
 	glEnableClientState(GL_COLOR_ARRAY);
 	glEnableClientState(GL_VERTEX_ARRAY);
-	float r = chunk_draw_visible();
+	chunk_draw_visible();
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
 
@@ -93,8 +93,6 @@ float drawScene(float dt) {
 			matrix_pop();
 		}
 	}
-
-	return r;
 }
 
 struct player_table {
@@ -102,7 +100,7 @@ struct player_table {
 	unsigned int score;
 };
 
-int cmp(const void* a, const void* b) {
+static int playertable_sort(const void* a, const void* b) {
 	struct player_table* aa = (struct player_table*)a;
 	struct player_table* bb = (struct player_table*)b;
 	return bb->score-aa->score;
@@ -671,7 +669,7 @@ void display(float dt) {
 					pt[connected++].score = players[k].score;
 				}
 			}
-			qsort(pt,connected,sizeof(struct player_table),cmp);
+			qsort(pt,connected,sizeof(struct player_table),playertable_sort);
 
 			unsigned char cntt[3] = {0};
 			for(int k=0;k<connected;k++) {
@@ -1492,11 +1490,12 @@ void mouse_click(GLFWwindow* window, int button, int action, int mods) {
 					line.ez = 63-pos[1];
 					network_send(PACKET_BLOCKLINE_ID,&line,sizeof(line));
 					local_player_blocks -= amount;
+					players[local_player_id].item_showup = glfwGetTime();
 				}
 			}
 		}
 		local_player_drag_active = 0;
-		if(action==GLFW_PRESS && players[local_player_id].held_item==TOOL_BLOCK) {
+		if(action==GLFW_PRESS && players[local_player_id].held_item==TOOL_BLOCK && glfwGetTime()-players[local_player_id].item_showup>=0.5F) {
 			int* pos = camera_terrain_pick(0);
 			if(pos!=NULL && pos[1]>1 && distance3D(camera_x,camera_y,camera_z,pos[0],pos[1],pos[2])<5.0F*5.0F) {
 				local_player_drag_active = 1;
@@ -1538,6 +1537,7 @@ void mouse_click(GLFWwindow* window, int button, int action, int mods) {
 					g.vz = (g.fuse_length==0.0F)?0.0F:(-players[local_player_id].orientation.y);
 					network_send(PACKET_GRENADE_ID,&g,sizeof(g));
 					read_PacketGrenade(&g,sizeof(g)); //server won't loop packet back
+					players[local_player_id].item_showup = glfwGetTime();
 				}
 				if(action==GLFW_PRESS) {
 					sound_create(NULL,SOUND_LOCAL,&sound_grenade_pin,0.0F,0.0F,0.0F)->stick_to_player = local_player_id;
@@ -1615,6 +1615,11 @@ void mouse_scroll(GLFWwindow* window, double xoffset, double yoffset) {
 	}
 }
 
+void deinit() {
+	if(network_connected)
+		network_disconnect();
+}
+
 int main(int argc, char** argv) {
 	if(argc<2) {
 		printf("Error: Visit buildandshoot.com to join games\n");
@@ -1636,14 +1641,6 @@ int main(int argc, char** argv) {
 	strcpy(settings.name,"DEV_CLIENT");
 
 	config_reload();
-
-	/*if(argc>2) {
-		settings.opengl14 = atoi(argv[1]);
-		settings.color_correction = atoi(argv[2]);
-		settings.multisamples = atoi(argv[3]);
-		settings.shadow_entities = atoi(argv[4]);
-		settings.ambient_occlusion = atoi(argv[5]);
-	}*/
 
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,1);
@@ -1759,6 +1756,7 @@ int main(int argc, char** argv) {
 	while(glGetError()!=GL_NO_ERROR);
 
 	init();
+	atexit(deinit);
 
 	char* addr = argv[1]+1;
 	int ip_start = 1;

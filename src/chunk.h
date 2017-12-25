@@ -24,7 +24,7 @@ int chunk_generate_naive(int displaylist, int chunk_x, int chunk_y);
 void chunk_render(int x, int y);
 void chunk_rebuild_all(void);
 void chunk_set_render_mode(boolean r);
-float chunk_draw_visible(void);
+void chunk_draw_visible(void);
 
 void chunk_draw_shadow_volume(float* data, int max);
 float chunk_face_light(float* data, int k, float lx, float ly, float lz);

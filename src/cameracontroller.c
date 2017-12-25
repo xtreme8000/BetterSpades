@@ -7,14 +7,24 @@ void cameracontroller_fps(float dt) {
     players[local_player_id].connected = 1;
 	players[local_player_id].alive = 1;
 
+    char cooldown = 0;
     if(players[local_player_id].held_item==TOOL_GRENADE && local_player_grenades==0) {
         players[local_player_id].held_item--;
+        cooldown = 1;
     }
     if(players[local_player_id].held_item==TOOL_GUN && local_player_ammo+local_player_ammo_reserved==0) {
         players[local_player_id].held_item--;
+        cooldown = 1;
     }
     if(players[local_player_id].held_item==TOOL_BLOCK && local_player_blocks==0) {
         players[local_player_id].held_item--;
+        cooldown = 1;
+    }
+
+    if(cooldown) {
+        players[local_player_id].item_disabled = glfwGetTime();
+		players[local_player_id].items_show_start = glfwGetTime();
+		players[local_player_id].items_show = 1;
     }
 
     if(chat_input_mode==CHAT_NO_INPUT) {
