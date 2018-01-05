@@ -47,13 +47,15 @@ Some files need to be copied to the `src/` directory.
 
 This means:
 
-| source              | &rightarrow; | destination                 |
-| ------------------- | ------------ | --------------------------- |
-| `dr_wav.h`          | &rightarrow; | `src/dr_wav.c` <br /> Make sure to define `DR_WAV_IMPLEMENTATION` in *Line 9* |
-| `lodepng.h`         | &rightarrow; | `src/lodepng/lodepng.h`     |
-| `lodepng.cpp`       | &rightarrow; | `src/lodepng/lodepng.c`     |
-| `libdeflate.h`      | &rightarrow; | `src/libdeflate.h`          |
-| `ini.c` and `ini.h` | &rightarrow; | `src/ini.c` and `src/ini.h` |
+| source                    | &rightarrow; | destination                                                                   |
+| ------------------------- | ------------ | ---------------------------                                                   |
+| `dr_wav.h`                | &rightarrow; | `src/dr_wav.c` <br /> Make sure to define `DR_WAV_IMPLEMENTATION` in *Line 9* |
+| `lodepng.h`               | &rightarrow; | `src/lodepng/lodepng.h`                                                       |
+| `lodepng.cpp`             | &rightarrow; | `src/lodepng/lodepng.c`                                                       |
+| `libdeflate.h`            | &rightarrow; | `src/libdeflate.h`                                                            |
+| `ini.c` and `ini.h`       | &rightarrow; | `src/ini.c` and `src/ini.h`                                                   |
+| `parson.c` and `parson.h` | &rightarrow; | `src/parson.c` and `src/parson.h`                                             |
+| `http.h`                  | &rightarrow; | `src/http.h`                                                                  |
 
 Because state of copyright of 0.75 assets is unknown, you will need to get them *[here](http://aos.party/bsresources.zip)*. Unzip the file and extract all contents to `resources/` manually.
 
