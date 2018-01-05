@@ -22,15 +22,17 @@ If you just got this from the releases page or even the [official website](https
 
 These libraries and files are needed:
 
-| Name        | License         | Usage                 | Github                                         |
-| ----------- | --------------- | --------------------- | :--------------------------------------------: |
-| GLFW3       | *ZLib*          | OpenGL context        | [Link](https://github.com/glfw/glfw)           |
-| OpenAL soft | *LGPL-2.1*      | 3D Sound env          | [Link](https://github.com/kcat/openal-soft)    |
-| dr_wav      | *Public domain* | wav support           | [Link](https://github.com/mackron/dr_libs/)    |
-| LodePNG     | *MIT*           | png support           | [Link](https://github.com/lvandeve/lodepng)    |
-| libdeflate  | *MIT*           | decompression of maps | [Link](https://github.com/ebiggers/libdeflate) |
-| enet        | *MIT*           | networking library    | [Link](https://github.com/lsalzman/enet)       |
-| inih        | *BSD-3.Clause*  | .INI file parser      | [Link](https://github.com/benhoyt/inih)        |
+| Name        | License         | Usage                 | Github                                            |
+| ----------- | --------------- | --------------------- | :-----------------------------------------------: |
+| GLFW3       | *ZLib*          | OpenGL context        | [Link](https://github.com/glfw/glfw)              |
+| OpenAL soft | *LGPL-2.1*      | 3D Sound env          | [Link](https://github.com/kcat/openal-soft)       |
+| dr_wav      | *Public domain* | wav support           | [Link](https://github.com/mackron/dr_libs/)       |
+| LodePNG     | *MIT*           | png support           | [Link](https://github.com/lvandeve/lodepng)       |
+| libdeflate  | *MIT*           | decompression of maps | [Link](https://github.com/ebiggers/libdeflate)    |
+| enet        | *MIT*           | networking library    | [Link](https://github.com/lsalzman/enet)          |
+| inih        | *BSD-3.Clause*  | .INI file parser      | [Link](https://github.com/benhoyt/inih)           |
+| http        | *Public domain* | http client library   | [Link](https://github.com/mattiasgustavsson/libs) |
+| parson      | *MIT*           | JSON parser           | [Link](https://github.com/kgabis/parson)          |
 
 You will need to compile
 

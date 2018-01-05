@@ -225,18 +225,16 @@ void player_update(float dt) {
                 switch(hit.type) {
                     case CAMERA_HITTYPE_BLOCK:
                         sound_create(NULL,SOUND_WORLD,&sound_hitground,hit.x+0.5F,hit.y+0.5F,hit.z+0.5F);
-                        if(map_damage(hit.x,hit.y,hit.z,50)==100) {
-                            if(k==local_player_id) {
-                                struct PacketBlockAction blk;
-                                blk.action_type = ACTION_DESTROY;
-                                blk.player_id = local_player_id;
-                                blk.x = hit.x;
-                                blk.y = hit.z;
-                                blk.z = 63-hit.y;
-                                network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
-                                local_player_blocks = min(local_player_blocks+1,50);
-                                //read_PacketBlockAction(&blk,sizeof(blk));
-                            }
+                        if(k==local_player_id && map_damage(hit.x,hit.y,hit.z,50)==100) {
+                            struct PacketBlockAction blk;
+                            blk.action_type = ACTION_DESTROY;
+                            blk.player_id = local_player_id;
+                            blk.x = hit.x;
+                            blk.y = hit.z;
+                            blk.z = 63-hit.y;
+                            network_send(PACKET_BLOCKACTION_ID,&blk,sizeof(blk));
+                            local_player_blocks = min(local_player_blocks+1,50);
+                            //read_PacketBlockAction(&blk,sizeof(blk));
                         } else {
                             particle_create(map_get(hit.x,hit.y,hit.z),hit.xb+0.5F,hit.yb+0.5F,hit.zb+0.5F,2.5F,1.0F,4,0.1F,0.25F);
                         }
@@ -374,7 +372,9 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
     struct kv6_t* torso = p->input.keys.crouch?&model_playertorsoc:&model_playertorso;
     struct kv6_t* leg = p->input.keys.crouch?&model_playerlegc:&model_playerleg;
     float height = player_height(p);
-
+    if(id!=local_player_id) {
+        height -= 0.1F;
+    }
 
     float len = sqrt(pow(p->orientation.x,2.0F)+pow(p->orientation.z,2.0F));
     float fx = p->orientation.x/len;

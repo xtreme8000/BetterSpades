@@ -29,6 +29,26 @@ struct texture texture_intel;
 struct texture texture_command;
 struct texture texture_tracer;
 
+struct texture texture_ui_wait;
+struct texture texture_ui_join;
+struct texture texture_ui_reload;
+struct texture texture_ui_bg;
+
+void texture_filter(struct texture* t, int filter) {
+    glBindTexture(GL_TEXTURE_2D,t->texture_id);
+    switch(filter) {
+        case TEXTURE_FILTER_NEAREST:
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_NEAREST);
+            break;
+        case TEXTURE_FILTER_LINEAR:
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+            break;
+    }
+    glBindTexture(GL_TEXTURE_2D,0);
+}
+
 int texture_create(struct texture* t, char* filename) {
     int error = lodepng_decode32_file(&t->pixels,&t->width,&t->height,filename);
     if(error) {
@@ -213,6 +233,12 @@ void texture_init() {
     texture_create(&texture_intel,"png/intel.png");
     texture_create(&texture_command,"png/command.png");
     texture_create(&texture_tracer,"png/tracer.png");
+
+
+    texture_create(&texture_ui_wait,"png/ui/wait.png");
+    texture_create(&texture_ui_join,"png/ui/join.png");
+    texture_create(&texture_ui_reload,"png/ui/reload.png");
+    texture_create(&texture_ui_bg,"png/ui/bg.png");
 
 
     unsigned int* pixels = malloc(64*64*sizeof(unsigned int));

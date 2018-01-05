@@ -14,16 +14,23 @@ struct Grenade* grenade_add() {
 }
 
 int grenade_clipworld(int x, int y, int z) {
+    if(x<0)
+        x += map_size_x;
+    if(y<0)
+        y += map_size_z;
+    if(x>=map_size_x)
+        x -= map_size_x;
+    if(y>=map_size_z)
+        y -= map_size_z;
+
     int sz;
 
-    if (x < 0 || x >= 512 || y < 0 || y >= 512)
-        return 0;
     if (z < 0)
         return 0;
     sz = (int)z;
     if(sz == 63)
         sz=62;
-    else if (sz >= 63)
+    else if (sz >= map_size_y-1)
         return 1;
     else if (sz < 0)
         return 0;

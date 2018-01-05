@@ -217,28 +217,28 @@ void weapon_shoot() {
                    players[local_player_id].physics.eye.z,
                    o[0],o[1],o[2],128.0F);
 
+       if(players[local_player_id].input.buttons.packed!=network_buttons_last) {
+           struct PacketWeaponInput in;
+           in.player_id = local_player_id;
+           in.primary = players[local_player_id].input.buttons.lmb;
+           in.secondary = players[local_player_id].input.buttons.rmb;
+           network_send(PACKET_WEAPONINPUT_ID,&in,sizeof(in));
+
+           network_buttons_last = players[local_player_id].input.buttons.packed;
+       }
+
+       struct PacketPositionData orient;
+       orient.x = players[local_player_id].orientation.x;
+       orient.y = players[local_player_id].orientation.z;
+       orient.z = -players[local_player_id].orientation.y;
+       network_send(PACKET_ORIENTATIONDATA_ID,&orient,sizeof(orient));
+
         switch(hit.type) {
             case CAMERA_HITTYPE_PLAYER:
             {
                 int type = player_damage(hit.player_section);
                 sound_create(NULL,SOUND_WORLD,(type==HITTYPE_HEAD)?&sound_spade_whack:&sound_hitplayer,players[hit.player_id].pos.x,players[hit.player_id].pos.y,players[hit.player_id].pos.z)->stick_to_player = hit.player_id;
                 particle_create(0x0000FF,players[hit.player_id].physics.eye.x,players[hit.player_id].physics.eye.y+player_section_height(type),players[hit.player_id].physics.eye.z,2.0F,1.0F,8,0.1F,0.4F);
-
-                if(players[local_player_id].input.buttons.packed!=network_buttons_last) {
-    				struct PacketWeaponInput in;
-    				in.player_id = local_player_id;
-    				in.primary = players[local_player_id].input.buttons.lmb;
-    				in.secondary = players[local_player_id].input.buttons.rmb;
-    				network_send(PACKET_WEAPONINPUT_ID,&in,sizeof(in));
-
-    				network_buttons_last = players[local_player_id].input.buttons.packed;
-    			}
-
-                struct PacketPositionData orient;
-                orient.x = players[local_player_id].orientation.x;
-                orient.y = players[local_player_id].orientation.z;
-                orient.z = -players[local_player_id].orientation.y;
-                network_send(PACKET_ORIENTATIONDATA_ID,&orient,sizeof(orient));
 
                 struct PacketHit h;
                 h.player_id = hit.player_id;

@@ -93,6 +93,7 @@ typedef unsigned char boolean;
 #include "matrix.h"
 #include "tracer.h"
 #include "config.h"
+#include "hud.h"
 
 unsigned char key_map[512];
 unsigned char button_map[3];
@@ -137,4 +138,4 @@ void glxcheckErrors(char* file, int line);
 #define SCREEN_TEAM_SELECT	1
 #define SCREEN_GUN_SELECT	2
 
-extern int screen_current;
+extern char text_input_first;

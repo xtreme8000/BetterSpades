@@ -1,9 +1,12 @@
 #include "common.h"
 
 void (*packets[35]) (void* data, int len) = {NULL};
+
 int network_connected = 0;
 int network_logged_in = 0;
 int network_map_transfer = 0;
+int network_received_packets = 0;
+int network_map_cached = 0;
 
 float network_pos_update = 0.0F;
 float network_orient_update = 0.0F;
@@ -18,6 +21,24 @@ int compressed_chunk_data_estimate = 0;
 
 ENetHost* client;
 ENetPeer* peer;
+
+void crc32_sub(unsigned int* crc, unsigned char byte) {
+    *crc = *crc ^ byte;
+
+    for (int i = 7; i >= 0; i--) {
+        char bit0 = *crc & 1;
+        *crc >>= 1;
+        if (bit0)
+            *crc ^= 0xEDB88320;
+    }
+}
+
+unsigned int crc32(unsigned char* data, int len) {
+	int res = 0;
+    for(int i=0;i<len;i++)
+		crc32_sub(&res,data[i]);
+	return res;
+}
 
 void read_PacketMapChunk(void* data, int len) {
 	//increase allocated memory if it is not enough to store the next chunk
@@ -182,6 +203,9 @@ void read_PacketStateData(void* data, int len) {
 	fog_color[1] = p->fog_green/255.0F;
 	fog_color[2] = p->fog_blue/255.0F;
 
+	texture_gradient_fog((unsigned int*)texture_gradient.pixels);
+    texture_create_buffer(&texture_gradient,256,256,texture_gradient.pixels);
+
 	local_player_id = p->player_id;
 	local_player_health = 100;
 	local_player_blocks = 50;
@@ -288,6 +312,11 @@ void read_PacketCreatePlayer(void* data, int len) {
 		players[p->player_id].block.blue = 111;
 		players[p->player_id].ammo = weapon_ammo(p->weapon);
 		if(p->player_id==local_player_id) {
+			if(p->team==TEAM_SPECTATOR) {
+				camera_x = p->x;
+				camera_y = 63.0F-p->z;
+				camera_z = p->y;
+			}
 			camera_mode = (p->team==TEAM_SPECTATOR)?CAMERAMODE_SPECTATOR:CAMERAMODE_FPS;
 			camera_rot_x = (p->team==TEAM_1)?0.5F*PI:1.5F*PI;
 			camera_rot_y = 0.5F*PI;
@@ -312,14 +341,28 @@ void read_PacketPlayerLeft(void* data, int len) {
 }
 
 void read_PacketMapStart(void* data, int len) {
-	struct PacketMapStart* p = (struct PacketMapStart*)data;
-	compressed_chunk_data_estimate = p->map_size;
 	//ffs someone fix the wrong map size of 1.5mb
 	compressed_chunk_data_size = 1024*1024;
 	compressed_chunk_data = malloc(compressed_chunk_data_size);
 	compressed_chunk_data_offset = 0;
 	network_logged_in = 0;
 	network_map_transfer = 1;
+
+	if(len==sizeof(struct PacketMapStart075)) {
+		struct PacketMapStart075* p = (struct PacketMapStart075*)data;
+		compressed_chunk_data_estimate = p->map_size;
+		network_map_cached = 0;
+	} else {
+		struct PacketMapStart076* p = (struct PacketMapStart076*)data;
+		compressed_chunk_data_estimate = p->map_size;
+		printf("map name: %s\n",p->map_name);
+		printf("map crc32: 0x%08X\n",p->crc32);
+		network_map_cached = 0;
+
+		struct PacketMapCached c;
+		c.cached = network_map_cached;
+		network_send(PACKET_MAPCACHED_ID,&c,sizeof(c));
+	}
 
 	player_init();
 }
@@ -385,8 +428,10 @@ void read_PacketSetColor(void* data, int len) {
 void read_PacketInputData(void* data, int len) {
 	struct PacketInputData* p = (struct PacketInputData*)data;
 	if(p->player_id<PLAYERS_MAX) {
-		players[p->player_id].input.keys.packed = p->keys;
-		players[p->player_id].physics.jump = players[p->player_id].input.keys.jump;
+		if(p->player_id!=local_player_id)
+			players[p->player_id].input.keys.packed = p->keys;
+		players[p->player_id].physics.jump = (p->keys&16)>0;
+		players[p->player_id].input.keys.jump = (p->keys&16)>0;
 	}
 }
 
@@ -395,12 +440,10 @@ void read_PacketWeaponInput(void* data, int len) {
 	if(p->player_id<PLAYERS_MAX && p->player_id!=local_player_id) {
 		players[p->player_id].input.buttons.lmb = p->primary;
 		players[p->player_id].input.buttons.rmb = p->secondary;
-		if(p->primary) {
+		if(p->primary)
 			players[p->player_id].input.buttons.lmb_start = glfwGetTime();
-		}
-		if(p->secondary) {
+		if(p->secondary)
 			players[p->player_id].input.buttons.rmb_start = glfwGetTime();
-		}
 	}
 }
 
@@ -626,6 +669,11 @@ void read_PacketTerritoryCapture(void* data, int len) {
 	if(gamestate.gamemode_type==GAMEMODE_TC && p->tent<gamestate.gamemode.tc.territory_count) {
 		gamestate.gamemode.tc.territory[p->tent].team = p->team;
 		sound_create(NULL,SOUND_LOCAL,p->winning?&sound_horn:&sound_pickup,0.0F,0.0F,0.0F);
+		//char x = (int)(gamestate.gamemode.tc.territory[p->tent].x/64.0F)+'A';
+		//char y = (int)(gamestate.gamemode.tc.territory[p->tent].z/64.0F)+'0';
+		//char capture_str[128];
+		//sprintf(capture_str,"%s have captured %c%c",gamestate.team_1.);
+		//chat_add(0,0x0000FF,"Green have captured D6");
 	}
 }
 
@@ -711,6 +759,16 @@ int network_connect_sub(char* ip, int port, int version) {
 	}
 	if(enet_host_service(client,&event,5000)>0 && event.type==ENET_EVENT_TYPE_CONNECT) {
 		network_connected = 1;
+		network_received_packets = 0;
+
+		float start = glfwGetTime();
+		while(glfwGetTime()-start<1.0F) { //listen connection for 1s, check if server disconnects
+			if(!network_update()) {
+				enet_peer_reset(peer);
+				return 0;
+			}
+		}
+
 		return 1;
 	}
 	enet_peer_reset(peer);
@@ -730,7 +788,20 @@ int network_connect(char* ip, int port) {
 	return 0;
 }
 
-void network_update() {
+int network_connect_string(char* addr) {
+	int ip_start = 1;
+	for(;addr[ip_start-1]!='/' && addr[ip_start]!='/' && addr[ip_start];ip_start++);
+	int port_start = ip_start;
+	for(;addr[port_start+1] && addr[port_start]!=':';port_start++);
+
+	int ip = atoi((char*)(addr+ip_start+2));
+	char ipport_str[64];
+	sprintf(ipport_str,"%i.%i.%i.%i",ip&255,(ip>>8)&255,(ip>>16)&255,(ip>>24)&255);
+
+	return network_connect(ipport_str,atoi((char*)(addr+port_start+1)));
+}
+
+int network_update() {
 	if(network_connected) {
 		ENetEvent event;
 		while(enet_host_service(client,&event,0)>0) {
@@ -744,15 +815,17 @@ void network_update() {
 					} else {
 						printf("Invalid packet id %i, length: %i\n",id,(int)event.packet->dataLength-1);
 					}
+					network_received_packets++;
 					enet_packet_destroy(event.packet);
 					break;
 				}
 				case ENET_EVENT_TYPE_DISCONNECT:
-					printf("server disconnected!");
+					chat_showpopup("DISCONNECTED");
+					printf("server disconnected!\n");
 					event.peer->data = NULL;
 					network_connected = 0;
 					network_logged_in = 0;
-					break;
+					return 0;
 			}
 		}
 
@@ -801,6 +874,7 @@ void network_update() {
 			}
 		}
 	}
+	return 1;
 }
 
 int network_status() {

@@ -18,8 +18,8 @@ void camera_overflow_adjust() {
 	if(camera_rot_y<EPSILON) {
 		camera_rot_y = EPSILON;
 	}
-	if(camera_rot_y>PI) {
-		camera_rot_y = PI;
+	if(camera_rot_y>3.14F) {
+		camera_rot_y = 3.14F;
 	}
 
 	if(camera_rot_x>DOUBLEPI) {
@@ -91,16 +91,16 @@ void camera_hit_mask(struct Camera_HitType* hit, int exclude_player, float x, fl
 	float player_nearest = 1e10;
 	int player_nearest_id, player_nearest_section;
 	for(int i=0;i<PLAYERS_MAX;i++) {
-		float l = distance3D(x,y,z,players[i].pos.x,players[i].pos.y,players[i].pos.z);
+		float l = distance2D(x,z,players[i].pos.x,players[i].pos.z);
 		if(players[i].connected && players[i].alive && l<range*range && (exclude_player<0 || (exclude_player>=0 && exclude_player!=i))) {
 			float px = players[i].pos.x-x;
 			float py = players[i].pos.y-y;
 			float pz = players[i].pos.z-z;
 			float angle = acos(((px*ray_x)+(py*ray_y)+(pz*ray_z))/sqrt(px*px+py*py+pz*pz));
-			if(angle<5.0F) {
+			if(angle<45.0F/180.0F*PI) {
 				int intersections = player_render(&players[i],i,&dir,0);
 				if((intersections&mask) && l<player_nearest) {
-					player_nearest = l;
+					player_nearest = distance3D(x,y,z,players[i].pos.x,players[i].pos.y,players[i].pos.z);
 					player_nearest_id = i;
 					player_nearest_section = intersections;
 				}

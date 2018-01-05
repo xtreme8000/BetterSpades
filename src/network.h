@@ -3,7 +3,8 @@ void network_send(int id, void* data, int len);
 void network_updateColor(void);
 void network_disconnect(void);
 int network_connect(char* ip, int port);
-void network_update(void);
+int network_connect_string(char* addr);
+int network_update(void);
 int network_status(void);
 void network_init(void);
 
@@ -44,6 +45,7 @@ extern void (*packets[35]) (void* data, int len);
 extern int network_connected;
 extern int network_logged_in;
 extern int network_map_transfer;
+extern int network_received_packets;
 
 extern float network_pos_update;
 extern float network_orient_update;
@@ -202,8 +204,18 @@ struct PacketGrenade {
 };
 
 #define PACKET_MAPSTART_ID 18
-struct PacketMapStart {
+struct PacketMapStart075 {
 	unsigned int map_size;
+};
+struct PacketMapStart076 {
+	unsigned int map_size;
+	unsigned int crc32;
+	char map_name[64];
+};
+
+#define PACKET_MAPCACHED_ID 31
+struct PacketMapCached {
+	unsigned char cached;
 };
 
 #define PACKET_PLAYERLEFT_ID 20

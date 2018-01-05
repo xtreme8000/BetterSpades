@@ -31,6 +31,15 @@ extern struct texture texture_intel;
 extern struct texture texture_command;
 extern struct texture texture_tracer;
 
+extern struct texture texture_ui_wait;
+extern struct texture texture_ui_join;
+extern struct texture texture_ui_reload;
+extern struct texture texture_ui_bg;
+
+#define TEXTURE_FILTER_NEAREST  0
+#define TEXTURE_FILTER_LINEAR   1
+
+void texture_filter(struct texture* t, int filter);
 void texture_init(void);
 int texture_create(struct texture* t, char* filename);
 int texture_create_buffer(struct texture* t, int width, int height, unsigned char* buff);

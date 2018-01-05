@@ -23,7 +23,7 @@ int map_damage(int x, int y, int z, int damage) {
 	}
 	int r = 0;
 	for(int k=0;k<8;k++) {
-		if(glfwGetTime()-map_damaged_voxels[k].timer>5.0F) {
+		if(glfwGetTime()-map_damaged_voxels[k].timer>10.0F) {
 			r = k;
 			break;
 		}
