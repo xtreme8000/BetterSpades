@@ -564,6 +564,29 @@ int main(int argc, char** argv) {
 	while(glGetError()!=GL_NO_ERROR);
 
 	init(window);
+
+	if(argc > 1) {
+		if(strcmp(argv[1], "--help")==0) {
+			printf("Usage: client                     [server browser]\n");
+			printf("       client -aos://<ip>:<port>  [custom address]\n");
+			exit(1);
+		}
+
+		char* addr = argv[1]+1;
+		int ip_start = 1;
+		for(;addr[ip_start-1]!='/' && addr[ip_start]!='/' && addr[ip_start];ip_start++);
+		int port_start = ip_start;
+		for(;addr[port_start+1] && addr[port_start]!=':';port_start++);
+
+		int ip = atoi((char*)(addr+ip_start+2));
+		char ipport_str[64];
+		sprintf(ipport_str,"%i.%i.%i.%i",ip&255,(ip>>8)&255,(ip>>16)&255,(ip>>24)&255);
+		if(!network_connect(ipport_str,atoi((char*)(addr+port_start+1)))) {
+			printf("Error: Connection failed (use --help for instructions)\n");
+			exit(1);
+		} else { printf("Connection to %s successfull\n", addr); hud_change(&hud_ingame); }
+	}
+
 	atexit(deinit);
 
 	float last_frame;
