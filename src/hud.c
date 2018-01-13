@@ -28,6 +28,7 @@ void hud_mousemode(int mode) {
 int screen_current = SCREEN_NONE;
 int show_exit = 0;
 static void hud_ingame_init() {
+    chat_input_mode = CHAT_NO_INPUT;
     show_exit = 0;
     hud_mousemode(GLFW_CURSOR_DISABLED);
 }
@@ -873,13 +874,9 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 	if(button==GLFW_MOUSE_BUTTON_RIGHT && action==GLFW_PRESS) {
 		players[local_player_id].input.buttons.rmb_start = glfwGetTime();
 		if(camera_mode==CAMERAMODE_BODYVIEW) {
-			cameracontroller_bodyview_player = (cameracontroller_bodyview_player+1)%PLAYERS_MAX;
-			while(1) {
-		        if(players[cameracontroller_bodyview_player].connected && players[cameracontroller_bodyview_player].team==players[local_player_id].team) {
-		            break;
-		        }
+			do {
 		        cameracontroller_bodyview_player = (cameracontroller_bodyview_player+1)%PLAYERS_MAX;
-		    }
+            } while(!player_can_spectate(&players[cameracontroller_bodyview_player]));
 		}
 	}
 	if(button==GLFW_MOUSE_BUTTON_LEFT) {
@@ -922,13 +919,11 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 		}
 
 		if(camera_mode==CAMERAMODE_BODYVIEW) {
-			cameracontroller_bodyview_player = (cameracontroller_bodyview_player-1)%PLAYERS_MAX;
-			while(1) {
-		        if(players[cameracontroller_bodyview_player].connected && players[cameracontroller_bodyview_player].team==players[local_player_id].team) {
-		            break;
-		        }
+            do {
 		        cameracontroller_bodyview_player = (cameracontroller_bodyview_player-1)%PLAYERS_MAX;
-		    }
+                if(cameracontroller_bodyview_player<0)
+                    cameracontroller_bodyview_player = PLAYERS_MAX-1;
+            } while(!player_can_spectate(&players[cameracontroller_bodyview_player]));
 		}
 	}
 }
@@ -1218,16 +1213,19 @@ struct serverlist_entry {
 };
 
 static http_t* request_serverlist = NULL;
-static JSON_Array* servers = NULL;
+static int server_count = 0;
 static struct serverlist_entry* serverlist;
 static float serverlist_scroll;
 static int serverlist_hover;
 
 static void hud_serverlist_init() {
-    free(serverlist);
     serverlist_scroll = 0.0F;
     serverlist_hover = -1;
     request_serverlist = http_get("http://services.buildandshoot.com/serverlist.json",NULL);
+
+    chat_input_mode = CHAT_ALL_INPUT;
+    text_input_first = 0;
+    chat[0][0][0] = 0;
 }
 
 static int hud_serverlist_sort(const void* a, const void* b) {
@@ -1241,11 +1239,6 @@ static int hud_serverlist_sort(const void* a, const void* b) {
 
 static void hud_serverlist_render(float scalex, float scaley) {
     hud_mousemode(GLFW_CURSOR_NORMAL);
-    glClearColor(0.0F,0.0F,0.0F,1.0F);
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    int amount = servers?json_array_get_count(servers):0;
-
 
     glColor3f(0.5F,0.5F,0.5F);
     glEnable(GL_TEXTURE_2D);
@@ -1268,26 +1261,39 @@ static void hud_serverlist_render(float scalex, float scaley) {
     glDisable(GL_TEXTURE_2D);
 
     glColor3f(1.0F,1.0F,0.0F);
-    font_render((settings.window_width-600*scaley)/2.0F+0*scaley,500*scaley,36*scaley,"Server list");
+    font_render((settings.window_width-600*scaley)/2.0F+0*scaley,535*scaley,36*scaley,"Server list");
     char total_str[128];
-    sprintf(total_str,"Total: %i",amount);
-    font_render(settings.window_width/2.0F+300*scaley-font_length(36*scaley,total_str),500*scaley,36*scaley,total_str);
+    sprintf(total_str,"Total: %i",server_count);
+    font_render(settings.window_width/2.0F+300*scaley-font_length(36*scaley,total_str),535*scaley,36*scaley,total_str);
+
     glColor3f(1.0F,1.0F,1.0F);
+    texture_draw_sector(&texture_ui_input,settings.window_width/2.0F-300*scaley,485*scaley,8*scaley,32*scaley,0.0F,0.0F,0.25F,1.0F);
+    texture_draw_sector(&texture_ui_input,settings.window_width/2.0F-300*scaley+8*scaley,485*scaley,(400-32)*scaley,32*scaley,0.25F,0.0F,0.5F,1.0F);
+    texture_draw_sector(&texture_ui_input,settings.window_width/2.0F-300*scaley+(400-32+8)*scaley,485*scaley,8*scaley,32*scaley,0.75F,0.0F,0.25F,1.0F);
+
+    texture_draw(&texture_ui_join,settings.window_width/2.0F+105*scaley,485*scaley,32*scaley,32*scaley);
+
+    int a = strlen(chat[0][0]);
+    chat[0][0][a] = '_';
+    chat[0][0][a+1] = 0;
+    font_render((settings.window_width-600*scaley)/2.0F+font_length(24*scaley," "),481*scaley,24*scaley,chat[0][0]);
+    chat[0][0][a] = 0;
+
     font_render((settings.window_width-600*scaley)/2.0F+0*scaley,450*scaley,18*scaley,"Players");
     font_render((settings.window_width-600*scaley)/2.0F+75*scaley,450*scaley,18*scaley,"Name");
     font_render((settings.window_width-600*scaley)/2.0F+350*scaley,450*scaley,18*scaley,"Map");
     font_render((settings.window_width-600*scaley)/2.0F+475*scaley,450*scaley,18*scaley,"Mode");
     font_render((settings.window_width-600*scaley)/2.0F+560*scaley,450*scaley,18*scaley,"Ping");
 
-    texture_draw(&texture_ui_reload,(settings.window_width-600*scaley)/2.0F+375*scaley,500*scaley,32*scaley,32*scaley);
-    texture_draw(&texture_ui_join,(settings.window_width-600*scaley)/2.0F+327*scaley,500*scaley,32*scaley,32*scaley);
+    //texture_draw(&texture_ui_reload,(settings.window_width-600*scaley)/2.0F+375*scaley,500*scaley,32*scaley,32*scaley);
+    //texture_draw(&texture_ui_join,(settings.window_width-600*scaley)/2.0F+327*scaley,500*scaley,32*scaley,32*scaley);
 
     if(serverlist_scroll>0)
         serverlist_scroll = 0;
-    if(serverlist_scroll<-(amount*20-430+50)*scaley)
-        serverlist_scroll = -(amount*20-430+50)*scaley;
+    if(serverlist_scroll<-(server_count*20-430+50)*scaley)
+        serverlist_scroll = -(server_count*20-430+50)*scaley;
 
-    float progress = serverlist_scroll/(-(amount*20-430+50)*scaley);
+    float progress = serverlist_scroll/(-(server_count*20-430+50)*scaley);
     texture_draw_empty((settings.window_width-600*scaley)/2.0F-20*scaley,450*scaley-(430-50)*scaley*progress,10*scaley,20*scaley);
 
     glEnable(GL_SCISSOR_TEST);
@@ -1298,7 +1304,7 @@ static void hud_serverlist_render(float scalex, float scaley) {
     ypos = settings.window_height-ypos;
 
     int tmp = -1;
-    for(int k=0;k<amount;k++) {
+    for(int k=0;k<server_count;k++) {
         if(xpos>=(settings.window_width-600*scaley)/2.0F && xpos<(settings.window_width+600*scaley)/2.0F
            && ypos<450*scaley-20*scaley*(k+0.9F)-serverlist_scroll && ypos>=450*scaley-20*scaley*(k+1.9F)-serverlist_scroll
            && ypos<430*scaley && ypos>=50*scaley) {
@@ -1343,11 +1349,11 @@ static void hud_serverlist_render(float scalex, float scaley) {
                 font_centered(settings.window_width/2.0F,settings.window_height/2.0F-24*scaley,18*scaley,"Please wait...");
                 break;
             case HTTP_STATUS_COMPLETED:
-                servers = json_value_get_array(json_parse_string(request_serverlist->response_data));
-                free(serverlist);
-                int a = json_array_get_count(servers);
-                serverlist = malloc(a*sizeof(struct serverlist_entry));
-                for(int k=0;k<a;k++) {
+            {
+                JSON_Array* servers = json_value_get_array(json_parse_string(request_serverlist->response_data));
+                server_count = json_array_get_count(servers);
+                serverlist = realloc(serverlist,server_count*sizeof(struct serverlist_entry));
+                for(int k=0;k<server_count;k++) {
                     JSON_Object* s = json_array_get_object(servers,k);
                     serverlist[k].current = (int)json_object_get_number(s,"players_current");
                     serverlist[k].max = (int)json_object_get_number(s,"players_max");
@@ -1357,10 +1363,11 @@ static void hud_serverlist_render(float scalex, float scaley) {
                     serverlist[k].ping = (int)json_object_get_number(s,"latency");
                     serverlist[k].identifier = (char*)json_object_get_string(s,"identifier");
                 }
-                qsort(serverlist,a,sizeof(struct serverlist_entry),hud_serverlist_sort);
+                qsort(serverlist,server_count,sizeof(struct serverlist_entry),hud_serverlist_sort);
                 http_release(request_serverlist);
                 request_serverlist = NULL;
                 break;
+            }
             case HTTP_STATUS_FAILED:
                 http_release(request_serverlist);
                 hud_serverlist_init();
@@ -1373,24 +1380,23 @@ static void hud_serverlist_scroll(double yoffset) {
     serverlist_scroll += yoffset*20.0F;
 }
 
+static void server_c(char* s) {
+    hud_change(network_connect_string(s)?&hud_ingame:&hud_serverlist);
+}
+
 static void hud_serverlist_mouseclick(int button, int action, int mods) {
     if(serverlist_hover>=0) {
-        if(!network_connect_string(serverlist[serverlist_hover].identifier)) {
-            printf("Error: Connection failed\n");
-            hud_change(&hud_serverlist);
-    		/*if(!access("lastsav.vxl",F_OK)) {
-    			map_vxl_load(file_load("lastsav.vxl"),map_colors);
-    			chunk_rebuild_all();
-    			camera_mode = CAMERAMODE_FPS;
-    			players[local_player_id].pos.x = map_size_x/2.0F;
-    			players[local_player_id].pos.y = map_size_y-1.0F;
-    			players[local_player_id].pos.z = map_size_z/2.0F;
-    		} else {
-    			exit(1);
-    		}*/
-        } else {
-            hud_change(&hud_ingame);
-        }
+		/*if(file_exists("lastsav.vxl")) {
+			map_vxl_load(file_load("lastsav.vxl"),map_colors);
+			chunk_rebuild_all();
+			camera_mode = CAMERAMODE_FPS;
+			players[local_player_id].pos.x = map_size_x/2.0F;
+			players[local_player_id].pos.y = map_size_y-1.0F;
+			players[local_player_id].pos.z = map_size_z/2.0F;
+		} else {
+			exit(1);
+		}*/
+        server_c(serverlist[serverlist_hover].identifier);
     }
 }
 
@@ -1401,6 +1407,12 @@ static void hud_serverlist_keyboard(int key, int action, int mods) {
         }
         if(key==GLFW_KEY_S || key==GLFW_KEY_DOWN) {
             serverlist_scroll -= 20.0F;
+        }
+        if(key==GLFW_KEY_BACKSPACE) {
+            chat[0][0][strlen(chat[0][0])-1] = 0;
+        }
+        if(key==GLFW_KEY_ENTER && strlen(chat[0][0])>0) {
+            server_c(chat[0][0]);
         }
     }
 }

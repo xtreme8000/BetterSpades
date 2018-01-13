@@ -33,6 +33,7 @@ struct texture texture_ui_wait;
 struct texture texture_ui_join;
 struct texture texture_ui_reload;
 struct texture texture_ui_bg;
+struct texture texture_ui_input;
 
 void texture_filter(struct texture* t, int filter) {
     glBindTexture(GL_TEXTURE_2D,t->texture_id);
@@ -89,6 +90,28 @@ int texture_create_buffer(struct texture* t, int width, int height, unsigned cha
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
     glBindTexture(GL_TEXTURE_2D,0);
+}
+
+void texture_draw_sector(struct texture* t, float x, float y, float w, float h, float u, float v, float us, float vs) {
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    glBindTexture(GL_TEXTURE_2D,t->texture_id);
+
+    glBegin(GL_QUADS);
+    glTexCoord2f(u,v);
+    glVertex2f(x,y);
+    glTexCoord2f(u,v+vs);
+    glVertex2f(x,y-h);
+    glTexCoord2f(u+us,v+vs);
+    glVertex2f(x+w,y-h);
+    glTexCoord2f(u+us,v);
+    glVertex2f(x+w,y);
+    glEnd();
+
+    glBindTexture(GL_TEXTURE_2D,0);
+    glDisable(GL_BLEND);
+    glDisable(GL_TEXTURE_2D);
 }
 
 void texture_draw(struct texture* t, float x, float y, float w, float h) {
@@ -239,6 +262,7 @@ void texture_init() {
     texture_create(&texture_ui_join,"png/ui/join.png");
     texture_create(&texture_ui_reload,"png/ui/reload.png");
     texture_create(&texture_ui_bg,"png/ui/bg.png");
+    texture_create(&texture_ui_input,"png/ui/input.png");
 
 
     unsigned int* pixels = malloc(64*64*sizeof(unsigned int));

@@ -1,5 +1,9 @@
 #include "common.h"
 
+char file_exists(const char* name) {
+	return !access(name,F_OK);
+}
+
 unsigned char* file_load(const char* name) {
 	FILE *f;
 	f = fopen(name,"rb");

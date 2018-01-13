@@ -1,6 +1,6 @@
 #include "common.h"
 
-unsigned char cameracontroller_bodyview_player = 0;
+int cameracontroller_bodyview_player = 0;
 
 float last_rot_x, last_rot_y;
 void cameracontroller_fps(float dt) {
@@ -166,12 +166,12 @@ void cameracontroller_spectator(float dt) {
 }
 
 void cameracontroller_bodyview(float dt) {
+    printf("%i\n",cameracontroller_bodyview_player);
 
     //check if we cant spectate the player anymore
     for(int k=0;k<PLAYERS_MAX*2;k++) { //a while(1) loop caused it to get stuck on map change when playing on babel
-        if(players[cameracontroller_bodyview_player].connected && players[cameracontroller_bodyview_player].team==players[local_player_id].team) {
+        if(player_can_spectate(&players[cameracontroller_bodyview_player]))
             break;
-        }
         cameracontroller_bodyview_player = (cameracontroller_bodyview_player+1)%PLAYERS_MAX;
     }
 

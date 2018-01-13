@@ -76,9 +76,8 @@ struct Sound_source* sound_createEx(struct Sound_source* s, int option, struct S
     if(!sound_enabled)
         return &dummy;
 
-    if(option==SOUND_WORLD && distance3D(camera_x,camera_y,camera_z,x,y,z)>128.0F*128.0F) {
+    if(option==SOUND_WORLD && distance3D(camera_x,camera_y,camera_z,x,y,z)>128.0F*128.0F)
         return &dummy;
-    }
 
     int i = sound_free_index();
     sound_sources_free[i] = 0;

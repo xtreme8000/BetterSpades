@@ -1,3 +1,4 @@
+char file_exists(const char* name);
 unsigned char* file_load(const char* name);
 float buffer_readf(unsigned char* buffer, int index);
 unsigned int buffer_read32(unsigned char* buffer, int index);

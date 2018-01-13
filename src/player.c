@@ -56,6 +56,12 @@ void player_reset(struct Player* p) {
     p->input.buttons.packed = 0;
 }
 
+int player_can_spectate(struct Player* p) {
+    return p->connected
+        && ((players[local_player_id].team!=TEAM_SPECTATOR && p->team==players[local_player_id].team)
+        || (players[local_player_id].team==TEAM_SPECTATOR && p->team!=TEAM_SPECTATOR));
+}
+
 float player_swing_func(float x) {
     x -= (int)x;
     return (x<0.5F)?(x*4.0F-1.0F):(3.0F-x*4.0F);
@@ -373,7 +379,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
     struct kv6_t* leg = p->input.keys.crouch?&model_playerlegc:&model_playerleg;
     float height = player_height(p);
     if(id!=local_player_id) {
-        height -= 0.1F;
+        height -= 0.25F;
     }
 
     float len = sqrt(pow(p->orientation.x,2.0F)+pow(p->orientation.z,2.0F));

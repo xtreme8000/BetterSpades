@@ -22,24 +22,6 @@ int compressed_chunk_data_estimate = 0;
 ENetHost* client;
 ENetPeer* peer;
 
-void crc32_sub(unsigned int* crc, unsigned char byte) {
-    *crc = *crc ^ byte;
-
-    for (int i = 7; i >= 0; i--) {
-        char bit0 = *crc & 1;
-        *crc >>= 1;
-        if (bit0)
-            *crc ^= 0xEDB88320;
-    }
-}
-
-unsigned int crc32(unsigned char* data, int len) {
-	int res = 0;
-    for(int i=0;i<len;i++)
-		crc32_sub(&res,data[i]);
-	return res;
-}
-
 void read_PacketMapChunk(void* data, int len) {
 	//increase allocated memory if it is not enough to store the next chunk
 	if(compressed_chunk_data_offset+len>compressed_chunk_data_size) {
@@ -221,29 +203,39 @@ void read_PacketStateData(void* data, int len) {
 	network_map_transfer = 0;
 
 	printf("map data was %i bytes\n",compressed_chunk_data_offset);
-	int avail_size = 1024*1024;
-	void* decompressed = malloc(avail_size);
-	size_t decompressed_size;
-	struct libdeflate_decompressor* d = libdeflate_alloc_decompressor();
-	while(1) {
-		int r = libdeflate_zlib_decompress(d,compressed_chunk_data,compressed_chunk_data_offset,decompressed,avail_size,&decompressed_size);
-		//switch not fancy enough here, breaking out of the loop is not aesthetic
-		if(r==LIBDEFLATE_INSUFFICIENT_SPACE) {
-			avail_size += 1024*1024;
-			decompressed = realloc(decompressed,avail_size);
+	if(!network_map_cached) {
+		int avail_size = 1024*1024;
+		void* decompressed = malloc(avail_size);
+		size_t decompressed_size;
+		struct libdeflate_decompressor* d = libdeflate_alloc_decompressor();
+		while(1) {
+			int r = libdeflate_zlib_decompress(d,compressed_chunk_data,compressed_chunk_data_offset,decompressed,avail_size,&decompressed_size);
+			//switch not fancy enough here, breaking out of the loop is not aesthetic
+			if(r==LIBDEFLATE_INSUFFICIENT_SPACE) {
+				avail_size += 1024*1024;
+				decompressed = realloc(decompressed,avail_size);
+			}
+			if(r==LIBDEFLATE_SUCCESS) {
+				map_vxl_load(decompressed,map_colors);
+				char filename[128];
+				sprintf(filename,"cache/%08X.vxl",libdeflate_crc32(0,decompressed,decompressed_size));
+				printf(filename);
+				FILE* f = fopen(filename,"wb");
+				fwrite(decompressed,1,decompressed_size,f);
+				fclose(f);
+				chunk_rebuild_all();
+				break;
+			}
+			if(r==LIBDEFLATE_BAD_DATA || r==LIBDEFLATE_SHORT_OUTPUT) {
+				break;
+			}
 		}
-		if(r==LIBDEFLATE_SUCCESS) {
-			map_vxl_load(decompressed,map_colors);
-			chunk_rebuild_all();
-			break;
-		}
-		if(r==LIBDEFLATE_BAD_DATA || r==LIBDEFLATE_SHORT_OUTPUT) {
-			break;
-		}
+		free(decompressed);
+		free(compressed_chunk_data);
+		libdeflate_free_decompressor(d);
+	} else {
+
 	}
-	free(decompressed);
-	free(compressed_chunk_data);
-	libdeflate_free_decompressor(d);
 
 	kv6_rebuild_all();
 }
@@ -347,17 +339,24 @@ void read_PacketMapStart(void* data, int len) {
 	compressed_chunk_data_offset = 0;
 	network_logged_in = 0;
 	network_map_transfer = 1;
+	network_map_cached = 0;
 
 	if(len==sizeof(struct PacketMapStart075)) {
 		struct PacketMapStart075* p = (struct PacketMapStart075*)data;
 		compressed_chunk_data_estimate = p->map_size;
-		network_map_cached = 0;
 	} else {
 		struct PacketMapStart076* p = (struct PacketMapStart076*)data;
 		compressed_chunk_data_estimate = p->map_size;
 		printf("map name: %s\n",p->map_name);
 		printf("map crc32: 0x%08X\n",p->crc32);
-		network_map_cached = 0;
+		char filename[128];
+		sprintf(filename,"cache/%02X%02X%02X%02X.vxl",red(p->crc32),green(p->crc32),blue(p->crc32),alpha(p->crc32));
+		printf(filename);
+		if(file_exists(filename)) {
+			network_map_cached = 1;
+			map_vxl_load(file_load(filename),map_colors);
+			chunk_rebuild_all();
+		}
 
 		struct PacketMapCached c;
 		c.cached = network_map_cached;
@@ -757,9 +756,9 @@ int network_connect_sub(char* ip, int port, int version) {
 	if(peer==NULL) {
 		return 0;
 	}
-	if(enet_host_service(client,&event,5000)>0 && event.type==ENET_EVENT_TYPE_CONNECT) {
-		network_connected = 1;
+	if(enet_host_service(client,&event,2500)>0 && event.type==ENET_EVENT_TYPE_CONNECT) {;
 		network_received_packets = 0;
+		network_connected = 1;
 
 		float start = glfwGetTime();
 		while(glfwGetTime()-start<1.0F) { //listen connection for 1s, check if server disconnects
@@ -768,7 +767,6 @@ int network_connect_sub(char* ip, int port, int version) {
 				return 0;
 			}
 		}
-
 		return 1;
 	}
 	enet_peer_reset(peer);
@@ -785,6 +783,7 @@ int network_connect(char* ip, int port) {
 	if(network_connect_sub(ip,port,VERSION_076)) {
 		return 1;
 	}
+	network_connected = 0;
 	return 0;
 }
 

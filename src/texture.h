@@ -35,6 +35,7 @@ extern struct texture texture_ui_wait;
 extern struct texture texture_ui_join;
 extern struct texture texture_ui_reload;
 extern struct texture texture_ui_bg;
+extern struct texture texture_ui_input;
 
 #define TEXTURE_FILTER_NEAREST  0
 #define TEXTURE_FILTER_LINEAR   1
@@ -44,6 +45,7 @@ void texture_init(void);
 int texture_create(struct texture* t, char* filename);
 int texture_create_buffer(struct texture* t, int width, int height, unsigned char* buff);
 void texture_draw(struct texture* t, float x, float y, float w, float h);
+void texture_draw_sector(struct texture* t, float x, float y, float w, float h, float u, float v, float us, float vs);
 void texture_draw_empty(float x, float y, float w, float h);
 void texture_draw_empty_rotated(float x, float y, float w, float h, float angle);
 void texture_draw_rotated(struct texture* t, float x, float y, float w, float h, float angle);
