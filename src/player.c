@@ -220,6 +220,10 @@ void player_update(float dt) {
     for(int k=0;k<PLAYERS_MAX;k++) {
         if(!players[k].input.buttons.lmb && !players[k].input.buttons.rmb) {
             players[k].spade_used = 0;
+            if(players[k].spade_use_type==1)
+                players[k].spade_use_type = 0;
+            if(players[k].spade_use_type==2)
+                players[k].spade_use_timer = 0;
         }
         if(players[k].connected && players[k].alive && players[k].held_item==TOOL_SPADE
             && (players[k].input.buttons.lmb || players[k].input.buttons.rmb)

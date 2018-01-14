@@ -947,16 +947,16 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 
 			if(!network_connected) {
 				if(key==GLFW_KEY_F1) {
-					camera_mode = 0;
+					camera_mode = CAMERAMODE_SELECTION;
 				}
 				if(key==GLFW_KEY_F2) {
-					camera_mode = 1;
+					camera_mode = CAMERAMODE_FPS;
 				}
 				if(key==GLFW_KEY_F3) {
-					camera_mode = 2;
+					camera_mode = CAMERAMODE_SPECTATOR;
 				}
 				if(key==GLFW_KEY_F4) {
-					camera_mode = 3;
+					camera_mode = CAMERAMODE_BODYVIEW;
 				}
 				if(key==GLFW_KEY_V) {
 					printf("%f,%f,%f,%f,%f\n",camera_x,camera_y,camera_z,camera_rot_x,camera_rot_y);
@@ -1381,21 +1381,21 @@ static void hud_serverlist_scroll(double yoffset) {
 }
 
 static void server_c(char* s) {
-    hud_change(network_connect_string(s)?&hud_ingame:&hud_serverlist);
+    if(file_exists(s)) {
+		map_vxl_load(file_load(s),map_colors);
+		chunk_rebuild_all();
+		camera_mode = CAMERAMODE_FPS;
+		players[local_player_id].pos.x = map_size_x/2.0F;
+		players[local_player_id].pos.y = map_size_y-1.0F;
+		players[local_player_id].pos.z = map_size_z/2.0F;
+        hud_change(&hud_ingame);
+    } else {
+        hud_change(network_connect_string(s)?&hud_ingame:&hud_serverlist);
+    }
 }
 
 static void hud_serverlist_mouseclick(int button, int action, int mods) {
     if(serverlist_hover>=0) {
-		/*if(file_exists("lastsav.vxl")) {
-			map_vxl_load(file_load("lastsav.vxl"),map_colors);
-			chunk_rebuild_all();
-			camera_mode = CAMERAMODE_FPS;
-			players[local_player_id].pos.x = map_size_x/2.0F;
-			players[local_player_id].pos.y = map_size_y-1.0F;
-			players[local_player_id].pos.z = map_size_z/2.0F;
-		} else {
-			exit(1);
-		}*/
         server_c(serverlist[serverlist_hover].identifier);
     }
 }
