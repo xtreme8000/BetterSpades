@@ -337,7 +337,7 @@ void player_update(float dt) {
                                o[0],o[1],o[2],128.0F);
                     tracer_add(players[k].weapon,
                                players[k].physics.eye.x,players[k].physics.eye.y+player_height(&players[k]),players[k].physics.eye.z,
-                               o[0],o[1],o[2]);
+                               o[0]+players[k].physics.velocity.x,o[1]+players[k].physics.velocity.y,o[2]+players[k].physics.velocity.z);
                     particle_create_casing(&players[k]);
                     switch(hit.type) {
                         case CAMERA_HITTYPE_PLAYER:
