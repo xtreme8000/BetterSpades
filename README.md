@@ -110,3 +110,5 @@ The development headers for OpenAL and OpenGL don't have to be installed since t
 >*Donations are greatly appreciated* :+1:
 >
 ><img src="https://bitaps.com/static/img/bitcoin.svg" height="30px"> `1AeSfdVmbEX6VCqxCgk9WkzSA8XJkKr4FM`
+
+<center>![GPLv3](https://www.gnu.org/graphics/gplv3-127x51.png)</center>

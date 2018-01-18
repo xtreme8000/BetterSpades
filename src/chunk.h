@@ -16,11 +16,31 @@ extern int chunk_lighting_changed_lenght;
 
 extern boolean chunk_render_mode;
 
+#define CHUNK_WORKERS_MAX 4
+
+#define CHUNK_WORKERSTATE_BUSY		0
+#define CHUNK_WORKERSTATE_IDLE		1
+#define CHUNK_WORKERSTATE_FINISHED	2
+
+extern struct chunk_worker {
+	int chunk_id;
+	int chunk_x, chunk_y;
+	int state;
+	pthread_t thread;
+	short* vertex_data;
+	unsigned char* color_data;
+	int data_size;
+	int max_height;
+} chunk_workers[CHUNK_WORKERS_MAX];
+extern pthread_rwlock_t chunk_map_lock;
+
+void chunk_init(void);
+
 void chunk_block_update(int x, int y, int z);
 void chunk_update_all(void);
-int chunk_generate(int displaylist, int chunk_x, int chunk_y);
-int chunk_generate_greedy(int displaylist, int chunk_x, int chunk_y);
-int chunk_generate_naive(int displaylist, int chunk_x, int chunk_y);
+void* chunk_generate(void* data);
+void chunk_generate_greedy(struct chunk_worker* worker);
+void chunk_generate_naive(struct chunk_worker* worker);
 void chunk_render(int x, int y);
 void chunk_rebuild_all(void);
 void chunk_set_render_mode(boolean r);

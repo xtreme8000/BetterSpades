@@ -1,5 +1,11 @@
 #include "common.h"
 
+int ms_seed = 1;
+int ms_rand() {
+  ms_seed = ms_seed*0x343FD+0x269EC3;
+  return (ms_seed>>0x10) & 0x7FFF;
+}
+
 int chat_input_mode = CHAT_NO_INPUT;
 
 char chat[2][10][256] = {0}; //chat[0] is current input
@@ -374,6 +380,7 @@ void init(GLFWwindow* window) {
 	//set minimap borders (white on 64x64 chunks, black map border)
 	memset(map_minimap,0xCCCCCCFF,map_size_x*map_size_z*sizeof(unsigned char)*4);
 
+    chunk_init();
 	font_init();
 	player_init();
 	particle_init();

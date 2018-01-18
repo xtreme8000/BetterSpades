@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.9)
 project(client C)
-#find_package(Threads)
+find_package(Threads)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
@@ -14,7 +14,7 @@ file(COPY ${resources} DESTINATION ${CMAKE_BINARY_DIR}/bin)
 file(GLOB sources src/*c)
 add_executable(client ${sources})
 
-#target_link_libraries(client ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(client ${CMAKE_THREAD_LIBS_INIT})
 
 file(GLOB libs libs/*lib)
 target_link_libraries(client ${libs})

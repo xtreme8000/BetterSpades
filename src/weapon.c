@@ -101,12 +101,6 @@ struct Sound_wav* weapon_sound_reload(int gun) {
     }
 }
 
-static int seed = 1;
-static int ms_rand() {
-  seed = seed*0x343FD+0x269EC3;
-  return (seed>>0x10) & 0x7FFF;
-}
-
 void weapon_spread(struct Player* p, float* d) {
     float spread = 0.0F;
     switch(p->weapon) {

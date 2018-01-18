@@ -406,9 +406,18 @@ void map_update_physics(int x, int y, int z) {
 }
 
 unsigned long long map_get(int x, int y, int z) {
-	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_y || z>=map_size_z) {
+	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_y || z>=map_size_z)
 		return 0xFFFFFFFF;
-	}
+
+	pthread_rwlock_rdlock(&chunk_map_lock);
+	unsigned long long ret = map_colors[x+(y*map_size_z+z)*map_size_x];
+	pthread_rwlock_unlock(&chunk_map_lock);
+	return ret;
+}
+
+unsigned long long map_get_unblocked(int x, int y, int z) {
+	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_y || z>=map_size_z)
+		return 0xFFFFFFFF;
 
 	return map_colors[x+(y*map_size_z+z)*map_size_x];
 }
@@ -418,36 +427,31 @@ void map_set(int x, int y, int z, unsigned long long color) {
 		return;
 	}
 
+	pthread_rwlock_wrlock(&chunk_map_lock);
 	map_colors[x+(y*map_size_z+z)*map_size_x] = color;
+	pthread_rwlock_unlock(&chunk_map_lock);
+
 	chunk_block_update(x,y,z);
 
 	unsigned char x_off = x%CHUNK_SIZE;
 	unsigned char z_off = z%CHUNK_SIZE;
 
-	if(x>0 && x_off==0) {
+	if(x>0 && x_off==0)
 		chunk_block_update(x-1,y,z);
-	}
-	if(z>0 && z_off==0) {
+	if(z>0 && z_off==0)
 		chunk_block_update(x,y,z-1);
-	}
-	if(x<map_size_x-1 && x_off==CHUNK_SIZE-1) {
+	if(x<map_size_x-1 && x_off==CHUNK_SIZE-1)
 		chunk_block_update(x+1,y,z);
-	}
-	if(z<map_size_z-1 && z_off==CHUNK_SIZE-1) {
+	if(z<map_size_z-1 && z_off==CHUNK_SIZE-1)
 		chunk_block_update(x,y,z+1);
-	}
-	if(x>0 && z>0 && x_off==0 && z_off==0) {
+	if(x>0 && z>0 && x_off==0 && z_off==0)
 		chunk_block_update(x-1,y,z-1);
-	}
-	if(x<map_size_x-1 && z<map_size_z-1 && x_off==CHUNK_SIZE-1 && z_off==CHUNK_SIZE-1) {
+	if(x<map_size_x-1 && z<map_size_z-1 && x_off==CHUNK_SIZE-1 && z_off==CHUNK_SIZE-1)
 		chunk_block_update(x+1,y,z+1);
-	}
-	if(x>0 && z<map_size_z-1 && x_off==0 && z_off==CHUNK_SIZE-1) {
+	if(x>0 && z<map_size_z-1 && x_off==0 && z_off==CHUNK_SIZE-1)
 		chunk_block_update(x-1,y,z+1);
-	}
-	if(x<map_size_x-1 && z>0 && x_off==CHUNK_SIZE-1 && z_off==0) {
+	if(x<map_size_x-1 && z>0 && x_off==CHUNK_SIZE-1 && z_off==0)
 		chunk_block_update(x+1,y,z-1);
-	}
 
 	if(x==0)
 		chunk_block_update(map_size_x-1,y,z);
@@ -475,15 +479,6 @@ void map_vxl_setcolor(int x, int y, int z, unsigned int t, unsigned long long* m
 	unsigned char g = (t>>8) & 255;
 	unsigned char b = (t>>16) & 255;
 	map[x+((map_size_y-1-z)*map_size_z+y)*map_size_x] = (r<<16)|(g<<8)|b;
-
-	/*map[x+1+((map_size_y-1-z)*map_size_z+y)*map_size_x] = (r<<16)|(g<<8)|b;
-	map[x+((map_size_y-1-z)*map_size_z+y+1)*map_size_x] = (r<<16)|(g<<8)|b;
-	map[x+1+((map_size_y-1-z)*map_size_z+y+1)*map_size_x] = (r<<16)|(g<<8)|b;
-
-	map[x+((map_size_y-1-z-1)*map_size_z+y)*map_size_x] = (r<<16)|(g<<8)|b;
-	map[x+1+((map_size_y-1-z-1)*map_size_z+y)*map_size_x] = (r<<16)|(g<<8)|b;
-	map[x+((map_size_y-1-z-1)*map_size_z+y+1)*map_size_x] = (r<<16)|(g<<8)|b;
-	map[x+1+((map_size_y-1-z-1)*map_size_z+y+1)*map_size_x] = (r<<16)|(g<<8)|b;*/
 }
 
 //Copyright (c) Mathias Kaerlev 2011-2012 (but might be original code by Ben himself)
@@ -563,6 +558,7 @@ int map_cube_line(int x1, int y1, int z1, int x2, int y2, int z2, struct Point* 
 }
 
 void map_vxl_load(unsigned char* v, unsigned long long* map) {
+	pthread_rwlock_wrlock(&chunk_map_lock);
 	for(int y=0;y<512;y++) {
 		for(int x=0;x<512;x++) {
 			int z;
@@ -614,4 +610,5 @@ void map_vxl_load(unsigned char* v, unsigned long long* map) {
 			}
 		}
 	}
+	pthread_rwlock_unlock(&chunk_map_lock);
 }

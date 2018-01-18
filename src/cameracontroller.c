@@ -166,8 +166,6 @@ void cameracontroller_spectator(float dt) {
 }
 
 void cameracontroller_bodyview(float dt) {
-    printf("%i\n",cameracontroller_bodyview_player);
-
     //check if we cant spectate the player anymore
     for(int k=0;k<PLAYERS_MAX*2;k++) { //a while(1) loop caused it to get stuck on map change when playing on babel
         if(player_can_spectate(&players[cameracontroller_bodyview_player]))

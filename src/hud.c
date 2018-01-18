@@ -1213,19 +1213,23 @@ struct serverlist_entry {
 };
 
 static http_t* request_serverlist = NULL;
+static http_t* request_version = NULL;
 static int server_count = 0;
 static struct serverlist_entry* serverlist;
 static float serverlist_scroll;
 static int serverlist_hover;
+static int serverlist_is_outdated;
 
 static void hud_serverlist_init() {
     serverlist_scroll = 0.0F;
     serverlist_hover = -1;
     request_serverlist = http_get("http://services.buildandshoot.com/serverlist.json",NULL);
+    request_version = http_get("http://aos.party/bs/version/",NULL);
 
     chat_input_mode = CHAT_ALL_INPUT;
     text_input_first = 0;
     chat[0][0][0] = 0;
+    serverlist_is_outdated = 0;
 }
 
 static int hud_serverlist_sort(const void* a, const void* b) {
@@ -1339,9 +1343,40 @@ static void hud_serverlist_render(float scalex, float scaley) {
 
     glDisable(GL_SCISSOR_TEST);
 
+    if(serverlist_is_outdated) {
+        glColor4f(0.0F,0.0F,0.0F,0.9F);
+        glEnable(GL_BLEND);
+        texture_draw_empty((settings.window_width-350*scaley)/2.0F,(settings.window_height-200*scaley)/2.0F+200*scaley,350*scaley,200*scaley);
+        glDisable(GL_BLEND);
+        glColor3f(1.0F,1.0F,0.0F);
+        font_centered(settings.window_width/2.0F,(settings.window_height-200*scaley)/2.0F+150*scaley,22*scaley,"NEW CLIENT VERSION AVAILABLE!");
+        glColor3f(1.0F,1.0F,1.0F);
+        font_centered(settings.window_width/2.0F,(settings.window_height-200*scaley)/2.0F+(100-22)*scaley,16*scaley,"Your game is outdated and should be");
+        font_centered(settings.window_width/2.0F,(settings.window_height-200*scaley)/2.0F+(100-22-16)*scaley,16*scaley,"updated immediately.");
+        font_centered(settings.window_width/2.0F,(settings.window_height-200*scaley)/2.0F+(100-22-32)*scaley,16*scaley,"Head over to https://aos.party/bs or click");
+    }
+
+    if(request_version) {
+        switch(http_process(request_version)) {
+            case HTTP_STATUS_COMPLETED:
+                serverlist_is_outdated = 1;
+                char* v = file_load("VERSION");
+                printf("newest game version: %s\n",request_version->response_data);
+                printf("current game version: %s\n",v);
+                serverlist_is_outdated = strcmp(request_version->response_data,v)!=0;
+                free(v);
+                http_release(request_version);
+                request_version = NULL;
+                break;
+            case HTTP_STATUS_FAILED:
+                http_release(request_version);
+                request_version = NULL;
+                break;
+        }
+    }
+
     if(request_serverlist) {
-        int state = http_process(request_serverlist);
-        switch(state) {
+        switch(http_process(request_serverlist)) {
             case HTTP_STATUS_PENDING:
                 glColor3f(1.0F,1.0F,1.0F);
             	texture_filter(&texture_ui_wait,TEXTURE_FILTER_LINEAR);
@@ -1395,7 +1430,12 @@ static void server_c(char* s) {
 }
 
 static void hud_serverlist_mouseclick(int button, int action, int mods) {
-    if(serverlist_hover>=0) {
+    if(serverlist_is_outdated) {
+        serverlist_is_outdated = 0;
+        file_url("https://aos.party/bs");
+        return;
+    }
+    if(serverlist_hover>=0 && action==GLFW_PRESS) {
         server_c(serverlist[serverlist_hover].identifier);
     }
 }

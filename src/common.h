@@ -40,6 +40,10 @@
 #define OS_LINUX
 #endif
 
+#ifdef __APPLE__
+#define OS_APPLE
+#endif
+
 #ifdef DEVICE_RASPBERRYPI
 #define OS_LINUX
 #endif
@@ -139,3 +143,6 @@ void glxcheckErrors(char* file, int line);
 #define SCREEN_GUN_SELECT	2
 
 extern char text_input_first;
+
+extern int ms_seed;
+int ms_rand(void);

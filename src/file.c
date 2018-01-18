@@ -5,7 +5,7 @@ char file_exists(const char* name) {
 }
 
 unsigned char* file_load(const char* name) {
-	FILE *f;
+	FILE* f;
 	f = fopen(name,"rb");
 	if (!f) {
 		printf("ERROR: failed to open '%s', exiting\n", name);
@@ -13,7 +13,8 @@ unsigned char* file_load(const char* name) {
 	}
 	fseek(f,0,SEEK_END);
 	int size = ftell(f);
-	unsigned char* data = malloc(size);
+	unsigned char* data = malloc(size+1);
+	data[size] = 0;
 	fseek(f,0,SEEK_SET);
 	fread(data,size,1,f);
 	fclose(f);
