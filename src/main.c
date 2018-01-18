@@ -151,7 +151,7 @@ void display(float dt) {
 
 		float fov = camera_fov;
 		if(camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN && players[local_player_id].input.buttons.rmb) {
-			fov *= 0.75F;
+			fov *= atan(tan((camera_fov/180.0F*PI)/2)/2.0F)*2.0F;
 		}
 
 		if(settings.opengl14) {
