@@ -1,3 +1,22 @@
+/*
+	Copyright (c) 2017-2018 ByteBit
+
+	This file is part of BetterSpades.
+
+    BetterSpades is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    BetterSpades is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #define PLAYERS_MAX		256 //just because 32 players are not enough
 #define TEAM_1			0
 #define TEAM_2			1
@@ -111,7 +130,6 @@ extern struct Player {
 } players[PLAYERS_MAX];
 //pyspades/pysnip/piqueserver sometime uses ids that are out of range
 
-int player_can_spectate(struct Player* p);
 float player_section_height(int section);
 int player_damage(int damage_sections);
 void player_init(void);
