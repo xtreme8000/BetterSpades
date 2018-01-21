@@ -249,7 +249,7 @@ void particle_create_casing(struct Player* p) {
             particles[k].vz = p->casing_dir.z*3.5F;
             particles[k].created = glfwGetTime();
             particles[k].fade = 0;
-            particles[k].type = players[local_player_id].weapon;
+            particles[k].type = p->weapon;
             particles[k].color = 0x00FFFF;
             particles[k].alive = true;
             break;

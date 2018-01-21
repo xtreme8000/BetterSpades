@@ -35,7 +35,7 @@ extern int chunk_lighting_changed_lenght;
 
 extern boolean chunk_render_mode;
 
-#define CHUNK_WORKERS_MAX 4
+#define CHUNK_WORKERS_MAX			2
 
 #define CHUNK_WORKERSTATE_BUSY		0
 #define CHUNK_WORKERSTATE_IDLE		1

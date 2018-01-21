@@ -41,6 +41,25 @@ int compressed_chunk_data_estimate = 0;
 ENetHost* client;
 ENetPeer* peer;
 
+static void printJoinMsg(int team, char* name) {
+	char* t;
+	switch(team) {
+		case TEAM_1:
+			t = gamestate.team_1.name;
+			break;
+		case TEAM_2:
+			t = gamestate.team_2.name;
+			break;
+		default:
+		case TEAM_SPECTATOR:
+			t = "Spectator";
+			break;
+	}
+	char s[64];
+	sprintf(s,"%s joined the %s team",name,t);
+	chat_add(0,0x0000FF,s);
+}
+
 void read_PacketMapChunk(void* data, int len) {
 	//increase allocated memory if it is not enough to store the next chunk
 	if(compressed_chunk_data_offset+len>compressed_chunk_data_size) {
@@ -271,6 +290,8 @@ void read_PacketFogColor(void* data, int len) {
 void read_PacketExistingPlayer(void* data, int len) {
 	struct PacketExistingPlayer* p = (struct PacketExistingPlayer*)data;
 	if(p->player_id<PLAYERS_MAX) {
+		if(!players[p->player_id].connected)
+			printJoinMsg(p->team,p->name);
 		player_reset(&players[p->player_id]);
 		players[p->player_id].connected = 1;
 		players[p->player_id].alive = 1;
@@ -283,28 +304,14 @@ void read_PacketExistingPlayer(void* data, int len) {
 		players[p->player_id].block.blue = p->blue;
 		players[p->player_id].ammo = weapon_ammo(p->weapon);
 		strcpy(players[p->player_id].name,p->name);
-		char* t;
-		switch(p->team) {
-			case TEAM_1:
-				t = gamestate.team_1.name;
-				break;
-			case TEAM_2:
-				t = gamestate.team_2.name;
-				break;
-			default:
-			case TEAM_SPECTATOR:
-				t = "Spectator";
-				break;
-		}
-		char s[64];
-		sprintf(s,"%s joined the %s team",p->name,t);
-		chat_add(0,0x0000FF,s);
 	}
 }
 
 void read_PacketCreatePlayer(void* data, int len) {
 	struct PacketCreatePlayer* p = (struct PacketCreatePlayer*)data;
 	if(p->player_id<PLAYERS_MAX) {
+		if(!players[p->player_id].connected)
+			printJoinMsg(p->team,p->name);
 		player_reset(&players[p->player_id]);
 		players[p->player_id].connected = 1;
 		players[p->player_id].alive = 1;
@@ -687,11 +694,22 @@ void read_PacketTerritoryCapture(void* data, int len) {
 	if(gamestate.gamemode_type==GAMEMODE_TC && p->tent<gamestate.gamemode.tc.territory_count) {
 		gamestate.gamemode.tc.territory[p->tent].team = p->team;
 		sound_create(NULL,SOUND_LOCAL,p->winning?&sound_horn:&sound_pickup,0.0F,0.0F,0.0F);
-		//char x = (int)(gamestate.gamemode.tc.territory[p->tent].x/64.0F)+'A';
-		//char y = (int)(gamestate.gamemode.tc.territory[p->tent].z/64.0F)+'0';
-		//char capture_str[128];
-		//sprintf(capture_str,"%s have captured %c%c",gamestate.team_1.);
-		//chat_add(0,0x0000FF,"Green have captured D6");
+		char x = (int)(gamestate.gamemode.tc.territory[p->tent].x/64.0F)+'A';
+		char y = (int)(gamestate.gamemode.tc.territory[p->tent].y/64.0F)+'0';
+		char capture_str[128];
+		char* team_n;
+		switch(p->team) {
+			case TEAM_1:
+				team_n = gamestate.team_1.name;
+				break;
+			case TEAM_2:
+				team_n = gamestate.team_2.name;
+				break;
+		}
+		if(team_n) {
+			sprintf(capture_str,"%s have captured %c%c",team_n,x,y);
+			chat_add(0,0x0000FF,capture_str);
+		}
 	}
 }
 
