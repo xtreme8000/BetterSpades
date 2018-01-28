@@ -456,7 +456,7 @@ void read_PacketInputData(void* data, int len) {
 		if(p->player_id!=local_player_id)
 			players[p->player_id].input.keys.packed = p->keys;
 		players[p->player_id].physics.jump = (p->keys&16)>0;
-		players[p->player_id].input.keys.jump = (p->keys&16)>0;
+		//players[p->player_id].input.keys.jump = (p->keys&16)>0;
 	}
 }
 

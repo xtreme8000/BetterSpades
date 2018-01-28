@@ -2,7 +2,7 @@
 
 * Replicate of the great game *Ace of Spades* (classic voxlap)
 * runs on very old systems back to OpenGL 1.1
-* shares similiar if not even better performance to voxlap
+* shares similar if not even better performance to voxlap
 
 #### Why should I use this instead of ...?
 
@@ -41,7 +41,7 @@ You will need to compile
 * libdeflate
 * and enet
 
-by yourself or get hold of precompiled binaries. Place produced static libaries in `lib/`.
+by yourself or get hold of precompiled binaries. Place produced static libraries in `lib/`.
 
 Some files need to be copied to the `src/` directory.
 
@@ -102,9 +102,9 @@ The development headers for OpenAL and OpenGL don't have to be installed since t
 
 ## Gallery
 
-| <img src="/docs/pic01.png" width="250px"> | <img src="/docs/pic02.png" width="250px"> | <img src="/docs/pic03.png" width="250px"> |
+| <img src="/docs/pic01.png" width="250px"><br />*quite old* | <img src="/docs/pic02.png" width="250px"><br />*quite old* | <img src="/docs/pic03.png" width="250px"> |
 | :-: | :-: | :-: |
-| <img src="/docs/pic04.png" width="250px"> | <img src="/docs/pic05.png" width="250px"> | <img src="/docs/pic06.png" width="250px"> |
+| <img src="/docs/pic04.png" width="250px"><br />*grenade fun* | <img src="/docs/pic05.png" width="250px"><br />*falling block animation* | <img src="/docs/pic06.png" width="250px"><br />*sniping on normandie* |
 
 ##
 
