@@ -17,6 +17,8 @@
     along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define BETTERSPADES_VERSION    "v0.1.2"
+
 #if __APPLE__
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>

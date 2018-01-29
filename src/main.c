@@ -525,7 +525,7 @@ int main(int argc, char** argv) {
 		glfwWindowHint(GLFW_SAMPLES,settings.multisamples);
 	}
 
-	GLFWwindow* window = glfwCreateWindow(settings.window_width,settings.window_height,"BetterSpades",settings.fullscreen?glfwGetPrimaryMonitor():NULL,NULL);
+	GLFWwindow* window = glfwCreateWindow(settings.window_width,settings.window_height,"BetterSpades "BETTERSPADES_VERSION,settings.fullscreen?glfwGetPrimaryMonitor():NULL,NULL);
 	if(!window) {
 		printf("Could not open window\n");
 		glfwTerminate();

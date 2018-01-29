@@ -1379,11 +1379,9 @@ static void hud_serverlist_render(float scalex, float scaley) {
         switch(http_process(request_version)) {
             case HTTP_STATUS_COMPLETED:
                 serverlist_is_outdated = 1;
-                char* v = file_load("VERSION");
                 printf("newest game version: %s\n",request_version->response_data);
-                printf("current game version: %s\n",v);
-                serverlist_is_outdated = strcmp(request_version->response_data,v)!=0;
-                free(v);
+                printf("current game version: %s\n",BETTERSPADES_VERSION);
+                serverlist_is_outdated = strcmp(request_version->response_data,BETTERSPADES_VERSION)!=0;
                 http_release(request_version);
                 request_version = NULL;
                 break;
