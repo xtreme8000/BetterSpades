@@ -417,7 +417,10 @@ void reshape(GLFWwindow* window, int width, int height) {
 	glViewport(0,0,width,height);
 	settings.window_width = width;
 	settings.window_height = height;
-	glfwSwapInterval(settings.vsync);
+    if(settings.vsync<2)
+	   glfwSwapInterval(settings.vsync);
+    if(settings.vsync>1)
+       glfwSwapInterval(0);
 }
 
 char text_input_first;
@@ -535,15 +538,6 @@ int main(int argc, char** argv) {
 	glfwSetWindowPos(window,(mode->width-settings.window_width)/2.0F,(mode->height-settings.window_height)/2.0F);
 	glfwShowWindow(window);
 
-	GLFWimage icon;
-
-	int error = lodepng_decode32_file(&icon.pixels,&icon.width,&icon.height,"icon.png");
-    if(error) {
-        printf("Could not load texture (%u): %s\n",error,lodepng_error_text(error));
-        return 0;
-    }
-	glfwSetWindowIcon(window,1,&icon);
-
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window,reshape);
 	glfwSetCursorPosCallback(window,mouse);
@@ -592,6 +586,11 @@ int main(int argc, char** argv) {
 	init(window);
 	atexit(deinit);
 
+    if(settings.vsync<2)
+	   glfwSwapInterval(settings.vsync);
+    if(settings.vsync>1)
+       glfwSwapInterval(0);
+
 	if(argc>1) {
 		if(!strcmp(argv[1],"--help")) {
 			printf("Usage: client                     [server browser]\n");
@@ -608,11 +607,10 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	float last_frame;
+	float last_frame_start;
 	while(!glfwWindowShouldClose(window)) {
-		float t = glfwGetTime();
-		float dt = t-last_frame;
-		last_frame = t;
+        float dt = glfwGetTime()-last_frame_start;
+        last_frame_start = glfwGetTime();
 
 		display(dt);
 
@@ -622,6 +620,14 @@ int main(int argc, char** argv) {
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+
+        if(settings.vsync>1 && (glfwGetTime()-last_frame_start)<(1.0F/settings.vsync)) {
+            double sleep_s = 1.0F/settings.vsync-(glfwGetTime()-last_frame_start);
+            struct timespec ts;
+            ts.tv_sec = (int)sleep_s;
+            ts.tv_nsec = (sleep_s-ts.tv_sec)*1000000000.0;
+            nanosleep(&ts,NULL);
+        }
 	}
 
 	glfwTerminate();

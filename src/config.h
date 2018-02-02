@@ -30,7 +30,7 @@ extern struct RENDER_OPTIONS {
 	boolean player_arms;
 	boolean fullscreen;
     boolean greedy_meshing;
-    boolean vsync;
+    int vsync;
     float mouse_sensitivity;
 } settings;
 

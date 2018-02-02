@@ -5,16 +5,26 @@ find_package(Threads)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 #if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-	add_compile_options(-Ofast -s -static)
+	add_compile_options(-Ofast -s -static -static-libgcc -static-libstdc++)
 #endif()
 
 file(GLOB resources resources/*)
 file(COPY ${resources} DESTINATION ${CMAKE_BINARY_DIR}/bin)
 
-file(GLOB sources src/*c)
-add_executable(client ${sources})
+if(MINGW)
+  set(CMAKE_RC_COMPILER_INIT windres)
+  ENABLE_LANGUAGE(RC)
+  SET(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> <FLAGS> <DEFINES> -o <OBJECT> <SOURCE>")
+endif()
 
-target_link_libraries(client ${CMAKE_THREAD_LIBS_INIT})
+file(GLOB sources src/*c)
+if(WIN32)
+	add_executable(client ${sources} resources/icon.rc)
+else()
+	add_executable(client ${sources})
+endif()
+
+target_link_libraries(client ${CMAKE_THREAD_LIBS_INIT} -static)
 
 file(GLOB libs libs/*lib)
 target_link_libraries(client ${libs})
