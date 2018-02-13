@@ -128,7 +128,7 @@ extern struct Player {
 		float tool_started;
 	} sound;
 } players[PLAYERS_MAX];
-//pyspades/pysnip/piqueserver sometime uses ids that are out of range
+//pyspades/pysnip/piqueserver sometimes uses ids that are out of range
 
 int player_can_spectate(struct Player* p);
 float player_section_height(int section);

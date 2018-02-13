@@ -76,6 +76,17 @@ void weapon_update() {
     }
 }
 
+float weapon_recoil(int gun) {
+    switch(gun) {
+        case WEAPON_RIFLE:
+            return 0.3F;
+        case WEAPON_SMG:
+            return 0.125F;
+        case WEAPON_SHOTGUN:
+            return 0.75F;
+    }
+}
+
 int weapon_block_damage(int gun) {
     switch(gun) {
         case WEAPON_RIFLE:
@@ -187,6 +198,9 @@ void weapon_reload() {
 void weapon_reload_abort() {
     if(weapon_reload_inprogress && players[local_player_id].weapon==WEAPON_SHOTGUN) {
         weapon_reload_inprogress = 0;
+        players[local_player_id].items_show = 0;
+        players[local_player_id].item_showup = 0;
+        players[local_player_id].item_disabled = 0;
     }
 }
 
@@ -278,7 +292,7 @@ void weapon_shoot() {
 
         tracer_add(players[local_player_id].weapon,
                    players[local_player_id].physics.eye.x,players[local_player_id].physics.eye.y+player_height(&players[local_player_id]),players[local_player_id].physics.eye.z,
-                   o[0]+players[local_player_id].physics.velocity.x,o[1]+players[local_player_id].physics.velocity.y,o[2]+players[local_player_id].physics.velocity.z
+                   o[0],o[1],o[2]
                   );
     }
 

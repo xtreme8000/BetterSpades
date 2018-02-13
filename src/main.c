@@ -140,7 +140,7 @@ void display(float dt) {
 		player_move(&players[local_player_id],dt,local_player_id);
 		last_cy = players[local_player_id].physics.eye.y-players[local_player_id].physics.velocity.y*0.5F;
 
-		//following two if-statements disable smooth crouching on local player
+		//following if-statement disables smooth crouching on local player
 		if(camera_mode==CAMERAMODE_FPS) {
 			if(!players[local_player_id].input.keys.crouch && key_map[GLFW_KEY_LEFT_CONTROL] && !players[local_player_id].physics.airborne) {
 				players[local_player_id].pos.y -= 0.9F;
@@ -150,7 +150,7 @@ void display(float dt) {
 		}
 
 		float fov = camera_fov;
-		if(camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN && players[local_player_id].input.buttons.rmb) {
+		if(camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN && players[local_player_id].input.buttons.rmb && !players[local_player_id].input.keys.sprint) {
 			fov *= atan(tan((camera_fov/180.0F*PI)/2)/2.0F)*2.0F;
 		}
 

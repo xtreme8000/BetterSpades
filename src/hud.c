@@ -793,6 +793,10 @@ static void hud_ingame_render(float scalex, float scalef) {
         if(show_exit) {
             glColor3f(1.0F,0.0F,0.0F);
             font_render((settings.window_width-font_length(53.0F*scalef,"EXIT GAME? Y/N"))/2.0F,settings.window_height/2.0F+53.0F*scalef,53.0F*scalef,"EXIT GAME? Y/N");
+
+            char play_time[128];
+            sprintf(play_time,"Playing for %im%is",(int)glfwGetTime()/60,(int)glfwGetTime()%60);
+            font_render(settings.window_width-font_length(27.0F*scalef,play_time),settings.window_height,27.0F*scalef,play_time);
         }
         if(glfwGetTime()-chat_popup_timer<0.4F) {
             glColor3f(1.0F,0.0F,0.0F);
@@ -925,12 +929,12 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 	if(button==GLFW_MOUSE_BUTTON_LEFT && action==GLFW_PRESS) {
 		players[local_player_id].input.buttons.lmb_start = glfwGetTime();
 
-		if(camera_mode==CAMERAMODE_FPS && glfwGetTime()-players[local_player_id].item_showup>=0.5F) {
+		if(camera_mode==CAMERAMODE_FPS) {
 			if(players[local_player_id].held_item==TOOL_GUN) {
 				if(weapon_reloading()) {
 					weapon_reload_abort();
 				}
-				if(local_player_ammo==0) {
+				if(local_player_ammo==0 && glfwGetTime()-players[local_player_id].item_showup>=0.5F) {
 					sound_create(NULL,SOUND_LOCAL,&sound_empty,0.0F,0.0F,0.0F);
 					chat_showpopup("RELOAD");
 				}

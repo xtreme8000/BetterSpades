@@ -155,7 +155,7 @@ float* player_tool_translate_func(struct Player* p) {
             return ret;
         }
         if(p->held_item==TOOL_GUN && glfwGetTime()-weapon_last_shot<weapon_delay(players[local_player_id].weapon)) {
-            ret[2] = -(weapon_delay(players[local_player_id].weapon)-(glfwGetTime()-weapon_last_shot))/weapon_delay(players[local_player_id].weapon)*0.125F*(local_player_ammo>0);
+            ret[2] = -(weapon_delay(players[local_player_id].weapon)-(glfwGetTime()-weapon_last_shot))/weapon_delay(players[local_player_id].weapon)*weapon_recoil(players[local_player_id].weapon)*(local_player_ammo>0);
             return ret;
         }
 
@@ -356,7 +356,7 @@ void player_update(float dt) {
                                o[0],o[1],o[2],128.0F);
                     tracer_add(players[k].weapon,
                                players[k].physics.eye.x,players[k].physics.eye.y+player_height(&players[k]),players[k].physics.eye.z,
-                               o[0]+players[k].physics.velocity.x,o[1]+players[k].physics.velocity.y,o[2]+players[k].physics.velocity.z);
+                               o[0],o[1],o[2]);
                     particle_create_casing(&players[k]);
                     switch(hit.type) {
                         case CAMERA_HITTYPE_PLAYER:

@@ -95,7 +95,7 @@ struct Sound_source* sound_createEx(struct Sound_source* s, int option, struct S
     if(!sound_enabled)
         return &dummy;
 
-    if(option==SOUND_WORLD && distance3D(camera_x,camera_y,camera_z,x,y,z)>128.0F*128.0F)
+    if(option==SOUND_WORLD && distance2D(camera_x,camera_z,x,z)>128.0F*128.0F)
         return &dummy;
 
     int i = sound_free_index();
@@ -245,11 +245,11 @@ void sound_init() {
     sound_load(&sound_pickup,"wav/pickup.wav",0.1F,1024.0F);
     sound_load(&sound_horn,"wav/horn.wav",0.1F,1024.0F);
 
-    sound_load(&sound_rifle_shoot,"wav/semishoot.wav",0.1F,48.0F);
+    sound_load(&sound_rifle_shoot,"wav/semishoot.wav",0.1F,96.0F);
     sound_load(&sound_rifle_reload,"wav/semireload.wav",0.1F,16.0F);
-    sound_load(&sound_smg_shoot,"wav/smgshoot.wav",0.1F,48.0F);
+    sound_load(&sound_smg_shoot,"wav/smgshoot.wav",0.1F,96.0F);
     sound_load(&sound_smg_reload,"wav/smgreload.wav",0.1F,16.0F);
-    sound_load(&sound_shotgun_shoot,"wav/shotgunshoot.wav",0.1F,48.0F);
+    sound_load(&sound_shotgun_shoot,"wav/shotgunshoot.wav",0.1F,96.0F);
     sound_load(&sound_shotgun_reload,"wav/shotgunreload.wav",0.1F,16.0F);
     sound_load(&sound_shotgun_cock,"wav/cock.wav",0.1F,16.0F);
 

@@ -318,7 +318,7 @@ struct PacketChatMessage {
 
 #define PACKET_FOGCOLOR_ID 27
 struct PacketFogColor {
-	unsigned char alpha,red,green,blue;
+	unsigned char alpha,blue,green,red;
 };
 
 #define PACKET_CHANGETEAM_ID 29
