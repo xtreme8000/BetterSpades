@@ -76,7 +76,7 @@ int texture_create(struct texture* t, char* filename) {
         return 0;
     }
 
-    texture_resize_pow2(t);
+    texture_resize_pow2(t,0);
 
     glPixelStorei(GL_UNPACK_ROW_LENGTH,t->width);
 	glPixelStorei(GL_UNPACK_ALIGNMENT,1);
@@ -98,7 +98,7 @@ int texture_create_buffer(struct texture* t, int width, int height, unsigned cha
     t->width = width;
     t->height = height;
     t->pixels = buff;
-    texture_resize_pow2(t);
+    texture_resize_pow2(t,max(width,height));
 
     glPixelStorei(GL_UNPACK_ROW_LENGTH,t->width);
 	glPixelStorei(GL_UNPACK_ALIGNMENT,1);
@@ -183,24 +183,31 @@ void texture_draw_empty_rotated(float x, float y, float w, float h, float angle)
     glEnd();
 }
 
-void texture_resize_pow2(struct texture* t) {
-    if(strstr(glGetString(GL_EXTENSIONS),"ARB_texture_non_power_of_two")!=NULL) {
-        return;
-    }
+void texture_resize_pow2(struct texture* t, int min_size) {
+    int max_size = 0;
+    glGetIntegerv(GL_MAX_TEXTURE_SIZE,&max_size);
+    max_size = max(max_size,min_size);
 
     int w = 1, h = 1;
-    while(w<t->width) {
-        w += w;
-    }
-    while(h<t->height) {
-        h += h;
+    if(strstr(glGetString(GL_EXTENSIONS),"ARB_texture_non_power_of_two")!=NULL) {
+        if(t->width<=max_size && t->height<=max_size)
+            return;
+        w = t->width;
+        h = t->height;
+    } else {
+        while(w<t->width)
+            w += w;
+        while(h<t->height)
+            h += h;
     }
 
-    if(t->width==w && t->height==h) {
+    w = min(w,max_size);
+    h = min(h,max_size);
+
+    if(t->width==w && t->height==h)
         return;
-    }
 
-    printf("original: %i:%i now: %i:%i\n",t->width,t->height,w,h);
+    printf("original: %i:%i now: %i:%i limit: %i\n",t->width,t->height,w,h,max_size);
 
     unsigned int* pixels_new = malloc(w*h*sizeof(unsigned int));
     for(int y=0;y<h;y++) {

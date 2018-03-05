@@ -106,7 +106,7 @@ boolean aabb_intersection_terrain(AABB* a) {
 	for(int x=min_x;x<max_x;x++) {
 		for(int z=min_z;z<max_z;z++) {
 			for(int y=min_y;y<max_y;y++) {
-				if(map_colors[x+(y*map_size_z+z)*map_size_x]!=0xFFFFFFFF) {
+				if(map_get(x,y,z)!=0xFFFFFFFF) {
 					terrain_cube.min_x = x;
 					terrain_cube.min_y = y;
 					terrain_cube.min_z = z;

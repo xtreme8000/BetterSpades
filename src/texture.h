@@ -68,6 +68,6 @@ void texture_draw_sector(struct texture* t, float x, float y, float w, float h, 
 void texture_draw_empty(float x, float y, float w, float h);
 void texture_draw_empty_rotated(float x, float y, float w, float h, float angle);
 void texture_draw_rotated(struct texture* t, float x, float y, float w, float h, float angle);
-void texture_resize_pow2(struct texture* t);
+void texture_resize_pow2(struct texture* t, int min_size);
 unsigned int texture_block_color(int x, int y);
 void texture_gradient_fog(unsigned int* gradient);

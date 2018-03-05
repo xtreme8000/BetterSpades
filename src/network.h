@@ -344,7 +344,7 @@ struct PacketStateData {
 	unsigned char gamemode;
 
 	union Gamemodes {
-		struct {
+		struct GM_CTF {
 			unsigned char team_1_score;
 			unsigned char team_2_score;
 			unsigned char capture_limit;
@@ -368,7 +368,7 @@ struct PacketStateData {
 			} team_2_base;
 		} ctf;
 
-		struct {
+		struct GM_TC {
 			unsigned char territory_count;
 			struct {
 				float x,y,z;

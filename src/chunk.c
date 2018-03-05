@@ -37,7 +37,8 @@ struct chunk_d {
 
 struct chunk_worker chunk_workers[CHUNK_WORKERS_MAX];
 
-pthread_rwlock_t chunk_map_lock;
+pthread_rwlock_t* chunk_map_locks;
+pthread_mutex_t chunk_minimap_lock;
 
 static int chunk_sort(const void* a, const void* b) {
 	struct chunk_d* aa = (struct chunk_d*)a;
@@ -47,9 +48,18 @@ static int chunk_sort(const void* a, const void* b) {
 }
 
 void chunk_init() {
-	pthread_rwlock_init(&chunk_map_lock,NULL);
-	for(int k=0;k<CHUNK_WORKERS_MAX;k++)
+	pthread_mutex_init(&chunk_minimap_lock,NULL);
+	chunk_map_locks = malloc(map_size_x*map_size_z*sizeof(pthread_rwlock_t));
+	for(int k=0;k<map_size_x*map_size_z;k++)
+		pthread_rwlock_init(&chunk_map_locks[k],NULL);
+	for(int k=0;k<CHUNK_WORKERS_MAX;k++) {
 		chunk_workers[k].state = CHUNK_WORKERSTATE_IDLE;
+		chunk_workers[k].mem_size = 0;
+		chunk_workers[k].vertex_data = NULL;
+		chunk_workers[k].color_data = NULL;
+		pthread_mutex_init(&chunk_workers[k].state_lock,NULL);
+		pthread_create(&chunk_workers[k].thread,NULL,chunk_generate,&chunk_workers[k]);
+	}
 }
 
 void chunk_draw_visible() {
@@ -79,9 +89,8 @@ void chunk_draw_visible() {
 	//sort all chunks to draw those in front first
 	qsort(chunks_draw,index,sizeof(struct chunk_d),chunk_sort);
 
-	for(int k=0;k<index;k++) {
+	for(int k=0;k<index;k++)
 		chunk_render(chunks_draw[k].x/CHUNK_SIZE,chunks_draw[k].y/CHUNK_SIZE);
-	}
 }
 
 void chunk_set_render_mode(boolean r) {
@@ -112,7 +121,7 @@ void chunk_render(int x, int y) {
 	if(chunks[((y*CHUNKS_PER_DIM)|x)].created) {
 		if(chunk_render_mode)
 			glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-		glCallList(chunks[((y*CHUNKS_PER_DIM)|x)].display_list);
+		glx_displaylist_draw(chunks[((y*CHUNKS_PER_DIM)|x)].display_list,chunks[((y*CHUNKS_PER_DIM)|x)].vertex_count);
 		if(chunk_render_mode)
 			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
 	}
@@ -210,7 +219,7 @@ float sunblock(int x, int y, int z) {
     int i = 127;
 
     while(dec && y<64) {
-        if((map_get_unblocked(x,++y,--z)&0xFFFFFF)!=0xFFFFFF)
+        if((map_get(x,++y,--z)&0xFFFFFFFF)!=0xFFFFFFFF)
             i -= dec;
         dec -= 2;
     }
@@ -218,30 +227,46 @@ float sunblock(int x, int y, int z) {
 }
 
 void* chunk_generate(void* data) {
-	pthread_rwlock_rdlock(&chunk_map_lock);
 	struct chunk_worker* worker = (struct chunk_worker*)data;
-	for(int x=worker->chunk_x;x<worker->chunk_x+CHUNK_SIZE;x++) {
-		for(int z=worker->chunk_y;z<worker->chunk_y+CHUNK_SIZE;z++) {
-			if((x%64)>0 && (z%64)>0) {
-				for(int y=map_size_y-1;y>=0;y--) {
-					if(map_colors[x+(y*map_size_z+z)*map_size_x]!=0xFFFFFFFF) {
-						map_minimap[(x+z*map_size_x)*4+0] = red(map_colors[x+(y*map_size_z+z)*map_size_x]);
-						map_minimap[(x+z*map_size_x)*4+1] = green(map_colors[x+(y*map_size_z+z)*map_size_x]);
-						map_minimap[(x+z*map_size_x)*4+2] = blue(map_colors[x+(y*map_size_z+z)*map_size_x]);
-						break;
+
+	while(1) {
+		int state = -1;
+		pthread_mutex_lock(&worker->state_lock);
+		state = worker->state;
+		pthread_mutex_unlock(&worker->state_lock);
+
+		if(state==CHUNK_WORKERSTATE_BUSY) {
+			pthread_mutex_lock(&chunk_minimap_lock);
+			for(int x=worker->chunk_x;x<worker->chunk_x+CHUNK_SIZE;x++) {
+				for(int z=worker->chunk_y;z<worker->chunk_y+CHUNK_SIZE;z++) {
+					if((x%64)>0 && (z%64)>0) {
+						pthread_rwlock_rdlock(&chunk_map_locks[x+z*map_size_x]);
+						for(int y=map_size_y-1;y>=0;y--) {
+							if(map_colors[x+(y*map_size_z+z)*map_size_x]!=0xFFFFFFFF) {
+								map_minimap[(x+z*map_size_x)*4+0] = red(map_colors[x+(y*map_size_z+z)*map_size_x]);
+								map_minimap[(x+z*map_size_x)*4+1] = green(map_colors[x+(y*map_size_z+z)*map_size_x]);
+								map_minimap[(x+z*map_size_x)*4+2] = blue(map_colors[x+(y*map_size_z+z)*map_size_x]);
+								break;
+							}
+						}
+						pthread_rwlock_unlock(&chunk_map_locks[x+z*map_size_x]);
 					}
 				}
 			}
+			pthread_mutex_unlock(&chunk_minimap_lock);
+
+			if(settings.greedy_meshing)
+				chunk_generate_greedy(worker);
+			else
+				chunk_generate_naive(worker);
+
+			pthread_mutex_lock(&worker->state_lock);
+			worker->state = CHUNK_WORKERSTATE_FINISHED;
+			pthread_mutex_unlock(&worker->state_lock);
 		}
+
+		usleep(10);
 	}
-
-	if(settings.greedy_meshing)
-		chunk_generate_greedy(worker);
-	else
-		chunk_generate_naive(worker);
-
-	worker->state = CHUNK_WORKERSTATE_FINISHED;
-	pthread_rwlock_unlock(&chunk_map_lock);
 	return NULL;
 }
 
@@ -1312,536 +1337,352 @@ void chunk_generate_greedy(struct chunk_worker* worker) {
 void chunk_generate_naive(struct chunk_worker* worker) {
 	int size = 0;
 	int max_height = 0;
-	for(int x=worker->chunk_x;x<worker->chunk_x+CHUNK_SIZE;x++) {
-		for(int z=worker->chunk_y;z<worker->chunk_y+CHUNK_SIZE;z++) {
-			for(int y=0;y<map_size_y;y++) {
-				int index = x+(y*map_size_z+z)*map_size_x;
-				if(map_colors[index]!=0xFFFFFFFF) {
-					if(max_height<y) {
-						max_height = y;
-					}
-
-					map_colors[index] &= 0x00FFFFFF;
-
-					if(settings.ambient_occlusion) {
-						//positive y
-						map_colors[index] |= vertexAO(map_get_unblocked(x-1,y+1,z),map_get_unblocked(x,y+1,z+1),map_get_unblocked(x-1,y+1,z+1))<<32;
-						map_colors[index] |= vertexAO(map_get_unblocked(x+1,y+1,z),map_get_unblocked(x,y+1,z+1),map_get_unblocked(x+1,y+1,z+1))<<33;
-						map_colors[index] |= vertexAO(map_get_unblocked(x-1,y+1,z),map_get_unblocked(x,y+1,z-1),map_get_unblocked(x-1,y+1,z-1))<<34;
-						map_colors[index] |= vertexAO(map_get_unblocked(x+1,y+1,z),map_get_unblocked(x,y+1,z-1),map_get_unblocked(x+1,y+1,z-1))<<35;
-
-						//negative y
-						map_colors[index] |= vertexAO(map_get_unblocked(x-1,y-1,z),map_get_unblocked(x,y-1,z+1),map_get_unblocked(x-1,y-1,z+1))<<36;
-						map_colors[index] |= vertexAO(map_get_unblocked(x+1,y-1,z),map_get_unblocked(x,y-1,z+1),map_get_unblocked(x+1,y-1,z+1))<<37;
-						map_colors[index] |= vertexAO(map_get_unblocked(x-1,y-1,z),map_get_unblocked(x,y-1,z-1),map_get_unblocked(x-1,y-1,z-1))<<38;
-						map_colors[index] |= vertexAO(map_get_unblocked(x+1,y-1,z),map_get_unblocked(x,y-1,z-1),map_get_unblocked(x+1,y-1,z-1))<<39;
-
-						//positive x
-						map_colors[index] |= vertexAO(map_get_unblocked(x+1,y,z-1),map_get_unblocked(x+1,y+1,z),map_get_unblocked(x+1,y+1,z-1))<<40;
-						map_colors[index] |= vertexAO(map_get_unblocked(x+1,y,z+1),map_get_unblocked(x+1,y+1,z),map_get_unblocked(x+1,y+1,z+1))<<41;
-						map_colors[index] |= vertexAO(map_get_unblocked(x+1,y,z-1),map_get_unblocked(x+1,y-1,z),map_get_unblocked(x+1,y-1,z-1))<<42;
-						map_colors[index] |= vertexAO(map_get_unblocked(x+1,y,z+1),map_get_unblocked(x+1,y-1,z),map_get_unblocked(x+1,y-1,z+1))<<43;
-
-						//negative x
-						map_colors[index] |= vertexAO(map_get_unblocked(x-1,y,z-1),map_get_unblocked(x-1,y+1,z),map_get_unblocked(x-1,y+1,z-1))<<44;
-						map_colors[index] |= vertexAO(map_get_unblocked(x-1,y,z+1),map_get_unblocked(x-1,y+1,z),map_get_unblocked(x-1,y+1,z+1))<<45;
-						map_colors[index] |= vertexAO(map_get_unblocked(x-1,y,z-1),map_get_unblocked(x-1,y-1,z),map_get_unblocked(x-1,y-1,z-1))<<46;
-						map_colors[index] |= vertexAO(map_get_unblocked(x-1,y,z+1),map_get_unblocked(x-1,y-1,z),map_get_unblocked(x-1,y-1,z+1))<<47;
-
-						//positive z
-						map_colors[index] |= vertexAO(map_get_unblocked(x-1,y,z+1),map_get_unblocked(x,y+1,z+1),map_get_unblocked(x-1,y+1,z+1))<<48;
-						map_colors[index] |= vertexAO(map_get_unblocked(x+1,y,z+1),map_get_unblocked(x,y+1,z+1),map_get_unblocked(x+1,y+1,z+1))<<49;
-						map_colors[index] |= vertexAO(map_get_unblocked(x-1,y,z+1),map_get_unblocked(x,y-1,z+1),map_get_unblocked(x-1,y-1,z+1))<<50;
-						map_colors[index] |= vertexAO(map_get_unblocked(x+1,y,z+1),map_get_unblocked(x,y-1,z+1),map_get_unblocked(x+1,y-1,z+1))<<51;
-
-						//negative z
-						map_colors[index] |= vertexAO(map_get_unblocked(x-1,y,z-1),map_get_unblocked(x,y+1,z-1),map_get_unblocked(x-1,y+1,z-1))<<52;
-						map_colors[index] |= vertexAO(map_get_unblocked(x+1,y,z-1),map_get_unblocked(x,y+1,z-1),map_get_unblocked(x+1,y+1,z-1))<<53;
-						map_colors[index] |= vertexAO(map_get_unblocked(x-1,y,z-1),map_get_unblocked(x,y-1,z-1),map_get_unblocked(x-1,y-1,z-1))<<54;
-						map_colors[index] |= vertexAO(map_get_unblocked(x+1,y,z-1),map_get_unblocked(x,y-1,z-1),map_get_unblocked(x+1,y-1,z-1))<<55;
-					} else {
-						map_colors[index] |= 0xFFFFFFFF00000000;
-					}
-
-					if(y==map_size_y-1 || map_colors[x+((y+1)*map_size_z+z)*map_size_x]==0xFFFFFFFF) { size++; }
-					if(y>0 && map_colors[x+((y-1)*map_size_z+z)*map_size_x]==0xFFFFFFFF) { size++; }
-					if((x==0 && map_colors[map_size_x-1+(y*map_size_z+z)*map_size_x]==0xFFFFFFFF) || (x>0 && map_colors[index-1]==0xFFFFFFFF)) { size++; }
-					if((x==map_size_x-1 && map_colors[(y*map_size_z+z)*map_size_x]==0xFFFFFFFF) || (x<map_size_x-1 && map_colors[index+1]==0xFFFFFFFF)) { size++; }
-					if((z==0 && map_colors[x+(y*map_size_z+map_size_z-1)*map_size_x]==0xFFFFFFFF) || (z>0 && map_colors[x+(y*map_size_z+z-1)*map_size_x]==0xFFFFFFFF)) { size++; }
-					if((z==map_size_z-1 && map_colors[x+(y*map_size_z)*map_size_x]==0xFFFFFFFF) || (z<map_size_z-1 && map_colors[x+(y*map_size_z+z+1)*map_size_x]==0xFFFFFFFF)) { size++; }
-				}
-			}
-		}
-	}
-	max_height++;
-
-	short* chunk_vertex_data = malloc(size*24);
-	unsigned char* chunk_color_data = malloc(size*12);
 	int chunk_vertex_index = 0;
 	int chunk_color_index = 0;
 
 	for(int z=worker->chunk_y;z<worker->chunk_y+CHUNK_SIZE;z++) {
 		for(int x=worker->chunk_x;x<worker->chunk_x+CHUNK_SIZE;x++) {
+			pthread_rwlock_rdlock(&chunk_map_locks[x+z*map_size_x]);
 			for(int y=0;y<map_size_y;y++) {
 				unsigned long long col = map_colors[x+(y*map_size_z+z)*map_size_x];
 				if(col!=0xFFFFFFFF) {
+					if(max_height<y) {
+						max_height = y;
+					}
 					unsigned char r = (col&0xFF);
 					unsigned char g = ((col>>8)&0xFF);
 					unsigned char b = ((col>>16)&0xFF);
-					float kls = sunblock(x,y,z);
-					r *= kls;
-					g *= kls;
-					b *= kls;
+					float shade = sunblock(x,y,z);
+					r *= shade;
+					g *= shade;
+					b *= shade;
+					if(z==0) {
+						pthread_rwlock_rdlock(&chunk_map_locks[x+(map_size_z-1)*map_size_x]);
+					}
+					if(z>0) {
+						pthread_rwlock_rdlock(&chunk_map_locks[x+(z-1)*map_size_x]);
+					}
 					if((z==0 && map_colors[x+(y*map_size_z+map_size_z-1)*map_size_x]==0xFFFFFFFF) || (z>0 && map_colors[x+(y*map_size_z+z-1)*map_size_x]==0xFFFFFFFF)) {
-						if(((col>>54)&1)+((col>>53)&1) > ((col>>52)&1)+((col>>55)&1)) {
-							chunk_color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>54)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.7F*(((col>>54)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.7F*(((col>>54)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>52)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.7F*(((col>>52)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.7F*(((col>>52)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>53)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.7F*(((col>>53)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.7F*(((col>>53)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>55)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.7F*(((col>>55)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.7F*(((col>>55)&1)*0.35F+0.65F));
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-						} else {
-							chunk_color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>52)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.7F*(((col>>52)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.7F*(((col>>52)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>53)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.7F*(((col>>53)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.7F*(((col>>53)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>55)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.7F*(((col>>55)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.7F*(((col>>55)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>54)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.7F*(((col>>54)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.7F*(((col>>54)&1)*0.35F+0.65F));
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z;
+						if((size+1)>worker->mem_size) {
+							worker->mem_size += 512; //allow for 512 more quads
+							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
 						}
+						size++;
+						worker->color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>54)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.7F*(((col>>54)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.7F*(((col>>54)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>52)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.7F*(((col>>52)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.7F*(((col>>52)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>53)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.7F*(((col>>53)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.7F*(((col>>53)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>55)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.7F*(((col>>55)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.7F*(((col>>55)&1)*0.35F+0.65F));
+
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z;
+
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y+1;
+						worker->vertex_data[chunk_vertex_index++] = z;
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y+1;
+						worker->vertex_data[chunk_vertex_index++] = z;
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z;
+					}
+					if(z==0) {
+						pthread_rwlock_unlock(&chunk_map_locks[x+(map_size_z-1)*map_size_x]);
+					}
+					if(z>0) {
+						pthread_rwlock_unlock(&chunk_map_locks[x+(z-1)*map_size_x]);
 					}
 
+					if(z==map_size_z-1) {
+						pthread_rwlock_rdlock(&chunk_map_locks[x]);
+					}
+					if(z<map_size_z-1) {
+						pthread_rwlock_rdlock(&chunk_map_locks[x+(z+1)*map_size_x]);
+					}
 					if((z==map_size_z-1 && map_colors[x+(y*map_size_z)*map_size_x]==0xFFFFFFFF) || (z<map_size_z-1 && map_colors[x+(y*map_size_z+z+1)*map_size_x]==0xFFFFFFFF)) {
-						if(((col>>50)&1)+((col>>49)&1) > ((col>>51)&1)+((col>>48)&1)) {
-							chunk_color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>50)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.6F*(((col>>50)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.6F*(((col>>50)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>51)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.6F*(((col>>51)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.6F*(((col>>51)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>49)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.6F*(((col>>49)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.6F*(((col>>49)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>48)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.6F*(((col>>48)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.6F*(((col>>48)&1)*0.35F+0.65F));
-
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y+1,
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-						} else {
-							chunk_color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>51)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.6F*(((col>>51)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.6F*(((col>>51)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>49)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.6F*(((col>>49)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.6F*(((col>>49)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>48)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.6F*(((col>>48)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.6F*(((col>>48)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>50)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.6F*(((col>>50)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.6F*(((col>>50)&1)*0.35F+0.65F));
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y+1,
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
+						if((size+1)>worker->mem_size) {
+							worker->mem_size += 512; //allow for 512 more quads
+							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
 						}
+						size++;
+						worker->color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>50)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.6F*(((col>>50)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.6F*(((col>>50)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>51)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.6F*(((col>>51)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.6F*(((col>>51)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>49)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.6F*(((col>>49)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.6F*(((col>>49)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>48)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.6F*(((col>>48)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.6F*(((col>>48)&1)*0.35F+0.65F));
+
+
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y+1;
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y+1,
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+					}
+					if(z==map_size_z-1) {
+						pthread_rwlock_unlock(&chunk_map_locks[x]);
+					}
+					if(z<map_size_z-1) {
+						pthread_rwlock_unlock(&chunk_map_locks[x+(z+1)*map_size_x]);
 					}
 
+					if(x==0) {
+						pthread_rwlock_rdlock(&chunk_map_locks[(map_size_x-1)+z*map_size_x]);
+					}
+					if(x>0) {
+						pthread_rwlock_rdlock(&chunk_map_locks[(x-1)+z*map_size_x]);
+					}
 					if((x==0 && map_colors[map_size_x-1+(y*map_size_z+z)*map_size_x]==0xFFFFFFFF) || (x>0 && map_colors[x+(y*map_size_z+z)*map_size_x-1]==0xFFFFFFFF)) {
-						if(((col>>46)&1)+((col>>45)&1) > ((col>>47)&1)+((col>>44)&1)) {
-							chunk_color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>46)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.9F*(((col>>46)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.9F*(((col>>46)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>47)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.9F*(((col>>47)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.9F*(((col>>47)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>45)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.9F*(((col>>45)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.9F*(((col>>45)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>44)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.9F*(((col>>44)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.9F*(((col>>44)&1)*0.35F+0.65F));
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-						} else {
-							chunk_color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>47)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.9F*(((col>>47)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.9F*(((col>>47)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>45)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.9F*(((col>>45)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.9F*(((col>>45)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>44)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.9F*(((col>>44)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.9F*(((col>>44)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>46)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.9F*(((col>>46)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.9F*(((col>>46)&1)*0.35F+0.65F));
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z;
+						if((size+1)>worker->mem_size) {
+							worker->mem_size += 512; //allow for 512 more quads
+							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
 						}
+						size++;
+						worker->color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>46)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.9F*(((col>>46)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.9F*(((col>>46)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>47)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.9F*(((col>>47)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.9F*(((col>>47)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>45)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.9F*(((col>>45)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.9F*(((col>>45)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>44)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.9F*(((col>>44)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.9F*(((col>>44)&1)*0.35F+0.65F));
+
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z;
+
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y+1;
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y+1;
+						worker->vertex_data[chunk_vertex_index++] = z;
+					}
+					if(x==0) {
+						pthread_rwlock_unlock(&chunk_map_locks[(map_size_x-1)+z*map_size_x]);
+					}
+					if(x>0) {
+						pthread_rwlock_unlock(&chunk_map_locks[(x-1)+z*map_size_x]);
 					}
 
+					if(x==map_size_x-1) {
+						pthread_rwlock_rdlock(&chunk_map_locks[z*map_size_x]);
+					}
+					if(x<map_size_x-1) {
+						pthread_rwlock_rdlock(&chunk_map_locks[(x+1)+z*map_size_x]);
+					}
 					if((x==map_size_x-1 && map_colors[(y*map_size_z+z)*map_size_x]==0xFFFFFFFF) || (x<map_size_x-1 && map_colors[x+(y*map_size_z+z)*map_size_x+1]==0xFFFFFFFF)) {
-						if(((col>>42)&1)+((col>>41)&1) > ((col>>40)&1)+((col>>43)&1)) {
-							chunk_color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>42)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.8F*(((col>>42)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.8F*(((col>>42)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>40)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.8F*(((col>>40)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.8F*(((col>>40)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>41)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.8F*(((col>>41)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.8F*(((col>>41)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>43)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.8F*(((col>>43)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.8F*(((col>>43)&1)*0.35F+0.65F));
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y+1,
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-						} else {
-							chunk_color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>40)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.8F*(((col>>40)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.8F*(((col>>40)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>41)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.8F*(((col>>41)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.8F*(((col>>41)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>43)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.8F*(((col>>43)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.8F*(((col>>43)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>42)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.8F*(((col>>42)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.8F*(((col>>42)&1)*0.35F+0.65F));
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y+1,
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z;
+						if((size+1)>worker->mem_size) {
+							worker->mem_size += 512; //allow for 512 more quads
+							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
 						}
+						size++;
+						worker->color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>42)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.8F*(((col>>42)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.8F*(((col>>42)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>40)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.8F*(((col>>40)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.8F*(((col>>40)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>41)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.8F*(((col>>41)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.8F*(((col>>41)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>43)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.8F*(((col>>43)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.8F*(((col>>43)&1)*0.35F+0.65F));
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z;
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y+1;
+						worker->vertex_data[chunk_vertex_index++] = z;
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y+1,
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+					}
+					if(x==map_size_x-1) {
+						pthread_rwlock_unlock(&chunk_map_locks[z*map_size_x]);
+					}
+					if(x<map_size_x-1) {
+						pthread_rwlock_unlock(&chunk_map_locks[(x+1)+z*map_size_x]);
 					}
 
 					if(y==map_size_y-1 || map_colors[x+((y+1)*map_size_z+z)*map_size_x]==0xFFFFFFFF) {
-						if(((col>>34)&1)+((col>>33)&1) > ((col>>32)&1)+((col>>35)&1)) {
-							chunk_color_data[chunk_color_index++] = (int)(r*(((col>>34)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*(((col>>34)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*(((col>>34)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*(((col>>32)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*(((col>>32)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*(((col>>32)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*(((col>>33)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*(((col>>33)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*(((col>>33)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*(((col>>35)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*(((col>>35)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*(((col>>35)&1)*0.35F+0.65F));
-
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-						} else {
-							chunk_color_data[chunk_color_index++] = (int)(r*(((col>>32)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*(((col>>32)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*(((col>>32)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*(((col>>33)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*(((col>>33)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*(((col>>33)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*(((col>>35)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*(((col>>35)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*(((col>>35)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*(((col>>34)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*(((col>>34)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*(((col>>34)&1)*0.35F+0.65F));
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y+1;
-							chunk_vertex_data[chunk_vertex_index++] = z;
+						if((size+1)>worker->mem_size) {
+							worker->mem_size += 512; //allow for 512 more quads
+							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
 						}
+						size++;
+						worker->color_data[chunk_color_index++] = (int)(r*(((col>>34)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*(((col>>34)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*(((col>>34)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*(((col>>32)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*(((col>>32)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*(((col>>32)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*(((col>>33)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*(((col>>33)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*(((col>>33)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*(((col>>35)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*(((col>>35)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*(((col>>35)&1)*0.35F+0.65F));
+
+
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y+1;
+						worker->vertex_data[chunk_vertex_index++] = z;
+
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y+1;
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y+1;
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y+1;
+						worker->vertex_data[chunk_vertex_index++] = z;
 					}
 
 					if(y>0 && map_colors[x+((y-1)*map_size_z+z)*map_size_x]==0xFFFFFFFF) {
-						if(((col>>38)&1)+((col>>37)&1) > ((col>>36)&1)+((col>>39)&1)) {
-							chunk_color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>38)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.5F*(((col>>38)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.5F*(((col>>38)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>39)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.5F*(((col>>39)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.5F*(((col>>39)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>37)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.5F*(((col>>37)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.5F*(((col>>37)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>36)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.5F*(((col>>36)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.5F*(((col>>36)&1)*0.35F+0.65F));
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-						} else {
-							chunk_color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>39)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.5F*(((col>>39)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.5F*(((col>>39)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>37)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.5F*(((col>>37)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.5F*(((col>>37)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>36)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.5F*(((col>>36)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.5F*(((col>>36)&1)*0.35F+0.65F));
-
-							chunk_color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>38)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(g*0.5F*(((col>>38)&1)*0.35F+0.65F));
-							chunk_color_data[chunk_color_index++] = (int)(b*0.5F*(((col>>38)&1)*0.35F+0.65F));
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z;
-
-							chunk_vertex_data[chunk_vertex_index++] = x+1;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z+1;
-
-							chunk_vertex_data[chunk_vertex_index++] = x;
-							chunk_vertex_data[chunk_vertex_index++] = y;
-							chunk_vertex_data[chunk_vertex_index++] = z;
+						if((size+1)>worker->mem_size) {
+							worker->mem_size += 512; //allow for 512 more quads
+							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
 						}
+						size++;
+						worker->color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>38)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.5F*(((col>>38)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.5F*(((col>>38)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>39)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.5F*(((col>>39)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.5F*(((col>>39)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>37)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.5F*(((col>>37)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.5F*(((col>>37)&1)*0.35F+0.65F));
+
+						worker->color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>36)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.5F*(((col>>36)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.5F*(((col>>36)&1)*0.35F+0.65F));
+
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z;
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z;
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z+1;
 					}
 				}
 			}
+			pthread_rwlock_unlock(&chunk_map_locks[x+z*map_size_x]);
 		}
 	}
 
-	worker->vertex_data = chunk_vertex_data;
-	worker->color_data = chunk_color_data;
 	worker->data_size = chunk_vertex_index/3;
-	worker->max_height = max_height;
+	worker->max_height = max_height+1;
 }
 
 void chunk_update_all() {
 	for(int j=0;j<CHUNK_WORKERS_MAX;j++) {
+		pthread_mutex_lock(&chunk_workers[j].state_lock);
 		if(chunk_workers[j].state==CHUNK_WORKERSTATE_FINISHED) {
+			//float s3 = glfwGetTime();
 			chunk_workers[j].state = CHUNK_WORKERSTATE_IDLE;
 			chunks[chunk_workers[j].chunk_id].max_height = chunk_workers[j].max_height;
+			chunks[chunk_workers[j].chunk_id].vertex_count = chunk_workers[j].data_size;
 
-			glEnableClientState(GL_COLOR_ARRAY);
-			glEnableClientState(GL_VERTEX_ARRAY);
+			glx_displaylist_update(chunks[chunk_workers[j].chunk_id].display_list,chunk_workers[j].data_size,chunk_workers[j].color_data,chunk_workers[j].vertex_data);
 
-			glNewList(chunks[chunk_workers[j].chunk_id].display_list,GL_COMPILE);
-			if(chunk_workers[j].data_size>0) {
-				glColorPointer(3,GL_UNSIGNED_BYTE,0,chunk_workers[j].color_data);
-				glVertexPointer(3,GL_SHORT,0,chunk_workers[j].vertex_data);
-				glDrawArrays(GL_QUADS,0,chunk_workers[j].data_size);
-			}
-			glEndList();
-
-			glDisableClientState(GL_COLOR_ARRAY);
-			glDisableClientState(GL_VERTEX_ARRAY);
+			//printf("(s3) %i\n",(int)((glfwGetTime()-s3)*1000.0F));
+			//s3 = glfwGetTime();
 
 			glPixelStorei(GL_UNPACK_ROW_LENGTH,map_size_x);
 			glPixelStorei(GL_UNPACK_ALIGNMENT,1);
 			glBindTexture(GL_TEXTURE_2D,texture_minimap.texture_id);
+			pthread_mutex_lock(&chunk_minimap_lock);
 			glTexSubImage2D(GL_TEXTURE_2D,0,chunk_workers[j].chunk_x,chunk_workers[j].chunk_y,CHUNK_SIZE,CHUNK_SIZE,GL_RGBA,GL_UNSIGNED_BYTE,map_minimap+(chunk_workers[j].chunk_x+chunk_workers[j].chunk_y*map_size_x)*4);
+			pthread_mutex_unlock(&chunk_minimap_lock);
 			glBindTexture(GL_TEXTURE_2D,0);
 
-			free(chunk_workers[j].vertex_data);
-			free(chunk_workers[j].color_data);
+			//free(chunk_workers[j].vertex_data);
+			//free(chunk_workers[j].color_data);
+			//printf("(s4) %i\n",(int)((glfwGetTime()-s3)*1000.0F));
 		}
 		if(chunk_workers[j].state==CHUNK_WORKERSTATE_IDLE && chunk_geometry_changed_lenght>0) {
+			//float s1 = glfwGetTime();
 			float closest_dist = 1e10;
 			int closest_index = 0;
 			for(int k=0;k<chunk_geometry_changed_lenght;k++) {
@@ -1857,13 +1698,15 @@ void chunk_update_all() {
 			int chunk_x = (chunk_geometry_changed[closest_index]%CHUNKS_PER_DIM)*CHUNK_SIZE;
 			int chunk_y = (chunk_geometry_changed[closest_index]/CHUNKS_PER_DIM)*CHUNK_SIZE;
 			if(!chunks[chunk_geometry_changed[closest_index]].created) {
-				chunks[chunk_geometry_changed[closest_index]].display_list = glGenLists(1);
+				chunks[chunk_geometry_changed[closest_index]].display_list = glx_displaylist_create();
 			}
 			chunk_workers[j].chunk_id = chunk_geometry_changed[closest_index];
 			chunk_workers[j].chunk_x = chunk_x;
 			chunk_workers[j].chunk_y = chunk_y;
 			chunk_workers[j].state = CHUNK_WORKERSTATE_BUSY;
-			pthread_create(&chunk_workers[j].thread,NULL,chunk_generate,&chunk_workers[j]);
+			//float s2 = glfwGetTime();
+			//pthread_create(&chunk_workers[j].thread,NULL,chunk_generate,&chunk_workers[j]);
+			//printf("(s2) thread creation time: %i\n",(int)((glfwGetTime()-s2)*1000.0F));
 			chunks[chunk_geometry_changed[closest_index]].last_update = glfwGetTime();
 			chunks[chunk_geometry_changed[closest_index]].created = 1;
 
@@ -1871,7 +1714,9 @@ void chunk_update_all() {
 				chunk_geometry_changed[i] = chunk_geometry_changed[i+1];
 			}
 			chunk_geometry_changed_lenght--;
+			//printf("(s1) %i\n",(int)((glfwGetTime()-s1)*1000.0F));
 		}
+		pthread_mutex_unlock(&chunk_workers[j].state_lock);
 	}
 }
 

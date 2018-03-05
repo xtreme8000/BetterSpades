@@ -105,7 +105,7 @@ void cameracontroller_fps(float dt) {
 }
 
 void cameracontroller_spectator(float dt) {
-    AABB camera;
+    AABB camera = {0};
     aabb_set_size(&camera,camera_size,camera_height,camera_size);
     aabb_set_center(&camera,camera_x,camera_y-camera_eye_height,camera_z);
 

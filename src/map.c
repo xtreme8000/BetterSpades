@@ -3,28 +3,28 @@
 
 	This file is part of BetterSpades.
 
-    BetterSpades is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	BetterSpades is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    BetterSpades is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	BetterSpades is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "common.h"
 
-unsigned long long* map_colors;
+unsigned int* map_colors;
 int map_size_x = 512;
 int map_size_y = 64;
 int map_size_z = 512;
 
-float fog_color[] = {0.5F,0.9098F,1.0F,1.0F};
+float fog_color[4] = {0.5F,0.9098F,1.0F,1.0F};
 
 float map_sun[4];
 
@@ -286,21 +286,21 @@ void map_collapsing_render(float dt) {
 		if(map_collapsing_structures[k].used) {
 			map_collapsing_structures[k].v.y -= dt;
 			char hit_floor = 0;
-	        if(map_get(map_collapsing_structures[k].p.x+map_collapsing_structures[k].v.x*dt*32.0F,
+			if(map_get(map_collapsing_structures[k].p.x+map_collapsing_structures[k].v.x*dt*32.0F,
 					   map_collapsing_structures[k].p.y+map_collapsing_structures[k].v.y*dt*32.0F,
 					   map_collapsing_structures[k].p.z+map_collapsing_structures[k].v.z*dt*32.0F)==0xFFFFFFFF) {
-	            map_collapsing_structures[k].p.x += map_collapsing_structures[k].v.x*dt*32.0F;
-	            map_collapsing_structures[k].p.y += map_collapsing_structures[k].v.y*dt*32.0F;
-	            map_collapsing_structures[k].p.z += map_collapsing_structures[k].v.z*dt*32.0F;
-	        } else {
-	            map_collapsing_structures[k].v.x *= 0.7F;
+				map_collapsing_structures[k].p.x += map_collapsing_structures[k].v.x*dt*32.0F;
+				map_collapsing_structures[k].p.y += map_collapsing_structures[k].v.y*dt*32.0F;
+				map_collapsing_structures[k].p.z += map_collapsing_structures[k].v.z*dt*32.0F;
+			} else {
+				map_collapsing_structures[k].v.x *= 0.7F;
 				map_collapsing_structures[k].v.y *= -0.7F;
-	            map_collapsing_structures[k].v.z *= 0.7F;
+				map_collapsing_structures[k].v.z *= 0.7F;
 				map_collapsing_structures[k].rotation++;
 				map_collapsing_structures[k].rotation &= 3;
 				sound_create(NULL,SOUND_WORLD,&sound_bounce,map_collapsing_structures[k].p.x,map_collapsing_structures[k].p.y,map_collapsing_structures[k].p.z);
 				hit_floor = 1;
-	        }
+			}
 			matrix_push();
 			matrix_identity();
 			matrix_translate(map_collapsing_structures[k].p.x,map_collapsing_structures[k].p.y,map_collapsing_structures[k].p.z);
@@ -326,7 +326,7 @@ void map_collapsing_render(float dt) {
 					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2,y2-1,z2)) {
 						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F*0.5F,
 								  green(map_collapsing_structures[k].voxels_color[i])/255.0F*0.5F,
-							  	  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.5F,0.8F);
+								  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.5F,0.8F);
 						glVertex3f(x,y,z);
 						glVertex3f(x+1,y,z);
 						glVertex3f(x+1,y,z+1);
@@ -336,7 +336,7 @@ void map_collapsing_render(float dt) {
 					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2,y2+1,z2)) {
 						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F,
 								  green(map_collapsing_structures[k].voxels_color[i])/255.0F,
-							  	  blue(map_collapsing_structures[k].voxels_color[i])/255.0F,0.8F);
+								  blue(map_collapsing_structures[k].voxels_color[i])/255.0F,0.8F);
 						glVertex3f(x,y+1,z);
 						glVertex3f(x,y+1,z+1);
 						glVertex3f(x+1,y+1,z+1);
@@ -346,7 +346,7 @@ void map_collapsing_render(float dt) {
 					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2,y2,z2-1)) {
 						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F*0.7F,
 								  green(map_collapsing_structures[k].voxels_color[i])/255.0F*0.7F,
-							  	  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.7F,0.8F);
+								  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.7F,0.8F);
 						glVertex3f(x,y,z);
 						glVertex3f(x,y+1,z);
 						glVertex3f(x+1,y+1,z);
@@ -356,7 +356,7 @@ void map_collapsing_render(float dt) {
 					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2,y2,z2+1)) {
 						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F*0.6F,
 								  green(map_collapsing_structures[k].voxels_color[i])/255.0F*0.6F,
-							  	  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.6F,0.8F);
+								  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.6F,0.8F);
 						glVertex3f(x,y,z+1);
 						glVertex3f(x+1,y,z+1);
 						glVertex3f(x+1,y+1,z+1);
@@ -366,7 +366,7 @@ void map_collapsing_render(float dt) {
 					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2-1,y2,z2)) {
 						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F*0.9F,
 								  green(map_collapsing_structures[k].voxels_color[i])/255.0F*0.9F,
-							  	  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.9F,0.8F);
+								  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.9F,0.8F);
 						glVertex3f(x,y,z);
 						glVertex3f(x,y,z+1);
 						glVertex3f(x,y+1,z+1);
@@ -376,7 +376,7 @@ void map_collapsing_render(float dt) {
 					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2+1,y2,z2)) {
 						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F*0.8F,
 								  green(map_collapsing_structures[k].voxels_color[i])/255.0F*0.8F,
-							  	  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.8F,0.8F);
+								  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.8F,0.8F);
 						glVertex3f(x+1,y,z);
 						glVertex3f(x+1,y+1,z);
 						glVertex3f(x+1,y+1,z+1);
@@ -392,8 +392,8 @@ void map_collapsing_render(float dt) {
 				for(int i=0;i<map_collapsing_structures[k].voxel_count;i++) {
 					float v[4] = {map_collapsing_structures[k].voxels[i].x-map_collapsing_structures[k].p2.x+0.5F,
 								  map_collapsing_structures[k].voxels[i].y-map_collapsing_structures[k].p2.y+0.5F,
-							  	  map_collapsing_structures[k].voxels[i].z-map_collapsing_structures[k].p2.z+0.5F,
-							  	  1.0F};
+								  map_collapsing_structures[k].voxels[i].z-map_collapsing_structures[k].p2.z+0.5F,
+								  1.0F};
 					matrix_vector(v);
 					particle_create(map_collapsing_structures[k].voxels_color[i],v[0],v[1],v[2],2.5F,1.0F,2,0.25F,0.4F);
 				}
@@ -428,9 +428,9 @@ unsigned long long map_get(int x, int y, int z) {
 	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_y || z>=map_size_z)
 		return 0xFFFFFFFF;
 
-	pthread_rwlock_rdlock(&chunk_map_lock);
+	pthread_rwlock_rdlock(&chunk_map_locks[x+z*map_size_x]);
 	unsigned long long ret = map_colors[x+(y*map_size_z+z)*map_size_x];
-	pthread_rwlock_unlock(&chunk_map_lock);
+	pthread_rwlock_unlock(&chunk_map_locks[x+z*map_size_x]);
 	return ret;
 }
 
@@ -446,9 +446,14 @@ void map_set(int x, int y, int z, unsigned long long color) {
 		return;
 	}
 
-	pthread_rwlock_wrlock(&chunk_map_lock);
+	/*int err = pthread_rwlock_trywrlock(&chunk_map_lock);
+	if(err!=0) {
+		printf("pthread: %i\n",err);
+		return;
+	}*/
+	pthread_rwlock_wrlock(&chunk_map_locks[x+z*map_size_x]);
 	map_colors[x+(y*map_size_z+z)*map_size_x] = color;
-	pthread_rwlock_unlock(&chunk_map_lock);
+	pthread_rwlock_unlock(&chunk_map_locks[x+z*map_size_x]);
 
 	chunk_block_update(x,y,z);
 
@@ -482,7 +487,7 @@ void map_set(int x, int y, int z, unsigned long long color) {
 		chunk_block_update(x,y,0);
 }
 
-void map_vxl_setgeom(int x, int y, int z, unsigned int t, unsigned long long* map) {
+void map_vxl_setgeom(int x, int y, int z, unsigned int t, unsigned int* map) {
 	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_z || z>=map_size_y) {
 		return;
 	}
@@ -490,7 +495,7 @@ void map_vxl_setgeom(int x, int y, int z, unsigned int t, unsigned long long* ma
 	map[x+((map_size_y-1-z)*map_size_z+y)*map_size_x] = t;
 }
 
-void map_vxl_setcolor(int x, int y, int z, unsigned int t, unsigned long long* map) {
+void map_vxl_setcolor(int x, int y, int z, unsigned int t, unsigned int* map) {
 	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_z || z>=map_size_y) {
 		return;
 	}
@@ -576,8 +581,9 @@ int map_cube_line(int x1, int y1, int z1, int x2, int y2, int z2, struct Point* 
 	}
 }
 
-void map_vxl_load(unsigned char* v, unsigned long long* map) {
-	pthread_rwlock_wrlock(&chunk_map_lock);
+void map_vxl_load(unsigned char* v, unsigned int* map) {
+	for(int k=0;k<map_size_x*map_size_z;k++)
+		pthread_rwlock_wrlock(&chunk_map_locks[k]);
 	for(int y=0;y<512;y++) {
 		for(int x=0;x<512;x++) {
 			int z;
@@ -629,5 +635,6 @@ void map_vxl_load(unsigned char* v, unsigned long long* map) {
 			}
 		}
 	}
-	pthread_rwlock_unlock(&chunk_map_lock);
+	for(int k=0;k<map_size_x*map_size_z;k++)
+		pthread_rwlock_unlock(&chunk_map_locks[k]);
 }

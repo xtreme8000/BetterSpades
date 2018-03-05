@@ -393,13 +393,14 @@ void init(GLFWwindow* window) {
 	glxcheckErrors(__FILE__,__LINE__);
 
 	map_colors = malloc(map_size_x*map_size_y*map_size_z*sizeof(unsigned long long));
-	memset(map_colors,(unsigned long long)0xFFFFFFFF,map_size_x*map_size_y*map_size_z);
+	memset(map_colors,(unsigned int)0xFFFFFFFF,map_size_x*map_size_y*map_size_z);
 
 	map_minimap = malloc(map_size_x*map_size_z*sizeof(unsigned char)*4);
 	//set minimap borders (white on 64x64 chunks, black map border)
 	memset(map_minimap,0xCCCCCCFF,map_size_x*map_size_z*sizeof(unsigned char)*4);
 
-    chunk_init();
+    glx_init();
+
 	font_init();
 	player_init();
 	particle_init();
@@ -409,6 +410,7 @@ void init(GLFWwindow* window) {
 	sound_init();
 	tracer_init();
 	hud_init(window);
+    chunk_init();
 
 	weapon_set();
 }
@@ -516,7 +518,7 @@ int main(int argc, char** argv) {
 	config_reload();
 
 
-	glfwWindowHint(GLFW_VISIBLE,0);
+	glfwWindowHint(GLFW_VISIBLE,GLFW_FALSE);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,1);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,1);
 	if(!glfwInit()) {
@@ -534,9 +536,12 @@ int main(int argc, char** argv) {
 		glfwTerminate();
 		exit(1);
 	}
+
 	const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 	glfwSetWindowPos(window,(mode->width-settings.window_width)/2.0F,(mode->height-settings.window_height)/2.0F);
 	glfwShowWindow(window);
+
+    glfwMakeContextCurrent(window);
 
 	glfwMakeContextCurrent(window);
 	glfwSetFramebufferSizeCallback(window,reshape);
@@ -607,7 +612,7 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	float last_frame_start;
+	float last_frame_start = 0.0F;
 	while(!glfwWindowShouldClose(window)) {
         float dt = glfwGetTime()-last_frame_start;
         last_frame_start = glfwGetTime();

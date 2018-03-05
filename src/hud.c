@@ -1002,7 +1002,8 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 
 			if(key==GLFW_KEY_Y || key==GLFW_KEY_Z) {
 				if(show_exit) {
-					exit(0);
+                    network_disconnect();
+					hud_change(&hud_serverlist);
 				} else {
 					chat_input_mode = CHAT_TEAM_INPUT;
 					text_input_first = 1;

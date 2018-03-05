@@ -215,7 +215,16 @@ void read_PacketStateData(void* data, int len) {
 
 	gamestate.gamemode_type = p->gamemode;
 
-	memcpy(&gamestate.gamemode,&p->gamemode_data,sizeof(union Gamemodes));
+	switch(p->gamemode) {
+		case GAMEMODE_CTF:
+			memcpy(&gamestate.gamemode,&p->gamemode_data,sizeof(struct GM_CTF));
+			break;
+		case GAMEMODE_TC:
+			memcpy(&gamestate.gamemode,&p->gamemode_data,sizeof(struct GM_TC));
+			break;
+		default:
+			printf("Unknown gamemode!\n");
+	}
 
 	sound_create(NULL,SOUND_LOCAL,&sound_intro,0.0F,0.0F,0.0F);
 
@@ -539,10 +548,11 @@ void read_PacketKillAction(void* data, int len) {
 void read_PacketShortPlayerData(void* data, int len) {
 	//should never be received, but process it anyway
 	struct PacketShortPlayerData* p = (struct PacketShortPlayerData*)data;
-	if(p->player_id<PLAYERS_MAX) {
+	printf("Unexpected ShortPlayerDataPacket!!!\n");
+	/*if(p->player_id<PLAYERS_MAX) {
 		players[p->player_id].team = p->team;
 		players[p->player_id].weapon = p->weapon;
-	}
+	}*/
 }
 
 void read_PacketGrenade(void* data, int len) {
@@ -582,6 +592,10 @@ void read_PacketRestock(void* data, int len) {
 void read_PacketChangeWeapon(void* data, int len) {
 	struct PacketChangeWeapon* p = (struct PacketChangeWeapon*)data;
 	if(p->player_id<PLAYERS_MAX) {
+		if(p->player_id==local_player_id) {
+			printf("Unexpected ChangeWeaponPacket!!!\n");
+			return;
+		}
 		players[p->player_id].weapon = p->weapon;
 	}
 }
@@ -765,22 +779,24 @@ unsigned int network_ping() {
 }
 
 void network_disconnect() {
-	enet_peer_disconnect(peer,0);
-	network_connected = 0;
-	network_logged_in = 0;
+	if(network_connected) {
+		enet_peer_disconnect(peer,0);
+		network_connected = 0;
+		network_logged_in = 0;
 
-	ENetEvent event;
-	while(enet_host_service(client,&event,3000)>0) {
-		switch(event.type) {
-			case ENET_EVENT_TYPE_RECEIVE:
-				enet_packet_destroy(event.packet);
-				break;
-			case ENET_EVENT_TYPE_DISCONNECT:
-				return;
+		ENetEvent event;
+		while(enet_host_service(client,&event,3000)>0) {
+			switch(event.type) {
+				case ENET_EVENT_TYPE_RECEIVE:
+					enet_packet_destroy(event.packet);
+					break;
+				case ENET_EVENT_TYPE_DISCONNECT:
+					return;
+			}
 		}
-	}
 
-	enet_peer_reset(peer);
+		enet_peer_reset(peer);
+	}
 }
 
 int network_connect_sub(char* ip, int port, int version) {

@@ -25,6 +25,7 @@ extern struct chunk {
 	int max_height;
 	float last_update;
 	char created;
+	int vertex_count;
 } chunks[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
 
 extern int chunk_geometry_changed[CHUNKS_PER_DIM*CHUNKS_PER_DIM*2];
@@ -35,7 +36,7 @@ extern int chunk_lighting_changed_lenght;
 
 extern boolean chunk_render_mode;
 
-#define CHUNK_WORKERS_MAX			2
+#define CHUNK_WORKERS_MAX			3
 
 #define CHUNK_WORKERSTATE_BUSY		0
 #define CHUNK_WORKERSTATE_IDLE		1
@@ -44,14 +45,18 @@ extern boolean chunk_render_mode;
 extern struct chunk_worker {
 	int chunk_id;
 	int chunk_x, chunk_y;
+	pthread_mutex_t state_lock;
 	int state;
 	pthread_t thread;
 	short* vertex_data;
 	unsigned char* color_data;
 	int data_size;
 	int max_height;
+	int mem_size;
 } chunk_workers[CHUNK_WORKERS_MAX];
-extern pthread_rwlock_t chunk_map_lock;
+extern pthread_rwlock_t* chunk_map_locks;
+
+extern pthread_mutex_t chunk_minimap_lock;
 
 void chunk_init(void);
 

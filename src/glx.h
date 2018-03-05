@@ -19,5 +19,11 @@
 
 //for future opengl es abstraction layer
 
-void glx_enable_sphericalfog();
-void glx_disable_sphericalfog();
+void glx_init(void);
+
+void glx_enable_sphericalfog(void);
+void glx_disable_sphericalfog(void);
+
+int glx_displaylist_create(void);
+void glx_displaylist_update(int id, int size, unsigned char* color, short* vertex);
+void glx_displaylist_draw(int id, int size);
