@@ -20,11 +20,11 @@ endif()
 file(GLOB sources src/*c)
 if(WIN32)
 	add_executable(client ${sources} resources/icon.rc)
+	target_link_libraries(client ${CMAKE_THREAD_LIBS_INIT} -static)
 else()
 	add_executable(client ${sources})
+	target_link_libraries(client ${CMAKE_THREAD_LIBS_INIT})
 endif()
-
-target_link_libraries(client ${CMAKE_THREAD_LIBS_INIT} -static)
 
 file(GLOB libs libs/*lib)
 target_link_libraries(client ${libs})

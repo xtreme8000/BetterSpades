@@ -1,3 +1,7 @@
+![](https://img.shields.io/github/downloads/atom/atom/total.svg)
+![GPL](https://img.shields.io/badge/license-GPL--3.0-red.svg)
+[![DonateBTC](https://img.shields.io/badge/bitcoin-donate-yellow.svg)](1AeSfdVmbEX6VCqxCgk9WkzSA8XJkKr4FM)
+
 ## ![](resources/icon.png) BetterSpades
 
 * Replicate of the great game *Ace of Spades* (classic voxlap)
