@@ -1,4 +1,4 @@
-![](https://img.shields.io/github/downloads/atom/atom/total.svg)
+![](https://img.shields.io/github/downloads/xtreme8000/BetterSpades/total.svg)
 ![GPL](https://img.shields.io/badge/license-GPL--3.0-red.svg)
 [![DonateBTC](https://img.shields.io/badge/bitcoin-donate-yellow.svg)](1AeSfdVmbEX6VCqxCgk9WkzSA8XJkKr4FM)
 
@@ -16,10 +16,11 @@
 
 ### Quick usage guide
 
-If you just got this from the releases page or even the [official website](https://aos.party/) this might be relevant to you.
+As of right now, you can download the newest stable version from the [releases page](https://github.com/xtreme8000/BetterSpades/releases).
 
-* You can either use it temporarily by extracting the downloaded zip to a new directory and start the client by the command line as described on the last steps of the build guide for Windows or Linux
-* or you extract all contents to your Ace of Spades installation (normally found at `C:/Ace of Spades/`), effectively replacing the old voxlap version
+You can either:
+* use the client temporarily by extracting the downloaded zip into a new directory.
+* extract all contents to your current Ace of Spades installation directory (normally found at `C:/Ace of Spades/`), effectively replacing the old voxlap version
 
 
 ## Build requirements
@@ -38,34 +39,33 @@ These libraries and files are needed:
 | http        | *Public domain* | http client library   | [Link](https://github.com/mattiasgustavsson/libs) |
 | parson      | *MIT*           | JSON parser           | [Link](https://github.com/kgabis/parson)          |
 
-You will need to compile
+You will need to compile the following by yourself, or get hold of precompiled binaries:
 
 * GLFW3
 * OpenAL soft
 * libdeflate
-* and enet
+* enet
 
-by yourself or get hold of precompiled binaries. Place produced static libraries in `lib/`.
+Place produced static libraries in `lib/`.
 
 Some files need to be copied to the `src/` directory.
 
 This means:
 
-| source                    | &rightarrow; | destination                                                                   |
-| ------------------------- | ------------ | ---------------------------                                                   |
-| `dr_wav.h`                | &rightarrow; | `src/dr_wav.c` <br /> Make sure to define `DR_WAV_IMPLEMENTATION` in *Line 9* |
-| `lodepng.h`               | &rightarrow; | `src/lodepng/lodepng.h`                                                       |
-| `lodepng.cpp`             | &rightarrow; | `src/lodepng/lodepng.c`                                                       |
-| `libdeflate.h`            | &rightarrow; | `src/libdeflate.h`                                                            |
-| `ini.c` and `ini.h`       | &rightarrow; | `src/ini.c` and `src/ini.h`                                                   |
-| `parson.c` and `parson.h` | &rightarrow; | `src/parson.c` and `src/parson.h`                                             |
-| `http.h`                  | &rightarrow; | `src/http.h`                                                                  |
+| source                        | &rightarrow; | destination                                                                   |
+| ----------------------------- | ------------ | ---------------------------                                                   |
+| `dr_wav.h`                    | &rightarrow; | `src/dr_wav.c` <br /> Make sure to define `DR_WAV_IMPLEMENTATION` in *Line 9* |
+| `lodepng.h` and `lodepng.cpp` | &rightarrow; | `src/lodepng/lodepng.h` and `src/lodepng/lodepng.c`                           |
+| `libdeflate.h`                | &rightarrow; | `src/libdeflate.h`                                                            |
+| `ini.c` and `ini.h`           | &rightarrow; | `src/ini.c` and `src/ini.h`                                                   |
+| `parson.c` and `parson.h`     | &rightarrow; | `src/parson.c` and `src/parson.h`                                             |
+| `http.h`                      | &rightarrow; | `src/http.h`                                                                  |
 
 Because state of copyright of 0.75 assets is unknown, you will need to get them *[here](http://aos.party/bsresources.zip)*. Unzip the file and extract all contents to `resources/` manually.
 
 #### Windows
 
-This project uses CMake to generate all Makefiles automatically. It's best to use MinGW for gcc on windows. You can generate the required files by opening `cmd.exe` in the `build/` directory and typing:
+This project uses CMake to generate all Makefiles automatically. It's best to use MinGW for GCC on Windows. You can generate the required files by opening `cmd.exe` in the `build/` directory and typing:
 ```
 cmake -G "MinGW Makefiles" ..
 make
@@ -74,11 +74,11 @@ You might need to replace `make` by `mingw32-make` if cmd tells you it could not
 
 If everything went well, the client should be in the `build/bin/` subfolder.
 
-You can start the client the same way as you did with voxlap version.
+When starting `client.exe`, you will be greeted by a server list. Select a server on it to start playing!
+You can also start the client the same way as you did with the voxlap version by opening cmd and putting an `aos://` link in as the first argument:
 
-See this example:
 ```
-client.exe -aos://16777343:32887
+client.exe -aos://16777343:32887 // Connects to a local server
 ```
 
 #### Linux
