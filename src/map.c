@@ -554,7 +554,7 @@ int map_cube_line(int x1, int y1, int z1, int x2, int y2, int z2, struct Point* 
 		if(cube_array!=NULL)
 			cube_array[count] = c;
 
-		if(count++==64)
+		if(count++==63)
 			return count;
 
 		if(c.x==x2 && c.y==y2 && c.z==z2)
