@@ -1,6 +1,6 @@
-![](https://img.shields.io/github/downloads/xtreme8000/BetterSpades/total.svg)
-![GPL](https://img.shields.io/badge/license-GPL--3.0-red.svg)
-[![DonateBTC](https://img.shields.io/badge/bitcoin-donate-yellow.svg)](1AeSfdVmbEX6VCqxCgk9WkzSA8XJkKr4FM)
+[![](https://img.shields.io/github/downloads/xtreme8000/BetterSpades/total.svg)](https://github.com/xtreme8000/BetterSpades/releases)
+[![GPL](https://img.shields.io/badge/license-GPL--3.0-red.svg)](https://github.com/xtreme8000/BetterSpades/blob/standalone/LICENSE)
+[![DonateBTC](https://img.shields.io/badge/bitcoin-donate-yellow.svg)](bitcoin://1AeSfdVmbEX6VCqxCgk9WkzSA8XJkKr4FM/)
 
 ## ![](resources/icon.png) BetterSpades
 
@@ -89,7 +89,7 @@ You can build each library yourself, or install them with your distro's package 
 ```
 sudo apt-get install libgl1-mesa libgl1-mesa-dev libopenal1 libopenal-dev libglfw-dev libenet-dev
 ```
-(this does not include libdeflate or lodepng which are a requirement too, see _Wiki/Building_ for more details)
+(this does not include libdeflate or lodepng which are a requirement too, see [_Wiki/Building_](https://github.com/xtreme8000/BetterSpades/wiki/Building) for more details)
 
 Start the client with the following inside the `build/bin/` directory:
 ```
@@ -102,7 +102,7 @@ The same instructions for Linux work on macOS aside from some minor differences.
 ```
 brew install glfw enet
 ```
-The development headers for OpenAL and OpenGL don't have to be installed since they come with macOS by default. libdeflate and lodepng should be installed and placed manually in a way similar to Linux. See _Wiki/Building_ for more details.
+The development headers for OpenAL and OpenGL don't have to be installed since they come with macOS by default. libdeflate and lodepng should be installed and placed manually in a way similar to Linux. See [_Wiki/Building_](https://github.com/xtreme8000/BetterSpades/wiki/Building) for more details.
 
 ## Gallery
 

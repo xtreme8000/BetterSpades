@@ -19,16 +19,23 @@
 
 #define BETTERSPADES_VERSION    "v0.1.2"
 
+#define BETTERSPADES_PATCH      2
+#define BETTERSPADES_MINOR      1
+#define BETTERSPADES_MAJOR      0
+
 #if __APPLE__
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
+#include <OpenGL/glext.h>
 #else
 #include <GL/gl.h>
 #include <GL/glu.h>
+#include "GL/glext.h"
 #endif
 
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <math.h>
 #include <float.h>
 #include <stdio.h>
@@ -38,19 +45,11 @@
 #include <time.h>
 #include <pthread.h>
 
-#if __APPLE__
-#include <OpenGL/glext.h>
-#else
-#include "GL/glext.h"
-#endif
+#include <enet/enet.h>
 
 #include "GLFW/glfw3.h"
-
 #include "lodepng/lodepng.h"
-
-#include <enet/enet.h>
 #include "libdeflate.h"
-
 #include "ini.h"
 
 #ifdef _WIN32
@@ -81,10 +80,6 @@
 #define distance2D(x1,y1,x2,y2) (((x2)-(x1))*((x2)-(x1))+((y2)-(y1))*((y2)-(y1)))
 #define distance3D(x1,y1,z1,x2,y2,z2) (((x2)-(x1))*((x2)-(x1))+((y2)-(y1))*((y2)-(y1))+((z2)-(z1))*((z2)-(z1)))
 
-typedef unsigned char boolean;
-#define true 1
-#define false 0
-
 #define rgb(r,g,b)	(((b)<<16)|((g)<<8)|(r))
 #define red(col)	((col)&0xFF)
 #define green(col)	(((col)>>8)&0xFF)
@@ -100,6 +95,7 @@ typedef unsigned char boolean;
 
 #include "glx.h"
 
+#include "list.h"
 #include "sound.h"
 #include "texture.h"
 #include "chunk.h"

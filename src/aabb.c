@@ -20,7 +20,6 @@
 #include "common.h"
 
 void aabb_render(AABB* a) {
-	//glColor4f(1.0F,1.0F,1.0F,1.0F);
 	glLineWidth(1.0F);
 	glBegin(GL_LINES);
 	glVertex3f(a->min_x,a->min_y,a->min_z);
@@ -88,11 +87,11 @@ void aabb_set_size(AABB* a, float x, float y, float z) {
 	a->max_z = a->min_z+z;
 }
 
-boolean aabb_intersection(AABB* a, AABB* b) {
+unsigned char aabb_intersection(AABB* a, AABB* b) {
 	return (a->min_x <= b->max_x && b->min_x <= a->max_x) && (a->min_y <= b->max_y && b->min_y <= a->max_y) && (a->min_z <= b->max_z && b->min_z <= a->max_z);
 }
 
-boolean aabb_intersection_terrain(AABB* a) {
+unsigned char aabb_intersection_terrain(AABB* a) {
 	AABB terrain_cube;
 
 	int min_x = min(max(floor(a->min_x)-1,0),map_size_x);
@@ -114,11 +113,11 @@ boolean aabb_intersection_terrain(AABB* a) {
 					terrain_cube.max_y = y+1;
 					terrain_cube.max_z = z+1;
 					if(aabb_intersection(a,&terrain_cube)) {
-						return true;
+						return 1;
 					}
 				}
 			}
 		}
 	}
-	return false;
+	return 0;
 }

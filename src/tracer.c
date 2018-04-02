@@ -21,6 +21,12 @@
 
 struct Tracer* tracers;
 
+void tracer_pvelocity(float* o, struct Player* p) {
+    o[0] = o[0]*256.0F/32.0F+p->physics.velocity.x;
+    o[1] = o[1]*256.0F/32.0F+p->physics.velocity.y;
+    o[2] = o[2]*256.0F/32.0F+p->physics.velocity.z;
+}
+
 void tracer_add(unsigned char type, float x, float y, float z, float dx, float dy, float dz) {
     for(int k=0;k<TRACER_MAX;k++) {
         if(!tracers[k].used) {
@@ -36,9 +42,9 @@ void tracer_add(unsigned char type, float x, float y, float z, float dx, float d
                     tracers[k].type = 2;
                     break;
             }
-            tracers[k].r.origin.x = x+dx*3.0F;
-            tracers[k].r.origin.y = y+dy*3.0F;
-            tracers[k].r.origin.z = z+dz*3.0F;
+            tracers[k].r.origin.x = x+dx/4.0F;
+            tracers[k].r.origin.y = y+dy/4.0F;
+            tracers[k].r.origin.z = z+dz/4.0F;
             tracers[k].r.direction.x = dx;
             tracers[k].r.direction.y = dy;
             tracers[k].r.direction.z = dz;
@@ -67,21 +73,22 @@ void tracer_render() {
 void tracer_update(float dt) {
     for(int k=0;k<TRACER_MAX;k++) {
         if(tracers[k].used) {
-            if(glfwGetTime()-tracers[k].created>0.5F) {
+            if(glfwGetTime()-tracers[k].created>0.5F) { //128.0[m] / 256.0[m/s] = 0.5[s]
                 tracers[k].used = 0;
             } else {
                 struct Camera_HitType hit;
+                float len = sqrt(pow(tracers[k].r.direction.x,2)+pow(tracers[k].r.direction.x,2)+pow(tracers[k].r.direction.x,2));
                 camera_hit(&hit,-1,
                            tracers[k].r.origin.x,tracers[k].r.origin.y,tracers[k].r.origin.z,
-                           tracers[k].r.direction.x,tracers[k].r.direction.y,tracers[k].r.direction.z,
-                           256.0F*dt);
+                           tracers[k].r.direction.x/len,tracers[k].r.direction.y/len,tracers[k].r.direction.z/len,
+                           len*32.0F*dt);
                 if(hit.type==CAMERA_HITTYPE_BLOCK) {
                     sound_create(NULL,SOUND_WORLD,&sound_impact,tracers[k].r.origin.x,tracers[k].r.origin.y,tracers[k].r.origin.z);
                     tracers[k].used = 0;
                 } else {
-                    tracers[k].r.origin.x += tracers[k].r.direction.x*256.0F*dt;
-                    tracers[k].r.origin.y += tracers[k].r.direction.y*256.0F*dt;
-                    tracers[k].r.origin.z += tracers[k].r.direction.z*256.0F*dt;
+                    tracers[k].r.origin.x += tracers[k].r.direction.x*32.0F*dt;
+                    tracers[k].r.origin.y += tracers[k].r.direction.y*32.0F*dt;
+                    tracers[k].r.origin.z += tracers[k].r.direction.z*32.0F*dt;
                 }
             }
         }

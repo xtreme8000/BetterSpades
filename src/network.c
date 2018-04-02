@@ -156,9 +156,6 @@ void read_PacketBlockAction(void* data, int len) {
 				map_set(p->x,63-p->z+1,p->y,0xFFFFFFFF);
 				map_update_physics(p->x,63-p->z+1,p->y);
 			}
-			/*sound_create(NULL,SOUND_WORLD,&sound_hitground,
-						 p->x+0.5F,63-p->z+0.5F,p->y+0.5F
-					 );*/
 			break;
 		case ACTION_BUILD:
 			if(p->player_id<PLAYERS_MAX) {
@@ -166,7 +163,6 @@ void read_PacketBlockAction(void* data, int len) {
 					players[p->player_id].block.red |
 					(players[p->player_id].block.green<<8) |
 					(players[p->player_id].block.blue<<16));
-				//map_update_physics(p->x,63-p->z,p->y);
 				sound_create(NULL,SOUND_WORLD,&sound_build,
 							 p->x+0.5F,63-p->z+0.5F,p->y+0.5F
 						 	);
@@ -185,7 +181,6 @@ void read_PacketBlockLine(void* data, int len) {
 			players[p->player_id].block.red |
 			(players[p->player_id].block.green<<8) |
 			(players[p->player_id].block.blue<<16));
-		//map_update_physics(p->sx,63-p->sz,p->sy);
 	} else {
 		struct Point blocks[64];
 		int len = map_cube_line(p->sx,p->sy,p->sz,p->ex,p->ey,p->ez,blocks);
@@ -745,10 +740,18 @@ void read_PacketHandshakeInit(void* data, int len) {
 void read_PacketVersionGet(void* data, int len) {
 	struct PacketVersionSend ver;
 	ver.client = 'B';
-	ver.major = 0;
-	ver.minor = 77;
-	ver.revision = 0;
-	char* os = "BetterSpades";
+	ver.major = BETTERSPADES_MAJOR;
+	ver.minor = BETTERSPADES_MINOR;
+	ver.revision = BETTERSPADES_PATCH;
+	#ifdef OS_WINDOWS
+		char* os = "BetterSpades (Windows)";
+	#endif
+	#ifdef OS_LINUX
+		char* os = "BetterSpades (Linux)";
+	#endif
+	#ifdef OS_APPLE
+		char* os = "BetterSpades (Apple)";
+	#endif
 	strcpy(ver.operatingsystem,os);
 	network_send(PACKET_VERSIONSEND_ID,&ver,sizeof(ver)-sizeof(ver.operatingsystem)+strlen(os));
 }

@@ -416,6 +416,7 @@ void init(GLFWwindow* window) {
 }
 
 void reshape(GLFWwindow* window, int width, int height) {
+    //font_reset();
 	glViewport(0,0,width,height);
 	settings.window_width = width;
 	settings.window_height = height;
@@ -500,12 +501,17 @@ void deinit() {
 		network_disconnect();
 }
 
+void on_error(int i, const char* s) {
+    printf("Major error occured: [%i] %s\n",i,s);
+    getchar();
+}
+
 int main(int argc, char** argv) {
-	settings.opengl14 = true;
-	settings.color_correction = false;
+	settings.opengl14 = 1;
+	settings.color_correction = 0;
 	settings.multisamples = 0;
-	settings.shadow_entities = false;
-	settings.ambient_occlusion = false;
+	settings.shadow_entities = 0;
+	settings.ambient_occlusion = 0;
 	settings.render_distance = 128.0F;
 	settings.window_width = 800;
 	settings.window_height = 600;
@@ -521,6 +527,9 @@ int main(int argc, char** argv) {
 	glfwWindowHint(GLFW_VISIBLE,GLFW_FALSE);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,1);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,1);
+
+    glfwSetErrorCallback(on_error);
+
 	if(!glfwInit()) {
 		printf("GLFW3 init failed\n");
     	exit(1);

@@ -44,7 +44,7 @@ void particle_update(float dt) {
 				size *= 1.0F-((float)(glfwGetTime()-particles[k].fade)/2.0F);
 			}
 			if(size<0.01F) {
-				particles[k].alive = false;
+				particles[k].alive = 0;
 			} else {
 				a.max_x = a.max_y = a.max_z = size;
 
@@ -56,45 +56,45 @@ void particle_update(float dt) {
 				float movement_x = particles[k].vx*dt;
 				float movement_y = particles[k].vy*dt;
 				float movement_z = particles[k].vz*dt;
-				boolean on_ground = false;
+				int on_ground = 0;
 				aabb_set_center(&a,particles[k].x+movement_x,particles[k].y,particles[k].z);
 				if(aabb_intersection_terrain(&a)) {
 					movement_x = 0.0F;
 					particles[k].vx = -particles[k].vx*0.6F;
-					on_ground = true;
+					on_ground = 1;
 				}
 				aabb_set_center(&a,particles[k].x+movement_x,particles[k].y+movement_y,particles[k].z);
 				if(aabb_intersection_terrain(&a)) {
 					movement_y = 0.0F;
 					particles[k].vy = -particles[k].vy*0.6F;
-					on_ground = true;
+					on_ground = 1;
 				}
 				aabb_set_center(&a,particles[k].x+movement_x,particles[k].y+movement_y,particles[k].z+movement_z);
 				if(aabb_intersection_terrain(&a)) {
 					movement_z = 0.0F;
 					particles[k].vz = -particles[k].vz*0.6F;
-					on_ground = true;
+					on_ground = 1;
 				}
 				//air and ground friction
 				if(on_ground) {
 					particles[k].vx *= pow(0.1F,dt);
 					particles[k].vy *= pow(0.1F,dt);
 					particles[k].vz *= pow(0.1F,dt);
-					boolean can_fade = true;
+					int can_fade = 1;
 					if(abs(particles[k].vx)<0.1F) {
 						particles[k].vx = 0.0F;
 					} else {
-						can_fade = false;
+						can_fade = 0;
 					}
 					if(abs(particles[k].vy)<0.1F) {
 						particles[k].vy = 0.0F;
 					} else {
-						can_fade = false;
+						can_fade = 0;
 					}
 					if(abs(particles[k].vz)<0.1F) {
 						particles[k].vz = 0.0F;
 					} else {
-						can_fade = false;
+						can_fade = 0;
 					}
 					if(can_fade && !particles[k].fade) {
 						particles[k].fade = glfwGetTime();
@@ -251,7 +251,7 @@ void particle_create_casing(struct Player* p) {
             particles[k].fade = 0;
             particles[k].type = p->weapon;
             particles[k].color = 0x00FFFF;
-            particles[k].alive = true;
+            particles[k].alive = 1;
             break;
         }
     }
@@ -275,7 +275,7 @@ void particle_create(unsigned int color, float x, float y, float z, float veloci
 			particles[k].fade = 0;
 			particles[k].color = color;
 			particles[k].type = 255;
-			particles[k].alive = true;
+			particles[k].alive = 1;
 			amount--;
 			if(amount==0) {
 				return;

@@ -192,6 +192,10 @@ float player_height(struct Player* p) {
     return p->input.keys.crouch?1.05F:1.1F;
 }
 
+float player_height2(struct Player* p) {
+    return p->alive?0.0F:1.0F;
+}
+
 int player_damage(int damage_sections) {
     int type = -1;
     if(damage_sections & (1<<HITTYPE_ARMS)) {
@@ -354,6 +358,7 @@ void player_update(float dt) {
                                players[k].physics.eye.y+player_height(&players[k]),
                                players[k].physics.eye.z,
                                o[0],o[1],o[2],128.0F);
+                    tracer_pvelocity(o,&players[k]);
                     tracer_add(players[k].weapon,
                                players[k].physics.eye.x,players[k].physics.eye.y+player_height(&players[k]),players[k].physics.eye.z,
                                o[0],o[1],o[2]);
@@ -384,6 +389,39 @@ static float foot_function(struct Player* p) {
 }
 
 int player_render(struct Player* p, int id, Ray* ray, char render) {
+    if(camera_mode==CAMERAMODE_SPECTATOR) {
+        int old_state = glx_fog;
+        if(old_state)
+            glx_disable_sphericalfog();
+        matrix_push();
+        matrix_translate(p->pos.x,p->physics.eye.y+player_height(p)+1.25F,p->pos.z);
+        matrix_rotate(camera_rot_x/PI*180.0F+180.0F,0.0F,1.0F,0.0F);
+        matrix_rotate(-camera_rot_y/PI*180.0F+90.0F,1.0F,0.0F,0.0F);
+        matrix_scale(1.0F/92.0F,1.0F/92.0F,1.0F/92.0F);
+        matrix_upload();
+        switch(p->team) {
+            case TEAM_1:
+                glColor3ub(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue);
+                break;
+            case TEAM_2:
+                glColor3ub(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue);
+                break;
+            default:
+                glColor3f(1.0F,1.0F,1.0F);
+        }
+        font_select(FONT_FIXEDSYS);
+        glEnable(GL_ALPHA_TEST);
+        glAlphaFunc(GL_GREATER,0.5F);
+        glDisable(GL_DEPTH_TEST);
+        font_centered(0,0,64,p->name);
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_ALPHA_TEST);
+        matrix_pop();
+        matrix_upload();
+        if(old_state)
+            glx_enable_sphericalfog();
+    }
+
     if(!p->alive) {
         matrix_push();
         matrix_translate(p->pos.x,p->pos.y+0.25F,p->pos.z);
@@ -499,11 +537,10 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
     matrix_translate(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
     matrix_pointAt(p->orientation.x,p->orientation.y,p->orientation.z);
     matrix_rotate(90.0F,0.0F,1.0F,0.0F);
-    if(id==local_player_id && camera_mode==CAMERAMODE_FPS) {
+    if(id==local_player_id && camera_mode==CAMERAMODE_FPS)
         matrix_translate(0.0F,-2*0.1F,-2*0.1F);
-    } else {
-        matrix_translate(0.0F,-2*0.1F,0*0.1F);
-    }
+    else
+        matrix_translate(0.0F,-2*0.1F,p->input.keys.crouch*(-2)*0.1F);
 
     if(id==local_player_id && p->alive) {
         float speed = sqrt(pow(p->physics.velocity.x,2)+pow(p->physics.velocity.z,2))/0.25F;
@@ -511,13 +548,12 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
         matrix_translate(f[0],f[1],0.1F*player_swing_func(time/1000.0F)*speed+f[2]);
     }
 
-    if(p->input.keys.sprint && !p->input.keys.crouch) {
+    if(p->input.keys.sprint && !p->input.keys.crouch)
         matrix_rotate(45.0F,1.0F,0.0F,0.0F);
-    }
 
-    if(id==local_player_id && glfwGetTime()-p->item_showup<0.5F) {
+    if(id==local_player_id && glfwGetTime()-p->item_showup<0.5F)
         matrix_rotate(45.0F-(glfwGetTime()-p->item_showup)*90.0F,1.0F,0.0F,0.0F);
-    }
+
     if(!(p->held_item==TOOL_SPADE && id==local_player_id && camera_mode==CAMERAMODE_FPS)) {
         float* angles = player_tool_func(p);
         matrix_rotate(angles[0],1.0F,0.0F,0.0F);
@@ -555,6 +591,8 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
                 kv6_render(&model_block,p->team);
             break;
         case TOOL_GUN:
+            //matrix_translate(3.0F*0.1F-0.01F+0.025F,0.25F,-0.0625F);
+            //matrix_upload();
             if((!(camera_mode==CAMERAMODE_FPS && players[local_player_id].input.buttons.rmb) && id==local_player_id) || id!=local_player_id) {
                 switch(p->weapon) {
                     case WEAPON_RIFLE:
