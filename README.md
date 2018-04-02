@@ -1,8 +1,8 @@
 [![](https://img.shields.io/github/downloads/xtreme8000/BetterSpades/total.svg)](https://github.com/xtreme8000/BetterSpades/releases)
 [![GPL](https://img.shields.io/badge/license-GPL--3.0-red.svg)](https://github.com/xtreme8000/BetterSpades/blob/standalone/LICENSE)
-[![DonateBTC](https://img.shields.io/badge/bitcoin-donate-yellow.svg)](bitcoin://1AeSfdVmbEX6VCqxCgk9WkzSA8XJkKr4FM/)
+[![DonateBTC](https://img.shields.io/badge/bitcoin-donate-yellow.svg)](1AeSfdVmbEX6VCqxCgk9WkzSA8XJkKr4FM)
 
-## ![](resources/icon.png) BetterSpades
+## ![](resources/icon_small.png) BetterSpades
 
 * Replicate of the great game *Ace of Spades* (classic voxlap)
 * runs on very old systems back to OpenGL 1.1
