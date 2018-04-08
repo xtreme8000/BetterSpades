@@ -23,6 +23,8 @@
 
 int glx_version = 0;
 
+int glx_fog = 0;
+
 PFNGLGENBUFFERSPROC glGenBuffers;
 PFNGLBINDBUFFERPROC glBindBuffer;
 PFNGLBUFFERDATAPROC glBufferData;
@@ -114,6 +116,7 @@ void glx_enable_sphericalfog() {
 	glTexGenfv(GL_S,GL_EYE_PLANE,s_plane);
 	glEnable(GL_TEXTURE_GEN_T);
 	glEnable(GL_TEXTURE_GEN_S);
+	glx_fog = 1;
 }
 
 void glx_disable_sphericalfog() {
@@ -122,4 +125,5 @@ void glx_disable_sphericalfog() {
 	glBindTexture(GL_TEXTURE_2D,0);
 	glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
 	glDisable(GL_TEXTURE_2D);
+	glx_fog = 0;
 }

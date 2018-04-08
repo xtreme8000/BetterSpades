@@ -135,6 +135,7 @@ float player_section_height(int section);
 int player_damage(int damage_sections);
 void player_init(void);
 float player_height(struct Player* p);
+float player_height2(struct Player* p);
 void player_reposition(struct Player* p);
 void player_update(float dt);
 int player_render(struct Player* p, int id, Ray* ray, char render);

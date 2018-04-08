@@ -66,6 +66,57 @@ static int playertable_sort(const void* a, const void* b) {
 static void hud_ingame_render3D() {
     glDepthRange(0.0F,0.05F);
 
+    /*matrix_select(matrix_projection);
+	matrix_identity();
+    matrix_perspective(camera_fov,((float)settings.window_width)/((float)settings.window_height),100.0F,500.0F);
+	matrix_upload_p();
+
+	matrix_select(matrix_view);
+	matrix_identity();
+	matrix_select(matrix_model);
+    matrix_identity();
+    matrix_translate(0.0F,0.0F,-400.0F);
+    matrix_rotate(32.0F,1.0F,0.0F,0.0F);
+    matrix_rotate(glfwGetTime()*22.5F,0.0F,1.0F,0.0F);
+    matrix_upload();
+
+    glBegin(GL_QUADS);
+
+    glColor3ub(143,16,134);
+    glVertex3f(100.0F,100.0F,100.0F);
+    glVertex3f(-100.0F,100.0F,100.0F);
+    glVertex3f(-100.0F,-100.0F,100.0F);
+    glVertex3f(100.0F,-100.0F,100.0F);
+
+    glVertex3f(100.0F,100.0F,-100.0F);
+    glVertex3f(100.0F,-100.0F,-100.0F);
+    glVertex3f(-100.0F,-100.0F,-100.0F);
+    glVertex3f(-100.0F,100.0F,-100.0F);
+
+    glColor3ub(192,21,180);
+    glVertex3f(100.0F,100.0F,100.0F);
+    glVertex3f(100.0F,100.0F,-100.0F);
+    glVertex3f(-100.0F,100.0F,-100.0F);
+    glVertex3f(-100.0F,100.0F,100.0F);
+
+    glVertex3f(100.0F,-100.0F,100.0F);
+    glVertex3f(-100.0F,-100.0F,100.0F);
+    glVertex3f(-100.0F,-100.0F,-100.0F);
+    glVertex3f(100.0F,-100.0F,-100.0F);
+
+    glColor3ub(220,24,207);
+    glVertex3f(-100.0F,100.0F,100.0F);
+    glVertex3f(-100.0F,100.0F,-100.0F);
+    glVertex3f(-100.0F,-100.0F,-100.0F);
+    glVertex3f(-100.0F,-100.0F,100.0F);
+
+    glVertex3f(100.0F,100.0F,100.0F);
+    glVertex3f(100.0F,-100.0F,100.0F);
+    glVertex3f(100.0F,-100.0F,-100.0F);
+    glVertex3f(100.0F,100.0F,-100.0F);
+    glEnd();*/
+
+
 	matrix_select(matrix_projection);
 	matrix_identity();
 	matrix_perspective(camera_fov,((float)settings.window_width)/((float)settings.window_height), 0.1F, settings.render_distance+CHUNK_SIZE*4.0F+128.0F);
@@ -376,17 +427,21 @@ static void hud_ingame_render(float scalex, float scalef) {
         }
 
         if(camera_mode==CAMERAMODE_BODYVIEW) {
-            font_select(FONT_SMALLFNT);
-            switch(players[cameracontroller_bodyview_player].team) {
-                case TEAM_1:
-                    glColor3ub(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue);
-                    break;
-                case TEAM_2:
-                    glColor3ub(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue);
-                    break;
+            if(cameracontroller_bodyview_player!=local_player_id) {
+                font_select(FONT_SMALLFNT);
+                switch(players[cameracontroller_bodyview_player].team) {
+                    case TEAM_1:
+                        glColor3ub(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue);
+                        break;
+                    case TEAM_2:
+                        glColor3ub(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue);
+                        break;
+                }
+                font_centered(settings.window_width/2.0F,settings.window_height*0.25F,8.0F*scalef,players[cameracontroller_bodyview_player].name);
             }
-            font_centered(settings.window_width/2.0F,settings.window_height*0.25F,8.0F*scalef,players[cameracontroller_bodyview_player].name);
             font_select(FONT_FIXEDSYS);
+            glColor3f(1.0F,1.0F,0.0F);
+            font_centered(settings.window_width/2.0F,settings.window_height,18.0F*scalef,"Click to switch players");
             if(glfwGetTime()-local_player_death_time<=local_player_respawn_time) {
                 glColor3f(1.0F,0.0F,0.0F);
                 int cnt = local_player_respawn_time-(int)(glfwGetTime()-local_player_death_time);
@@ -951,6 +1006,64 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 	}
 }
 
+struct autocomplete_type {
+    const char* str;
+    int acceptance;
+};
+
+static int autocomplete_type_cmp(const void* a, const void* b) {
+    struct autocomplete_type* aa = (struct autocomplete_type*)a;
+    struct autocomplete_type* bb = (struct autocomplete_type*)b;
+    return bb->acceptance-aa->acceptance;
+}
+
+static const char* hud_ingame_completeword(const char* s) {
+    //find most likely player name
+
+    struct autocomplete_type candidates[PLAYERS_MAX*2+64] = {0};
+    int candidates_cnt = 0;
+
+    for(int k=0;k<PLAYERS_MAX;k++) {
+        if(players[k].connected) {
+            candidates[candidates_cnt++] = (struct autocomplete_type) {players[k].name,0};
+            char nmbr[8];
+            sprintf(nmbr,"#%i",k);
+            candidates[candidates_cnt++] = (struct autocomplete_type) {nmbr,0};
+        }
+    }
+
+    candidates[candidates_cnt++] = (struct autocomplete_type) {gamestate.team_1.name,0};
+    candidates[candidates_cnt++] = (struct autocomplete_type) {gamestate.team_2.name,0};
+    candidates[candidates_cnt++] = (struct autocomplete_type) {"/help",0};
+    candidates[candidates_cnt++] = (struct autocomplete_type) {"/medkit",0};
+    candidates[candidates_cnt++] = (struct autocomplete_type) {"/squad",0};
+    candidates[candidates_cnt++] = (struct autocomplete_type) {"/help",0};
+    candidates[candidates_cnt++] = (struct autocomplete_type) {"/votekick",0};
+    candidates[candidates_cnt++] = (struct autocomplete_type) {"/login",0};
+    candidates[candidates_cnt++] = (struct autocomplete_type) {"/airstrike",0};
+    candidates[candidates_cnt++] = (struct autocomplete_type) {"/streak",0};
+    candidates[candidates_cnt++] = (struct autocomplete_type) {"/intel",0};
+    candidates[candidates_cnt++] = (struct autocomplete_type) {"/time",0};
+
+    //valuate all strings
+    for(int k=0;k<candidates_cnt;k++) {
+        for(int i=0;i<strlen(candidates[k].str) && i<strlen(s);i++) {
+            if(candidates[k].str[i]==s[i])
+                candidates[k].acceptance += 2;
+            else
+                if(tolower(candidates[k].str[i])==tolower(s[i]) || s[i]=='*') {
+                    candidates[k].acceptance++;
+                } else {
+                    candidates[k].acceptance = 0;
+                    break;
+                }
+        }
+    }
+
+    qsort(candidates,candidates_cnt,sizeof(struct autocomplete_type),autocomplete_type_cmp);
+    return (strlen(candidates[0].str)>0 && candidates[0].acceptance>0)?candidates[0].str:NULL;
+}
+
 static void hud_ingame_keyboard(int key, int action, int mods) {
     if(action==GLFW_RELEASE) {
 		key_map[key] = 0;
@@ -961,6 +1074,17 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 			key_map[key] = 0;
 		}
 	}
+
+    if(chat_input_mode!=CHAT_NO_INPUT && action==GLFW_PRESS && key==GLFW_KEY_TAB && strlen(chat[0][0])>0) {
+        //autocomplete word
+        char* incomplete = strrchr(chat[0][0],' ')+1;
+        if(incomplete==(char*)1)
+            incomplete = chat[0][0];
+        const char* match = hud_ingame_completeword(incomplete);
+        if(match && strlen(match)+strlen(chat[0][0])<128)
+            strcpy(incomplete,match);
+    }
+
 	if(chat_input_mode==CHAT_NO_INPUT) {
 		if(action==GLFW_PRESS) {
 			if(key==GLFW_KEY_ESCAPE) {
@@ -1004,6 +1128,7 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 				if(show_exit) {
                     network_disconnect();
 					hud_change(&hud_serverlist);
+                    text_input_first = 1;
 				} else {
 					chat_input_mode = CHAT_TEAM_INPUT;
 					text_input_first = 1;

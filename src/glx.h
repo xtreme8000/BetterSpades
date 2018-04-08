@@ -19,6 +19,13 @@
 
 //for future opengl es abstraction layer
 
+extern int glx_version;
+extern int glx_fog;
+
+extern PFNGLGENBUFFERSPROC glGenBuffers;
+extern PFNGLBINDBUFFERPROC glBindBuffer;
+extern PFNGLBUFFERDATAPROC glBufferData;
+
 void glx_init(void);
 
 void glx_enable_sphericalfog(void);
