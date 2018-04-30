@@ -1535,6 +1535,7 @@ static void hud_serverlist_render(float scalex, float scaley) {
                 JSON_Array* servers = json_value_get_array(json_parse_string(request_serverlist->response_data));
                 server_count = json_array_get_count(servers);
                 serverlist = realloc(serverlist,server_count*sizeof(struct serverlist_entry));
+				CHECK_ALLOCATION_ERROR(serverlist)
                 for(int k=0;k<server_count;k++) {
                     JSON_Object* s = json_array_get_object(servers,k);
                     serverlist[k].current = (int)json_object_get_number(s,"players_current");

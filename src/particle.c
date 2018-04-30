@@ -25,9 +25,12 @@ unsigned char* particles_colors;
 
 void particle_init() {
 	particles = malloc(sizeof(Particle)*PARTICLES_MAX);
+	CHECK_ALLOCATION_ERROR(particles)
 	memset(particles,0,sizeof(Particle)*PARTICLES_MAX);
 	particles_vertices = malloc(sizeof(float)*72*PARTICLES_MAX);
+	CHECK_ALLOCATION_ERROR(particles_vertices)
 	particles_colors = malloc(sizeof(unsigned char)*72*PARTICLES_MAX);
+	CHECK_ALLOCATION_ERROR(particles_colors)
 }
 
 void particle_update(float dt) {

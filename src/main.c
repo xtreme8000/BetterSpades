@@ -393,9 +393,11 @@ void init(GLFWwindow* window) {
 	glxcheckErrors(__FILE__,__LINE__);
 
 	map_colors = malloc(map_size_x*map_size_y*map_size_z*sizeof(unsigned long long));
+	CHECK_ALLOCATION_ERROR(map_colors)
 	memset(map_colors,(unsigned int)0xFFFFFFFF,map_size_x*map_size_y*map_size_z);
 
 	map_minimap = malloc(map_size_x*map_size_z*sizeof(unsigned char)*4);
+	CHECK_ALLOCATION_ERROR(map_minimap)
 	//set minimap borders (white on 64x64 chunks, black map border)
 	memset(map_minimap,0xCCCCCCFF,map_size_x*map_size_z*sizeof(unsigned char)*4);
 
@@ -465,6 +467,7 @@ void keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 		sprintf(pic_name,"screenshots/%i.png",pic_time);
 
 		unsigned char* pic_data = malloc(settings.window_width*settings.window_height*4*2);
+		CHECK_ALLOCATION_ERROR(pic_data)
 		glReadPixels(0,0,settings.window_width,settings.window_height,GL_RGBA,GL_UNSIGNED_BYTE,pic_data);
 
 		for(int y=0;y<settings.window_height;y++) { //mirror image (top-bottom)

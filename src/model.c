@@ -111,9 +111,13 @@ void kv6_load(struct kv6_t* kv6, unsigned char* bytes, float scale) {
 		int blklen = buffer_read32(bytes,index);
 		index += 4;
 		unsigned int* blkdata_color = malloc(blklen*4);
+		CHECK_ALLOCATION_ERROR(blkdata_color)
 		unsigned short* blkdata_zpos = malloc(blklen*2);
+		CHECK_ALLOCATION_ERROR(blkdata_zpos)
 		unsigned char* blkdata_visfaces = malloc(blklen);
+		CHECK_ALLOCATION_ERROR(blkdata_visfaces)
 		unsigned char* blkdata_lighting = malloc(blklen);
+		CHECK_ALLOCATION_ERROR(blkdata_lighting)
 		for(int k=0;k<blklen;k++) {
 			blkdata_color[k] = buffer_read32(bytes,index);
 			index += 4;
@@ -124,6 +128,7 @@ void kv6_load(struct kv6_t* kv6, unsigned char* bytes, float scale) {
 		}
 		index += 4*kv6->xsiz;
 		kv6->voxels = malloc(kv6->xsiz*kv6->ysiz*kv6->zsiz*sizeof(struct kv6_voxel));
+		CHECK_ALLOCATION_ERROR(kv6->voxels)
 		kv6->voxel_count = 0;
 		for(int x=0;x<kv6->xsiz;x++) {
 			for(int y=0;y<kv6->ysiz;y++) {
@@ -141,6 +146,8 @@ void kv6_load(struct kv6_t* kv6, unsigned char* bytes, float scale) {
 			}
 		}
 		kv6->voxels = realloc(kv6->voxels,kv6->voxel_count*sizeof(struct kv6_voxel));
+		CHECK_ALLOCATION_ERROR(kv6->voxels)
+        
 		free(blkdata_color);
 		free(blkdata_zpos);
 		free(blkdata_visfaces);
@@ -183,8 +190,11 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		int size = kv6->voxel_count*6;
 
 		kv6->vertices_final = malloc(size*12*sizeof(float));
+		CHECK_ALLOCATION_ERROR(kv6->vertices_final)
 		kv6->colors_final = malloc(size*12*sizeof(unsigned char)*2);
+		CHECK_ALLOCATION_ERROR(kv6->colors_final)
 		kv6->normals_final = malloc(size*12*sizeof(unsigned char));
+		CHECK_ALLOCATION_ERROR(kv6->normals_final)
 
 		if(!kv6->colorize) {
 			kv6->display_list = glGenLists(3);

@@ -50,6 +50,7 @@ static int chunk_sort(const void* a, const void* b) {
 void chunk_init() {
 	pthread_mutex_init(&chunk_minimap_lock,NULL);
 	chunk_map_locks = malloc(map_size_x*map_size_z*sizeof(pthread_rwlock_t));
+	CHECK_ALLOCATION_ERROR(chunk_map_locks);
 	for(int k=0;k<map_size_x*map_size_z;k++)
 		pthread_rwlock_init(&chunk_map_locks[k],NULL);
 	for(int k=0;k<CHUNK_WORKERS_MAX;k++) {
@@ -399,7 +400,9 @@ void chunk_generate_greedy(struct chunk_worker* worker) {
 	max_height++;
 
 	short* chunk_vertex_data = malloc(size*24);
+	CHECK_ALLOCATION_ERROR(chunk_vertex_data)
 	unsigned char* chunk_color_data = malloc(size*12);
+	CHECK_ALLOCATION_ERROR(chunk_color_data)
 	int chunk_vertex_index = 0;
 	int chunk_color_index = 0;
 	unsigned char checked_voxels[2][CHUNK_SIZE*CHUNK_SIZE];
@@ -1366,7 +1369,9 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 						if((size+1)>worker->mem_size) {
 							worker->mem_size += 512; //allow for 512 more quads
 							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							CHECK_ALLOCATION_ERROR(worker->vertex_data)
 							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
+							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
 						worker->color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>54)&1)*0.35F+0.65F));
@@ -1418,7 +1423,9 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 						if((size+1)>worker->mem_size) {
 							worker->mem_size += 512; //allow for 512 more quads
 							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							CHECK_ALLOCATION_ERROR(worker->vertex_data)
 							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
+							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
 						worker->color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>50)&1)*0.35F+0.65F));
@@ -1471,7 +1478,9 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 						if((size+1)>worker->mem_size) {
 							worker->mem_size += 512; //allow for 512 more quads
 							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							CHECK_ALLOCATION_ERROR(worker->vertex_data)
 							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
+							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
 						worker->color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>46)&1)*0.35F+0.65F));
@@ -1523,7 +1532,9 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 						if((size+1)>worker->mem_size) {
 							worker->mem_size += 512; //allow for 512 more quads
 							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							CHECK_ALLOCATION_ERROR(worker->vertex_data)
 							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
+							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
 						worker->color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>42)&1)*0.35F+0.65F));
@@ -1569,7 +1580,9 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 						if((size+1)>worker->mem_size) {
 							worker->mem_size += 512; //allow for 512 more quads
 							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							CHECK_ALLOCATION_ERROR(worker->vertex_data)
 							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
+							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
 						worker->color_data[chunk_color_index++] = (int)(r*(((col>>34)&1)*0.35F+0.65F));
@@ -1610,7 +1623,9 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 						if((size+1)>worker->mem_size) {
 							worker->mem_size += 512; //allow for 512 more quads
 							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							CHECK_ALLOCATION_ERROR(worker->vertex_data)
 							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
+							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
 						worker->color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>38)&1)*0.35F+0.65F));

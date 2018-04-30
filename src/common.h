@@ -163,3 +163,8 @@ extern char text_input_first;
 
 extern int ms_seed;
 int ms_rand(void);
+
+#define CHECK_ALLOCATION_ERROR(ret) if (!ret) { \
+printf("Critical error: memory allocation failed (%s:%d)", __func__, __LINE__); \
+exit(1); \
+}

@@ -135,6 +135,7 @@ static struct {
 static void map_update_physics_sub(int x, int y, int z) {
 	//TODO: remove calls to malloc and realloc
 	struct voxel* stack = malloc(4096*sizeof(struct voxel));
+	CHECK_ALLOCATION_ERROR(stack)
 	int stack_depth = 1, stack_size = 64;
 	stack[0].x = x;
 	stack[0].y = y;
@@ -154,6 +155,7 @@ static void map_update_physics_sub(int x, int y, int z) {
 			if(stack_depth==stack_size) {
 				stack_size += 4096;
 				stack = realloc(stack,stack_size*sizeof(struct voxel));
+        		CHECK_ALLOCATION_ERROR(stack)
 			}
 		}
 		if(map_get(x,y+1,z)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x,y+1,z)) {
@@ -163,7 +165,8 @@ static void map_update_physics_sub(int x, int y, int z) {
 			stack[stack_depth++].z = z;
 			if(stack_depth==stack_size) {
 				stack_size += 4096;
-				stack = realloc(stack,stack_size*sizeof(struct voxel));
+                stack = realloc(stack,stack_size*sizeof(struct voxel));
+        		CHECK_ALLOCATION_ERROR(stack)
 			}
 		}
 		if(map_get(x+1,y,z)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x+1,y,z)) {
@@ -174,6 +177,7 @@ static void map_update_physics_sub(int x, int y, int z) {
 			if(stack_depth==stack_size) {
 				stack_size += 4096;
 				stack = realloc(stack,stack_size*sizeof(struct voxel));
+        		CHECK_ALLOCATION_ERROR(stack)
 			}
 		}
 		if(map_get(x-1,y,z)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x-1,y,z)) {
@@ -184,6 +188,7 @@ static void map_update_physics_sub(int x, int y, int z) {
 			if(stack_depth==stack_size) {
 				stack_size += 4096;
 				stack = realloc(stack,stack_size*sizeof(struct voxel));
+        		CHECK_ALLOCATION_ERROR(stack)
 			}
 		}
 		if(map_get(x,y,z+1)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x,y,z+1)) {
@@ -194,6 +199,7 @@ static void map_update_physics_sub(int x, int y, int z) {
 			if(stack_depth==stack_size) {
 				stack_size += 4096;
 				stack = realloc(stack,stack_size*sizeof(struct voxel));
+        		CHECK_ALLOCATION_ERROR(stack)
 			}
 		}
 		if(map_get(x,y,z-1)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x,y,z-1)) {
@@ -204,6 +210,7 @@ static void map_update_physics_sub(int x, int y, int z) {
 			if(stack_depth==stack_size) {
 				stack_size += 4096;
 				stack = realloc(stack,stack_size*sizeof(struct voxel));
+        		CHECK_ALLOCATION_ERROR(stack)
 			}
 		}
 
@@ -252,6 +259,7 @@ static void map_update_physics_sub(int x, int y, int z) {
 		if(!map_collapsing_structures[k].used) {
 			float px = 0.0F,py = 0.0F,pz = 0.0F;
 			map_collapsing_structures[k].voxels_color = malloc(stack_depth*sizeof(unsigned int));
+			CHECK_ALLOCATION_ERROR(map_collapsing_structures[k].voxels_color)
 			for(int i=0;i<stack_depth;i++) {
 				px += stack[i].x+0.5F;
 				py += stack[i].y+0.5F;

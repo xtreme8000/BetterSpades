@@ -15,6 +15,7 @@ void* list_add(struct list* l, void* e) {
     if((l->elements+1)*l->element_size>l->mem_size) {
         l->mem_size += l->element_size*64;
         l->data = realloc(l->data,l->mem_size);
+        CHECK_ALLOCATION_ERROR(l->data)
     }
     memcpy(l->data+l->elements*l->element_size,e,l->element_size);
     return l->data+(l->elements++)*l->element_size;
@@ -26,12 +27,14 @@ void list_remove(struct list* l, int i) {
     if(l->mem_size-64*l->element_size>0 && (l->elements+1)*l->element_size<l->mem_size-96*l->element_size) {
         l->mem_size -= l->element_size*64;
         l->data = realloc(l->data,l->mem_size);
+        CHECK_ALLOCATION_ERROR(l->data)
     }
 }
 
 void list_clear(struct list* l) {
     l->mem_size = l->element_size*64;
     l->data = realloc(l->data,l->mem_size);
+    CHECK_ALLOCATION_ERROR(l->data)
     l->elements = 0;
     l->mem_size = 0;
 }

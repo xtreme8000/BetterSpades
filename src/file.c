@@ -33,6 +33,7 @@ unsigned char* file_load(const char* name) {
 	fseek(f,0,SEEK_END);
 	int size = ftell(f);
 	unsigned char* data = malloc(size+1);
+	CHECK_ALLOCATION_ERROR(data)
 	data[size] = 0;
 	fseek(f,0,SEEK_SET);
 	fread(data,size,1,f);
