@@ -34,15 +34,15 @@ struct DamagedVoxel map_damaged_voxels[8] = {0};
 
 int map_damage(int x, int y, int z, int damage) {
 	for(int k=0;k<8;k++) {
-		if(glfwGetTime()-map_damaged_voxels[k].timer<=10.0F && map_damaged_voxels[k].x==x && map_damaged_voxels[k].y==y && map_damaged_voxels[k].z==z) {
+		if(window_time()-map_damaged_voxels[k].timer<=10.0F && map_damaged_voxels[k].x==x && map_damaged_voxels[k].y==y && map_damaged_voxels[k].z==z) {
 			map_damaged_voxels[k].damage = min(damage+map_damaged_voxels[k].damage,100);
-			map_damaged_voxels[k].timer = glfwGetTime();
+			map_damaged_voxels[k].timer = window_time();
 			return map_damaged_voxels[k].damage;
 		}
 	}
 	int r = 0;
 	for(int k=0;k<8;k++) {
-		if(glfwGetTime()-map_damaged_voxels[k].timer>10.0F) {
+		if(window_time()-map_damaged_voxels[k].timer>10.0F) {
 			r = k;
 			break;
 		}
@@ -51,7 +51,7 @@ int map_damage(int x, int y, int z, int damage) {
 	map_damaged_voxels[r].y = y;
 	map_damaged_voxels[r].z = z;
 	map_damaged_voxels[r].damage = damage;
-	map_damaged_voxels[r].timer = glfwGetTime();
+	map_damaged_voxels[r].timer = window_time();
 	return damage;
 }
 
@@ -66,7 +66,7 @@ void map_damaged_voxels_render() {
 		if(map_get(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z)==0xFFFFFFFF) {
 			map_damaged_voxels[k].timer = 0;
 		} else {
-			if(glfwGetTime()-map_damaged_voxels[k].timer<=10.0F) {
+			if(window_time()-map_damaged_voxels[k].timer<=10.0F) {
 				glColor4f(0.0F,0.0F,0.0F,(float)map_damaged_voxels[k].damage/100.0F*0.75F);
 				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
 				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
@@ -136,7 +136,7 @@ static void map_update_physics_sub(int x, int y, int z) {
 	//TODO: remove calls to malloc and realloc
 	struct voxel* stack = malloc(4096*sizeof(struct voxel));
 	CHECK_ALLOCATION_ERROR(stack)
-	int stack_depth = 1, stack_size = 64;
+	int stack_depth = 1, stack_size = 4096;
 	stack[0].x = x;
 	stack[0].y = y;
 	stack[0].z = z;

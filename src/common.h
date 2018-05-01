@@ -29,7 +29,6 @@
 #include <OpenGL/glext.h>
 #else
 #include <GL/gl.h>
-#include <GL/glu.h>
 #include "GL/glext.h"
 #endif
 
@@ -94,8 +93,8 @@
 #define MOUSE_SENSITIVITY 0.002F
 
 #include "glx.h"
-
 #include "list.h"
+#include "window.h"
 #include "sound.h"
 #include "texture.h"
 #include "chunk.h"
@@ -116,24 +115,17 @@
 #include "config.h"
 #include "hud.h"
 
+void reshape(struct window_instance* window, int width, int height);
+void text_input(struct window_instance* window, unsigned int codepoint);
+void keys(struct window_instance* window, int key, int scancode, int action, int mods);
+void mouse_click(struct window_instance* window, int button, int action, int mods);
+void mouse(struct window_instance* window, double x, double y);
+void mouse_scroll(struct window_instance* window, double xoffset, double yoffset);
+void on_error(int i, const char* s);
+
 unsigned char key_map[512];
 unsigned char button_map[3];
 unsigned char draw_outline;
-
-/*PFNGLPOINTPARAMETERFVPROC glPointParameterfv;
-PFNGLPOINTPARAMETERFPROC glPointParameterf;
-PFNGLCREATESHADERPROC glCreateShader;
-PFNGLSHADERSOURCEPROC glShaderSource;
-PFNGLCOMPILESHADERPROC glCompileShader;
-PFNGLCREATEPROGRAMPROC glCreateProgram;
-PFNGLATTACHSHADERPROC glAttachShader;
-PFNGLLINKPROGRAMPROC glLinkProgram;
-PFNGLUSEPROGRAMPROC glUseProgram;
-PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
-PFNGLUNIFORM1FPROC glUniform1f;
-PFNGLUNIFORM4FPROC glUniform4f;
-PFNGLUNIFORM1IPROC glUniform1i;
-PFNGLTEXIMAGE3DPROC glTexImage3D;*/
 
 #define CHAT_NO_INPUT	0
 #define CHAT_ALL_INPUT	1
@@ -149,11 +141,6 @@ extern char chat_popup[256];
 extern float chat_popup_timer;
 void chat_add(int channel, unsigned int color, const char* msg);
 void chat_showpopup(const char* msg);
-
-#define team_execute(t,team1,team2) switch(t) { case TEAM_1:{team1; break;} case TEAM_2:{team2; break;} }
-#define team_setcolor(t) team_execute(t,glColor3ub(gamestate.gamemode.team_1.red,gamestate.gamemode.team_1.green,gamestate.gamemode.team_1.blue),glColor3ub(gamestate.gamemode.team_2.red,gamestate.gamemode.team_2.green,gamestate.gamemode.team_2.blue))
-
-void glxcheckErrors(char* file, int line);
 
 #define SCREEN_NONE			0
 #define SCREEN_TEAM_SELECT	1

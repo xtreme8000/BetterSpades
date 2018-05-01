@@ -37,14 +37,14 @@ void particle_update(float dt) {
 	AABB a;
 	for(int k=0;k<PARTICLES_MAX;k++) {
 		if(particles[k].alive) {
-			if(!particles[k].fade /*&& glfwGetTime()-particles[k].created>=30.0F*/) {
-				particles[k].fade = glfwGetTime();
+			if(!particles[k].fade /*&& window_time()-particles[k].created>=30.0F*/) {
+				particles[k].fade = window_time();
 			}
 
 			a.min_x = a.min_y = a.min_z = 0.0F;
 			float size = particles[k].size;
 			if(particles[k].fade) {
-				size *= 1.0F-((float)(glfwGetTime()-particles[k].fade)/2.0F);
+				size *= 1.0F-((float)(window_time()-particles[k].fade)/2.0F);
 			}
 			if(size<0.01F) {
 				particles[k].alive = 0;
@@ -100,7 +100,7 @@ void particle_update(float dt) {
 						can_fade = 0;
 					}
 					if(can_fade && !particles[k].fade) {
-						particles[k].fade = glfwGetTime();
+						particles[k].fade = window_time();
 					}
 				} else {
 					particles[k].vx *= pow(0.4F,dt);
@@ -124,7 +124,7 @@ int particle_render() {
 		if(particles[k].alive) {
 			float size = particles[k].size/2.0F;
 			if(particles[k].fade) {
-				size *= 1.0F-((float)(glfwGetTime()-particles[k].fade)/2.0F);
+				size *= 1.0F-((float)(window_time()-particles[k].fade)/2.0F);
 			}
 
 			if(particles[k].type==255) {
@@ -215,7 +215,7 @@ int particle_render() {
 				matrix_push();
 				matrix_identity();
 				matrix_translate(particles[k].x,particles[k].y,particles[k].z);
-				matrix_pointAt(particles[k].ox,particles[k].oy,particles[k].oz);
+				matrix_pointAt(particles[k].ox,particles[k].oy*max(1.0F-(window_time()-particles[k].created)/0.5F,0.0F),particles[k].oz);
 				matrix_rotate(90.0F,0.0F,1.0F,0.0F);
 				matrix_upload();
 				kv6_render((struct kv6_t*[]){&model_semi_casing,&model_smg_casing,&model_shotgun_casing}[particles[k].type],TEAM_1);
@@ -250,7 +250,7 @@ void particle_create_casing(struct Player* p) {
             particles[k].vx = p->casing_dir.x*3.5F;
             particles[k].vy = p->casing_dir.y*3.5F;
             particles[k].vz = p->casing_dir.z*3.5F;
-            particles[k].created = glfwGetTime();
+            particles[k].created = window_time();
             particles[k].fade = 0;
             particles[k].type = p->weapon;
             particles[k].color = 0x00FFFF;
@@ -274,7 +274,7 @@ void particle_create(unsigned int color, float x, float y, float z, float veloci
 			particles[k].vx = (particles[k].vx/len)*velocity;
 			particles[k].vy = (particles[k].vy/len)*velocity*velocity_y;
 			particles[k].vz = (particles[k].vz/len)*velocity;
-			particles[k].created = glfwGetTime();
+			particles[k].created = window_time();
 			particles[k].fade = 0;
 			particles[k].color = color;
 			particles[k].type = 255;

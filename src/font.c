@@ -73,17 +73,17 @@ void font_render(float x, float y, float h, char* text) {
 
 
             //texture coordinates
-            font_coords_buffer[k+0] = tx*4096.0F;
-            font_coords_buffer[k+1] = (ty+1.0F/((float)chars_y))*4096.0F;
+            font_coords_buffer[k+0] = tx*8192.0F;
+            font_coords_buffer[k+1] = (ty+1.0F/((float)chars_y))*8192.0F;
 
-            font_coords_buffer[k+2] = (tx+1.0F/((float)chars_x))*4096.0F;
-            font_coords_buffer[k+3] = (ty+1.0F/((float)chars_y))*4096.0F;
+            font_coords_buffer[k+2] = (tx+1.0F/((float)chars_x))*8192.0F;
+            font_coords_buffer[k+3] = (ty+1.0F/((float)chars_y))*8192.0F;
 
-            font_coords_buffer[k+4] = (tx+1.0F/((float)chars_x))*4096.0F;
-            font_coords_buffer[k+5] = ty*4096.0F;
+            font_coords_buffer[k+4] = (tx+1.0F/((float)chars_x))*8192.0F;
+            font_coords_buffer[k+5] = ty*8192.0F;
 
-            font_coords_buffer[k+6] = tx*4096.0F;
-            font_coords_buffer[k+7] = ty*4096.0F;
+            font_coords_buffer[k+6] = tx*8192.0F;
+            font_coords_buffer[k+7] = ty*8192.0F;
             i += h*size_ratio;
             k += 8;
         }
@@ -92,7 +92,7 @@ void font_render(float x, float y, float h, char* text) {
 
     glMatrixMode(GL_TEXTURE);
     glLoadIdentity();
-    glScalef(1.0F/4096.0F,1.0F/4096.0F,1.0F);
+    glScalef(1.0F/8192.0F,1.0F/8192.0F,1.0F);
     glMatrixMode(GL_MODELVIEW);
 
     glEnable(GL_TEXTURE_2D);

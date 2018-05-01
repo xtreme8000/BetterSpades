@@ -25,7 +25,7 @@ struct Grenade* grenade_add() {
     for(int k=0;k<GRENADES_MAX;k++) {
         if(!grenades[k].active) {
             grenades[k].active = 1;
-            grenades[k].created = glfwGetTime();
+            grenades[k].created = window_time();
             return &grenades[k];
         }
     }
@@ -123,7 +123,7 @@ int grenade_move(struct Grenade* g, float dt) {
 void grenade_update(float dt) {
     for(int k=0;k<GRENADES_MAX;k++) {
         if(grenades[k].active) {
-            if(glfwGetTime()-grenades[k].created>grenades[k].fuse_length) {
+            if(window_time()-grenades[k].created>grenades[k].fuse_length) {
                 sound_createEx(NULL,SOUND_WORLD,
                     (grenades[k].pos.y<1.0F)?&sound_explode_water:&sound_explode,
                     grenades[k].pos.x,grenades[k].pos.y,grenades[k].pos.z,
@@ -143,7 +143,7 @@ void grenade_update(float dt) {
                 matrix_push();
                 matrix_translate(grenades[k].pos.x,grenades[k].pos.y+(model_grenade.zpiv+model_grenade.zsiz*2)*model_grenade.scale,grenades[k].pos.z);
                 if(fabs(grenades[k].velocity.x)>0.05F && fabs(grenades[k].velocity.y)>0.05F && fabs(grenades[k].velocity.z)>0.05F) {
-                    matrix_rotate(-glfwGetTime()*720.0F,-grenades[k].velocity.z,0.0F,grenades[k].velocity.x);
+                    matrix_rotate(-window_time()*720.0F,-grenades[k].velocity.z,0.0F,grenades[k].velocity.x);
                 }
                 matrix_upload();
                 kv6_render(&model_grenade,TEAM_1);

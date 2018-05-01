@@ -41,37 +41,41 @@ void cameracontroller_fps(float dt) {
     }
 
     if(cooldown) {
-        players[local_player_id].item_disabled = glfwGetTime();
-		players[local_player_id].items_show_start = glfwGetTime();
+        players[local_player_id].item_disabled = window_time();
+		players[local_player_id].items_show_start = window_time();
 		players[local_player_id].items_show = 1;
     }
 
     if(chat_input_mode==CHAT_NO_INPUT) {
-    	players[local_player_id].input.keys.up = key_map[GLFW_KEY_W];
-    	players[local_player_id].input.keys.down = key_map[GLFW_KEY_S];
-    	players[local_player_id].input.keys.left = key_map[GLFW_KEY_A];
-    	players[local_player_id].input.keys.right = key_map[GLFW_KEY_D];
-        if(players[local_player_id].input.keys.crouch && !key_map[GLFW_KEY_LEFT_CONTROL] && player_uncrouch(&players[local_player_id])) {
+    	players[local_player_id].input.keys.up = window_key_down(WINDOW_KEY_UP);
+    	players[local_player_id].input.keys.down = window_key_down(WINDOW_KEY_DOWN);
+    	players[local_player_id].input.keys.left = window_key_down(WINDOW_KEY_LEFT);
+    	players[local_player_id].input.keys.right = window_key_down(WINDOW_KEY_RIGHT);
+        if(players[local_player_id].input.keys.crouch && !window_key_down(WINDOW_KEY_CROUCH) && player_uncrouch(&players[local_player_id])) {
             players[local_player_id].input.keys.crouch = 0;
         }
-        if(key_map[GLFW_KEY_LEFT_CONTROL]) {
+        if(window_key_down(WINDOW_KEY_CROUCH)) {
             players[local_player_id].input.keys.crouch = 1;
         }
-    	//players[local_player_id].input.keys.crouch = key_map[GLFW_KEY_LEFT_CONTROL];
-    	players[local_player_id].input.keys.sprint = key_map[GLFW_KEY_LEFT_SHIFT];
-        players[local_player_id].input.keys.jump = key_map[GLFW_KEY_SPACE];
-        players[local_player_id].input.keys.sneak = key_map[GLFW_KEY_V];
+    	//players[local_player_id].input.keys.crouch = window_key_down(WINDOW_KEY_CROUCH);
+    	players[local_player_id].input.keys.sprint = window_key_down(WINDOW_KEY_SPRINT);
+        players[local_player_id].input.keys.jump = window_key_down(WINDOW_KEY_SPACE);
+        players[local_player_id].input.keys.sneak = window_key_down(WINDOW_KEY_SNEAK);
+
+        if(window_key_down(WINDOW_KEY_SPACE) && !players[local_player_id].physics.airborne) {
+            players[local_player_id].physics.jump = 1;
+        }
     }
 
     camera_x = players[local_player_id].physics.eye.x;
     camera_y = players[local_player_id].physics.eye.y+player_height(&players[local_player_id]);
     camera_z = players[local_player_id].physics.eye.z;
 
-    if(key_map[GLFW_KEY_LEFT_SHIFT]) {
-        players[local_player_id].item_disabled = glfwGetTime();
+    if(window_key_down(WINDOW_KEY_SPRINT)) {
+        players[local_player_id].item_disabled = window_time();
     } else {
-        if(glfwGetTime()-players[local_player_id].item_disabled<0.4F && !players[local_player_id].items_show) {
-            players[local_player_id].items_show_start = glfwGetTime();
+        if(window_time()-players[local_player_id].item_disabled<0.4F && !players[local_player_id].items_show) {
+            players[local_player_id].items_show_start = window_time();
             players[local_player_id].items_show = 1;
         }
     }
@@ -79,10 +83,6 @@ void cameracontroller_fps(float dt) {
     players[local_player_id].input.buttons.lmb = button_map[0];
     if(players[local_player_id].held_item!=TOOL_GUN) {
         players[local_player_id].input.buttons.rmb = button_map[1];
-    }
-
-    if(key_map[GLFW_KEY_SPACE] && !players[local_player_id].physics.airborne) {
-        players[local_player_id].physics.jump = 1;
     }
 
     if(chat_input_mode!=CHAT_NO_INPUT) {
@@ -95,9 +95,9 @@ void cameracontroller_fps(float dt) {
 	lz = lz*pow(0.7F,dt*60.0F)+(cos(camera_rot_x)*sin(camera_rot_y))*pow(0.3F,dt*60.0F);
 
     float len = sqrt(lx*lx+ly*ly+lz*lz);
-    players[local_player_id].orientation.x = lx/len;
-	players[local_player_id].orientation.y = ly/len;
-	players[local_player_id].orientation.z = lz/len;
+    players[local_player_id].orientation.x = players[local_player_id].orientation_smooth.x = lx/len;
+	players[local_player_id].orientation.y = players[local_player_id].orientation_smooth.y = ly/len;
+	players[local_player_id].orientation.z = players[local_player_id].orientation_smooth.z = lz/len;
 
     camera_vx = players[local_player_id].physics.velocity.x;
     camera_vy = players[local_player_id].physics.velocity.y;
@@ -113,32 +113,32 @@ void cameracontroller_spectator(float dt) {
 
     float x = 0.0F, y = 0.0F, z = 0.0F;
 
-	if(key_map[GLFW_KEY_W]) {
+	if(window_key_down(WINDOW_KEY_UP)) {
 		x += sin(camera_rot_x)*sin(camera_rot_y);
 		y += cos(camera_rot_y);
 		z += cos(camera_rot_x)*sin(camera_rot_y);
 	} else {
-		if(key_map[GLFW_KEY_S]) {
+		if(window_key_down(WINDOW_KEY_DOWN)) {
 			x -= sin(camera_rot_x)*sin(camera_rot_y);
 			y -= cos(camera_rot_y);
 			z -= cos(camera_rot_x)*sin(camera_rot_y);
 		}
 	}
 
-	if(key_map[GLFW_KEY_A]) {
+	if(window_key_down(WINDOW_KEY_LEFT)) {
 		x += sin(camera_rot_x+1.57);
 		z += cos(camera_rot_x+1.57);
 	} else {
-		if(key_map[GLFW_KEY_D]) {
+		if(window_key_down(WINDOW_KEY_RIGHT)) {
 			x += sin(camera_rot_x-1.57);
 			z += cos(camera_rot_x-1.57);
 		}
 	}
 
-	if(key_map[GLFW_KEY_SPACE]) {
+	if(window_key_down(WINDOW_KEY_SPACE)) {
 		y++;
 	} else {
-		if(key_map[GLFW_KEY_LEFT_CONTROL]) {
+		if(window_key_down(WINDOW_KEY_CROUCH)) {
 			y--;
 		}
 	}

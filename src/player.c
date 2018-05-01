@@ -54,8 +54,10 @@ struct Player players[PLAYERS_MAX];
 #define FALL_DAMAGE_SCALAR 4096
 
 void player_init() {
-    for(int k=0;k<PLAYERS_MAX;k++)
+    for(int k=0;k<PLAYERS_MAX;k++) {
         player_reset(&players[k]);
+        players[k].score = 0;
+    }
 }
 
 void player_reset(struct Player* p) {
@@ -96,7 +98,7 @@ float* player_tool_func(struct Player* p) {
     switch(p->held_item) {
         case TOOL_SPADE:
         {
-            float t = glfwGetTime()-p->spade_use_timer;
+            float t = window_time()-p->spade_use_timer;
             if(p->spade_use_type==1 && t>0.2F) {
                 return ret;
             }
@@ -127,18 +129,18 @@ float* player_tool_func(struct Player* p) {
                 }
             } else {
                 if(p->input.buttons.lmb) {
-                    ret[0] = (player_swing_func((glfwGetTime()-p->spade_use_timer)*2.5F)+1.0F)/2.0F*60.0F;
+                    ret[0] = (player_swing_func((window_time()-p->spade_use_timer)*2.5F)+1.0F)/2.0F*60.0F;
                     return ret;
                 }
                 if(p->input.buttons.rmb) {
-                    ret[0] = (player_swing_func((glfwGetTime()-p->spade_use_timer)*0.5F)+1.0F)/2.0F*60.0F;
+                    ret[0] = (player_swing_func((window_time()-p->spade_use_timer)*0.5F)+1.0F)/2.0F*60.0F;
                     return ret;
                 }
             }
         }
         //case TOOL_GRENADE:
             /*if(p->input.buttons.lmb && p!=&players[local_player_id]) {
-                ret[0] = max(-(glfwGetTime()-p->input.buttons.lmb_start)*35.0F,-35.0F);
+                ret[0] = max(-(window_time()-p->input.buttons.lmb_start)*35.0F,-35.0F);
                 return ret;
             } else {
                 return ret;
@@ -151,16 +153,16 @@ float* player_tool_translate_func(struct Player* p) {
     static float ret[3];
     ret[0] = ret[1] = ret[2] = 0.0F;
     if(p==&players[local_player_id] && camera_mode==CAMERAMODE_FPS) {
-        if(glfwGetTime()-p->item_showup<0.5F) {
+        if(window_time()-p->item_showup<0.5F) {
             return ret;
         }
-        if(p->held_item==TOOL_GUN && glfwGetTime()-weapon_last_shot<weapon_delay(players[local_player_id].weapon)) {
-            ret[2] = -(weapon_delay(players[local_player_id].weapon)-(glfwGetTime()-weapon_last_shot))/weapon_delay(players[local_player_id].weapon)*weapon_recoil(players[local_player_id].weapon)*(local_player_ammo>0);
+        if(p->held_item==TOOL_GUN && window_time()-weapon_last_shot<weapon_delay(players[local_player_id].weapon)) {
+            ret[2] = -(weapon_delay(players[local_player_id].weapon)-(window_time()-weapon_last_shot))/weapon_delay(players[local_player_id].weapon)*weapon_recoil(players[local_player_id].weapon)*(local_player_ammo>0);
             return ret;
         }
 
         if(p->held_item==TOOL_SPADE) {
-            float t = glfwGetTime()-p->spade_use_timer;
+            float t = window_time()-p->spade_use_timer;
             if(t>1.0F) {
                 return ret;
             }
@@ -177,7 +179,7 @@ float* player_tool_translate_func(struct Player* p) {
         }
         if(p->held_item==TOOL_GRENADE) {
             if(p->input.buttons.lmb) {
-                ret[1] = (glfwGetTime()-p->input.buttons.lmb_start)*1.3F;
+                ret[1] = (window_time()-p->input.buttons.lmb_start)*1.3F;
                 ret[0] = -ret[1];
                 return ret;
             } else {
@@ -241,6 +243,13 @@ void player_update(float dt) {
     ray.direction.z = cos(camera_rot_x)*sin(camera_rot_y);
 
     for(int k=0;k<PLAYERS_MAX;k++) {
+        //smooth out player orientation
+        if(players[k].connected && k!=local_player_id) {
+            players[k].orientation_smooth.x = players[k].orientation_smooth.x*pow(0.7F,dt*60.0F)+players[k].orientation.x*pow(0.3F,dt*60.0F);
+            players[k].orientation_smooth.y = players[k].orientation_smooth.y*pow(0.7F,dt*60.0F)+players[k].orientation.y*pow(0.3F,dt*60.0F);
+            players[k].orientation_smooth.z = players[k].orientation_smooth.z*pow(0.7F,dt*60.0F)+players[k].orientation.z*pow(0.3F,dt*60.0F);
+        }
+
         if(!players[k].input.buttons.lmb && !players[k].input.buttons.rmb) {
             players[k].spade_used = 0;
             if(players[k].spade_use_type==1)
@@ -250,10 +259,10 @@ void player_update(float dt) {
         }
         if(players[k].connected && players[k].alive && players[k].held_item==TOOL_SPADE
             && (players[k].input.buttons.lmb || players[k].input.buttons.rmb)
-            && glfwGetTime()-players[k].item_showup>=0.5F) {
+            && window_time()-players[k].item_showup>=0.5F) {
             //now run a hitscan and see if any block or player is in the way
             struct Camera_HitType hit;
-            if(players[k].input.buttons.lmb && glfwGetTime()-players[k].spade_use_timer>0.2F) {
+            if(players[k].input.buttons.lmb && window_time()-players[k].spade_use_timer>0.2F) {
                 camera_hit_fromplayer(&hit,k,4.0F);
                 switch(hit.type) {
                     case CAMERA_HITTYPE_BLOCK:
@@ -287,10 +296,10 @@ void player_update(float dt) {
                 }
                 players[k].spade_use_type = 1;
                 players[k].spade_used = 1;
-                players[k].spade_use_timer = glfwGetTime();
+                players[k].spade_use_timer = window_time();
             }
 
-            if(players[k].input.buttons.rmb && glfwGetTime()-players[k].spade_use_timer>1.0F) {
+            if(players[k].input.buttons.rmb && window_time()-players[k].spade_use_timer>1.0F) {
                 if(players[k].spade_used) {
                     camera_hit_fromplayer(&hit,k,4.0F);
                     if(hit.type==CAMERA_HITTYPE_BLOCK) {
@@ -310,7 +319,7 @@ void player_update(float dt) {
                 }
                 players[k].spade_use_type = 2;
                 players[k].spade_used = 1;
-                players[k].spade_use_timer = glfwGetTime();
+                players[k].spade_use_timer = window_time();
             }
         }
         if(players[k].connected && k!=local_player_id) {
@@ -340,7 +349,7 @@ void player_update(float dt) {
             }
 
             if(players[k].alive && players[k].held_item==TOOL_GUN && players[k].input.buttons.lmb) {
-                if(glfwGetTime()-players[k].gun_shoot_timer>weapon_delay(players[k].weapon) && players[k].ammo>0) {
+                if(window_time()-players[k].gun_shoot_timer>weapon_delay(players[k].weapon) && players[k].ammo>0) {
                     players[k].ammo--;
                     sound_create(NULL,SOUND_WORLD,weapon_sound(players[k].weapon),
                                    players[k].pos.x,players[k].pos.y,players[k].pos.z
@@ -375,7 +384,7 @@ void player_update(float dt) {
                             particle_create(map_get(hit.x,hit.y,hit.z),hit.xb+0.5F,hit.yb+0.5F,hit.zb+0.5F,2.5F,1.0F,4,0.1F,0.25F);
                             break;
                     }
-                    players[k].gun_shoot_timer = glfwGetTime();
+                    players[k].gun_shoot_timer = window_time();
                 }
             }
         }
@@ -383,7 +392,7 @@ void player_update(float dt) {
 }
 
 static float foot_function(struct Player* p) {
-    float f = (glfwGetTime()-p->sound.feet_started_cycle)/(p->input.keys.sprint?(0.5F/1.3F):0.5F);
+    float f = (window_time()-p->sound.feet_started_cycle)/(p->input.keys.sprint?(0.5F/1.3F):0.5F);
     f = f*2.0F-1.0F;
     return p->sound.feet_cylce?f:-f;
 }
@@ -399,15 +408,16 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
         matrix_rotate(-camera_rot_y/PI*180.0F+90.0F,1.0F,0.0F,0.0F);
         matrix_scale(1.0F/92.0F,1.0F/92.0F,1.0F/92.0F);
         matrix_upload();
+        //int a = 255-sqrt(distance2D(p->pos.x,p->pos.z,camera_x,camera_z))/settings.render_distance*255;
         switch(p->team) {
             case TEAM_1:
-                glColor3ub(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue);
+                glColor4ub(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue,255);
                 break;
             case TEAM_2:
-                glColor3ub(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue);
+                glColor4ub(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue,255);
                 break;
             default:
-                glColor3f(1.0F,1.0F,1.0F);
+                glColor4f(1.0F,1.0F,1.0F,1.0F);
         }
         font_select(FONT_FIXEDSYS);
         glEnable(GL_ALPHA_TEST);
@@ -422,10 +432,15 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
             glx_enable_sphericalfog();
     }
 
+    float l = sqrt(distance3D(p->orientation_smooth.x,p->orientation_smooth.y,p->orientation_smooth.z,0,0,0));
+    float ox = p->orientation_smooth.x/l;
+    float oy = p->orientation_smooth.y/l;
+    float oz = p->orientation_smooth.z/l;
+
     if(!p->alive) {
         matrix_push();
         matrix_translate(p->pos.x,p->pos.y+0.25F,p->pos.z);
-        matrix_pointAt(p->orientation.x,0.0F,p->orientation.z);
+        matrix_pointAt(ox,0.0F,oz);
         matrix_rotate(90.0F,0.0F,1.0F,0.0F);
         matrix_upload();
         if(render)
@@ -434,7 +449,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
         return 0;
     }
 
-    float time = glfwGetTime()*1000.0F;
+    float time = window_time()*1000.0F;
 
     struct kv6_t* torso = p->input.keys.crouch?&model_playertorsoc:&model_playertorso;
     struct kv6_t* leg = p->input.keys.crouch?&model_playerlegc:&model_playerleg;
@@ -457,7 +472,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
     if(id!=local_player_id || !p->alive || camera_mode!=CAMERAMODE_FPS) {
         matrix_push();
         matrix_translate(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
-        matrix_pointAt(p->orientation.x,p->orientation.y,p->orientation.z);
+        matrix_pointAt(ox,oy,oz);
         matrix_rotate(90.0F,0.0F,1.0F,0.0F);
         matrix_upload();
         if(render)
@@ -469,7 +484,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 
         matrix_push();
         matrix_translate(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z-0.01F);
-        matrix_pointAt(p->orientation.x,0.0F,p->orientation.z);
+        matrix_pointAt(ox,0.0F,oz);
         matrix_rotate(90.0F,0.0F,1.0F,0.0F);
         matrix_upload();
         if(render)
@@ -484,7 +499,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
             (gamestate.gamemode.ctf.team_2_intel && gamestate.gamemode.ctf.team_2_intel_location.held.player_id==id))) {
             matrix_push();
             matrix_translate(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
-            matrix_pointAt(-p->orientation.z,0.0F,p->orientation.x);
+            matrix_pointAt(-oz,0.0F,ox);
             matrix_translate((torso->xsiz-model_intel.xsiz)*0.5F*torso->scale,
                             -(torso->zpiv-torso->zsiz*0.5F+model_intel.zsiz*(p->input.keys.crouch?0.125F:0.25F))*torso->scale,
                             (torso->ypiv+model_intel.ypiv)*torso->scale);
@@ -504,7 +519,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 
         matrix_push();
         matrix_translate(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
-        matrix_pointAt(p->orientation.x,0.0F,p->orientation.z);
+        matrix_pointAt(ox,0.0F,oz);
         matrix_rotate(90.0F,0.0F,1.0F,0.0F);
         matrix_translate(torso->xsiz*0.1F*0.5F-leg->xsiz*0.1F*0.5F,-torso->zsiz*0.1F*(p->input.keys.crouch?0.6F:1.0F),p->input.keys.crouch?(-torso->zsiz*0.1F*0.75F):0.0F);
         matrix_rotate(45.0F*foot_function(p)*a,1.0F,0.0F,0.0F);
@@ -519,7 +534,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 
         matrix_push();
         matrix_translate(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
-        matrix_pointAt(p->orientation.x,0.0F,p->orientation.z);
+        matrix_pointAt(ox,0.0F,oz);
         matrix_rotate(90.0F,0.0F,1.0F,0.0F);
         matrix_translate(-torso->xsiz*0.1F*0.5F+leg->xsiz*0.1F*0.5F,-torso->zsiz*0.1F*(p->input.keys.crouch?0.6F:1.0F),p->input.keys.crouch?(-torso->zsiz*0.1F*0.75F):0.0F);
         matrix_rotate(-45.0F*foot_function(p)*a,1.0F,0.0F,0.0F);
@@ -535,7 +550,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 
     matrix_push();
     matrix_translate(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
-    matrix_pointAt(p->orientation.x,p->orientation.y,p->orientation.z);
+    matrix_pointAt(ox,oy,oz);
     matrix_rotate(90.0F,0.0F,1.0F,0.0F);
     if(id==local_player_id && camera_mode==CAMERAMODE_FPS)
         matrix_translate(0.0F,-2*0.1F,-2*0.1F);
@@ -551,8 +566,8 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
     if(p->input.keys.sprint && !p->input.keys.crouch)
         matrix_rotate(45.0F,1.0F,0.0F,0.0F);
 
-    if(id==local_player_id && glfwGetTime()-p->item_showup<0.5F)
-        matrix_rotate(45.0F-(glfwGetTime()-p->item_showup)*90.0F,1.0F,0.0F,0.0F);
+    if(id==local_player_id && window_time()-p->item_showup<0.5F)
+        matrix_rotate(45.0F-(window_time()-p->item_showup)*90.0F,1.0F,0.0F,0.0F);
 
     if(!(p->held_item==TOOL_SPADE && id==local_player_id && camera_mode==CAMERAMODE_FPS)) {
         float* angles = player_tool_func(p);
@@ -569,7 +584,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
     }
 
     matrix_translate(-3.5F*0.1F+0.01F,0.0F,10*0.1F);
-    if(p->held_item==TOOL_SPADE && id==local_player_id && glfwGetTime()-p->item_showup>=0.5F && camera_mode==CAMERAMODE_FPS) {
+    if(p->held_item==TOOL_SPADE && id==local_player_id && window_time()-p->item_showup>=0.5F && camera_mode==CAMERAMODE_FPS) {
         float* angles = player_tool_func(p);
         matrix_translate(0.0F,(model_spade.zpiv-model_spade.zsiz)*0.05F,0.0F);
         matrix_rotate(angles[0],1.0F,0.0F,0.0F);
@@ -652,7 +667,7 @@ void player_reposition(struct Player* p)  {
     p->physics.eye.x = p->pos.x;
     p->physics.eye.y = p->pos.y;
     p->physics.eye.z = p->pos.z;
-    float f = p->physics.lastclimb-glfwGetTime();
+    float f = p->physics.lastclimb-window_time();
     if(f>-0.25F && !p->input.keys.crouch) {
         p->physics.eye.z += (f+0.25F)/0.25F;
         if(&players[local_player_id]==p) {
@@ -768,7 +783,7 @@ void player_boxclipmove(struct Player* p, float fsynctics) {
     	{
     		p->physics.velocity.x *= 0.5f;
     		p->physics.velocity.y *= 0.5f;
-    		p->physics.lastclimb = glfwGetTime();
+    		p->physics.lastclimb = window_time();
     		nz--;
     		m = -1.35f;
     	}
@@ -902,16 +917,16 @@ int player_move(struct Player* p, float fsynctics, int id) {
     if(p->input.keys.up || p->input.keys.down || p->input.keys.left || p->input.keys.right) {
 
 
-        if(glfwGetTime()-p->sound.feet_started>(p->input.keys.sprint?(0.5F/1.3F):0.5F)
+        if(window_time()-p->sound.feet_started>(p->input.keys.sprint?(0.5F/1.3F):0.5F)
            && sqrt(pow(p->physics.velocity.x,2.0F)+pow(p->physics.velocity.z,2.0F))>0.125F
            && !p->physics.airborne) {
             struct Sound_wav* footstep[8] = {&sound_footstep1,&sound_footstep2,&sound_footstep3,&sound_footstep4,
                                              &sound_wade1,&sound_wade2,&sound_wade3,&sound_wade4};
             sound_create(NULL,local?SOUND_LOCAL:SOUND_WORLD,footstep[(rand()%4)+(p->physics.wade?4:0)],p->pos.x,p->pos.y,p->pos.z)->stick_to_player = id;
-            p->sound.feet_started = glfwGetTime();
+            p->sound.feet_started = window_time();
         }
-        if(glfwGetTime()-p->sound.feet_started_cycle>(p->input.keys.sprint?(0.5F/1.3F):0.5F)) {
-            p->sound.feet_started_cycle = glfwGetTime();
+        if(window_time()-p->sound.feet_started_cycle>(p->input.keys.sprint?(0.5F/1.3F):0.5F)) {
+            p->sound.feet_started_cycle = window_time();
             p->sound.feet_cylce = !p->sound.feet_cylce;
         }
     }

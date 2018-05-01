@@ -24,7 +24,7 @@
 
 extern struct GameState {
 	struct Team {
-		char name[10];
+		char name[11];
 		unsigned char red,green,blue;
 	} team_1;
 	struct Team team_2;
@@ -70,6 +70,7 @@ extern struct Player {
 	struct Orientation {
 		float x,y,z;
 	} orientation;
+	struct Orientation orientation_smooth;
 	struct Position gun_pos;
 	struct Position casing_dir;
 	float gun_shoot_timer;

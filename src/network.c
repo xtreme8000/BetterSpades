@@ -199,12 +199,16 @@ void read_PacketBlockLine(void* data, int len) {
 void read_PacketStateData(void* data, int len) {
 	struct PacketStateData* p = (struct PacketStateData*)data;
 
-	strcpy(gamestate.team_1.name,p->team_1_name);
+	memcpy(gamestate.team_1.name,p->team_1_name,sizeof(p->team_1_name));
+	gamestate.team_1.name[sizeof(p->team_1_name)] = 0;
+
 	gamestate.team_1.red = p->team_1_red;
 	gamestate.team_1.green = p->team_1_green;
 	gamestate.team_1.blue = p->team_1_blue;
 
-	strcpy(gamestate.team_2.name,p->team_2_name);
+	memcpy(gamestate.team_2.name,p->team_2_name,sizeof(p->team_1_name));
+	gamestate.team_2.name[sizeof(p->team_1_name)] = 0;
+
 	gamestate.team_2.red = p->team_2_red;
 	gamestate.team_2.green = p->team_2_green;
 	gamestate.team_2.blue = p->team_2_blue;
@@ -229,7 +233,7 @@ void read_PacketStateData(void* data, int len) {
 	fog_color[2] = p->fog_blue/255.0F;
 
 	texture_gradient_fog((unsigned int*)texture_gradient.pixels);
-    texture_create_buffer(&texture_gradient,256,256,texture_gradient.pixels);
+    texture_create_buffer(&texture_gradient,512,512,texture_gradient.pixels);
 
 	local_player_id = p->player_id;
 	local_player_health = 100;
@@ -291,7 +295,7 @@ void read_PacketFogColor(void* data, int len) {
 	fog_color[1] = p->green/255.0F;
 	fog_color[2] = p->blue/255.0F;
 	texture_gradient_fog((unsigned int*)texture_gradient.pixels);
-    texture_create_buffer(&texture_gradient,256,256,texture_gradient.pixels);
+    texture_create_buffer(&texture_gradient,512,512,texture_gradient.pixels);
 }
 
 void read_PacketExistingPlayer(void* data, int len) {
@@ -332,6 +336,7 @@ void read_PacketCreatePlayer(void* data, int len) {
 		players[p->player_id].orientation.x = (p->team==TEAM_1)?1.0F:-1.0F;
 		players[p->player_id].orientation.y = 0.0F;
 		players[p->player_id].orientation.z = 0.0F;
+
 		players[p->player_id].block.red = 111;
 		players[p->player_id].block.green = 111;
 		players[p->player_id].block.blue = 111;
@@ -398,6 +403,7 @@ void read_PacketMapStart(void* data, int len) {
 	}
 
 	player_init();
+	camera_mode = CAMERAMODE_SELECTION;
 }
 
 void read_PacketWorldUpdate(void* data, int len) {
@@ -409,9 +415,11 @@ void read_PacketWorldUpdate(void* data, int len) {
 			for(int k=0;k<(len/sizeof(struct PacketWorldUpdate075));k++) { //supports up to 256 players
 				struct PacketWorldUpdate075* p = (struct PacketWorldUpdate075*)(data+k*sizeof(struct PacketWorldUpdate075));
 				if(players[k].connected && players[k].alive && k!=local_player_id) {
-					players[k].pos.x = p->x;
-					players[k].pos.y = 63.0F-p->z;
-					players[k].pos.z = p->y;
+					if(distance3D(players[k].pos.x,players[k].pos.y,players[k].pos.z,p->x,63.0F-p->z,p->y)>0.1F*0.1F) {
+						players[k].pos.x = p->x;
+						players[k].pos.y = 63.0F-p->z;
+						players[k].pos.z = p->y;
+					}
 					players[k].orientation.x = p->ox;
 					players[k].orientation.y = -p->oz;
 					players[k].orientation.z = p->oy;
@@ -422,9 +430,11 @@ void read_PacketWorldUpdate(void* data, int len) {
 				for(int k=0;k<(len/sizeof(struct PacketWorldUpdate076));k++) {
 					struct PacketWorldUpdate076* p = (struct PacketWorldUpdate076*)(data+k*sizeof(struct PacketWorldUpdate076));
 					if(players[p->player_id].connected && players[p->player_id].alive && p->player_id!=local_player_id) {
-						players[p->player_id].pos.x = p->x;
-						players[p->player_id].pos.y = 63.0F-p->z;
-						players[p->player_id].pos.z = p->y;
+						if(distance3D(players[k].pos.x,players[k].pos.y,players[k].pos.z,p->x,63.0F-p->z,p->y)>0.1F*0.1F) {
+							players[p->player_id].pos.x = p->x;
+							players[p->player_id].pos.y = 63.0F-p->z;
+							players[p->player_id].pos.z = p->y;
+						}
 						players[p->player_id].orientation.x = p->ox;
 						players[p->player_id].orientation.y = -p->oz;
 						players[p->player_id].orientation.z = p->oy;
@@ -474,9 +484,9 @@ void read_PacketWeaponInput(void* data, int len) {
 		players[p->player_id].input.buttons.lmb = p->primary;
 		players[p->player_id].input.buttons.rmb = p->secondary;
 		if(p->primary)
-			players[p->player_id].input.buttons.lmb_start = glfwGetTime();
+			players[p->player_id].input.buttons.lmb_start = window_time();
 		if(p->secondary)
-			players[p->player_id].input.buttons.rmb_start = glfwGetTime();
+			players[p->player_id].input.buttons.rmb_start = window_time();
 	}
 }
 
@@ -493,7 +503,7 @@ void read_PacketKillAction(void* data, int len) {
 		if(p->player_id==local_player_id) {
 			camera_mode = CAMERAMODE_BODYVIEW;
 			cameracontroller_bodyview_player = local_player_id;
-			local_player_death_time = glfwGetTime();
+			local_player_death_time = window_time();
 			local_player_respawn_time = p->respawn_time;
 			local_player_respawn_cnt_last = 255;
 			sound_create(NULL,SOUND_LOCAL,&sound_death,0.0F,0.0F,0.0F);
@@ -571,7 +581,7 @@ void read_PacketSetHP(void* data, int len) {
 	struct PacketSetHP* p = (struct PacketSetHP*)data;
 	local_player_health = p->hp;
 	if(p->type==DAMAGE_SOURCE_GUN) {
-		local_player_last_damage_timer = glfwGetTime();
+		local_player_last_damage_timer = window_time();
 		local_player_last_damage_x = p->x;
 		local_player_last_damage_y = 63.0F-p->z;
 		local_player_last_damage_z = p->y;
@@ -733,7 +743,7 @@ void read_PacketProgressBar(void* data, int len) {
 		gamestate.progressbar.rate = p->rate;
 		gamestate.progressbar.tent = p->tent;
 		gamestate.progressbar.team_capturing = p->team_capturing;
-		gamestate.progressbar.update = glfwGetTime();
+		gamestate.progressbar.update = window_time();
 	}
 }
 
@@ -821,8 +831,8 @@ int network_connect_sub(char* ip, int port, int version) {
 		network_received_packets = 0;
 		network_connected = 1;
 
-		float start = glfwGetTime();
-		while(glfwGetTime()-start<1.0F) { //listen connection for 1s, check if server disconnects
+		float start = window_time();
+		while(window_time()-start<1.0F) { //listen connection for 1s, check if server disconnects
 			if(!network_update()) {
 				enet_peer_reset(peer);
 				return 0;
@@ -916,16 +926,16 @@ int network_update() {
 				network_tool_last = players[local_player_id].held_item;
 			}
 
-			if(glfwGetTime()-network_pos_update>1.0F) {
-				network_pos_update = glfwGetTime();
+			if(window_time()-network_pos_update>1.0F) {
+				network_pos_update = window_time();
 				struct PacketPositionData pos;
 				pos.x = players[local_player_id].pos.x;
 				pos.y = players[local_player_id].pos.z;
 				pos.z = 63.0F-players[local_player_id].pos.y;
 				network_send(PACKET_POSITIONDATA_ID,&pos,sizeof(pos));
 			}
-			if(glfwGetTime()-network_orient_update>0.05F) {
-				network_orient_update = glfwGetTime();
+			if(window_time()-network_orient_update>0.05F) {
+				network_orient_update = window_time();
 				struct PacketPositionData orient;
 				orient.x = players[local_player_id].orientation.x;
 				orient.y = players[local_player_id].orientation.z;

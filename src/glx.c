@@ -98,7 +98,6 @@ void glx_displaylist_draw(int id, int size) {
 		glBindBuffer(GL_ARRAY_BUFFER,0);
 		glDisableClientState(GL_COLOR_ARRAY);
 		glDisableClientState(GL_VERTEX_ARRAY);
-
 	}
 }
 

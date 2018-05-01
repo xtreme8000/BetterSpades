@@ -101,7 +101,10 @@ extern struct Sound_wav sound_debris;
 extern struct Sound_wav sound_bounce;
 extern struct Sound_wav sound_impact;
 
+extern float sound_global_volume;
 
+
+void sound_volume(float vol);
 struct Sound_source* sound_create(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z);
 struct Sound_source* sound_createEx(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z, float vx, float vy, float vz);
 void sound_velocity(struct Sound_source* s, float vx, float vy, float vz);
