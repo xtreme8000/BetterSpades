@@ -178,7 +178,10 @@ void kv6_rebuild(struct kv6_t* kv6) {
 	}
 }
 
+//PFNGLPOINTPARAMETERFVPROC glPointParameterfv;
+
 void kv6_render(struct kv6_t* kv6, unsigned char team) {
+	//glPointParameterfv = (PFNGLPOINTPARAMETERFVPROC)wglGetProcAddress("glPointParameterfv");
 	if(!kv6->has_display_list) {
 		int size = kv6->voxel_count*6;
 
@@ -188,7 +191,6 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 
 		if(!kv6->colorize) {
 			kv6->display_list = glGenLists(3);
-			glxcheckErrors(__FILE__,__LINE__);
 		}
 
 		int v,c,n;
@@ -327,9 +329,9 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 				}
 
 				for(int k=0;k<i*4;k++) {
-					kv6->colors_final[c++] = r*alpha[k/4];//(r/255.0F*(a/255.0F*0.5F+0.5F))*255.0F;//*alpha[k/4];
-					kv6->colors_final[c++] = g*alpha[k/4];//(g/255.0F*(a/255.0F*0.5F+0.5F))*255.0F;//*alpha[k/4];
-					kv6->colors_final[c++] = b*alpha[k/4];//(b/255.0F*(a/255.0F*0.5F+0.5F))*255.0F;//*alpha[k/4];
+					kv6->colors_final[c++] = r*alpha[k/4];
+					kv6->colors_final[c++] = g*alpha[k/4];
+					kv6->colors_final[c++] = b*alpha[k/4];
 
 					kv6->normals_final[n++] = kv6_normals[a][0]*128;
 					kv6->normals_final[n++] = -kv6_normals[a][2]*128;
@@ -352,7 +354,6 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 				glDisableClientState(GL_VERTEX_ARRAY);
 				glDisable(GL_NORMALIZE);
 				glEndList();
-				glxcheckErrors(__FILE__,__LINE__);
 			}
 		}
 
@@ -400,104 +401,96 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 
 
 	//TODO: render like in voxlap
-	/*double m[16];
-	glGetDoublev(GL_MODELVIEW_MATRIX,m);
-	double p[16];
-	glGetDoublev(GL_PROJECTION_MATRIX,p);
 
-	double res[16];
-	mul_matrix_matrix(res,p,m);
-
-	glMatrixMode(GL_PROJECTION);
-	glPushMatrix();
-	glLoadIdentity();
-	glMatrixMode(GL_MODELVIEW);
-	glPushMatrix();
-	glLoadIdentity();
-
-	float near_plane_h = (settings.window_height/(2.0F*tan(0.5F*camera_fov*3.141592F/180.0F)))*1.5F*scale;
-	float w = near_plane_h/settings.window_width;
-	float h = near_plane_h/settings.window_height;
+	/*if(!kv6->has_display_list) {
+		int size = kv6->voxel_count*6;
+		kv6->vertices_final = malloc(size*12*sizeof(float));
+		kv6->colors_final = malloc(size*12*sizeof(unsigned char)*3);
+		kv6->normals_final = malloc(size*12*sizeof(unsigned char));
+		kv6->has_display_list = 1;
+	}
 
 	int k = 0;
 
-	for(int x=0;x<kv6->xsiz;x++) {
-		for(int y=0;y<kv6->ysiz;y++) {
-			for(int z=0;z<kv6->zsiz;z++) {
-				if(kv6->color[x+y*kv6->xsiz+z*kv6->xsiz*kv6->ysiz]!=0) {
-					int b = kv6->color[x+y*kv6->xsiz+z*kv6->xsiz*kv6->ysiz] & 0xFF;
-					int g = (kv6->color[x+y*kv6->xsiz+z*kv6->xsiz*kv6->ysiz]>>8) & 0xFF;
-					int r = (kv6->color[x+y*kv6->xsiz+z*kv6->xsiz*kv6->ysiz]>>16) & 0xFF;
-					int a = (kv6->color[x+y*kv6->xsiz+z*kv6->xsiz*kv6->ysiz]>>24) & 0xFF;
-					if(r==0 && g==0 && b==0) {
-						switch(team) {
-							case TEAM_1:
-								r = gamestate.team_1.red;
-								g = gamestate.team_1.green;
-								b = gamestate.team_1.blue;
-								break;
-							case TEAM_2:
-								r = gamestate.team_2.red;
-								g = gamestate.team_2.green;
-								b = gamestate.team_2.blue;
-								break;
-							default:
-								r = g = b = 255;
-						}
-					}
-
-					float n[4] = {kv6_normals[a][0],-kv6_normals[a][2],kv6_normals[a][1],0.0F};
-					mul_matrix_vector(n,m,n);
-					float len = sqrt(n[0]*n[0]+n[1]*n[1]+n[2]*n[2]);
-					n[0] /= len;
-					n[1] /= len;
-					n[2] /= len;
-
-					float f = max(map_sun[0]*n[0]+map_sun[1]*n[1]+map_sun[2]*n[2],0.0F)*0.4F+0.6F;
-					for(int i=(k/4*3);i<(k/4*3)+12;) {
-						kv6->display_list_colors[i++] = r*f;
-						kv6->display_list_colors[i++] = g*f;
-						kv6->display_list_colors[i++] = b*f;
-					}
-
-					float v[4] = {(x-kv6->xpiv)*scale+tx,(z-kv6->zpiv)*scale+ty,(y-kv6->ypiv)*scale+tz,1.0F};
-					mul_matrix_vector(v,res,v);
-
-					kv6->display_list_vertices[k++]  = v[0]-w;
-					kv6->display_list_vertices[k++]  = v[1]-h;
-					kv6->display_list_vertices[k++]  = v[2];
-					kv6->display_list_vertices[k++]  = v[3];
-
-					kv6->display_list_vertices[k++]  = v[0]+w;
-					kv6->display_list_vertices[k++]  = v[1]-h;
-					kv6->display_list_vertices[k++]  = v[2];
-					kv6->display_list_vertices[k++]  = v[3];
-
-					kv6->display_list_vertices[k++]  = v[0]+w;
-					kv6->display_list_vertices[k++]  = v[1]+h;
-					kv6->display_list_vertices[k++] = v[2];
-					kv6->display_list_vertices[k++] = v[3];
-
-					kv6->display_list_vertices[k++] = v[0]-w;
-					kv6->display_list_vertices[k++] = v[1]+h;
-					kv6->display_list_vertices[k++] = v[2];
-					kv6->display_list_vertices[k++] = v[3];
-				}
+	for(int abc=0;abc<kv6->voxel_count;abc++) {
+		int x = kv6->voxels[abc].x;
+		int y = kv6->voxels[abc].y;
+		int z = kv6->voxels[abc].z;
+		int b = kv6->voxels[abc].color & 0xFF;
+		int g = (kv6->voxels[abc].color>>8) & 0xFF;
+		int r = (kv6->voxels[abc].color>>16) & 0xFF;
+		int a = (kv6->voxels[abc].color>>24) & 0xFF;
+		if(r==0 && g==0 && b==0) {
+			switch(team) {
+				case TEAM_1:
+					r = gamestate.team_1.red;
+					g = gamestate.team_1.green;
+					b = gamestate.team_1.blue;
+					break;
+				case TEAM_2:
+					r = gamestate.team_2.red;
+					g = gamestate.team_2.green;
+					b = gamestate.team_2.blue;
+					break;
+				default:
+					r = g = b = 255;
 			}
 		}
+
+		float v[3] = {(x-kv6->xpiv)*kv6->scale,(z-kv6->zpiv)*kv6->scale,(y-kv6->ypiv)*kv6->scale};
+		float n[3] = {kv6_normals[a][0],-kv6_normals[a][2],kv6_normals[a][1]};
+
+		kv6->colors_final[k] = r;
+		kv6->normals_final[k] = n[0]*128;
+		kv6->vertices_final[k++] = v[0]+kv6->scale*0.5F;
+		kv6->colors_final[k] = g;
+		kv6->normals_final[k] = n[1]*128;
+		kv6->vertices_final[k++] = v[1]+kv6->scale*0.5F;
+		kv6->colors_final[k] = b;
+		kv6->normals_final[k] = n[2]*128;
+		kv6->vertices_final[k++] = v[2]+kv6->scale*0.5F;
 	}
+
+	float test[3] = {0.0F,0.0F,1.0F};
+	glPointParameterfv(GL_POINT_DISTANCE_ATTENUATION,test);
+
+	float fov = camera_fov;
+	if(camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN && players[local_player_id].input.buttons.rmb) {
+		fov *= atan(tan((camera_fov/180.0F*PI)/2)/2.0F)*2.0F;
+	}
+
+	matrix_push();
+	matrix_load(matrix_model);
+	matrix_multiply(matrix_view);
+	matrix_multiply(matrix_projection);
+	float center[4] = {0,0,0,1};
+	matrix_vector(center);
+	matrix_pop();
+
+	float factor = sqrt(center[0]*center[0]+center[1]*center[1]+center[2]*center[2])/center[2];
+
+	float heightOfNearPlane = (float)settings.window_height/(2.0F*tan(fov*1.570796F/180.0F));
+	glPointSize(factor*1.0F*kv6->scale*heightOfNearPlane);
+
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_COLOR_MATERIAL);
+	glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
+	glEnable(GL_NORMALIZE);
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);
-	glVertexPointer(4,GL_FLOAT,0,kv6->display_list_vertices);
-	glColorPointer(3,GL_UNSIGNED_BYTE,0,kv6->display_list_colors);
-	glDrawArrays(GL_QUADS,0,k/4);
+	glEnableClientState(GL_NORMAL_ARRAY);
+	glVertexPointer(3,GL_FLOAT,0,kv6->vertices_final);
+	glColorPointer(3,GL_UNSIGNED_BYTE,0,kv6->colors_final);
+	glNormalPointer(GL_BYTE,0,kv6->normals_final);
+	glDrawArrays(GL_POINTS,0,k/3);
+	glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
 	glDisableClientState(GL_COLOR_ARRAY);
 
-	glMatrixMode(GL_MODELVIEW);
-	glPopMatrix();
-	glMatrixMode(GL_PROJECTION);
-	glPopMatrix();
-	glMatrixMode(GL_MODELVIEW);*/
+	glDisable(GL_NORMALIZE);
+	glDisable(GL_COLOR_MATERIAL);
+	glDisable(GL_LIGHT0);
+	glDisable(GL_LIGHTING);*/
 }

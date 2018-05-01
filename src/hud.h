@@ -36,7 +36,8 @@ extern struct hud hud_mapload;
 extern struct hud hud_serverlist;
 
 extern struct hud* hud_active;
+extern struct window_instance* hud_window;
 
 void hud_change(struct hud* new);
-void hud_init(GLFWwindow* window);
+void hud_init();
 void hud_mousemode(int mode);

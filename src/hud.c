@@ -24,22 +24,16 @@
 struct hud hud_mapload;
 
 struct hud* hud_active;
-static GLFWwindow* hud_window;
+struct window_instance* hud_window;
 
-void hud_init(GLFWwindow* window) {
+void hud_init() {
     hud_change(&hud_serverlist);
-    hud_window = window;
 }
 
 void hud_change(struct hud* new) {
     hud_active = new;
     if(hud_active->init)
         hud_active->init();
-}
-
-void hud_mousemode(int mode) {
-    if(glfwGetInputMode(hud_window,GLFW_CURSOR)!=mode)
-        glfwSetInputMode(hud_window,GLFW_CURSOR,mode);
 }
 
 /*          HUD_INGAME START           */
@@ -49,7 +43,7 @@ int show_exit = 0;
 static void hud_ingame_init() {
     chat_input_mode = CHAT_NO_INPUT;
     show_exit = 0;
-    hud_mousemode(GLFW_CURSOR_DISABLED);
+    window_mousemode(WINDOW_CURSOR_DISABLED);
 }
 
 struct player_table {
@@ -66,57 +60,6 @@ static int playertable_sort(const void* a, const void* b) {
 static void hud_ingame_render3D() {
     glDepthRange(0.0F,0.05F);
 
-    /*matrix_select(matrix_projection);
-	matrix_identity();
-    matrix_perspective(camera_fov,((float)settings.window_width)/((float)settings.window_height),100.0F,500.0F);
-	matrix_upload_p();
-
-	matrix_select(matrix_view);
-	matrix_identity();
-	matrix_select(matrix_model);
-    matrix_identity();
-    matrix_translate(0.0F,0.0F,-400.0F);
-    matrix_rotate(32.0F,1.0F,0.0F,0.0F);
-    matrix_rotate(glfwGetTime()*22.5F,0.0F,1.0F,0.0F);
-    matrix_upload();
-
-    glBegin(GL_QUADS);
-
-    glColor3ub(143,16,134);
-    glVertex3f(100.0F,100.0F,100.0F);
-    glVertex3f(-100.0F,100.0F,100.0F);
-    glVertex3f(-100.0F,-100.0F,100.0F);
-    glVertex3f(100.0F,-100.0F,100.0F);
-
-    glVertex3f(100.0F,100.0F,-100.0F);
-    glVertex3f(100.0F,-100.0F,-100.0F);
-    glVertex3f(-100.0F,-100.0F,-100.0F);
-    glVertex3f(-100.0F,100.0F,-100.0F);
-
-    glColor3ub(192,21,180);
-    glVertex3f(100.0F,100.0F,100.0F);
-    glVertex3f(100.0F,100.0F,-100.0F);
-    glVertex3f(-100.0F,100.0F,-100.0F);
-    glVertex3f(-100.0F,100.0F,100.0F);
-
-    glVertex3f(100.0F,-100.0F,100.0F);
-    glVertex3f(-100.0F,-100.0F,100.0F);
-    glVertex3f(-100.0F,-100.0F,-100.0F);
-    glVertex3f(100.0F,-100.0F,-100.0F);
-
-    glColor3ub(220,24,207);
-    glVertex3f(-100.0F,100.0F,100.0F);
-    glVertex3f(-100.0F,100.0F,-100.0F);
-    glVertex3f(-100.0F,-100.0F,-100.0F);
-    glVertex3f(-100.0F,-100.0F,100.0F);
-
-    glVertex3f(100.0F,100.0F,100.0F);
-    glVertex3f(100.0F,-100.0F,100.0F);
-    glVertex3f(100.0F,-100.0F,-100.0F);
-    glVertex3f(100.0F,100.0F,-100.0F);
-    glEnd();*/
-
-
 	matrix_select(matrix_projection);
 	matrix_identity();
 	matrix_perspective(camera_fov,((float)settings.window_width)/((float)settings.window_height), 0.1F, settings.render_distance+CHUNK_SIZE*4.0F+128.0F);
@@ -131,7 +74,7 @@ static void hud_ingame_render3D() {
 
 			matrix_identity();
 			matrix_translate(-2.25F,-1.5F-(players[local_player_id].held_item==TOOL_SPADE)*0.5F,-6.0F);
-			matrix_rotate(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
+			matrix_rotate(window_time()*57.4F,0.0F,1.0F,0.0F);
 			matrix_translate((model_spade.xpiv-model_spade.xsiz/2)*0.05F,(model_spade.zpiv-model_spade.zsiz/2)*0.05F,(model_spade.ypiv-model_spade.ysiz/2)*0.05F);
 			if(players[local_player_id].held_item==TOOL_SPADE) {
 				matrix_scale(1.5F,1.5F,1.5F);
@@ -143,7 +86,7 @@ static void hud_ingame_render3D() {
 				matrix_identity();
 				matrix_translate(-2.25F,-1.5F-(players[local_player_id].held_item==TOOL_BLOCK)*0.5F,-6.0F);
 				matrix_translate(1.5F,0.0F,0.0F);
-				matrix_rotate(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
+				matrix_rotate(window_time()*57.4F,0.0F,1.0F,0.0F);
 				matrix_translate((model_block.xpiv-model_block.xsiz/2)*0.05F,(model_block.zpiv-model_block.zsiz/2)*0.05F,(model_block.ypiv-model_block.ysiz/2)*0.05F);
 				if(players[local_player_id].held_item==TOOL_BLOCK) {
 					matrix_scale(1.5F,1.5F,1.5F);
@@ -172,7 +115,7 @@ static void hud_ingame_render3D() {
 				matrix_identity();
 				matrix_translate(-2.25F,-1.5F-(players[local_player_id].held_item==TOOL_GUN)*0.5F,-6.0F);
 				matrix_translate(3.0F,0.0F,0.0F);
-				matrix_rotate(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
+				matrix_rotate(window_time()*57.4F,0.0F,1.0F,0.0F);
 				matrix_translate((gun->xpiv-gun->xsiz/2)*0.05F,(gun->zpiv-gun->zsiz/2)*0.05F,(gun->ypiv-gun->ysiz/2)*0.05F);
 				if(players[local_player_id].held_item==TOOL_GUN) {
 					matrix_scale(1.5F,1.5F,1.5F);
@@ -185,7 +128,7 @@ static void hud_ingame_render3D() {
 				matrix_identity();
 				matrix_translate(-2.25F,-1.5F-(players[local_player_id].held_item==TOOL_GRENADE)*0.5F,-6.0F);
 				matrix_translate(4.5F,0.0F,0.0F);
-				matrix_rotate(glfwGetTime()*57.4F,0.0F,1.0F,0.0F);
+				matrix_rotate(window_time()*57.4F,0.0F,1.0F,0.0F);
 				matrix_translate((model_grenade.xpiv-model_grenade.xsiz/2)*0.05F,(model_grenade.zpiv-model_grenade.zsiz/2)*0.05F,(model_grenade.ypiv-model_grenade.ysiz/2)*0.05F);
 				if(players[local_player_id].held_item==TOOL_GRENADE) {
 					matrix_scale(1.5F,1.5F,1.5F);
@@ -212,9 +155,9 @@ static void hud_ingame_render3D() {
 			p_hud.physics.velocity.x = 0.0F;
 			p_hud.physics.velocity.y = 0.0F;
 			p_hud.physics.velocity.z = 0.0F;
-			p_hud.orientation.x = 1.0F;
-			p_hud.orientation.y = 0.0F;
-			p_hud.orientation.z = 0.0F;
+			p_hud.orientation.x = p_hud.orientation_smooth.x = 1.0F;
+			p_hud.orientation.y = p_hud.orientation_smooth.y = 0.0F;
+			p_hud.orientation.z = p_hud.orientation_smooth.z = 0.0F;
 			p_hud.alive = 1;
 
 			p_hud.team = TEAM_1;
@@ -230,7 +173,7 @@ static void hud_ingame_render3D() {
 		if(screen_current==SCREEN_GUN_SELECT) {
 			matrix_identity();
 			matrix_translate(-1.5F,-1.25F,-3.25F);
-			matrix_rotate(glfwGetTime()*90.0F,0.0F,1.0F,0.0F);
+			matrix_rotate(window_time()*90.0F,0.0F,1.0F,0.0F);
 			matrix_translate((model_semi.xpiv-model_semi.xsiz/2.0F)*model_semi.scale,
 							(model_semi.zpiv-model_semi.zsiz/2.0F)*model_semi.scale,
 							(model_semi.ypiv-model_semi.ysiz/2.0F)*model_semi.scale);
@@ -239,7 +182,7 @@ static void hud_ingame_render3D() {
 
 			matrix_identity();
 			matrix_translate(0.0F,-1.25F,-3.25F);
-			matrix_rotate(glfwGetTime()*90.0F,0.0F,1.0F,0.0F);
+			matrix_rotate(window_time()*90.0F,0.0F,1.0F,0.0F);
 			matrix_translate((model_smg.xpiv-model_smg.xsiz/2.0F)*model_smg.scale,
 							(model_smg.zpiv-model_smg.zsiz/2.0F)*model_smg.scale,
 							(model_smg.ypiv-model_smg.ysiz/2.0F)*model_smg.scale);
@@ -248,7 +191,7 @@ static void hud_ingame_render3D() {
 
 			matrix_identity();
 			matrix_translate(1.5F,-1.25F,-3.25F);
-			matrix_rotate(glfwGetTime()*90.0F,0.0F,1.0F,0.0F);
+			matrix_rotate(window_time()*90.0F,0.0F,1.0F,0.0F);
 			matrix_translate((model_shotgun.xpiv-model_shotgun.xsiz/2.0F)*model_shotgun.scale,
 							(model_shotgun.zpiv-model_shotgun.zsiz/2.0F)*model_shotgun.scale,
 							(model_shotgun.ypiv-model_shotgun.ysiz/2.0F)*model_shotgun.scale);
@@ -291,7 +234,7 @@ static void hud_ingame_render3D() {
 		if(rotating_model) {
 			matrix_identity();
 			matrix_translate(0.0F,-(rotating_model->zsiz*0.5F+rotating_model->zpiv)*rotating_model->scale,-10.0F);
-			matrix_rotate(glfwGetTime()*90.0F,0.0F,1.0F,0.0F);
+			matrix_rotate(window_time()*90.0F,0.0F,1.0F,0.0F);
 			matrix_upload();
 			glViewport(-settings.window_width*0.4F,settings.window_height*0.2F,settings.window_width,settings.window_height);
 			kv6_render(rotating_model,rotating_model_team);
@@ -342,7 +285,7 @@ static void hud_ingame_render(float scalex, float scalef) {
             glColor3f(1.0F,1.0F,1.0F);
         }
 
-        if(key_map[GLFW_KEY_TAB] || camera_mode==CAMERAMODE_SELECTION) {
+        if(window_key_down(WINDOW_KEY_TAB) || camera_mode==CAMERAMODE_SELECTION) {
             if(network_connected && network_logged_in) {
                 char ping_str[16];
                 sprintf(ping_str,"PING: %ims",network_ping());
@@ -415,12 +358,12 @@ static void hud_ingame_render(float scalex, float scalef) {
                         break;
                 }
                 char id_str[16];
-                sprintf(id_str," #%i",pt[k].id);
+                sprintf(id_str,"#%i",pt[k].id);
                 font_render(settings.window_width/4.0F*mul-font_length(18.0F*scalef,players[pt[k].id].name),(427-18*cntt[mul-1])*scalef,18.0F*scalef,players[pt[k].id].name);
-                font_render(settings.window_width/4.0F*mul,(427-18*cntt[mul-1])*scalef,18.0F*scalef,id_str);
+                font_render(settings.window_width/4.0F*mul+8.82F*scalef,(427-18*cntt[mul-1])*scalef,18.0F*scalef,id_str);
                 if(mul!=2) {
-                    sprintf(id_str,"     %i",pt[k].score);
-                    font_render(settings.window_width/4.0F*mul,(427-18*cntt[mul-1])*scalef,18.0F*scalef,id_str);
+                    sprintf(id_str,"%i",pt[k].score);
+                    font_render(settings.window_width/4.0F*mul+44.1F*scalef,(427-18*cntt[mul-1])*scalef,18.0F*scalef,id_str);
                 }
                 cntt[mul-1]++;
             }
@@ -442,9 +385,9 @@ static void hud_ingame_render(float scalex, float scalef) {
             font_select(FONT_FIXEDSYS);
             glColor3f(1.0F,1.0F,0.0F);
             font_centered(settings.window_width/2.0F,settings.window_height,18.0F*scalef,"Click to switch players");
-            if(glfwGetTime()-local_player_death_time<=local_player_respawn_time) {
+            if(window_time()-local_player_death_time<=local_player_respawn_time) {
                 glColor3f(1.0F,0.0F,0.0F);
-                int cnt = local_player_respawn_time-(int)(glfwGetTime()-local_player_death_time);
+                int cnt = local_player_respawn_time-(int)(window_time()-local_player_death_time);
                 char coin[16];
                 sprintf(coin,"INSERT COIN:%i",cnt);
                 font_centered(settings.window_width/2.0F,53.0F*scalef,53.0F*scalef,coin);
@@ -474,13 +417,13 @@ static void hud_ingame_render(float scalex, float scalef) {
                         zoom = &texture_zoom_shotgun;
                         break;
                 }
-                float zoom_factor = max(0.25F*(1.0F-((glfwGetTime()-weapon_last_shot)/weapon_delay(players[local_player_id].weapon)))+1.0F,1.0F);
+                float zoom_factor = max(0.25F*(1.0F-((window_time()-weapon_last_shot)/weapon_delay(players[local_player_id].weapon)))+1.0F,1.0F);
                 texture_draw(zoom,(settings.window_width-settings.window_height*4.0F/3.0F*zoom_factor)/2.0F,settings.window_height*(zoom_factor*0.5F+0.5F),settings.window_height*4.0F/3.0F*zoom_factor,settings.window_height*zoom_factor);
             } else {
                 texture_draw(&texture_target,(settings.window_width-16)/2.0F,(settings.window_height+16)/2.0F,16,16);
             }
 
-            if(glfwGetTime()-local_player_last_damage_timer<=0.5F) {
+            if(window_time()-local_player_last_damage_timer<=0.5F) {
                 float ang = atan2(players[local_player_id].orientation.z,players[local_player_id].orientation.x)-atan2(camera_z-local_player_last_damage_z,camera_x-local_player_last_damage_x)+PI;
                 texture_draw_rotated(&texture_indicator,settings.window_width/2.0F,settings.window_height/2.0F,200,200,ang);
             }
@@ -539,7 +482,7 @@ static void hud_ingame_render(float scalex, float scalef) {
                 for(int y=0;y<8;y++) {
                     for(int x=0;x<8;x++) {
                         if(texture_block_color(x,y)==players[local_player_id].block.packed) {
-                            unsigned char g = (((int)(glfwGetTime()*4))&1)*0xFF;
+                            unsigned char g = (((int)(window_time()*4))&1)*0xFF;
                             glColor3ub(g,g,g);
                             texture_draw_empty(settings.window_width+(x*8-65)*scalef,(65-y*8)*scalef,8*scalef,8*scalef);
                             y = 10; //to break outer loop too
@@ -572,12 +515,12 @@ static void hud_ingame_render(float scalex, float scalef) {
                 chat[0][0][l] = 0;
             }
             for(int k=0;k<6;k++) {
-                if(glfwGetTime()-chat_timer[0][k+1]<10.0F || chat_input_mode!=CHAT_NO_INPUT) {
+                if(window_time()-chat_timer[0][k+1]<10.0F || chat_input_mode!=CHAT_NO_INPUT) {
                     glColor3ub(red(chat_color[0][k+1]),green(chat_color[0][k+1]),blue(chat_color[0][k+1]));
                     font_render(11.0F*scalef,settings.window_height*0.15F-10.0F*scalef*k,8.0F*scalef,chat[0][k+1]);
                 }
 
-                if(glfwGetTime()-chat_timer[1][k+1]<10.0F) {
+                if(window_time()-chat_timer[1][k+1]<10.0F) {
                     glColor3ub(red(chat_color[1][k+1]),green(chat_color[1][k+1]),blue(chat_color[1][k+1]));
                     font_render(11.0F*scalef,settings.window_height-22.0F*scalef-10.0F*scalef*k,8.0F*scalef,chat[1][k+1]);
                 }
@@ -608,7 +551,7 @@ static void hud_ingame_render(float scalex, float scalef) {
         if(gamestate.gamemode_type==GAMEMODE_TC
             && gamestate.progressbar.tent<gamestate.gamemode.tc.territory_count
             && gamestate.gamemode.tc.territory[gamestate.progressbar.tent].team!=gamestate.progressbar.team_capturing) {
-            float p = max(min(gamestate.progressbar.progress+0.05F*gamestate.progressbar.rate*(glfwGetTime()-gamestate.progressbar.update),1.0F),0.0F);
+            float p = max(min(gamestate.progressbar.progress+0.05F*gamestate.progressbar.rate*(window_time()-gamestate.progressbar.update),1.0F),0.0F);
             float l = pow(gamestate.gamemode.tc.territory[gamestate.progressbar.tent].x-players[local_player_id].pos.x,2.0F)
                      +pow((63.0F-gamestate.gamemode.tc.territory[gamestate.progressbar.tent].z)-players[local_player_id].pos.y,2.0F)
                      +pow(gamestate.gamemode.tc.territory[gamestate.progressbar.tent].y-players[local_player_id].pos.z,2.0F);
@@ -642,14 +585,10 @@ static void hud_ingame_render(float scalex, float scalef) {
         if(camera_mode!=CAMERAMODE_SELECTION) {
             glColor3f(1.0F,1.0F,1.0F);
             //large
-            if(chat_input_mode==CHAT_NO_INPUT && key_map[GLFW_KEY_M]) {
+            if(chat_input_mode==CHAT_NO_INPUT && window_key_down(WINDOW_KEY_MAP)) {
                 float minimap_x = (settings.window_width-(map_size_x+1)*scalef)/2.0F;
                 float minimap_y = ((600-map_size_z-1)/2.0F+map_size_z+1)*scalef;
 
-                //glPixelZoom(scalef,-scalef);
-                //glPixelStorei(GL_UNPACK_ROW_LENGTH,0);
-                //glRasterPos2f((settings.window_width-(map_size_x+1)*scalef)/2.0F,settings.window_height-(settings.window_height-(map_size_z+1)*scalef)/2.0F);
-                //glDrawPixels(map_size_x+1,map_size_z+1,GL_RGB,GL_UNSIGNED_BYTE,map_minimap);
                 texture_draw(&texture_minimap,minimap_x,minimap_y,512*scalef,512*scalef);
 
                 font_select(FONT_SMALLFNT);
@@ -732,10 +671,6 @@ static void hud_ingame_render(float scalex, float scalef) {
                 texture_draw_empty(settings.window_width-144*scalef,586*scalef,130*scalef,130*scalef);
                 glColor3f(1.0F,1.0F,1.0F);
 
-                //glPixelZoom(scalef,-scalef);
-                //glPixelStorei(GL_UNPACK_ROW_LENGTH,map_size_x+1);
-                //glRasterPos2f(settings.window_width-143*scalef,585*scalef);
-                //glDrawPixels(128,128,GL_RGB,GL_UNSIGNED_BYTE,map_minimap+((int)view_x+(int)view_z*(map_size_x+1))*3);
                 glEnable(GL_SCISSOR_TEST);
                 glScissor(settings.window_width-143*scalef,585*scalef-128*scalef,128*scalef,128*scalef);
                 texture_draw(&texture_minimap,settings.window_width-(143+(int)view_x)*scalef,(585+(int)view_z)*scalef,512*scalef,512*scalef);
@@ -850,10 +785,10 @@ static void hud_ingame_render(float scalex, float scalef) {
             font_render((settings.window_width-font_length(53.0F*scalef,"EXIT GAME? Y/N"))/2.0F,settings.window_height/2.0F+53.0F*scalef,53.0F*scalef,"EXIT GAME? Y/N");
 
             char play_time[128];
-            sprintf(play_time,"Playing for %im%is",(int)glfwGetTime()/60,(int)glfwGetTime()%60);
+            sprintf(play_time,"Playing for %im%is",(int)window_time()/60,(int)window_time()%60);
             font_render(settings.window_width-font_length(27.0F*scalef,play_time),settings.window_height,27.0F*scalef,play_time);
         }
-        if(glfwGetTime()-chat_popup_timer<0.4F) {
+        if(window_time()-chat_popup_timer<0.4F) {
             glColor3f(1.0F,0.0F,0.0F);
             font_render((settings.window_width-font_length(53.0F*scalef,chat_popup))/2.0F,settings.window_height/2.0F,53.0F*scalef,chat_popup);
         }
@@ -877,8 +812,8 @@ static void hud_ingame_scroll(double yoffset) {
 			h = 0;
 		players[local_player_id].held_item = h;
 		sound_create(NULL,SOUND_LOCAL,&sound_switch,0.0F,0.0F,0.0F)->stick_to_player = local_player_id;
-		players[local_player_id].item_disabled = glfwGetTime();
-		players[local_player_id].items_show_start = glfwGetTime();
+		players[local_player_id].item_disabled = window_time();
+		players[local_player_id].items_show_start = window_time();
 		players[local_player_id].items_show = 1;
 	}
 }
@@ -905,17 +840,17 @@ static void hud_ingame_mouselocation(double x, double y) {
 }
 
 static void hud_ingame_mouseclick(int button, int action, int mods) {
-    if(button==GLFW_MOUSE_BUTTON_LEFT) {
-		button_map[0] = (action==GLFW_PRESS);
+    if(button==WINDOW_MOUSE_LMB) {
+		button_map[0] = (action==WINDOW_PRESS);
 	}
-	if(button==GLFW_MOUSE_BUTTON_RIGHT) {
-		if(action==GLFW_PRESS && players[local_player_id].held_item==TOOL_GUN) {
+	if(button==WINDOW_MOUSE_RMB) {
+		if(action==WINDOW_PRESS && players[local_player_id].held_item==TOOL_GUN) {
 			players[local_player_id].input.buttons.rmb ^= 1;
 			if(players[local_player_id].items_show) {
 				players[local_player_id].input.buttons.rmb = 0;
 			}
 		}
-		if(local_player_drag_active && action==GLFW_RELEASE && players[local_player_id].held_item==TOOL_BLOCK) {
+		if(local_player_drag_active && action==WINDOW_RELEASE && players[local_player_id].held_item==TOOL_BLOCK) {
 			int* pos = camera_terrain_pick(0);
 			if(pos!=NULL && pos[1]>1 && (pow(pos[0]-camera_x,2)+pow(pos[1]-camera_y,2)+pow(pos[2]-camera_z,2))<5*5) {
 				int amount = map_cube_line(local_player_drag_x,local_player_drag_z,63-local_player_drag_y,pos[0],pos[2],63-pos[1],NULL);
@@ -931,11 +866,11 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 					network_send(PACKET_BLOCKLINE_ID,&line,sizeof(line));
 					local_player_blocks -= amount;
 				}
-				players[local_player_id].item_showup = glfwGetTime();
+				players[local_player_id].item_showup = window_time();
 			}
 		}
 		local_player_drag_active = 0;
-		if(action==GLFW_PRESS && players[local_player_id].held_item==TOOL_BLOCK && glfwGetTime()-players[local_player_id].item_showup>=0.5F) {
+		if(action==WINDOW_PRESS && players[local_player_id].held_item==TOOL_BLOCK && window_time()-players[local_player_id].item_showup>=0.5F) {
 			int* pos = camera_terrain_pick(0);
 			if(pos!=NULL && pos[1]>1 && distance3D(camera_x,camera_y,camera_z,pos[0],pos[1],pos[2])<5.0F*5.0F) {
 				local_player_drag_active = 1;
@@ -944,27 +879,39 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 				local_player_drag_z = pos[2];
 			}
 		}
-		button_map[1] = (action==GLFW_PRESS);
+		button_map[1] = (action==WINDOW_PRESS);
 	}
-	if(button==GLFW_MOUSE_BUTTON_MIDDLE) {
-		button_map[2] = (action==GLFW_PRESS);
+	if(button==WINDOW_MOUSE_MMB) {
+		button_map[2] = (action==WINDOW_PRESS);
 	}
-	if(button==GLFW_MOUSE_BUTTON_RIGHT && action==GLFW_PRESS) {
-		players[local_player_id].input.buttons.rmb_start = glfwGetTime();
+    if(camera_mode==CAMERAMODE_BODYVIEW && button==WINDOW_MOUSE_MMB && action==WINDOW_PRESS) {
+        float nearest_dist = FLT_MAX;
+        int nearest_player = -1;
+        for(int k=0;k<PLAYERS_MAX;k++)
+            if(player_can_spectate(&players[k]) && players[k].alive && k!=cameracontroller_bodyview_player
+            && distance3D(camera_x,camera_y,camera_z,players[k].pos.x,players[k].pos.y,players[k].pos.z)<nearest_dist) {
+                nearest_dist = distance3D(camera_x,camera_y,camera_z,players[k].pos.x,players[k].pos.y,players[k].pos.z);
+                nearest_player = k;
+            }
+        if(nearest_player>=0)
+            cameracontroller_bodyview_player = nearest_player;
+	}
+	if(button==WINDOW_MOUSE_RMB && action==WINDOW_PRESS) {
+		players[local_player_id].input.buttons.rmb_start = window_time();
 		if(camera_mode==CAMERAMODE_BODYVIEW) {
 			do {
 		        cameracontroller_bodyview_player = (cameracontroller_bodyview_player+1)%PLAYERS_MAX;
             } while(!player_can_spectate(&players[cameracontroller_bodyview_player]));
 		}
 	}
-	if(button==GLFW_MOUSE_BUTTON_LEFT) {
-		if(camera_mode==CAMERAMODE_FPS && glfwGetTime()-players[local_player_id].item_showup>=0.5F) {
+	if(button==WINDOW_MOUSE_LMB) {
+		if(camera_mode==CAMERAMODE_FPS && window_time()-players[local_player_id].item_showup>=0.5F) {
 			if(players[local_player_id].held_item==TOOL_GRENADE && local_player_grenades>0) {
-				if(action==GLFW_RELEASE) {
+				if(action==WINDOW_RELEASE) {
 					local_player_grenades = max(local_player_grenades-1,0);
 					struct PacketGrenade g;
 					g.player_id = local_player_id;
-					g.fuse_length = max(3.0F-(glfwGetTime()-players[local_player_id].input.buttons.lmb_start),0.0F);
+					g.fuse_length = max(3.0F-(window_time()-players[local_player_id].input.buttons.lmb_start),0.0F);
 					g.x = players[local_player_id].pos.x;
 					g.y = players[local_player_id].pos.z;
 					g.z = 63.0F-players[local_player_id].pos.y;
@@ -973,23 +920,23 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 					g.vz = (g.fuse_length==0.0F)?0.0F:(-players[local_player_id].orientation.y-players[local_player_id].physics.velocity.y);
 					network_send(PACKET_GRENADE_ID,&g,sizeof(g));
 					read_PacketGrenade(&g,sizeof(g)); //server won't loop packet back
-					players[local_player_id].item_showup = glfwGetTime();
+					players[local_player_id].item_showup = window_time();
 				}
-				if(action==GLFW_PRESS) {
+				if(action==WINDOW_PRESS) {
 					sound_create(NULL,SOUND_LOCAL,&sound_grenade_pin,0.0F,0.0F,0.0F)->stick_to_player = local_player_id;
 				}
 			}
 		}
 	}
-	if(button==GLFW_MOUSE_BUTTON_LEFT && action==GLFW_PRESS) {
-		players[local_player_id].input.buttons.lmb_start = glfwGetTime();
+	if(button==WINDOW_MOUSE_LMB && action==WINDOW_PRESS) {
+		players[local_player_id].input.buttons.lmb_start = window_time();
 
 		if(camera_mode==CAMERAMODE_FPS) {
 			if(players[local_player_id].held_item==TOOL_GUN) {
 				if(weapon_reloading()) {
 					weapon_reload_abort();
 				}
-				if(local_player_ammo==0 && glfwGetTime()-players[local_player_id].item_showup>=0.5F) {
+				if(local_player_ammo==0 && window_time()-players[local_player_id].item_showup>=0.5F) {
 					sound_create(NULL,SOUND_LOCAL,&sound_empty,0.0F,0.0F,0.0F);
 					chat_showpopup("RELOAD");
 				}
@@ -1044,6 +991,8 @@ static const char* hud_ingame_completeword(const char* s) {
     candidates[candidates_cnt++] = (struct autocomplete_type) {"/streak",0};
     candidates[candidates_cnt++] = (struct autocomplete_type) {"/intel",0};
     candidates[candidates_cnt++] = (struct autocomplete_type) {"/time",0};
+    candidates[candidates_cnt++] = (struct autocomplete_type) {"/admin",0};
+    candidates[candidates_cnt++] = (struct autocomplete_type) {"/ping",0};
 
     //valuate all strings
     for(int k=0;k<candidates_cnt;k++) {
@@ -1065,17 +1014,7 @@ static const char* hud_ingame_completeword(const char* s) {
 }
 
 static void hud_ingame_keyboard(int key, int action, int mods) {
-    if(action==GLFW_RELEASE) {
-		key_map[key] = 0;
-	}
-	if(action==GLFW_PRESS) {
-		key_map[key] = 1;
-		if(chat_input_mode!=CHAT_NO_INPUT && (key==GLFW_KEY_SPACE || key==GLFW_KEY_LEFT_CONTROL)) {
-			key_map[key] = 0;
-		}
-	}
-
-    if(chat_input_mode!=CHAT_NO_INPUT && action==GLFW_PRESS && key==GLFW_KEY_TAB && strlen(chat[0][0])>0) {
+    if(chat_input_mode!=CHAT_NO_INPUT && action==WINDOW_PRESS && key==WINDOW_KEY_TAB && strlen(chat[0][0])>0) {
         //autocomplete word
         char* incomplete = strrchr(chat[0][0],' ')+1;
         if(incomplete==(char*)1)
@@ -1086,26 +1025,26 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
     }
 
 	if(chat_input_mode==CHAT_NO_INPUT) {
-		if(action==GLFW_PRESS) {
-			if(key==GLFW_KEY_ESCAPE) {
+		if(action==WINDOW_PRESS) {
+			if(key==WINDOW_KEY_ESCAPE) {
 				show_exit ^= 1;
-                hud_mousemode(show_exit?GLFW_CURSOR_NORMAL:GLFW_CURSOR_DISABLED);
+                window_mousemode(show_exit?WINDOW_CURSOR_ENABLED:WINDOW_CURSOR_DISABLED);
 			}
 
 			if(!network_connected) {
-				if(key==GLFW_KEY_F1) {
+				if(key==WINDOW_KEY_F1) {
 					camera_mode = CAMERAMODE_SELECTION;
 				}
-				if(key==GLFW_KEY_F2) {
+				if(key==WINDOW_KEY_F2) {
 					camera_mode = CAMERAMODE_FPS;
 				}
-				if(key==GLFW_KEY_F3) {
+				if(key==WINDOW_KEY_F3) {
 					camera_mode = CAMERAMODE_SPECTATOR;
 				}
-				if(key==GLFW_KEY_F4) {
+				if(key==WINDOW_KEY_F4) {
 					camera_mode = CAMERAMODE_BODYVIEW;
 				}
-				if(key==GLFW_KEY_V) {
+				if(key==WINDOW_KEY_SNEAK) {
 					printf("%f,%f,%f,%f,%f\n",camera_x,camera_y,camera_z,camera_rot_x,camera_rot_y);
 					players[local_player_id].pos.x = 256.0F;
 					players[local_player_id].pos.y = 63.0F;
@@ -1113,18 +1052,31 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 				}
 			}
 
-			if(key==GLFW_KEY_T) {
+            if(key==WINDOW_KEY_VOLUME_UP) {
+                sound_global_volume = min(sound_global_volume+1,10);
+            }
+            if(key==WINDOW_KEY_VOLUME_DOWN) {
+                sound_global_volume = max(sound_global_volume-1,0);
+            }
+            if(key==WINDOW_KEY_VOLUME_UP || key==WINDOW_KEY_VOLUME_DOWN) {
+                sound_volume(sound_global_volume/10.0F);
+                char volstr[64];
+                sprintf(volstr,"Volume: %i",(int)sound_global_volume);
+                chat_add(0,0x0000FF,volstr);
+            }
+
+			if(key==WINDOW_KEY_CHAT) {
 				chat_input_mode = CHAT_ALL_INPUT;
 				text_input_first = 1;
 				chat[0][0][0] = 0;
 			}
 
-			if(show_exit && key==GLFW_KEY_N) {
+			if(show_exit && key==WINDOW_KEY_NO) {
 				show_exit = 0;
-                hud_mousemode(GLFW_CURSOR_DISABLED);
+                window_mousemode(WINDOW_CURSOR_DISABLED);
 			}
 
-			if(key==GLFW_KEY_Y || key==GLFW_KEY_Z) {
+			if(key==WINDOW_KEY_YES) {
 				if(show_exit) {
                     network_disconnect();
 					hud_change(&hud_serverlist);
@@ -1136,22 +1088,22 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 				}
 			}
 
-			if((key==GLFW_KEY_UP || key==GLFW_KEY_DOWN || key==GLFW_KEY_LEFT || key==GLFW_KEY_RIGHT) && camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_BLOCK) {
+			if((key==WINDOW_KEY_CURSOR_UP || key==WINDOW_KEY_CURSOR_DOWN || key==WINDOW_KEY_CURSOR_LEFT || key==WINDOW_KEY_CURSOR_RIGHT) && camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_BLOCK) {
 				int y;
 				for(y=0;y<8;y++) {
 					for(int x=0;x<8;x++) {
 						if(texture_block_color(x,y)==players[local_player_id].block.packed) {
 							switch(key) {
-								case GLFW_KEY_LEFT:
+								case WINDOW_KEY_CURSOR_LEFT:
 									x = max(x-1,0);
 									break;
-								case GLFW_KEY_RIGHT:
+								case WINDOW_KEY_CURSOR_RIGHT:
 									x = min(x+1,7);
 									break;
-								case GLFW_KEY_UP:
+								case WINDOW_KEY_CURSOR_UP:
 									y = max(y-1,0);
 									break;
-								case GLFW_KEY_DOWN:
+								case WINDOW_KEY_CURSOR_DOWN:
 									y = min(y+1,7);
 									break;
 							}
@@ -1168,32 +1120,32 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 				}
 			}
 
-			if(key==GLFW_KEY_R && camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN) {
+			if(key==WINDOW_KEY_RELOAD && camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN) {
 				weapon_reload();
 			}
 
 			if(screen_current==SCREEN_NONE) {
 				unsigned char tool_switch = 0;
 				switch(key) {
-					case GLFW_KEY_1:
+					case WINDOW_KEY_TOOL1:
 						if(players[local_player_id].held_item!=TOOL_SPADE) {
 							players[local_player_id].held_item = TOOL_SPADE;
 							tool_switch = 1;
 						}
 						break;
-					case GLFW_KEY_2:
+					case WINDOW_KEY_TOOL2:
 						if(players[local_player_id].held_item!=TOOL_BLOCK) {
 							players[local_player_id].held_item = TOOL_BLOCK;
 							tool_switch = 1;
 						}
 						break;
-					case GLFW_KEY_3:
+					case WINDOW_KEY_TOOL3:
 						if(players[local_player_id].held_item!=TOOL_GUN) {
 							players[local_player_id].held_item = TOOL_GUN;
 							tool_switch = 1;
 						}
 						break;
-					case GLFW_KEY_4:
+					case WINDOW_KEY_TOOL4:
 						if(players[local_player_id].held_item!=TOOL_GRENADE) {
 							players[local_player_id].held_item = TOOL_GRENADE;
 							tool_switch = 1;
@@ -1203,16 +1155,16 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 
 				if(tool_switch) {
 					sound_create(NULL,SOUND_LOCAL,&sound_switch,0.0F,0.0F,0.0F)->stick_to_player = local_player_id;
-					players[local_player_id].item_disabled = glfwGetTime();
-			        players[local_player_id].items_show_start = glfwGetTime();
+					players[local_player_id].item_disabled = window_time();
+			        players[local_player_id].items_show_start = window_time();
 			        players[local_player_id].items_show = 1;
 				}
 
-				if(key==GLFW_KEY_COMMA) {
+				if(key==WINDOW_KEY_CHANGETEAM) {
 					screen_current = SCREEN_TEAM_SELECT;
 					return;
 				}
-				if(key==GLFW_KEY_PERIOD) {
+				if(key==WINDOW_KEY_CHANGEWEAPON) {
 					screen_current = SCREEN_GUN_SELECT;
 					return;
 				}
@@ -1220,13 +1172,13 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 			if(screen_current==SCREEN_TEAM_SELECT) {
 				int new_team = 256;
 				switch(key) {
-					case GLFW_KEY_1:
+					case WINDOW_KEY_TOOL1:
 						new_team = TEAM_1;
 						break;
-					case GLFW_KEY_2:
+					case WINDOW_KEY_TOOL2:
 						new_team = TEAM_2;
 						break;
-					case GLFW_KEY_3:
+					case WINDOW_KEY_TOOL3:
 						new_team = TEAM_SPECTATOR;
 						break;
 				}
@@ -1259,20 +1211,20 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 						return;
 					}
 				}
-				if(key==GLFW_KEY_COMMA && (!network_connected || (network_connected && network_logged_in))) {
+				if(key==WINDOW_KEY_CHANGETEAM && (!network_connected || (network_connected && network_logged_in))) {
 					screen_current = SCREEN_NONE;
 				}
 			}
 			if(screen_current==SCREEN_GUN_SELECT) {
 				int new_gun = 255;
 				switch(key) {
-					case GLFW_KEY_1:
+					case WINDOW_KEY_TOOL1:
 						new_gun = WEAPON_RIFLE;
 						break;
-					case GLFW_KEY_2:
+					case WINDOW_KEY_TOOL2:
 						new_gun = WEAPON_SMG;
 						break;
-					case GLFW_KEY_3:
+					case WINDOW_KEY_TOOL3:
 						new_gun = WEAPON_SHOTGUN;
 						break;
 				}
@@ -1298,11 +1250,11 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 					screen_current = SCREEN_NONE;
 					return;
 				}
-				if(key==GLFW_KEY_PERIOD && (!network_connected || (network_connected && network_logged_in))) {
+				if(key==WINDOW_KEY_CHANGEWEAPON && (!network_connected || (network_connected && network_logged_in))) {
 					screen_current = SCREEN_NONE;
 				}
 			}
-			if(key==GLFW_KEY_E) {
+			if(key==WINDOW_KEY_PICKCOLOR) {
 				int* pos = camera_terrain_pick(1);
 				if(pos!=NULL) {
 					players[local_player_id].block.packed = map_get(pos[0],pos[1],pos[2]);
@@ -1315,14 +1267,14 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 			}
 		}
 	} else {
-		if(action!=GLFW_RELEASE) {
-			if(key==GLFW_KEY_V && mods&GLFW_MOD_CONTROL) {
-				const char* clipboard = glfwGetClipboardString(hud_window);
+		if(action!=WINDOW_RELEASE) {
+			if(key==WINDOW_KEY_V && mods) {
+				const char* clipboard = window_clipboard();
 				if(clipboard)
     				strcpy(chat[0][0]+strlen(chat[0][0]),clipboard);
 			}
-			if(key==GLFW_KEY_ESCAPE || key==GLFW_KEY_ENTER) {
-				if(key==GLFW_KEY_ENTER && strlen(chat[0][0])>0) {
+			if(key==WINDOW_KEY_ESCAPE || key==WINDOW_KEY_ENTER) {
+				if(key==WINDOW_KEY_ENTER && strlen(chat[0][0])>0) {
 					struct PacketChatMessage msg;
 					msg.player_id = local_player_id;
 					msg.chat_type = (chat_input_mode==CHAT_ALL_INPUT)?CHAT_ALL:CHAT_TEAM;
@@ -1331,7 +1283,7 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 				}
 				chat_input_mode = CHAT_NO_INPUT;
 			}
-			if(key==GLFW_KEY_BACKSPACE) {
+			if(key==WINDOW_KEY_BACKSPACE) {
 				chat[0][0][strlen(chat[0][0])-1] = 0;
 			}
 		}
@@ -1391,27 +1343,11 @@ static int hud_serverlist_sort(const void* a, const void* b) {
 }
 
 static void hud_serverlist_render(float scalex, float scaley) {
-    hud_mousemode(GLFW_CURSOR_NORMAL);
+    window_mousemode(WINDOW_CURSOR_ENABLED);
 
     glColor3f(0.5F,0.5F,0.5F);
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-    glBindTexture(GL_TEXTURE_2D,texture_ui_bg.texture_id);
-    glBegin(GL_QUADS);
-    float t = glfwGetTime()*0.03125F;
-    glTexCoord2f(t,t);
-    glVertex2f(0,settings.window_height);
-    glTexCoord2f(t,settings.window_height/512.0F+t);
-    glVertex2f(0,0);
-    glTexCoord2f(settings.window_width/512.0F+t,settings.window_height/512.0F+t);
-    glVertex2f(settings.window_width,0);
-    glTexCoord2f(settings.window_width/512.0F+t,t);
-    glVertex2f(settings.window_width,settings.window_height);
-    glEnd();
-    glBindTexture(GL_TEXTURE_2D,0);
-    glDisable(GL_BLEND);
-    glDisable(GL_TEXTURE_2D);
+    float t = window_time()*0.03125F;
+    texture_draw_sector(&texture_ui_bg,0.0F,settings.window_height,settings.window_width,settings.window_height,t,t,settings.window_width/512.0F,settings.window_height/512.0F);
 
     glColor3f(1.0F,1.0F,0.0F);
     font_render((settings.window_width-600*scaley)/2.0F+0*scaley,535*scaley,36*scaley,"Server list");
@@ -1453,7 +1389,7 @@ static void hud_serverlist_render(float scalex, float scaley) {
     glScissor((settings.window_width-600*scaley)/2.0F,50*scaley,600*scaley,(430-50)*scaley);
 
     double xpos,ypos;
-    glfwGetCursorPos(hud_window,&xpos,&ypos);
+    window_mouseloc(&xpos,&ypos);
     ypos = settings.window_height-ypos;
 
     int tmp = -1;
@@ -1468,10 +1404,8 @@ static void hud_serverlist_render(float scalex, float scaley) {
             tmp = k;
         }
 
-        if(serverlist[k].current && serverlist[k].current<serverlist[k].max)
-            glColor3f(1.0F,1.0F,1.0F);
-        else
-            glColor3f(0.5F,0.5F,0.5F);
+        float f = ((serverlist[k].current && serverlist[k].current<serverlist[k].max) || tmp==k)?1.0F:0.5F;
+        glColor3f(f,f,f);
 
         sprintf(total_str,"%i/%i",serverlist[k].current,serverlist[k].max);
         font_render((settings.window_width-600*scaley)/2.0F+0*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,total_str);
@@ -1479,12 +1413,13 @@ static void hud_serverlist_render(float scalex, float scaley) {
         font_render((settings.window_width-600*scaley)/2.0F+350*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,serverlist[k].map);
         font_render((settings.window_width-600*scaley)/2.0F+475*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,serverlist[k].gamemode);
         sprintf(total_str,"%ims",serverlist[k].ping);
+
         if(serverlist[k].ping<110)
-            glColor3f(0.0F,1.0F,0.0F);
+            glColor3f(0.0F,1.0F*f,0.0F);
         else if(serverlist[k].ping<200)
-            glColor3f(1.0F,1.0F,0.0F);
+            glColor3f(1.0F*f,1.0F*f,0.0F);
         else
-            glColor3f(1.0F,0.0F,0.0F);
+            glColor3f(1.0F*f,0.0F,0.0F);
         font_render((settings.window_width-600*scaley)/2.0F+560*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,total_str);
         glColor3f(1.0F,1.0F,1.0F);
     }
@@ -1527,7 +1462,7 @@ static void hud_serverlist_render(float scalex, float scaley) {
             case HTTP_STATUS_PENDING:
                 glColor3f(1.0F,1.0F,1.0F);
             	texture_filter(&texture_ui_wait,TEXTURE_FILTER_LINEAR);
-            	texture_draw_rotated(&texture_ui_wait,settings.window_width/2.0F,settings.window_height/2.0F,48*scaley,48*scaley,-glfwGetTime()*5.0F);
+            	texture_draw_rotated(&texture_ui_wait,settings.window_width/2.0F,settings.window_height/2.0F,48*scaley,48*scaley,-window_time()*5.0F);
                 font_centered(settings.window_width/2.0F,settings.window_height/2.0F-24*scaley,18*scaley,"Please wait...");
                 break;
             case HTTP_STATUS_COMPLETED:
@@ -1582,23 +1517,23 @@ static void hud_serverlist_mouseclick(int button, int action, int mods) {
         file_url("https://aos.party/bs");
         return;
     }
-    if(serverlist_hover>=0 && action==GLFW_PRESS) {
+    if(serverlist_hover>=0 && action==WINDOW_PRESS) {
         server_c(serverlist[serverlist_hover].identifier);
     }
 }
 
 static void hud_serverlist_keyboard(int key, int action, int mods) {
-    if(action!=GLFW_RELEASE) {
-        if(key==GLFW_KEY_W || key==GLFW_KEY_UP) {
+    if(action!=WINDOW_RELEASE) {
+        if(key==WINDOW_KEY_UP || key==WINDOW_KEY_CURSOR_UP) {
             serverlist_scroll += 20.0F;
         }
-        if(key==GLFW_KEY_S || key==GLFW_KEY_DOWN) {
+        if(key==WINDOW_KEY_DOWN || key==WINDOW_KEY_CURSOR_DOWN) {
             serverlist_scroll -= 20.0F;
         }
-        if(key==GLFW_KEY_BACKSPACE) {
+        if(key==WINDOW_KEY_BACKSPACE) {
             chat[0][0][strlen(chat[0][0])-1] = 0;
         }
-        if(key==GLFW_KEY_ENTER && strlen(chat[0][0])>0) {
+        if(key==WINDOW_KEY_ENTER && strlen(chat[0][0])>0) {
             server_c(chat[0][0]);
         }
     }

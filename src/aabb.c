@@ -20,7 +20,7 @@
 #include "common.h"
 
 void aabb_render(AABB* a) {
-	glLineWidth(1.0F);
+	/*glLineWidth(1.0F);
 	glBegin(GL_LINES);
 	glVertex3f(a->min_x,a->min_y,a->min_z);
 	glVertex3f(a->max_x,a->min_y,a->min_z);
@@ -46,7 +46,7 @@ void aabb_render(AABB* a) {
 	glVertex3f(a->max_x,a->max_y,a->max_z);
 	glVertex3f(a->min_x,a->min_y,a->max_z);
 	glVertex3f(a->min_x,a->max_y,a->max_z);
-	glEnd();
+	glEnd();*/
 }
 
 char aabb_intersection_ray(AABB* a, Ray* r) {

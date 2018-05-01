@@ -78,10 +78,7 @@ int texture_create(struct texture* t, char* filename) {
 
     texture_resize_pow2(t,0);
 
-    glPixelStorei(GL_UNPACK_ROW_LENGTH,t->width);
-	glPixelStorei(GL_UNPACK_ALIGNMENT,1);
     glGenTextures(1,&t->texture_id);
-    glxcheckErrors(__FILE__,__LINE__);
     glBindTexture(GL_TEXTURE_2D,t->texture_id);
     glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,t->width,t->height,0,GL_RGBA,GL_UNSIGNED_BYTE,t->pixels);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
@@ -100,8 +97,6 @@ int texture_create_buffer(struct texture* t, int width, int height, unsigned cha
     t->pixels = buff;
     texture_resize_pow2(t,max(width,height));
 
-    glPixelStorei(GL_UNPACK_ROW_LENGTH,t->width);
-	glPixelStorei(GL_UNPACK_ALIGNMENT,1);
     glBindTexture(GL_TEXTURE_2D,t->texture_id);
     glTexImage2D(GL_TEXTURE_2D,0,GL_RGBA,t->width,t->height,0,GL_RGBA,GL_UNSIGNED_BYTE,t->pixels);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_NEAREST);
@@ -117,16 +112,29 @@ void texture_draw_sector(struct texture* t, float x, float y, float w, float h, 
     glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
     glBindTexture(GL_TEXTURE_2D,t->texture_id);
 
-    glBegin(GL_QUADS);
-    glTexCoord2f(u,v);
-    glVertex2f(x,y);
-    glTexCoord2f(u,v+vs);
-    glVertex2f(x,y-h);
-    glTexCoord2f(u+us,v+vs);
-    glVertex2f(x+w,y-h);
-    glTexCoord2f(u+us,v);
-    glVertex2f(x+w,y);
-    glEnd();
+    float vertices[12] = {
+        x,y,
+        x,y-h,
+        x+w,y-h,
+        x,y,
+        x+w,y-h,
+        x+w,y
+    };
+    float texcoords[12] = {
+        u,v,
+        u,v+vs,
+        u+us,v+vs,
+        u,v,
+        u+us,v+vs,
+        u+us,v
+    };
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glTexCoordPointer(2,GL_FLOAT,0,texcoords);
+    glVertexPointer(2,GL_FLOAT,0,vertices);
+    glDrawArrays(GL_TRIANGLES,0,6);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
 
     glBindTexture(GL_TEXTURE_2D,0);
     glDisable(GL_BLEND);
@@ -156,31 +164,57 @@ void texture_draw_rotated(struct texture* t, float x, float y, float w, float h,
 }
 
 void texture_draw_empty(float x, float y, float w, float h) {
-    glBegin(GL_QUADS);
-    glTexCoord2f(0.0F,0.0F);
-    glVertex2f(x,y);
-    glTexCoord2f(0.0F,1.0F);
-    glVertex2f(x,y-h);
-    glTexCoord2f(1.0F,1.0F);
-    glVertex2f(x+w,y-h);
-    glTexCoord2f(1.0F,0.0F);
-    glVertex2f(x+w,y);
-    glEnd();
+    float vertices[12] = {
+        x,y,
+        x,y-h,
+        x+w,y-h,
+        x,y,
+        x+w,y-h,
+        x+w,y
+    };
+    float texcoords[12] = {
+        0.0F,0.0F,
+        0.0F,1.0F,
+        1.0F,1.0F,
+        0.0F,0.0F,
+        1.0F,1.0F,
+        1.0F,0.0F
+    };
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glTexCoordPointer(2,GL_FLOAT,0,texcoords);
+    glVertexPointer(2,GL_FLOAT,0,vertices);
+    glDrawArrays(GL_TRIANGLES,0,6);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
 }
 
-#define texture_emit_rotated(tx,ty,x,y,a) glVertex2f(cos(a)*x-sin(a)*y+tx,sin(a)*x+cos(a)*y+ty)
+#define texture_emit_rotated(tx,ty,x,y,a) cos(a)*x-sin(a)*y+tx,sin(a)*x+cos(a)*y+ty
 
 void texture_draw_empty_rotated(float x, float y, float w, float h, float angle) {
-    glBegin(GL_QUADS);
-    glTexCoord2f(0.0F,0.0F);
-    texture_emit_rotated(x,y,-w/2,h/2,angle);
-    glTexCoord2f(0.0F,1.0F);
-    texture_emit_rotated(x,y,-w/2,-h/2,angle);
-    glTexCoord2f(1.0F,1.0F);
-    texture_emit_rotated(x,y,w/2,-h/2,angle);
-    glTexCoord2f(1.0F,0.0F);
-    texture_emit_rotated(x,y,w/2,h/2,angle);
-    glEnd();
+    float vertices[12] = {
+        texture_emit_rotated(x,y,-w/2,h/2,angle),
+        texture_emit_rotated(x,y,-w/2,-h/2,angle),
+        texture_emit_rotated(x,y,w/2,-h/2,angle),
+        texture_emit_rotated(x,y,-w/2,h/2,angle),
+        texture_emit_rotated(x,y,w/2,-h/2,angle),
+        texture_emit_rotated(x,y,w/2,h/2,angle)
+    };
+    float texcoords[12] = {
+        0.0F,0.0F,
+        0.0F,1.0F,
+        1.0F,1.0F,
+        0.0F,0.0F,
+        1.0F,1.0F,
+        1.0F,0.0F
+    };
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glTexCoordPointer(2,GL_FLOAT,0,texcoords);
+    glVertexPointer(2,GL_FLOAT,0,vertices);
+    glDrawArrays(GL_TRIANGLES,0,6);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 void texture_resize_pow2(struct texture* t, int min_size) {
@@ -251,10 +285,11 @@ unsigned int texture_block_color(int x, int y) {
 }
 
 void texture_gradient_fog(unsigned int* gradient) {
-    for(int y=0;y<256;y++) {
-        for(int x=0;x<256;x++) {
-            int d = min(sqrt(distance2D(128,128,x,y))/128.0F*255.0F,255);
-            gradient[x+y*256] = (d<<24)|rgb((int)(fog_color[0]*255.0F),(int)(fog_color[1]*255.0F),(int)(fog_color[2]*255.0F));
+    int size = 512;
+    for(int y=0;y<size;y++) {
+        for(int x=0;x<size;x++) {
+            int d = min(sqrt(distance2D(size/2,size/2,x,y))/(float)size*2.0F*255.0F,255);
+            gradient[x+y*size] = (d<<24)|rgb((int)(fog_color[0]*255.0F),(int)(fog_color[1]*255.0F),(int)(fog_color[2]*255.0F));
         }
     }
 }
@@ -306,7 +341,7 @@ void texture_init() {
 
     texture_create_buffer(&texture_minimap,map_size_x,map_size_z,map_minimap);
 
-    unsigned int* gradient = malloc(256*256*sizeof(unsigned int));
+    unsigned int* gradient = malloc(512*512*sizeof(unsigned int));
     texture_gradient_fog(gradient);
-    texture_create_buffer(&texture_gradient,256,256,(unsigned char*)gradient);
+    texture_create_buffer(&texture_gradient,512,512,(unsigned char*)gradient);
 }

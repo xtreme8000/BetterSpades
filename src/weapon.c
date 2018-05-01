@@ -39,13 +39,13 @@ void weapon_update() {
 
     if(weapon_reload_inprogress) {
         if(players[local_player_id].weapon==WEAPON_SHOTGUN) {
-            if(glfwGetTime()-weapon_reload_start>=0.5F) {
+            if(window_time()-weapon_reload_start>=0.5F) {
                 local_player_ammo++;
                 local_player_ammo_reserved--;
 
                 struct Sound_wav* snd;
                 if(local_player_ammo<6) {
-                    weapon_reload_start = glfwGetTime();
+                    weapon_reload_start = window_time();
                     snd = &sound_shotgun_reload;
                 } else {
                     weapon_reload_inprogress = 0;
@@ -54,23 +54,23 @@ void weapon_update() {
                 sound_create(NULL,SOUND_LOCAL,snd,0.0F,0.0F,0.0F);
             }
         } else {
-            if(glfwGetTime()-weapon_reload_start>=t) {
+            if(window_time()-weapon_reload_start>=t) {
                 local_player_ammo += bullets;
                 local_player_ammo_reserved -= bullets;
                 weapon_reload_inprogress = 0;
             }
         }
         if(players[local_player_id].held_item==TOOL_GUN) {
-            players[local_player_id].item_disabled = glfwGetTime();
-            players[local_player_id].items_show_start = glfwGetTime();
+            players[local_player_id].item_disabled = window_time();
+            players[local_player_id].items_show_start = window_time();
             players[local_player_id].items_show = 1;
         }
     } else {
-        if(glfwGetTime()-players[local_player_id].item_disabled>=0.5F) {
-            if(players[local_player_id].input.buttons.lmb && players[local_player_id].held_item==TOOL_GUN && local_player_ammo>0 && glfwGetTime()-weapon_last_shot>=delay) {
+        if(window_time()-players[local_player_id].item_disabled>=0.5F) {
+            if(players[local_player_id].input.buttons.lmb && players[local_player_id].held_item==TOOL_GUN && local_player_ammo>0 && window_time()-weapon_last_shot>=delay) {
                 weapon_shoot();
                 local_player_ammo = max(local_player_ammo-1,0);
-                weapon_last_shot = glfwGetTime();
+                weapon_last_shot = window_time();
             }
         }
     }
@@ -183,7 +183,7 @@ void weapon_reload() {
     if(local_player_ammo_reserved==0 || weapon_reload_inprogress || !weapon_can_reload()) {
         return;
     }
-    weapon_reload_start = glfwGetTime();
+    weapon_reload_start = window_time();
     weapon_reload_inprogress = 1;
 
     sound_create(NULL,SOUND_LOCAL,weapon_sound_reload(players[local_player_id].weapon),players[local_player_id].pos.x,players[local_player_id].pos.y,players[local_player_id].pos.z);
@@ -313,10 +313,10 @@ void weapon_shoot() {
             break;
     }
 
-    long triangle_wave = (long)(glfwGetTime()*1000)&511;
+    long triangle_wave = (long)(window_time()*1000)&511;
     horiz_recoil *= ((double)triangle_wave-255.5);
 
-    if(((long)(glfwGetTime()*1000)&1023)<512) {
+    if(((long)(window_time()*1000)&1023)<512) {
         horiz_recoil *= -1.0;
     }
 

@@ -76,6 +76,12 @@ struct Sound_wav sound_debris;
 struct Sound_wav sound_bounce;
 struct Sound_wav sound_impact;
 
+float sound_global_volume = 10.0F;
+
+void sound_volume(float vol) {
+    if(sound_enabled)
+        alListenerf(AL_GAIN,vol);
+}
 
 int sound_free_index() {
     for(int k=0;k<SOUND_VOICES_MAX;k++)

@@ -119,11 +119,11 @@ void chunk_render(int x, int y) {
 		y -= CHUNKS_PER_DIM;
 
 	if(chunks[((y*CHUNKS_PER_DIM)|x)].created) {
-		if(chunk_render_mode)
-			glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
+		/*if(chunk_render_mode)
+			glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);*/
 		glx_displaylist_draw(chunks[((y*CHUNKS_PER_DIM)|x)].display_list,chunks[((y*CHUNKS_PER_DIM)|x)].vertex_count);
-		if(chunk_render_mode)
-			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);
+		/*if(chunk_render_mode)
+			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);*/
 	}
 
 	/*glBegin(GL_QUADS);
@@ -173,7 +173,7 @@ float chunk_face_light(float* data, int k, float lx, float ly, float lz) {
 }
 
 void chunk_draw_shadow_volume(float* data, int max) {
-	glBegin(GL_QUADS);
+	/*glBegin(GL_QUADS);
 	glColor3f(1.0F,0.0F,0.0F);
 	float lx = 0.0F;
 	float ly = 1.0F;
@@ -210,7 +210,7 @@ void chunk_draw_shadow_volume(float* data, int max) {
 			}
 		}
 	}
-	glEnd();
+	glEnd();*/
 }
 
 //see this for details: https://github.com/infogulch/pyspades/blob/protocol075/pyspades/vxl_c.cpp#L380
@@ -1659,30 +1659,35 @@ void chunk_update_all() {
 	for(int j=0;j<CHUNK_WORKERS_MAX;j++) {
 		pthread_mutex_lock(&chunk_workers[j].state_lock);
 		if(chunk_workers[j].state==CHUNK_WORKERSTATE_FINISHED) {
-			//float s3 = glfwGetTime();
+			//float s3 = window_time();
 			chunk_workers[j].state = CHUNK_WORKERSTATE_IDLE;
 			chunks[chunk_workers[j].chunk_id].max_height = chunk_workers[j].max_height;
 			chunks[chunk_workers[j].chunk_id].vertex_count = chunk_workers[j].data_size;
 
 			glx_displaylist_update(chunks[chunk_workers[j].chunk_id].display_list,chunk_workers[j].data_size,chunk_workers[j].color_data,chunk_workers[j].vertex_data);
 
-			//printf("(s3) %i\n",(int)((glfwGetTime()-s3)*1000.0F));
-			//s3 = glfwGetTime();
+			//printf("(s3) %i\n",(int)((window_time()-s3)*1000.0F));
+			//s3 = window_time();
 
-			glPixelStorei(GL_UNPACK_ROW_LENGTH,map_size_x);
-			glPixelStorei(GL_UNPACK_ALIGNMENT,1);
+			int tex_data[CHUNK_SIZE*CHUNK_SIZE];
+			for(int y=0;y<CHUNK_SIZE;y++) {
+				for(int x=0;x<CHUNK_SIZE;x++) {
+					tex_data[x+y*CHUNK_SIZE] = ((int*)map_minimap)[x+chunk_workers[j].chunk_x+(y+chunk_workers[j].chunk_y)*map_size_x];
+				}
+			}
+
 			glBindTexture(GL_TEXTURE_2D,texture_minimap.texture_id);
 			pthread_mutex_lock(&chunk_minimap_lock);
-			glTexSubImage2D(GL_TEXTURE_2D,0,chunk_workers[j].chunk_x,chunk_workers[j].chunk_y,CHUNK_SIZE,CHUNK_SIZE,GL_RGBA,GL_UNSIGNED_BYTE,map_minimap+(chunk_workers[j].chunk_x+chunk_workers[j].chunk_y*map_size_x)*4);
+			glTexSubImage2D(GL_TEXTURE_2D,0,chunk_workers[j].chunk_x,chunk_workers[j].chunk_y,CHUNK_SIZE,CHUNK_SIZE,GL_RGBA,GL_UNSIGNED_BYTE,tex_data);
 			pthread_mutex_unlock(&chunk_minimap_lock);
 			glBindTexture(GL_TEXTURE_2D,0);
 
 			//free(chunk_workers[j].vertex_data);
 			//free(chunk_workers[j].color_data);
-			//printf("(s4) %i\n",(int)((glfwGetTime()-s3)*1000.0F));
+			//printf("(s4) %i\n",(int)((window_time()-s3)*1000.0F));
 		}
 		if(chunk_workers[j].state==CHUNK_WORKERSTATE_IDLE && chunk_geometry_changed_lenght>0) {
-			//float s1 = glfwGetTime();
+			//float s1 = window_time();
 			float closest_dist = 1e10;
 			int closest_index = 0;
 			for(int k=0;k<chunk_geometry_changed_lenght;k++) {
@@ -1704,17 +1709,17 @@ void chunk_update_all() {
 			chunk_workers[j].chunk_x = chunk_x;
 			chunk_workers[j].chunk_y = chunk_y;
 			chunk_workers[j].state = CHUNK_WORKERSTATE_BUSY;
-			//float s2 = glfwGetTime();
+			//float s2 = window_time();
 			//pthread_create(&chunk_workers[j].thread,NULL,chunk_generate,&chunk_workers[j]);
-			//printf("(s2) thread creation time: %i\n",(int)((glfwGetTime()-s2)*1000.0F));
-			chunks[chunk_geometry_changed[closest_index]].last_update = glfwGetTime();
+			//printf("(s2) thread creation time: %i\n",(int)((window_time()-s2)*1000.0F));
+			chunks[chunk_geometry_changed[closest_index]].last_update = window_time();
 			chunks[chunk_geometry_changed[closest_index]].created = 1;
 
 			for(int i=closest_index;i<chunk_geometry_changed_lenght-1;i++) {
 				chunk_geometry_changed[i] = chunk_geometry_changed[i+1];
 			}
 			chunk_geometry_changed_lenght--;
-			//printf("(s1) %i\n",(int)((glfwGetTime()-s1)*1000.0F));
+			//printf("(s1) %i\n",(int)((window_time()-s1)*1000.0F));
 		}
 		pthread_mutex_unlock(&chunk_workers[j].state_lock);
 	}

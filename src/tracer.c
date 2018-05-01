@@ -48,7 +48,7 @@ void tracer_add(unsigned char type, float x, float y, float z, float dx, float d
             tracers[k].r.direction.x = dx;
             tracers[k].r.direction.y = dy;
             tracers[k].r.direction.z = dz;
-            tracers[k].created = glfwGetTime();
+            tracers[k].created = window_time();
             tracers[k].used = 1;
             break;
         }
@@ -73,7 +73,7 @@ void tracer_render() {
 void tracer_update(float dt) {
     for(int k=0;k<TRACER_MAX;k++) {
         if(tracers[k].used) {
-            if(glfwGetTime()-tracers[k].created>0.5F) { //128.0[m] / 256.0[m/s] = 0.5[s]
+            if(window_time()-tracers[k].created>0.5F) { //128.0[m] / 256.0[m/s] = 0.5[s]
                 tracers[k].used = 0;
             } else {
                 struct Camera_HitType hit;
