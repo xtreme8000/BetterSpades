@@ -398,7 +398,7 @@ static float foot_function(struct Player* p) {
 }
 
 int player_render(struct Player* p, int id, Ray* ray, char render) {
-    if(camera_mode==CAMERAMODE_SPECTATOR) {
+    if(camera_mode==CAMERAMODE_SPECTATOR && p->team!=TEAM_SPECTATOR) {
         int old_state = glx_fog;
         if(old_state)
             glx_disable_sphericalfog();
@@ -408,23 +408,23 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
         matrix_rotate(-camera_rot_y/PI*180.0F+90.0F,1.0F,0.0F,0.0F);
         matrix_scale(1.0F/92.0F,1.0F/92.0F,1.0F/92.0F);
         matrix_upload();
-        //int a = 255-sqrt(distance2D(p->pos.x,p->pos.z,camera_x,camera_z))/settings.render_distance*255;
+        float a = sqrt(distance2D(p->pos.x,p->pos.z,camera_x,camera_z))/settings.render_distance;
         switch(p->team) {
             case TEAM_1:
-                glColor4ub(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue,255);
+                glColor3f(fog_color[0]*a+gamestate.team_1.red/255.0F*(1.0F-a),
+                          fog_color[1]*a+gamestate.team_1.green/255.0F*(1.0F-a),
+                          fog_color[2]*a+gamestate.team_1.blue/255.0F*(1.0F-a));
                 break;
             case TEAM_2:
-                glColor4ub(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue,255);
+                glColor3f(fog_color[0]*a+gamestate.team_2.red/255.0F*(1.0F-a),
+                          fog_color[1]*a+gamestate.team_2.green/255.0F*(1.0F-a),
+                          fog_color[2]*a+gamestate.team_2.blue/255.0F*(1.0F-a));
                 break;
-            default:
-                glColor4f(1.0F,1.0F,1.0F,1.0F);
         }
         font_select(FONT_FIXEDSYS);
         glEnable(GL_ALPHA_TEST);
         glAlphaFunc(GL_GREATER,0.5F);
-        glDisable(GL_DEPTH_TEST);
         font_centered(0,0,64,p->name);
-        glEnable(GL_DEPTH_TEST);
         glDisable(GL_ALPHA_TEST);
         matrix_pop();
         matrix_upload();
