@@ -31,7 +31,9 @@ unsigned char font_init() {
     texture_create(&font_smallfnt,"fonts/smallfnt68.png");
 
     font_vertex_buffer = malloc(512*8*sizeof(short));
+    CHECK_ALLOCATION_ERROR(font_vertex_buffer)
     font_coords_buffer = malloc(512*8*sizeof(short));
+    CHECK_ALLOCATION_ERROR(font_coords_buffer)
 
     return 1;
 }

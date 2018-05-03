@@ -195,6 +195,7 @@ void sound_load(struct Sound_wav* wav, char* name, float min, float max) {
     short* audio;
     if(channels>1) { //convert stereo to mono
         audio = malloc(samplecount*sizeof(short)/2);
+        CHECK_ALLOCATION_ERROR(audio)
         for(int k=0;k<samplecount/2;k++) {
             audio[k] = ((int)samples[k*2]+(int)samples[k*2+1])/2; //prevent overflow
         }

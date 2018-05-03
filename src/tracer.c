@@ -97,4 +97,5 @@ void tracer_update(float dt) {
 
 void tracer_init() {
     tracers = calloc(sizeof(struct Tracer)*TRACER_MAX,1);
+    CHECK_ALLOCATION_ERROR(tracers)
 }

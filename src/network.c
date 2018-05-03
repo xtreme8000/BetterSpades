@@ -65,6 +65,7 @@ void read_PacketMapChunk(void* data, int len) {
 	if(compressed_chunk_data_offset+len>compressed_chunk_data_size) {
 		compressed_chunk_data_size += 1024*1024;
 		compressed_chunk_data = realloc(compressed_chunk_data,compressed_chunk_data_size);
+		CHECK_ALLOCATION_ERROR(compressed_chunk_data)
 	}
 	//accept any chunk length for "superior" performance, as pointed out by github/NotAFile
 	memcpy(compressed_chunk_data+compressed_chunk_data_offset,data,len);
@@ -252,6 +253,7 @@ void read_PacketStateData(void* data, int len) {
 	if(!network_map_cached) {
 		int avail_size = 1024*1024;
 		void* decompressed = malloc(avail_size);
+		CHECK_ALLOCATION_ERROR(decompressed)
 		size_t decompressed_size;
 		struct libdeflate_decompressor* d = libdeflate_alloc_decompressor();
 		while(1) {
@@ -260,6 +262,7 @@ void read_PacketStateData(void* data, int len) {
 			if(r==LIBDEFLATE_INSUFFICIENT_SPACE) {
 				avail_size += 1024*1024;
 				decompressed = realloc(decompressed,avail_size);
+				CHECK_ALLOCATION_ERROR(decompressed)
 			}
 			if(r==LIBDEFLATE_SUCCESS) {
 				map_vxl_load(decompressed,map_colors);
@@ -371,6 +374,7 @@ void read_PacketMapStart(void* data, int len) {
 	//ffs someone fix the wrong map size of 1.5mb
 	compressed_chunk_data_size = 1024*1024;
 	compressed_chunk_data = malloc(compressed_chunk_data_size);
+	CHECK_ALLOCATION_ERROR(compressed_chunk_data)
 	compressed_chunk_data_offset = 0;
 	network_logged_in = 0;
 	network_map_transfer = 1;
@@ -780,6 +784,7 @@ void network_send(int id, void* data, int len) {
 	if(network_connected) {
 		if(!network_send_tmp) {
 			network_send_tmp = malloc(512);
+			CHECK_ALLOCATION_ERROR(network_send_tmp)
 		}
 		network_send_tmp[0] = id;
 		memcpy(network_send_tmp+1,data,len);

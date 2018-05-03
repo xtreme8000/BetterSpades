@@ -244,6 +244,7 @@ void texture_resize_pow2(struct texture* t, int min_size) {
     printf("original: %i:%i now: %i:%i limit: %i\n",t->width,t->height,w,h,max_size);
 
     unsigned int* pixels_new = malloc(w*h*sizeof(unsigned int));
+    CHECK_ALLOCATION_ERROR(pixels_new)
     for(int y=0;y<h;y++) {
         for(int x=0;x<w;x++) {
             float px = (float)x/(float)w*(float)t->width;
@@ -327,6 +328,7 @@ void texture_init() {
 
 
     unsigned int* pixels = malloc(64*64*sizeof(unsigned int));
+    CHECK_ALLOCATION_ERROR(pixels)
     memset(pixels,0,64*64*sizeof(unsigned int));
     for(int y=0;y<8;y++) {
         for(int x=0;x<8;x++) {
@@ -342,6 +344,7 @@ void texture_init() {
     texture_create_buffer(&texture_minimap,map_size_x,map_size_z,map_minimap);
 
     unsigned int* gradient = malloc(512*512*sizeof(unsigned int));
+    CHECK_ALLOCATION_ERROR(gradient)
     texture_gradient_fog(gradient);
     texture_create_buffer(&texture_gradient,512,512,(unsigned char*)gradient);
 }
