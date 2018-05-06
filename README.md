@@ -1,3 +1,4 @@
+[![Build Status](http://bytebit.info.tm:8080/buildStatus/icon?job=BetterSpades)](http://bytebit.info.tm:8080/job/BetterSpades/)
 [![](https://img.shields.io/github/downloads/xtreme8000/BetterSpades/total.svg)](https://github.com/xtreme8000/BetterSpades/releases)
 [![GPL](https://img.shields.io/badge/license-GPL--3.0-red.svg)](https://github.com/xtreme8000/BetterSpades/blob/standalone/LICENSE)
 [![DonateBTC](https://img.shields.io/badge/bitcoin-donate-yellow.svg)](1AeSfdVmbEX6VCqxCgk9WkzSA8XJkKr4FM)
