@@ -845,6 +845,7 @@ int network_connect_sub(char* ip, int port, int version) {
 }
 
 int network_connect(char* ip, int port) {
+	printf("Connecting to %s at port %i\n",ip,port);
 	if(network_connected) {
 		network_disconnect();
 	}
@@ -859,16 +860,22 @@ int network_connect(char* ip, int port) {
 }
 
 int network_connect_string(char* addr) {
-	int ip_start = 1;
-	for(;addr[ip_start-1]!='/' && addr[ip_start]!='/' && addr[ip_start];ip_start++);
-	int port_start = ip_start;
-	for(;addr[port_start+1] && addr[port_start]!=':';port_start++);
+	char* ip_start = strstr(addr,"aos://")+6;
+	if((size_t)ip_start<=6)
+		return 0;
+	char* port_start = strchr(ip_start,':');
+	if(port_start)
+		*port_start = 0;
 
-	int ip = atoi((char*)(addr+ip_start+2));
-	char ipport_str[64];
-	sprintf(ipport_str,"%i.%i.%i.%i",ip&255,(ip>>8)&255,(ip>>16)&255,(ip>>24)&255);
+	if(strchr(ip_start,'.')) {
+		return network_connect(ip_start,port_start?atoi(port_start+1):32887);
+	} else {
+		int ip = atoi(ip_start);
+		char ip_str[32];
+		sprintf(ip_str,"%i.%i.%i.%i",ip&255,(ip>>8)&255,(ip>>16)&255,(ip>>24)&255);
 
-	return network_connect(ipport_str,atoi((char*)(addr+port_start+1)));
+		return network_connect(ip_str,port_start?atoi(port_start+1):32887);
+	}
 }
 
 int network_update() {

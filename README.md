@@ -18,6 +18,7 @@
 ### Quick usage guide
 
 **As of right now, you can download the newest stable version from the [releases page](https://github.com/xtreme8000/BetterSpades/releases).**
+
 **You can get [nightly builds here](http://bytebit.info.tm:8080/job/BetterSpades/).**
 
 You can either:
