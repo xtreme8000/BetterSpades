@@ -29,7 +29,7 @@ int chunk_geometry_changed_lenght = 0;
 int chunk_lighting_changed[CHUNKS_PER_DIM*CHUNKS_PER_DIM*2];
 int chunk_lighting_changed_lenght = 0;
 
-boolean chunk_render_mode = 0;
+ALboolean chunk_render_mode = 0;
 
 struct chunk_d {
 	int x,y;
@@ -94,7 +94,7 @@ void chunk_draw_visible() {
 		chunk_render(chunks_draw[k].x/CHUNK_SIZE,chunks_draw[k].y/CHUNK_SIZE);
 }
 
-void chunk_set_render_mode(boolean r) {
+void chunk_set_render_mode(ALboolean r) {
 	chunk_render_mode = r;
 }
 

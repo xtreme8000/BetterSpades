@@ -26,7 +26,7 @@ typedef struct {
 	float created;
 	float fade;
 	unsigned int color;
-	boolean alive;
+	ALboolean alive;
 } Particle;
 
 extern Particle* particles;
