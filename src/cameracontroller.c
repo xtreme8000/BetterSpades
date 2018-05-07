@@ -21,7 +21,6 @@
 
 int cameracontroller_bodyview_player = 0;
 
-float lx,ly,lz;
 void cameracontroller_fps(float dt) {
     players[local_player_id].connected = 1;
 	players[local_player_id].alive = 1;
@@ -90,9 +89,9 @@ void cameracontroller_fps(float dt) {
         players[local_player_id].input.buttons.packed = 0;
     }
 
-	lx = lx*pow(0.7F,dt*60.0F)+(sin(camera_rot_x)*sin(camera_rot_y))*pow(0.3F,dt*60.0F);
-	ly = ly*pow(0.7F,dt*60.0F)+(cos(camera_rot_y))*pow(0.3F,dt*60.0F);
-	lz = lz*pow(0.7F,dt*60.0F)+(cos(camera_rot_x)*sin(camera_rot_y))*pow(0.3F,dt*60.0F);
+	float lx = players[local_player_id].orientation_smooth.x*pow(0.7F,dt*60.0F)+(sin(camera_rot_x)*sin(camera_rot_y))*pow(0.3F,dt*60.0F);
+	float ly = players[local_player_id].orientation_smooth.y*pow(0.7F,dt*60.0F)+(cos(camera_rot_y))*pow(0.3F,dt*60.0F);
+	float lz = players[local_player_id].orientation_smooth.z*pow(0.7F,dt*60.0F)+(cos(camera_rot_x)*sin(camera_rot_y))*pow(0.3F,dt*60.0F);
 
     float len = sqrt(lx*lx+ly*ly+lz*lz);
     players[local_player_id].orientation.x = players[local_player_id].orientation_smooth.x = lx/len;

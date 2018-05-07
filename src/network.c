@@ -333,9 +333,9 @@ void read_PacketCreatePlayer(void* data, int len) {
 		players[p->player_id].pos.y = 63.0F-p->z;
 		players[p->player_id].pos.z = p->y;
 		strcpy(players[p->player_id].name,p->name);
-		players[p->player_id].orientation.x = (p->team==TEAM_1)?1.0F:-1.0F;
-		players[p->player_id].orientation.y = 0.0F;
-		players[p->player_id].orientation.z = 0.0F;
+		players[p->player_id].orientation.x = players[p->player_id].orientation_smooth.x = (p->team==TEAM_1)?1.0F:-1.0F;
+		players[p->player_id].orientation.y = players[p->player_id].orientation_smooth.y = 0.0F;
+		players[p->player_id].orientation.z = players[p->player_id].orientation_smooth.z = 0.0F;
 
 		players[p->player_id].block.red = 111;
 		players[p->player_id].block.green = 111;
