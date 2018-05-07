@@ -788,7 +788,7 @@ static void hud_ingame_render(float scalex, float scalef) {
             sprintf(play_time,"Playing for %im%is",(int)window_time()/60,(int)window_time()%60);
             font_render(settings.window_width-font_length(27.0F*scalef,play_time),settings.window_height,27.0F*scalef,play_time);
         }
-        if(window_time()-chat_popup_timer<0.4F) {
+        if(window_time()-chat_popup_timer<chat_popup_duration) {
             glColor3f(1.0F,0.0F,0.0F);
             font_render((settings.window_width-font_length(53.0F*scalef,chat_popup))/2.0F,settings.window_height/2.0F,53.0F*scalef,chat_popup);
         }
@@ -938,7 +938,7 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 				}
 				if(local_player_ammo==0 && window_time()-players[local_player_id].item_showup>=0.5F) {
 					sound_create(NULL,SOUND_LOCAL,&sound_empty,0.0F,0.0F,0.0F);
-					chat_showpopup("RELOAD");
+					chat_showpopup("RELOAD",0.4F);
 				}
 			}
 		}

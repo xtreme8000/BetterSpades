@@ -662,53 +662,76 @@ void read_PacketMoveObject(void* data, int len) {
 void read_PacketIntelCapture(void* data, int len) {
 	struct PacketIntelCapture* p = (struct PacketIntelCapture*)data;
 	if(gamestate.gamemode_type==GAMEMODE_CTF && p->player_id<PLAYERS_MAX) {
+		char capture_str[128];
 		switch(players[p->player_id].team) {
 			case TEAM_1:
 				gamestate.gamemode.ctf.team_1_score++;
+				sprintf(capture_str,"%s has captured the %s Intel",players[p->player_id].name,gamestate.team_2.name);
 				break;
 			case TEAM_2:
 				gamestate.gamemode.ctf.team_2_score++;
+				sprintf(capture_str,"%s has captured the %s Intel",players[p->player_id].name,gamestate.team_1.name);
 				break;
 		}
-		//TODO: play horn.wav, show win message etc.
 		sound_create(NULL,SOUND_LOCAL,p->winning?&sound_horn:&sound_pickup,0.0F,0.0F,0.0F);
 		players[p->player_id].score += 10;
+		chat_add(0,0x0000FF,capture_str);
+		if(p->winning) {
+			switch(players[p->player_id].team) {
+				case TEAM_1:
+					sprintf(capture_str,"%s Team Wins!",gamestate.team_1.name);
+					break;
+				case TEAM_2:
+					sprintf(capture_str,"%s Team Wins!",gamestate.team_2.name);
+					break;
+			}
+			chat_showpopup(capture_str,5.0F);
+		}
 	}
 }
 
 void read_PacketIntelDrop(void* data, int len) {
 	struct PacketIntelDrop* p = (struct PacketIntelDrop*)data;
 	if(gamestate.gamemode_type==GAMEMODE_CTF && p->player_id<PLAYERS_MAX) {
+		char drop_str[128];
 		switch(players[p->player_id].team) {
 			case TEAM_1:
 				gamestate.gamemode.ctf.team_2_intel = 0; //drop opposing team's intel
 				gamestate.gamemode.ctf.team_2_intel_location.dropped.x = p->x;
 				gamestate.gamemode.ctf.team_2_intel_location.dropped.y = p->y;
 				gamestate.gamemode.ctf.team_2_intel_location.dropped.z = p->z;
+				sprintf(drop_str,"%s has dropped the %s Intel",players[p->player_id].name,gamestate.team_2.name);
 				break;
 			case TEAM_2:
 				gamestate.gamemode.ctf.team_1_intel = 0;
 				gamestate.gamemode.ctf.team_1_intel_location.dropped.x = p->x;
 				gamestate.gamemode.ctf.team_1_intel_location.dropped.y = p->y;
 				gamestate.gamemode.ctf.team_1_intel_location.dropped.z = p->z;
+				sprintf(drop_str,"%s has dropped the %s Intel",players[p->player_id].name,gamestate.team_1.name);
 				break;
 		}
+		chat_add(0,0x0000FF,drop_str);
 	}
 }
 
 void read_PacketIntelPickup(void* data, int len) {
 	struct PacketIntelPickup* p = (struct PacketIntelPickup*)data;
 	if(gamestate.gamemode_type==GAMEMODE_CTF && p->player_id<PLAYERS_MAX) {
+		char pickup_str[128];
 		switch(players[p->player_id].team) {
 			case TEAM_1:
 				gamestate.gamemode.ctf.team_2_intel = 1; //pickup opposing team's intel
 				gamestate.gamemode.ctf.team_2_intel_location.held.player_id = p->player_id;
+				sprintf(pickup_str,"%s has the %s Intel",players[p->player_id].name,gamestate.team_2.name);
 				break;
 			case TEAM_2:
 				gamestate.gamemode.ctf.team_1_intel = 1;
 				gamestate.gamemode.ctf.team_1_intel_location.held.player_id = p->player_id;
+				sprintf(pickup_str,"%s has the %s Intel",players[p->player_id].name,gamestate.team_1.name);
 				break;
 		}
+		chat_add(0,0x0000FF,pickup_str);
+		sound_create(NULL,SOUND_LOCAL,&sound_pickup,0.0F,0.0F,0.0F);
 	}
 }
 
@@ -897,7 +920,7 @@ int network_update() {
 					break;
 				}
 				case ENET_EVENT_TYPE_DISCONNECT:
-					chat_showpopup("DISCONNECTED");
+					chat_showpopup("DISCONNECTED",10.0F);
 					printf("server disconnected!\n");
 					event.peer->data = NULL;
 					network_connected = 0;

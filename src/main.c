@@ -42,10 +42,12 @@ void chat_add(int channel, unsigned int color, const char* msg) {
 }
 char chat_popup[256] = {};
 float chat_popup_timer = 0.0F;
+float chat_popup_duration = 0.0F;
 
-void chat_showpopup(const char* msg) {
+void chat_showpopup(const char* msg, float duration) {
 	strcpy(chat_popup,msg);
 	chat_popup_timer = window_time();
+    chat_popup_duration = duration;
 }
 
 void drawScene(float dt) {

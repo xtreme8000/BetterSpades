@@ -139,8 +139,9 @@ extern unsigned int chat_color[2][10];
 extern float chat_timer[2][10];
 extern char chat_popup[256];
 extern float chat_popup_timer;
+extern float chat_popup_duration;
 void chat_add(int channel, unsigned int color, const char* msg);
-void chat_showpopup(const char* msg);
+void chat_showpopup(const char* msg, float duration);
 
 #define SCREEN_NONE			0
 #define SCREEN_TEAM_SELECT	1
