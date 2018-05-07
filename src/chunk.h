@@ -34,7 +34,7 @@ extern int chunk_geometry_changed_lenght;
 extern int chunk_lighting_changed[CHUNKS_PER_DIM*CHUNKS_PER_DIM*2];
 extern int chunk_lighting_changed_lenght;
 
-extern boolean chunk_render_mode;
+extern ALboolean chunk_render_mode;
 
 #define CHUNK_WORKERS_MAX			3
 
@@ -67,7 +67,7 @@ void chunk_generate_greedy(struct chunk_worker* worker);
 void chunk_generate_naive(struct chunk_worker* worker);
 void chunk_render(int x, int y);
 void chunk_rebuild_all(void);
-void chunk_set_render_mode(boolean r);
+void chunk_set_render_mode(ALboolean r);
 void chunk_draw_visible(void);
 
 void chunk_draw_shadow_volume(float* data, int max);
