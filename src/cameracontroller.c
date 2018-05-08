@@ -93,10 +93,14 @@ void cameracontroller_fps(float dt) {
 	float ly = players[local_player_id].orientation_smooth.y*pow(0.7F,dt*60.0F)+(cos(camera_rot_y))*pow(0.3F,dt*60.0F);
 	float lz = players[local_player_id].orientation_smooth.z*pow(0.7F,dt*60.0F)+(cos(camera_rot_x)*sin(camera_rot_y))*pow(0.3F,dt*60.0F);
 
+    players[local_player_id].orientation_smooth.x = lx;
+	players[local_player_id].orientation_smooth.y = ly;
+	players[local_player_id].orientation_smooth.z = lz;
+
     float len = sqrt(lx*lx+ly*ly+lz*lz);
-    players[local_player_id].orientation.x = players[local_player_id].orientation_smooth.x = lx/len;
-	players[local_player_id].orientation.y = players[local_player_id].orientation_smooth.y = ly/len;
-	players[local_player_id].orientation.z = players[local_player_id].orientation_smooth.z = lz/len;
+    players[local_player_id].orientation.x = lx/len;
+	players[local_player_id].orientation.y = ly/len;
+	players[local_player_id].orientation.z = lz/len;
 
     camera_vx = players[local_player_id].physics.velocity.x;
     camera_vy = players[local_player_id].physics.velocity.y;

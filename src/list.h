@@ -3,6 +3,7 @@ struct list {
     int elements, element_size, mem_size;
 };
 
+int list_created(struct list* l);
 void list_create(struct list* l, int element_size);
 void* list_get(struct list* l, int i);
 void* list_add(struct list* l, void* e);

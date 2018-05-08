@@ -82,56 +82,7 @@ const char* window_clipboard() {
 }
 
 int window_key_translate(int key, int dir) {
-    int table[128] = {
-                        WINDOW_KEY_UP,GLFW_KEY_W,
-                        WINDOW_KEY_DOWN,GLFW_KEY_S,
-                        WINDOW_KEY_LEFT,GLFW_KEY_A,
-                        WINDOW_KEY_RIGHT,GLFW_KEY_D,
-                        WINDOW_KEY_SPACE,GLFW_KEY_SPACE,
-                        WINDOW_KEY_SPRINT,GLFW_KEY_LEFT_SHIFT,
-                        WINDOW_KEY_CURSOR_UP,GLFW_KEY_UP,
-                        WINDOW_KEY_CURSOR_DOWN,GLFW_KEY_DOWN,
-                        WINDOW_KEY_CURSOR_LEFT,GLFW_KEY_LEFT,
-                        WINDOW_KEY_CURSOR_RIGHT,GLFW_KEY_RIGHT,
-                        WINDOW_KEY_BACKSPACE,GLFW_KEY_BACKSPACE,
-                        WINDOW_KEY_TOOL1,GLFW_KEY_1,
-                        WINDOW_KEY_TOOL2,GLFW_KEY_2,
-                        WINDOW_KEY_TOOL3,GLFW_KEY_3,
-                        WINDOW_KEY_TOOL4,GLFW_KEY_4,
-                        WINDOW_KEY_TAB,GLFW_KEY_TAB,
-                        WINDOW_KEY_ESCAPE,GLFW_KEY_ESCAPE,
-                        WINDOW_KEY_MAP,GLFW_KEY_M,
-                        WINDOW_KEY_CROUCH,GLFW_KEY_LEFT_CONTROL,
-                        WINDOW_KEY_SNEAK,GLFW_KEY_V,
-                        WINDOW_KEY_ENTER,GLFW_KEY_ENTER,
-                        WINDOW_KEY_F1,GLFW_KEY_F1,
-                        WINDOW_KEY_F2,GLFW_KEY_F2,
-                        WINDOW_KEY_F3,GLFW_KEY_F3,
-                        WINDOW_KEY_F4,GLFW_KEY_F4,
-                        WINDOW_KEY_YES,GLFW_KEY_Y,
-                        WINDOW_KEY_YES,GLFW_KEY_Z,
-                        WINDOW_KEY_NO,GLFW_KEY_N,
-                        WINDOW_KEY_VOLUME_UP,GLFW_KEY_KP_ADD,
-                        WINDOW_KEY_VOLUME_DOWN,GLFW_KEY_KP_SUBTRACT,
-                        WINDOW_KEY_V,GLFW_KEY_V,
-                        WINDOW_KEY_RELOAD,GLFW_KEY_R,
-                        WINDOW_KEY_CHAT,GLFW_KEY_T,
-                        WINDOW_KEY_FULLSCREEN,GLFW_KEY_F11,
-                        WINDOW_KEY_SCREENSHOT,GLFW_KEY_F5,
-                        WINDOW_KEY_CHANGETEAM,GLFW_KEY_COMMA,
-                        WINDOW_KEY_CHANGEWEAPON,GLFW_KEY_PERIOD,
-                        WINDOW_KEY_PICKCOLOR,GLFW_KEY_E,
-                    };
-    if(dir) {
-        for(int k=0;k<128;k+=2)
-            if(table[k]==key)
-                return table[k+1];
-    } else {
-        for(int k=0;k<128;k+=2)
-            if(table[k+1]==key)
-                return table[k];
-    }
-    return -1;
+    return config_key_translate(key,dir);
 }
 
 int window_key_down(int key) {

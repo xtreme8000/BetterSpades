@@ -34,4 +34,14 @@ extern struct RENDER_OPTIONS {
     float mouse_sensitivity;
 } settings;
 
+extern struct list config_keys;
+
+struct config_key_pair {
+    int internal;
+    int def;
+    char name[32];
+};
+
+void config_register_key(int internal, int def, const char* name);
+int config_key_translate(int key, int dir);
 void config_reload(void);

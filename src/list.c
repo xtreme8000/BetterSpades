@@ -1,5 +1,9 @@
 #include "common.h"
 
+int list_created(struct list* l) {
+    return l->element_size>0;
+}
+
 void list_create(struct list* l, int element_size) {
     l->data = NULL;
     l->elements = 0;
