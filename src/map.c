@@ -32,6 +32,10 @@ unsigned char* map_minimap;
 
 struct DamagedVoxel map_damaged_voxels[8] = {0};
 
+int map_object_visible(float* loc) {
+	return !(loc[0]<=0.0F && loc[1]<=0.0F);
+}
+
 int map_damage(int x, int y, int z, int damage) {
 	for(int k=0;k<8;k++) {
 		if(window_time()-map_damaged_voxels[k].timer<=10.0F && map_damaged_voxels[k].x==x && map_damaged_voxels[k].y==y && map_damaged_voxels[k].z==z) {

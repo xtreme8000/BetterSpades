@@ -609,23 +609,27 @@ static void hud_ingame_render(float scalex, float scalef) {
                 }
 
                 if(gamestate.gamemode_type==GAMEMODE_CTF) {
-                    if(!gamestate.gamemode.ctf.team_1_intel) {
+                    if(!gamestate.gamemode.ctf.team_1_intel && map_object_visible((float*)&gamestate.gamemode.ctf.team_1_intel_location.dropped)) {
                         glColor3ub(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue);
                         texture_draw_rotated(&texture_intel,minimap_x+gamestate.gamemode.ctf.team_1_intel_location.dropped.x*scalef,minimap_y-gamestate.gamemode.ctf.team_1_intel_location.dropped.y*scalef,12*scalef,12*scalef,0.0F);
                     }
-                    glColor3f(gamestate.team_1.red*0.94F,gamestate.team_1.green*0.94F,gamestate.team_1.blue*0.94F);
-                    texture_draw_empty_rotated(minimap_x+gamestate.gamemode.ctf.team_1_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_1_base.y*scalef,12*scalef,12*scalef,0.0F);
-                    glColor3f(1.0F,1.0F,1.0F);
-                    texture_draw_rotated(&texture_medical,minimap_x+gamestate.gamemode.ctf.team_1_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_1_base.y*scalef,12*scalef,12*scalef,0.0F);
+                    if(map_object_visible((float*)&gamestate.gamemode.ctf.team_1_base)) {
+                        glColor3f(gamestate.team_1.red*0.94F,gamestate.team_1.green*0.94F,gamestate.team_1.blue*0.94F);
+                        texture_draw_empty_rotated(minimap_x+gamestate.gamemode.ctf.team_1_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_1_base.y*scalef,12*scalef,12*scalef,0.0F);
+                        glColor3f(1.0F,1.0F,1.0F);
+                        texture_draw_rotated(&texture_medical,minimap_x+gamestate.gamemode.ctf.team_1_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_1_base.y*scalef,12*scalef,12*scalef,0.0F);
+                    }
 
-                    if(!gamestate.gamemode.ctf.team_2_intel) {
+                    if(!gamestate.gamemode.ctf.team_2_intel && map_object_visible((float*)&gamestate.gamemode.ctf.team_2_intel_location.dropped)) {
                         glColor3ub(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue);
                         texture_draw_rotated(&texture_intel,minimap_x+gamestate.gamemode.ctf.team_2_intel_location.dropped.x*scalef,minimap_y-gamestate.gamemode.ctf.team_2_intel_location.dropped.y*scalef,12*scalef,12*scalef,0.0F);
                     }
-                    glColor3f(gamestate.team_2.red*0.94F,gamestate.team_2.green*0.94F,gamestate.team_2.blue*0.94F);
-                    texture_draw_empty_rotated(minimap_x+gamestate.gamemode.ctf.team_2_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_2_base.y*scalef,12*scalef,12*scalef,0.0F);
-                    glColor3f(1.0F,1.0F,1.0F);
-                    texture_draw_rotated(&texture_medical,minimap_x+gamestate.gamemode.ctf.team_2_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_2_base.y*scalef,12*scalef,12*scalef,0.0F);
+                    if(map_object_visible((float*)&gamestate.gamemode.ctf.team_1_base)) {
+                        glColor3f(gamestate.team_2.red*0.94F,gamestate.team_2.green*0.94F,gamestate.team_2.blue*0.94F);
+                        texture_draw_empty_rotated(minimap_x+gamestate.gamemode.ctf.team_2_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_2_base.y*scalef,12*scalef,12*scalef,0.0F);
+                        glColor3f(1.0F,1.0F,1.0F);
+                        texture_draw_rotated(&texture_medical,minimap_x+gamestate.gamemode.ctf.team_2_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_2_base.y*scalef,12*scalef,12*scalef,0.0F);
+                    }
                 }
                 if(gamestate.gamemode_type==GAMEMODE_TC) {
                     for(int k=0;k<gamestate.gamemode.tc.territory_count;k++) {
@@ -694,22 +698,26 @@ static void hud_ingame_render(float scalex, float scalef) {
                     float tent2_x = min(max(gamestate.gamemode.ctf.team_2_base.x,view_x),view_x+128.0F)-view_x;
                     float tent2_y = min(max(gamestate.gamemode.ctf.team_2_base.y,view_z),view_z+128.0F)-view_z;
 
-                    glColor3f(gamestate.team_1.red*0.94F,gamestate.team_1.green*0.94F,gamestate.team_1.blue*0.94F);
-                    texture_draw_empty_rotated(settings.window_width-143*scalef+tent1_x*scalef,(585-tent1_y)*scalef,12*scalef,12*scalef,0.0F);
-                    glColor3f(1.0F,1.0F,1.0F);
-                    texture_draw_rotated(&texture_medical,settings.window_width-143*scalef+tent1_x*scalef,(585-tent1_y)*scalef,12*scalef,12*scalef,0.0F);
-                    if(!gamestate.gamemode.ctf.team_1_intel) {
+                    if(map_object_visible((float*)&gamestate.gamemode.ctf.team_1_base)) {
+                        glColor3f(gamestate.team_1.red*0.94F,gamestate.team_1.green*0.94F,gamestate.team_1.blue*0.94F);
+                        texture_draw_empty_rotated(settings.window_width-143*scalef+tent1_x*scalef,(585-tent1_y)*scalef,12*scalef,12*scalef,0.0F);
+                        glColor3f(1.0F,1.0F,1.0F);
+                        texture_draw_rotated(&texture_medical,settings.window_width-143*scalef+tent1_x*scalef,(585-tent1_y)*scalef,12*scalef,12*scalef,0.0F);
+                    }
+                    if(!gamestate.gamemode.ctf.team_1_intel && map_object_visible((float*)&gamestate.gamemode.ctf.team_1_intel_location.dropped)) {
                         float intel_x = min(max(gamestate.gamemode.ctf.team_1_intel_location.dropped.x,view_x),view_x+128.0F)-view_x;
                         float intel_y = min(max(gamestate.gamemode.ctf.team_1_intel_location.dropped.y,view_z),view_z+128.0F)-view_z;
                         glColor3ub(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue);
                         texture_draw_rotated(&texture_intel,settings.window_width-143*scalef+intel_x*scalef,(585-intel_y)*scalef,12*scalef,12*scalef,0.0F);
                     }
 
-                    glColor3f(gamestate.team_2.red*0.94F,gamestate.team_2.green*0.94F,gamestate.team_2.blue*0.94F);
-                    texture_draw_empty_rotated(settings.window_width-143*scalef+tent2_x*scalef,(585-tent2_y)*scalef,12*scalef,12*scalef,0.0F);
-                    glColor3f(1.0F,1.0F,1.0F);
-                    texture_draw_rotated(&texture_medical,settings.window_width-143*scalef+tent2_x*scalef,(585-tent2_y)*scalef,12*scalef,12*scalef,0.0F);
-                    if(!gamestate.gamemode.ctf.team_2_intel) {
+                    if(map_object_visible((float*)&gamestate.gamemode.ctf.team_2_base)) {
+                        glColor3f(gamestate.team_2.red*0.94F,gamestate.team_2.green*0.94F,gamestate.team_2.blue*0.94F);
+                        texture_draw_empty_rotated(settings.window_width-143*scalef+tent2_x*scalef,(585-tent2_y)*scalef,12*scalef,12*scalef,0.0F);
+                        glColor3f(1.0F,1.0F,1.0F);
+                        texture_draw_rotated(&texture_medical,settings.window_width-143*scalef+tent2_x*scalef,(585-tent2_y)*scalef,12*scalef,12*scalef,0.0F);
+                    }
+                    if(!gamestate.gamemode.ctf.team_2_intel && map_object_visible((float*)&gamestate.gamemode.ctf.team_2_intel_location.dropped)) {
                         float intel_x = min(max(gamestate.gamemode.ctf.team_2_intel_location.dropped.x,view_x),view_x+128.0F)-view_x;
                         float intel_y = min(max(gamestate.gamemode.ctf.team_2_intel_location.dropped.y,view_z),view_z+128.0F)-view_z;
                         glColor3ub(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue);
