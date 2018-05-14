@@ -596,10 +596,10 @@ int map_cube_line(int x1, int y1, int z1, int x2, int y2, int z2, struct Point* 
 void map_vxl_load(unsigned char* v, unsigned int* map) {
 	for(int k=0;k<map_size_x*map_size_z;k++)
 		pthread_rwlock_wrlock(&chunk_map_locks[k]);
-	for(int y=0;y<512;y++) {
-		for(int x=0;x<512;x++) {
+	for(int y=0;y<map_size_z;y++) {
+		for(int x=0;x<map_size_x;x++) {
 			int z;
-			for(z=0;z<64;z++) {
+			for(z=0;z<map_size_y;z++) {
 				map_vxl_setgeom(x,y,z,0x273F66,map);
 			}
 			z = 0;

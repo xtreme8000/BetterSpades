@@ -1337,6 +1337,13 @@ void chunk_generate_greedy(struct chunk_worker* worker) {
 	worker->max_height = max_height;
 }
 
+//+X = 0.75
+//-X = 0.75
+//+Y = 1.0
+//-Y = 0.5
+//+Z = 0.625
+//-Z = 0.875
+
 void chunk_generate_naive(struct chunk_worker* worker) {
 	int size = 0;
 	int max_height = 0;
@@ -1374,21 +1381,21 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
-						worker->color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>54)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.7F*(((col>>54)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.7F*(((col>>54)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(r*0.875F*(((col>>54)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.875F*(((col>>54)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.875F*(((col>>54)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>52)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.7F*(((col>>52)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.7F*(((col>>52)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(r*0.875F*(((col>>52)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.875F*(((col>>52)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.875F*(((col>>52)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>53)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.7F*(((col>>53)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.7F*(((col>>53)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(r*0.875F*(((col>>53)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.875F*(((col>>53)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.875F*(((col>>53)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*0.7F*(((col>>55)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.7F*(((col>>55)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.7F*(((col>>55)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(r*0.875F*(((col>>55)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.875F*(((col>>55)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.875F*(((col>>55)&1)*0.35F+0.65F));
 
 						worker->vertex_data[chunk_vertex_index++] = x;
 						worker->vertex_data[chunk_vertex_index++] = y;
@@ -1428,21 +1435,21 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
-						worker->color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>50)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.6F*(((col>>50)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.6F*(((col>>50)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(r*0.625F*(((col>>50)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.625F*(((col>>50)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.625F*(((col>>50)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>51)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.6F*(((col>>51)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.6F*(((col>>51)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(r*0.625F*(((col>>51)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.625F*(((col>>51)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.625F*(((col>>51)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>49)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.6F*(((col>>49)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.6F*(((col>>49)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(r*0.625F*(((col>>49)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.625F*(((col>>49)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.625F*(((col>>49)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*0.6F*(((col>>48)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.6F*(((col>>48)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.6F*(((col>>48)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(r*0.625F*(((col>>48)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.625F*(((col>>48)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.625F*(((col>>48)&1)*0.35F+0.65F));
 
 
 						worker->vertex_data[chunk_vertex_index++] = x;
@@ -1483,21 +1490,21 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
-						worker->color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>46)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.9F*(((col>>46)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.9F*(((col>>46)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(r*0.75F*(((col>>46)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.75F*(((col>>46)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.75F*(((col>>46)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>47)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.9F*(((col>>47)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.9F*(((col>>47)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(r*0.75F*(((col>>47)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.75F*(((col>>47)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.75F*(((col>>47)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>45)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.9F*(((col>>45)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.9F*(((col>>45)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(r*0.75F*(((col>>45)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.75F*(((col>>45)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.75F*(((col>>45)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*0.9F*(((col>>44)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.9F*(((col>>44)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.9F*(((col>>44)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(r*0.75F*(((col>>44)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.75F*(((col>>44)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.75F*(((col>>44)&1)*0.35F+0.65F));
 
 						worker->vertex_data[chunk_vertex_index++] = x;
 						worker->vertex_data[chunk_vertex_index++] = y;
@@ -1537,21 +1544,21 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
-						worker->color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>42)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.8F*(((col>>42)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.8F*(((col>>42)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(r*0.75F*(((col>>42)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.75F*(((col>>42)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.75F*(((col>>42)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>40)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.8F*(((col>>40)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.8F*(((col>>40)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(r*0.75F*(((col>>40)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.75F*(((col>>40)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.75F*(((col>>40)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>41)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.8F*(((col>>41)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.8F*(((col>>41)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(r*0.75F*(((col>>41)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.75F*(((col>>41)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.75F*(((col>>41)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*0.8F*(((col>>43)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.8F*(((col>>43)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.8F*(((col>>43)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(r*0.75F*(((col>>43)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(g*0.75F*(((col>>43)&1)*0.35F+0.65F));
+						worker->color_data[chunk_color_index++] = (int)(b*0.75F*(((col>>43)&1)*0.35F+0.65F));
 
 						worker->vertex_data[chunk_vertex_index++] = x+1;
 						worker->vertex_data[chunk_vertex_index++] = y;
