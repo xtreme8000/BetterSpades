@@ -93,8 +93,7 @@ void read_PacketChatMessage(void* data, int len) {
 		} else {
 			sprintf(m,": %s",p->message);
 		}
-	}
-	if(p->chat_type==CHAT_SYSTEM) {
+	} else {
 		strcpy(m,p->message);
 	}
 	printf("%s\n",m);
@@ -110,6 +109,9 @@ void read_PacketChatMessage(void* data, int len) {
 					break;
 				case TEAM_2:
 					color = rgb(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue);
+					break;
+				case TEAM_SPECTATOR:
+					color = rgb(0,0,0);
 					break;
 			}
 			break;

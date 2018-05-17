@@ -227,6 +227,8 @@ void sound_init() {
 
     alDistanceModel(AL_LINEAR_DISTANCE_CLAMPED);
 
+    sound_volume(sound_global_volume/10.0F);
+
     sound_load(&sound_footstep1,"wav/footstep1.wav",0.1F,32.0F);
     sound_load(&sound_footstep2,"wav/footstep2.wav",0.1F,32.0F);
     sound_load(&sound_footstep3,"wav/footstep3.wav",0.1F,32.0F);

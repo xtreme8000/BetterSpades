@@ -48,6 +48,13 @@ static int config_read_key(void* user, const char* section, const char* name, co
         if(!strcmp(name,"mouse_sensitivity")) {
             settings.mouse_sensitivity = atof(value)/5.0F*MOUSE_SENSITIVITY;
         }
+        if(!strcmp(name,"show_news")) {
+            settings.show_news = atoi(value);
+        }
+        if(!strcmp(name,"vol")) {
+            sound_global_volume = max(min(atoi(value),10),0);
+            sound_volume(sound_global_volume/10.0F);
+        }
     }
     if(!strcmp(section,"controls")) {
         for(int k=0;k<list_size(&config_keys);k++) {

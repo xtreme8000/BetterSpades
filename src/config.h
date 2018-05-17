@@ -32,6 +32,7 @@ extern struct RENDER_OPTIONS {
     int greedy_meshing;
     int vsync;
     float mouse_sensitivity;
+    int show_news;
 } settings;
 
 extern struct list config_keys;
