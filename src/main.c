@@ -423,7 +423,7 @@ void init() {
 }
 
 void reshape(struct window_instance* window, int width, int height) {
-    //font_reset();
+    font_reset();
 	glViewport(0,0,width,height);
 	settings.window_width = width;
 	settings.window_height = height;

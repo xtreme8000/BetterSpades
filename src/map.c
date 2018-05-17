@@ -593,6 +593,42 @@ int map_cube_line(int x1, int y1, int z1, int x2, int y2, int z2, struct Point* 
 	}
 }
 
+static int lerp(int a, int b, int amt) { //amt from 0 to 8
+    return a + (b-a)*amt/8;
+}
+
+static int dirt_color_table[] = {
+    0x506050, 0x605848, 0x705040,
+    0x804838, 0x704030, 0x603828,
+    0x503020, 0x402818, 0x302010
+};
+
+//thanks to BR_ for deobfuscating this method
+int map_dirt_color(int x, int y, int z) {
+	int vertical_slice = (map_size_y-1-y)/8;
+	int lerp_amt = (map_size_y-1-y)%8;
+	int dirt_base_color = dirt_color_table[vertical_slice];
+	int dirt_next_color = dirt_color_table[vertical_slice+1];
+
+	int red   = lerp(dirt_base_color&0xFF0000,dirt_next_color&0xFF0000,lerp_amt)>>16;
+	int green = lerp(dirt_base_color&0x00FF00,dirt_next_color&0x00FF00,lerp_amt)>>8;
+	int blue  = lerp(dirt_base_color&0x0000FF,dirt_next_color&0x0000FF,lerp_amt);
+
+	int rng = ms_rand()%8;
+	red   += 4*abs((x%8)-4)+rng;
+	green += 4*abs((z%8)-4)+rng;
+	blue  += 4*abs(((map_size_y-1-y)%8)-4)+rng;
+
+	return rgb(red,green,blue);
+}
+
+static int gkrand = 0;
+int map_placedblock_color(int color) {
+	color = color | 0x7F000000;
+	gkrand = 0x1A4E86D*gkrand+1;
+	return color^(gkrand&0x70707);
+}
+
 void map_vxl_load(unsigned char* v, unsigned int* map) {
 	for(int k=0;k<map_size_x*map_size_z;k++)
 		pthread_rwlock_wrlock(&chunk_map_locks[k]);
@@ -600,7 +636,7 @@ void map_vxl_load(unsigned char* v, unsigned int* map) {
 		for(int x=0;x<map_size_x;x++) {
 			int z;
 			for(z=0;z<map_size_y;z++) {
-				map_vxl_setgeom(x,y,z,0x273F66,map);
+				map_vxl_setgeom(x,y,z,map_dirt_color(x,map_size_y-1-z,y),map);
 			}
 			z = 0;
 			while(1) {
