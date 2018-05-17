@@ -30,17 +30,18 @@ You can either:
 
 These libraries and files are needed:
 
-| Name        | License         | Usage                 | Github                                            |
-| ----------- | --------------- | --------------------- | :-----------------------------------------------: |
-| GLFW3       | *ZLib*          | OpenGL context        | [Link](https://github.com/glfw/glfw)              |
-| OpenAL soft | *LGPL-2.1*      | 3D Sound env          | [Link](https://github.com/kcat/openal-soft)       |
-| dr_wav      | *Public domain* | wav support           | [Link](https://github.com/mackron/dr_libs/)       |
-| LodePNG     | *MIT*           | png support           | [Link](https://github.com/lvandeve/lodepng)       |
-| libdeflate  | *MIT*           | decompression of maps | [Link](https://github.com/ebiggers/libdeflate)    |
-| enet        | *MIT*           | networking library    | [Link](https://github.com/lsalzman/enet)          |
-| inih        | *BSD-3.Clause*  | .INI file parser      | [Link](https://github.com/benhoyt/inih)           |
-| http        | *Public domain* | http client library   | [Link](https://github.com/mattiasgustavsson/libs) |
-| parson      | *MIT*           | JSON parser           | [Link](https://github.com/kgabis/parson)          |
+| Name         | License         | Usage                  | GitHub                                            |
+| ------------ | --------------- | ---------------------- | :-----------------------------------------------: |
+| GLFW3        | *ZLib*          | OpenGL context         | [Link](https://github.com/glfw/glfw)              |
+| OpenAL soft  | *LGPL-2.1*      | 3D Sound env           | [Link](https://github.com/kcat/openal-soft)       |
+| inih         | *BSD-3.Clause*  | .INI file parser       | [Link](https://github.com/benhoyt/inih)           |
+| stb_truetype | *Public domain* | TrueType font renderer | [Link](https://github.com/nothings/stb)           |
+| dr_wav       | *Public domain* | wav support            | [Link](https://github.com/mackron/dr_libs/)       |
+| http         | *Public domain* | http client library    | [Link](https://github.com/mattiasgustavsson/libs) |
+| LodePNG      | *MIT*           | png support            | [Link](https://github.com/lvandeve/lodepng)       |
+| libdeflate   | *MIT*           | decompression of maps  | [Link](https://github.com/ebiggers/libdeflate)    |
+| enet         | *MIT*           | networking library     | [Link](https://github.com/lsalzman/enet)          |
+| parson       | *MIT*           | JSON parser            | [Link](https://github.com/kgabis/parson)          |
 
 You will need to compile the following by yourself, or get hold of precompiled binaries:
 
@@ -63,6 +64,7 @@ This means:
 | `ini.c` and `ini.h`           | &rightarrow; | `src/ini.c` and `src/ini.h`                                                   |
 | `parson.c` and `parson.h`     | &rightarrow; | `src/parson.c` and `src/parson.h`                                             |
 | `http.h`                      | &rightarrow; | `src/http.h`                                                                  |
+| `stb_truetype.h`              | &rightarrow; | `src/stb_truetype.h`                                                          |
 
 Because state of copyright of 0.75 assets is unknown, you will need to get them *[here](http://aos.party/bsresources.zip)*. Unzip the file and extract all contents to `resources/` manually.
 

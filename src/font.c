@@ -148,17 +148,17 @@ void font_render(float x, float y, float h, char* text) {
         if(*text>31) {
             stbtt_aligned_quad q;
             stbtt_GetBakedQuad(font->cdata,font->w,font->h,*text-31,&x,&y2,&q,1);
-            font_coords_buffer[k+0] = q.s0*4096.0F;
-            font_coords_buffer[k+1] = q.t1*4096.0F;
+            font_coords_buffer[k+0] = q.s0*8192.0F;
+            font_coords_buffer[k+1] = q.t1*8192.0F;
 
-            font_coords_buffer[k+2] = q.s1*4096.0F;
-            font_coords_buffer[k+3] = q.t1*4096.0F;
+            font_coords_buffer[k+2] = q.s1*8192.0F;
+            font_coords_buffer[k+3] = q.t1*8192.0F;
 
-            font_coords_buffer[k+4] = q.s1*4096.0F;
-            font_coords_buffer[k+5] = q.t0*4096.0F;
+            font_coords_buffer[k+4] = q.s1*8192.0F;
+            font_coords_buffer[k+5] = q.t0*8192.0F;
 
-            font_coords_buffer[k+6] = q.s0*4096.0F;
-            font_coords_buffer[k+7] = q.t0*4096.0F;
+            font_coords_buffer[k+6] = q.s0*8192.0F;
+            font_coords_buffer[k+7] = q.t0*8192.0F;
 
             font_vertex_buffer[k+0] = q.x0;
             font_vertex_buffer[k+1] = -q.y1+y;
@@ -180,7 +180,7 @@ void font_render(float x, float y, float h, char* text) {
 
     glMatrixMode(GL_TEXTURE);
     glLoadIdentity();
-    glScalef(1.0F/4096.0F,1.0F/4096.0F,1.0F);
+    glScalef(1.0F/8192.0F,1.0F/8192.0F,1.0F);
     glMatrixMode(GL_MODELVIEW);
 
     glEnable(GL_TEXTURE_2D);
