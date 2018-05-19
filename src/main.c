@@ -249,7 +249,9 @@ void display(float dt) {
 			int* pos;
 			switch(players[local_player_id].held_item) {
 				case TOOL_BLOCK:
-					if(!players[local_player_id].input.keys.sprint)
+					if(players[local_player_id].input.keys.sprint)
+						pos = NULL;
+					else
 						pos = camera_terrain_pick(0);
 					break;
 				default:
@@ -473,7 +475,7 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
 		time_t pic_time;
 		time(&pic_time);
 		char pic_name[128];
-		sprintf(pic_name,"screenshots/%i.png",pic_time);
+		sprintf(pic_name,"screenshots/%ld.png",(long)pic_time);
 
 		unsigned char* pic_data = malloc(settings.window_width*settings.window_height*4*2);
 		CHECK_ALLOCATION_ERROR(pic_data)
@@ -488,7 +490,7 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
 		lodepng_encode32_file(pic_name,pic_data+settings.window_width*settings.window_height*4,settings.window_width,settings.window_height);
 		free(pic_data);
 
-		sprintf(pic_name,"Saved screenshot as screenshots/%i.png",pic_time);
+		sprintf(pic_name,"Saved screenshot as screenshots/%ld.png", (long)pic_time);
 		chat_add(0,0x0000FF,pic_name);
 	}
 }
