@@ -453,6 +453,9 @@ void text_input(struct window_instance* window, unsigned int codepoint) {
 }
 
 void keys(struct window_instance* window, int key, int scancode, int action, int mods) {
+    if (key == -1) {
+        return;
+    }
     if(action==WINDOW_PRESS)
         window_pressed_keys[key] = 1;
     if(action==WINDOW_RELEASE)
