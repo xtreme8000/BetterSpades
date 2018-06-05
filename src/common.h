@@ -117,7 +117,7 @@
 
 void reshape(struct window_instance* window, int width, int height);
 void text_input(struct window_instance* window, unsigned int codepoint);
-void keys(struct window_instance* window, int key, int scancode, int action, int mods);
+void keys(struct window_instance* window, unsigned char key, int scancode, int action, int mods);
 void mouse_click(struct window_instance* window, int button, int action, int mods);
 void mouse(struct window_instance* window, double x, double y);
 void mouse_scroll(struct window_instance* window, double xoffset, double yoffset);
