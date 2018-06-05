@@ -1292,7 +1292,10 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 				chat_input_mode = CHAT_NO_INPUT;
 			}
 			if(key==WINDOW_KEY_BACKSPACE) {
-				chat[0][0][strlen(chat[0][0])-1] = 0;
+				size_t text_len = strlen(chat[0][0]);
+				if (text_len > 0){
+					chat[0][0][text_len-1] = 0;
+				}
 			}
 		}
 	}
