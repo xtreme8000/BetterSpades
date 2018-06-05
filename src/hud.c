@@ -1540,7 +1540,10 @@ static void hud_serverlist_keyboard(int key, int action, int mods) {
             serverlist_scroll -= 20.0F;
         }
         if(key==WINDOW_KEY_BACKSPACE) {
-            chat[0][0][strlen(chat[0][0])-1] = 0;
+            size_t text_len = strlen(chat[0][0]);
+            if (text_len > 0){
+                chat[0][0][text_len-1] = 0;
+            }
         }
         if(key==WINDOW_KEY_ENTER && strlen(chat[0][0])>0) {
             server_c(chat[0][0]);
