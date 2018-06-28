@@ -147,7 +147,7 @@ void kv6_load(struct kv6_t* kv6, unsigned char* bytes, float scale) {
 		}
 		kv6->voxels = realloc(kv6->voxels,kv6->voxel_count*sizeof(struct kv6_voxel));
 		CHECK_ALLOCATION_ERROR(kv6->voxels)
-        
+
 		free(blkdata_color);
 		free(blkdata_zpos);
 		free(blkdata_visfaces);
@@ -185,10 +185,8 @@ void kv6_rebuild(struct kv6_t* kv6) {
 	}
 }
 
-//PFNGLPOINTPARAMETERFVPROC glPointParameterfv;
-
+static int kv6_program = -1;
 void kv6_render(struct kv6_t* kv6, unsigned char team) {
-	//glPointParameterfv = (PFNGLPOINTPARAMETERFVPROC)wglGetProcAddress("glPointParameterfv");
 	if(!kv6->has_display_list) {
 		int size = kv6->voxel_count*6;
 
@@ -418,6 +416,21 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		kv6->colors_final = malloc(size*12*sizeof(unsigned char)*3);
 		kv6->normals_final = malloc(size*12*sizeof(unsigned char));
 		kv6->has_display_list = 1;
+		if(kv6_program<0) {
+			kv6_program = glx_vertex_shader("uniform float size;\n" \
+											"uniform vec3 fog;\n" \
+											"uniform vec3 camera;\n" \
+											"uniform mat4 model;\n" \
+											"void main() {\n" \
+											"	gl_Position = gl_ModelViewProjectionMatrix*gl_Vertex;\n" \
+											"	float dist = length((model*gl_Vertex).xz-camera.xz);\n" \
+											"	vec3 N = normalize(model*vec4(gl_Normal,0)).xyz;\n" \
+											"	vec3 L = normalize(vec3(0,-1,1));\n" \
+											"	float d = clamp(dot(N,L),0.0,1.0)*0.5+0.5;\n" \
+											"	gl_FrontColor = mix(vec4(d,d,d,1.0)*gl_Color,vec4(fog,1.0),min(dist/128.0,1.0));\n" \
+											"	gl_PointSize = size/gl_Position.w;\n" \
+											"}\n");
+		}
 	}
 
 	int k = 0;
@@ -433,17 +446,17 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		if(r==0 && g==0 && b==0) {
 			switch(team) {
 				case TEAM_1:
-					r = gamestate.team_1.red;
-					g = gamestate.team_1.green;
-					b = gamestate.team_1.blue;
+					r = gamestate.team_1.red*0.75F;
+					g = gamestate.team_1.green*0.75F;
+					b = gamestate.team_1.blue*0.75F;
 					break;
 				case TEAM_2:
-					r = gamestate.team_2.red;
-					g = gamestate.team_2.green;
-					b = gamestate.team_2.blue;
+					r = gamestate.team_2.red*0.75F;
+					g = gamestate.team_2.green*0.75F;
+					b = gamestate.team_2.blue*0.75F;
 					break;
 				default:
-					r = g = b = 255;
+					r = g = b = 0;
 			}
 		}
 
@@ -461,32 +474,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		kv6->vertices_final[k++] = v[2]+kv6->scale*0.5F;
 	}
 
-	float test[3] = {0.0F,0.0F,1.0F};
-	glPointParameterfv(GL_POINT_DISTANCE_ATTENUATION,test);
-
-	float fov = camera_fov;
-	if(camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN && players[local_player_id].input.buttons.rmb) {
-		fov *= atan(tan((camera_fov/180.0F*PI)/2)/2.0F)*2.0F;
-	}
-
-	matrix_push();
-	matrix_load(matrix_model);
-	matrix_multiply(matrix_view);
-	matrix_multiply(matrix_projection);
-	float center[4] = {0,0,0,1};
-	matrix_vector(center);
-	matrix_pop();
-
-	float factor = sqrt(center[0]*center[0]+center[1]*center[1]+center[2]*center[2])/center[2];
-
-	float heightOfNearPlane = (float)settings.window_height/(2.0F*tan(fov*1.570796F/180.0F));
-	glPointSize(factor*1.0F*kv6->scale*heightOfNearPlane);
-
-	glEnable(GL_LIGHTING);
-	glEnable(GL_LIGHT0);
-	glEnable(GL_COLOR_MATERIAL);
-	glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
-	glEnable(GL_NORMALIZE);
+	float heightOfNearPlane = (float)settings.window_height/(2.0F*tan(camera_fov_scaled()*1.570796F/180.0F));
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glEnableClientState(GL_COLOR_ARRAY);
@@ -494,13 +482,21 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 	glVertexPointer(3,GL_FLOAT,0,kv6->vertices_final);
 	glColorPointer(3,GL_UNSIGNED_BYTE,0,kv6->colors_final);
 	glNormalPointer(GL_BYTE,0,kv6->normals_final);
+	glEnable(GL_PROGRAM_POINT_SIZE);
+	int i = glx_fog;
+	if(i)
+		glx_disable_sphericalfog();
+	glUseProgram(kv6_program);
+	glUniform1f(glGetUniformLocation(kv6_program,"size"),1.414F*kv6->scale*heightOfNearPlane);
+	glUniform3f(glGetUniformLocation(kv6_program,"fog"),fog_color[0],fog_color[1],fog_color[2]);
+	glUniform3f(glGetUniformLocation(kv6_program,"camera"),camera_x,camera_y,camera_z);
+	glUniformMatrix4fv(glGetUniformLocation(kv6_program,"model"),1,0,matrix_model);
 	glDrawArrays(GL_POINTS,0,k/3);
+	glUseProgram(0);
+	if(i)
+		glx_enable_sphericalfog();
+	glDisable(GL_PROGRAM_POINT_SIZE);
 	glDisableClientState(GL_NORMAL_ARRAY);
 	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_COLOR_ARRAY);
-
-	glDisable(GL_NORMALIZE);
-	glDisable(GL_COLOR_MATERIAL);
-	glDisable(GL_LIGHT0);
-	glDisable(GL_LIGHTING);*/
+	glDisableClientState(GL_COLOR_ARRAY);*/
 }

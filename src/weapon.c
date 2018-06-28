@@ -66,7 +66,7 @@ void weapon_update() {
             players[local_player_id].items_show = 1;
         }
     } else {
-        if(window_time()-players[local_player_id].item_disabled>=0.5F) {
+        if(screen_current==SCREEN_NONE && window_time()-players[local_player_id].item_disabled>=0.5F) {
             if(players[local_player_id].input.buttons.lmb && players[local_player_id].held_item==TOOL_GUN && local_player_ammo>0 && window_time()-weapon_last_shot>=delay) {
                 weapon_shoot();
                 local_player_ammo = max(local_player_ammo-1,0);

@@ -766,6 +766,10 @@ void read_PacketTerritoryCapture(void* data, int len) {
 		if(team_n) {
 			sprintf(capture_str,"%s have captured %c%c",team_n,x,y);
 			chat_add(0,0x0000FF,capture_str);
+			if(p->winning) {
+				sprintf(capture_str,"%s Team Wins!",team_n);
+				chat_showpopup(capture_str,5.0F);
+			}
 		}
 	}
 }
@@ -813,13 +817,9 @@ void network_updateColor() {
 	network_send(PACKET_SETCOLOR_ID,&c,sizeof(c));
 }
 
-unsigned char* network_send_tmp = 0;
+unsigned char network_send_tmp[512];
 void network_send(int id, void* data, int len) {
 	if(network_connected) {
-		if(!network_send_tmp) {
-			network_send_tmp = malloc(512);
-			CHECK_ALLOCATION_ERROR(network_send_tmp)
-		}
 		network_send_tmp[0] = id;
 		memcpy(network_send_tmp+1,data,len);
 		enet_peer_send(peer,0,enet_packet_create(network_send_tmp,len+1,ENET_PACKET_FLAG_RELIABLE));
@@ -861,7 +861,7 @@ int network_connect_sub(char* ip, int port, int version) {
 	if(peer==NULL) {
 		return 0;
 	}
-	if(enet_host_service(client,&event,2500)>0 && event.type==ENET_EVENT_TYPE_CONNECT) {;
+	if(enet_host_service(client,&event,2500)>0 && event.type==ENET_EVENT_TYPE_CONNECT) {
 		network_received_packets = 0;
 		network_connected = 1;
 
@@ -874,6 +874,7 @@ int network_connect_sub(char* ip, int port, int version) {
 		}
 		return 1;
 	}
+	chat_showpopup("No response",3.0F);
 	enet_peer_reset(peer);
 	return 0;
 }
@@ -931,8 +932,9 @@ int network_update() {
 					break;
 				}
 				case ENET_EVENT_TYPE_DISCONNECT:
-					chat_showpopup("DISCONNECTED",10.0F);
-					printf("server disconnected!\n");
+					hud_change(&hud_serverlist);
+					chat_showpopup(reason_disconnect(event.data),10.0F);
+					printf("server disconnected! reason: %s\n",reason_disconnect(event.data));
 					event.peer->data = NULL;
 					network_connected = 0;
 					network_logged_in = 0;

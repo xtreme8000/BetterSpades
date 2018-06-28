@@ -52,6 +52,7 @@ void camera_hit_fromplayer(struct Camera_HitType* hit, int player_id, float rang
 void camera_hit(struct Camera_HitType* hit, int exclude_player, float x, float y, float z, float ray_x, float ray_y, float ray_z, float range);
 void camera_hit_mask(struct Camera_HitType* hit, int exclude_player, float x, float y, float z, float ray_x, float ray_y, float ray_z, float range, int mask);
 
+float camera_fov_scaled();
 void camera_ExtractFrustum(void);
 unsigned char camera_PointInFrustum(float x, float y, float z);
 int camera_CubeInFrustum(float x, float y, float z, float size, float size_y);

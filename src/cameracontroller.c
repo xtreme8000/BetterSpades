@@ -165,17 +165,17 @@ void cameracontroller_spectator(float dt) {
 
 	aabb_set_center(&camera,camera_x+camera_movement_x,camera_y-camera_eye_height,camera_z);
 
-	if(camera_x+camera_movement_x<0 || camera_x+camera_movement_x>map_size_x || aabb_intersection_terrain(&camera)) {
+	if(camera_x+camera_movement_x<0 || camera_x+camera_movement_x>map_size_x || aabb_intersection_terrain(&camera,0)) {
 		camera_movement_x = 0.0F;
 	}
 
 	aabb_set_center(&camera,camera_x+camera_movement_x,camera_y+camera_movement_y-camera_eye_height,camera_z);
-	if(camera_y+camera_movement_y<0 || aabb_intersection_terrain(&camera)) {
+	if(camera_y+camera_movement_y<0 || aabb_intersection_terrain(&camera,0)) {
 		camera_movement_y = 0.0F;
 	}
 
 	aabb_set_center(&camera,camera_x+camera_movement_x,camera_y+camera_movement_y-camera_eye_height,camera_z+camera_movement_z);
-	if(camera_z+camera_movement_z<0 || camera_z+camera_movement_z>map_size_z || aabb_intersection_terrain(&camera)) {
+	if(camera_z+camera_movement_z<0 || camera_z+camera_movement_z>map_size_z || aabb_intersection_terrain(&camera,0)) {
 		camera_movement_z = 0.0F;
 	}
 
@@ -207,7 +207,7 @@ void cameracontroller_bodyview(float dt) {
             players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*k+player_height2(&players[cameracontroller_bodyview_player]),
             players[cameracontroller_bodyview_player].pos.z-cos(camera_rot_x)*sin(camera_rot_y)*k
         );
-        if(aabb_intersection_terrain(&camera) && traverse_lengths[0]<0) {
+        if(aabb_intersection_terrain(&camera,0) && traverse_lengths[0]<0) {
             traverse_lengths[0] = max(k-0.1F,0);
         }
         aabb_set_center(&camera,
@@ -215,7 +215,7 @@ void cameracontroller_bodyview(float dt) {
             players[cameracontroller_bodyview_player].pos.y+cos(camera_rot_y)*k+player_height2(&players[cameracontroller_bodyview_player]),
             players[cameracontroller_bodyview_player].pos.z+cos(camera_rot_x)*sin(camera_rot_y)*k
         );
-        if(!aabb_intersection_terrain(&camera) && traverse_lengths[1]<0) {
+        if(!aabb_intersection_terrain(&camera,0) && traverse_lengths[1]<0) {
             traverse_lengths[1] = max(k-0.1F,0);
         }
     }

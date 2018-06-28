@@ -26,7 +26,22 @@ extern PFNGLGENBUFFERSPROC glGenBuffers;
 extern PFNGLBINDBUFFERPROC glBindBuffer;
 extern PFNGLBUFFERDATAPROC glBufferData;
 
+extern PFNGLCREATESHADERPROC glCreateShader;
+extern PFNGLSHADERSOURCEPROC glShaderSource;
+extern PFNGLCOMPILESHADERPROC glCompileShader;
+extern PFNGLCREATEPROGRAMPROC glCreateProgram;
+extern PFNGLATTACHSHADERPROC glAttachShader;
+extern PFNGLLINKPROGRAMPROC glLinkProgram;
+extern PFNGLUSEPROGRAMPROC glUseProgram;
+
+extern PFNGLUNIFORM1FPROC glUniform1f;
+extern PFNGLUNIFORM3FPROC glUniform3f;
+extern PFNGLUNIFORMMATRIX4FVPROC glUniformMatrix4fv;
+extern PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
+
 void glx_init(void);
+
+int glx_vertex_shader(const char* s);
 
 void glx_enable_sphericalfog(void);
 void glx_disable_sphericalfog(void);
