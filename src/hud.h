@@ -34,6 +34,8 @@ extern int screen_current;
 extern struct hud hud_ingame;
 extern struct hud hud_mapload;
 extern struct hud hud_serverlist;
+extern struct hud hud_settings;
+extern struct hud hud_controls;
 
 extern struct hud* hud_active;
 extern struct window_instance* hud_window;

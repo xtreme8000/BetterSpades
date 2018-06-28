@@ -19,6 +19,8 @@
 
 #include "common.h"
 
+int fps = 0;
+
 int ms_seed = 1;
 int ms_rand() {
   ms_seed = ms_seed*0x343FD+0x269EC3;
@@ -48,6 +50,23 @@ void chat_showpopup(const char* msg, float duration) {
 	strcpy(chat_popup,msg);
 	chat_popup_timer = window_time();
     chat_popup_duration = duration;
+}
+
+const char* reason_disconnect(int code) {
+    switch(code) {
+        case 1:
+            return "Banned";
+        case 2:
+            return "Connection limit";
+        case 3:
+            return "Wrong protocol";
+        case 4:
+            return "Server full";
+        case 10:
+            return "Kicked";
+        default:
+            return "Unknown";
+    }
 }
 
 void drawScene(float dt) {
@@ -151,15 +170,10 @@ void display(float dt) {
 			}
 		}
 
-		float fov = camera_fov;
-		if(camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN && players[local_player_id].input.buttons.rmb && !players[local_player_id].input.keys.sprint) {
-			fov *= atan(tan((camera_fov/180.0F*PI)/2)/2.0F)*2.0F;
-		}
-
 		if(settings.opengl14) {
 			matrix_select(matrix_projection);
 			matrix_identity();
-			matrix_perspective(fov, ((float)settings.window_width)/((float)settings.window_height), 0.1F, settings.render_distance+CHUNK_SIZE*4.0F+128.0F);
+			matrix_perspective(camera_fov_scaled(),((float)settings.window_width)/((float)settings.window_height), 0.1F, settings.render_distance+CHUNK_SIZE*4.0F+128.0F);
 			matrix_upload_p();
 
 			matrix_select(matrix_view);
@@ -246,10 +260,10 @@ void display(float dt) {
 				}
 			}
 
-			int* pos;
+			int* pos = NULL;
 			switch(players[local_player_id].held_item) {
 				case TOOL_BLOCK:
-					if(!players[local_player_id].input.keys.sprint)
+					if(!players[local_player_id].input.keys.sprint && camera_mode==CAMERAMODE_FPS)
 						pos = camera_terrain_pick(0);
 					break;
 				default:
@@ -451,9 +465,13 @@ void text_input(struct window_instance* window, unsigned int codepoint) {
 }
 
 void keys(struct window_instance* window, int key, int scancode, int action, int mods) {
-    if(action==WINDOW_PRESS)
-        window_pressed_keys[key] = 1;
-    if(action==WINDOW_RELEASE)
+    if(action==WINDOW_PRESS) {
+        if(config_key(key)->toggle)
+            window_pressed_keys[key] = !window_pressed_keys[key];
+        else
+            window_pressed_keys[key] = 1;
+    }
+    if(action==WINDOW_RELEASE && !config_key(key)->toggle)
         window_pressed_keys[key] = 0;
 	if(hud_active->input_keyboard)
 		hud_active->input_keyboard(key,action,mods);
@@ -533,6 +551,8 @@ int main(int argc, char** argv) {
 	settings.fullscreen = 0;
 	settings.greedy_meshing = 0;
 	settings.mouse_sensitivity = MOUSE_SENSITIVITY;
+    settings.show_news = 1;
+    settings.show_fps = 1;
 	strcpy(settings.name,"DEV_CLIENT");
 
 	config_reload();
@@ -619,6 +639,7 @@ int main(int argc, char** argv) {
             ts.tv_nsec = (sleep_s-ts.tv_sec)*1000000000.0;
             nanosleep(&ts,NULL);
         }
+        fps = 1.0F/(window_time()-last_frame_start);
 	}
 
     window_deinit();

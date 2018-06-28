@@ -119,17 +119,23 @@ int grenade_move(struct Grenade* g, float dt) {
     return ret;
 }
 
+int grenade_inwater(struct Grenade* g) {
+    return g->pos.y<1.0F;
+}
 
 void grenade_update(float dt) {
     for(int k=0;k<GRENADES_MAX;k++) {
         if(grenades[k].active) {
             if(window_time()-grenades[k].created>grenades[k].fuse_length) {
                 sound_createEx(NULL,SOUND_WORLD,
-                    (grenades[k].pos.y<1.0F)?&sound_explode_water:&sound_explode,
+                    grenade_inwater(&grenades[k])?&sound_explode_water:&sound_explode,
                     grenades[k].pos.x,grenades[k].pos.y,grenades[k].pos.z,
                     grenades[k].velocity.x,grenades[k].velocity.y,grenades[k].velocity.z
                 );
-                particle_create(0x505050,grenades[k].pos.x,grenades[k].pos.y+1.5F,grenades[k].pos.z,20.0F,1.5F,64,0.1F,0.5F);
+                particle_create(grenade_inwater(&grenades[k])?map_get(grenades[k].pos.x,0,grenades[k].pos.z):0x505050,
+                    grenades[k].pos.x,grenades[k].pos.y+1.5F,grenades[k].pos.z,
+                    20.0F,1.5F,64,0.1F,0.5F
+                );
                 grenades[k].active = 0;
             } else {
                 if(grenade_move(&grenades[k],dt)==2) {

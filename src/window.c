@@ -68,7 +68,9 @@ static void window_impl_keys(GLFWwindow* window, int key, int scancode, int acti
             a = WINDOW_PRESS;
             break;
     }
-    keys(hud_window,window_key_translate(key,0),scancode,a,mods>0);
+    int tr = window_key_translate(key,0);
+    if(tr>=0)
+        keys(hud_window,tr,scancode,a,mods>0);
 }
 
 float window_time() {
@@ -144,7 +146,6 @@ void window_init() {
 	glfwSetMouseButtonCallback(hud_window->impl,window_impl_mouseclick);
 	glfwSetScrollCallback(hud_window->impl,window_impl_mousescroll);
 	glfwSetCharCallback(hud_window->impl,window_impl_textinput);
-	glfwSetInputMode(hud_window->impl,GLFW_CURSOR,GLFW_CURSOR_DISABLED);
 }
 
 void window_deinit() {

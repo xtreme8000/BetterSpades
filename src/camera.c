@@ -33,6 +33,13 @@ float camera_movement_x = 0.0F, camera_movement_y = 0.0F, camera_movement_z = 0.
 float camera_speed = 32.0F;
 long camera_last_key = 0;
 
+float camera_fov_scaled() {
+	if(camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN && players[local_player_id].input.buttons.rmb && !players[local_player_id].input.keys.sprint) {
+		return camera_fov*atan(tan((camera_fov/180.0F*PI)/2)/2.0F)*2.0F;
+	}
+	return camera_fov;
+}
+
 void camera_overflow_adjust() {
 	if(camera_rot_y<EPSILON) {
 		camera_rot_y = EPSILON;

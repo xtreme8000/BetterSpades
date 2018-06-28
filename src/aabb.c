@@ -91,11 +91,11 @@ unsigned char aabb_intersection(AABB* a, AABB* b) {
 	return (a->min_x <= b->max_x && b->min_x <= a->max_x) && (a->min_y <= b->max_y && b->min_y <= a->max_y) && (a->min_z <= b->max_z && b->min_z <= a->max_z);
 }
 
-unsigned char aabb_intersection_terrain(AABB* a) {
+unsigned char aabb_intersection_terrain(AABB* a, int miny) {
 	AABB terrain_cube;
 
 	int min_x = min(max(floor(a->min_x)-1,0),map_size_x);
-	int min_y = min(max(floor(a->min_y)-1,0),map_size_y);
+	int min_y = min(max(floor(a->min_y)-1,miny),map_size_y);
 	int min_z = min(max(floor(a->min_z)-1,0),map_size_z);
 
 	int max_x = min(max(ceil(a->max_x)+1,0),map_size_x);

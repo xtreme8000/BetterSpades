@@ -33,6 +33,7 @@ extern struct RENDER_OPTIONS {
     int vsync;
     float mouse_sensitivity;
     int show_news;
+    int show_fps;
 } settings;
 
 extern struct list config_keys;
@@ -40,9 +41,12 @@ extern struct list config_keys;
 struct config_key_pair {
     int internal;
     int def;
+    int toggle;
     char name[32];
 };
 
-void config_register_key(int internal, int def, const char* name);
+void config_register_key(int internal, int def, const char* name, int toggle);
 int config_key_translate(int key, int dir);
+struct config_key_pair* config_key(int key);
+void config_key_reset_togglestates();
 void config_reload(void);

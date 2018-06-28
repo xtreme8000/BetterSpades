@@ -53,7 +53,7 @@ void particle_update(float dt) {
 
 				float acc_y = -32.0F*dt;
 				aabb_set_center(&a,particles[k].x,particles[k].y+acc_y*dt,particles[k].z);
-				if(!aabb_intersection_terrain(&a)) {
+				if(!aabb_intersection_terrain(&a,1) && !particles[k].y+acc_y*dt<0.0F) {
 					particles[k].vy += acc_y;
 				}
 				float movement_x = particles[k].vx*dt;
@@ -61,19 +61,19 @@ void particle_update(float dt) {
 				float movement_z = particles[k].vz*dt;
 				int on_ground = 0;
 				aabb_set_center(&a,particles[k].x+movement_x,particles[k].y,particles[k].z);
-				if(aabb_intersection_terrain(&a)) {
+				if(aabb_intersection_terrain(&a,1)) {
 					movement_x = 0.0F;
 					particles[k].vx = -particles[k].vx*0.6F;
 					on_ground = 1;
 				}
 				aabb_set_center(&a,particles[k].x+movement_x,particles[k].y+movement_y,particles[k].z);
-				if(aabb_intersection_terrain(&a)) {
+				if(aabb_intersection_terrain(&a,1)) {
 					movement_y = 0.0F;
 					particles[k].vy = -particles[k].vy*0.6F;
 					on_ground = 1;
 				}
 				aabb_set_center(&a,particles[k].x+movement_x,particles[k].y+movement_y,particles[k].z+movement_z);
-				if(aabb_intersection_terrain(&a)) {
+				if(aabb_intersection_terrain(&a,1)) {
 					movement_z = 0.0F;
 					particles[k].vz = -particles[k].vz*0.6F;
 					on_ground = 1;

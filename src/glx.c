@@ -29,6 +29,18 @@ PFNGLGENBUFFERSPROC glGenBuffers;
 PFNGLBINDBUFFERPROC glBindBuffer;
 PFNGLBUFFERDATAPROC glBufferData;
 
+PFNGLCREATESHADERPROC glCreateShader;
+PFNGLSHADERSOURCEPROC glShaderSource;
+PFNGLCOMPILESHADERPROC glCompileShader;
+PFNGLCREATEPROGRAMPROC glCreateProgram;
+PFNGLATTACHSHADERPROC glAttachShader;
+PFNGLLINKPROGRAMPROC glLinkProgram;
+PFNGLUSEPROGRAMPROC glUseProgram;
+PFNGLUNIFORM1FPROC glUniform1f;
+PFNGLUNIFORM3FPROC glUniform3f;
+PFNGLUNIFORMMATRIX4FVPROC glUniformMatrix4fv;
+PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
+
 static int glx_major_ver() {
 	return atoi(glGetString(GL_VERSION));
 }
@@ -39,6 +51,18 @@ void glx_init() {
 			glGenBuffers = (PFNGLGENBUFFERSPROC)wglGetProcAddress("glGenBuffers");
 			glBindBuffer = (PFNGLBINDBUFFERPROC)wglGetProcAddress("glBindBuffer");
 			glBufferData = (PFNGLBUFFERDATAPROC)wglGetProcAddress("glBufferData");
+
+			glCreateShader = (PFNGLCREATESHADERPROC)wglGetProcAddress("glCreateShader");
+			glShaderSource = (PFNGLSHADERSOURCEPROC)wglGetProcAddress("glShaderSource");
+			glCompileShader = (PFNGLCOMPILESHADERPROC)wglGetProcAddress("glCompileShader");
+			glCreateProgram = (PFNGLCREATEPROGRAMPROC)wglGetProcAddress("glCreateProgram");
+			glAttachShader = (PFNGLATTACHSHADERPROC)wglGetProcAddress("glAttachShader");
+			glLinkProgram = (PFNGLLINKPROGRAMPROC)wglGetProcAddress("glLinkProgram");
+			glUseProgram = (PFNGLUSEPROGRAMPROC)wglGetProcAddress("glUseProgram");
+			glUniform1f = (PFNGLUNIFORM1FPROC)wglGetProcAddress("glUniform1f");
+			glUniform3f = (PFNGLUNIFORM3FPROC)wglGetProcAddress("glUniform3f");
+			glUniformMatrix4fv = (PFNGLUNIFORMMATRIX4FVPROC)wglGetProcAddress("glUniformMatrix4fv");
+			glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC)wglGetProcAddress("glGetUniformLocation");
 		#endif
 		#if defined(OS_LINUX) || defined(OS_APPLE)
 			glGenBuffers = (PFNGLGENBUFFERSPROC)glXGetProcAddress("glGenBuffers");
@@ -49,6 +73,17 @@ void glx_init() {
 	} else {
 		glx_version = 0;
 	}
+}
+
+int glx_vertex_shader(const char* s) {
+	int shader = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(shader,1,(const GLchar* const*)&s,NULL);
+	glCompileShader(shader);
+
+	int program = glCreateProgram();
+	glAttachShader(program,shader);
+	glLinkProgram(program);
+	return program;
 }
 
 int glx_displaylist_create() {
