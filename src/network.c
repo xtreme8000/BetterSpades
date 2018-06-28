@@ -89,13 +89,21 @@ void read_PacketChatMessage(void* data, int len) {
 					sprintf(n,"%s (Spectator)",players[p->player_id].name);
 					break;
 			}
-			sprintf(m,"%s: %s",n,p->message);
+			sprintf(m,"%s: ",n);
 		} else {
-			sprintf(m,": %s",p->message);
+			sprintf(m,": ");
 		}
 	} else {
-		strcpy(m,p->message);
+		m[0] = 0;
 	}
+
+	size_t m_remaining = sizeof(m) - 1 - strlen(m);
+	size_t body_len = len - offsetof(struct PacketChatMessage, message);
+	if (body_len > m_remaining) {
+		body_len = m_remaining;
+	}
+	strncat(m, p->message, body_len);
+
 	printf("%s\n",m);
 	unsigned int color;
 	switch(p->chat_type) {
@@ -111,6 +119,7 @@ void read_PacketChatMessage(void* data, int len) {
 					color = rgb(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue);
 					break;
 				case TEAM_SPECTATOR:
+				default:
 					color = rgb(0,0,0);
 					break;
 			}
@@ -912,7 +921,7 @@ int network_update() {
 				case ENET_EVENT_TYPE_RECEIVE:
 				{
 					int id = event.packet->data[0];
-					if(id<sizeof(packets) && *packets[id]!=NULL) {
+					if(id<sizeof(packets)/sizeof(packets[0]) && *packets[id]!=NULL) {
 						//printf("packet id %i\n",id);
 						(*packets[id]) (event.packet->data+1,event.packet->dataLength-1);
 					} else {
