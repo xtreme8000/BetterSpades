@@ -498,6 +498,9 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
 		glReadPixels(0,0,settings.window_width,settings.window_height,GL_RGBA,GL_UNSIGNED_BYTE,pic_data);
 
 		for(int y=0;y<settings.window_height;y++) { //mirror image (top-bottom)
+            for(int x=0;x<settings.window_width;x++) {
+                pic_data[(x+(settings.window_height-y-1)*settings.window_width)*4+3] = 255;
+            }
 			memcpy(pic_data+settings.window_width*4*(y+settings.window_height),
 				   pic_data+settings.window_width*4*(settings.window_height-y-1),
 				   settings.window_width*4);

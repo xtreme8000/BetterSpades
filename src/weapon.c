@@ -229,7 +229,7 @@ void weapon_shoot() {
     //https://pastebin.com/raw/TMjKSTXG
     //http://paste.quacknet.org/view/a3ea2743
 
-    for(int i=0;i<((players[local_player_id].weapon==WEAPON_SHOTGUN)?6:1);i++) {
+    for(int i=0;i<((players[local_player_id].weapon==WEAPON_SHOTGUN)?8:1);i++) {
         float o[3] = {players[local_player_id].orientation.x,
                       players[local_player_id].orientation.y,
                       players[local_player_id].orientation.z};

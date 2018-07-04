@@ -1,4 +1,4 @@
-[![Build Status](http://bytebit.info.tm:8080/buildStatus/icon?job=BetterSpades)](http://bytebit.info.tm:8080/job/BetterSpades/)
+[![Build Status](http://bytebit.info.tm/jenkins/buildStatus/icon?job=BetterSpades)](http://bytebit.info.tm:8080/job/BetterSpades/)
 [![](https://img.shields.io/github/downloads/xtreme8000/BetterSpades/total.svg)](https://github.com/xtreme8000/BetterSpades/releases)
 [![GPL](https://img.shields.io/badge/license-GPL--3.0-red.svg)](https://github.com/xtreme8000/BetterSpades/blob/standalone/LICENSE)
 [![DonateBTC](https://img.shields.io/badge/bitcoin-donate-yellow.svg)](1AeSfdVmbEX6VCqxCgk9WkzSA8XJkKr4FM)
@@ -19,7 +19,7 @@
 
 **As of right now, you can download the newest stable version from the [releases page](https://github.com/xtreme8000/BetterSpades/releases).**
 
-**You can get [nightly builds here](http://bytebit.info.tm:8080/job/BetterSpades/).**
+**You can get [nightly builds here](http://bytebit.info.tm/jenkins/job/BetterSpades/).**
 
 You can either:
 * use the client temporarily by extracting the downloaded zip into a new directory.
