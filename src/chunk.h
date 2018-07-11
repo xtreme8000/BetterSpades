@@ -17,11 +17,11 @@
     along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define CHUNK_SIZE      16
-#define CHUNKS_PER_DIM  32
+#define CHUNK_SIZE					16
+#define CHUNKS_PER_DIM				32
 
 extern struct chunk {
-	int display_list;
+	struct glx_displaylist display_list;
 	int max_height;
 	float last_update;
 	char created;

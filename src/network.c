@@ -41,6 +41,23 @@ int compressed_chunk_data_estimate = 0;
 ENetHost* client;
 ENetPeer* peer;
 
+const char* network_reason_disconnect(int code) {
+	switch(code) {
+		case 1:
+			return "Banned";
+		case 2:
+			return "Connection limit";
+		case 3:
+			return "Wrong protocol";
+		case 4:
+			return "Server full";
+		case 10:
+			return "Kicked";
+		default:
+			return "Unknown";
+	}
+}
+
 static void printJoinMsg(int team, char* name) {
 	char* t;
 	switch(team) {
@@ -161,8 +178,10 @@ void read_PacketBlockAction(void* data, int len) {
 				map_update_physics(p->x,63-p->z-1,p->y);
 			}
 			if((63-p->z+0)>1) {
+				int col = map_get(p->x,63-p->z,p->y);
 				map_set(p->x,63-p->z+0,p->y,0xFFFFFFFF);
 				map_update_physics(p->x,63-p->z+0,p->y);
+				particle_create(col,p->x+0.5F,63-p->z+0.5F,p->y+0.5F,2.5F,1.0F,8,0.1F,0.25F);
 			}
 			if((63-p->z+1)>1) {
 				map_set(p->x,63-p->z+1,p->y,0xFFFFFFFF);
@@ -518,6 +537,13 @@ void read_PacketKillAction(void* data, int len) {
 			local_player_respawn_time = p->respawn_time;
 			local_player_respawn_cnt_last = 255;
 			sound_create(NULL,SOUND_LOCAL,&sound_death,0.0F,0.0F,0.0F);
+
+			if(p->player_id!=p->killer_id) {
+				local_player_last_damage_timer = local_player_death_time;
+				local_player_last_damage_x = players[p->killer_id].pos.x;
+				local_player_last_damage_y = players[p->killer_id].pos.y;
+				local_player_last_damage_z = players[p->killer_id].pos.z;
+			}
 		}
 		players[p->player_id].alive = 0;
 		players[p->player_id].input.keys.packed = 0;
@@ -593,11 +619,11 @@ void read_PacketSetHP(void* data, int len) {
 	local_player_health = p->hp;
 	if(p->type==DAMAGE_SOURCE_GUN) {
 		local_player_last_damage_timer = window_time();
-		local_player_last_damage_x = p->x;
-		local_player_last_damage_y = 63.0F-p->z;
-		local_player_last_damage_z = p->y;
 		sound_create(NULL,SOUND_LOCAL,&sound_hitplayer,0.0F,0.0F,0.0F);
 	}
+	local_player_last_damage_x = p->x;
+	local_player_last_damage_y = 63.0F-p->z;
+	local_player_last_damage_z = p->y;
 }
 
 void read_PacketRestock(void* data, int len) {
@@ -933,8 +959,8 @@ int network_update() {
 				}
 				case ENET_EVENT_TYPE_DISCONNECT:
 					hud_change(&hud_serverlist);
-					chat_showpopup(reason_disconnect(event.data),10.0F);
-					printf("server disconnected! reason: %s\n",reason_disconnect(event.data));
+					chat_showpopup(network_reason_disconnect(event.data),10.0F);
+					printf("server disconnected! reason: %s\n",network_reason_disconnect(event.data));
 					event.peer->data = NULL;
 					network_connected = 0;
 					network_logged_in = 0;

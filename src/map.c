@@ -59,66 +59,111 @@ int map_damage(int x, int y, int z, int damage) {
 	return damage;
 }
 
+static void push_float3(float* buffer, int* index, float x, float y, float z) {
+	buffer[(*index)++] = x;
+	buffer[(*index)++] = y;
+	buffer[(*index)++] = z;
+}
+
+static void push_char4(unsigned char* buffer, int* index, int r, int g, int b, int a) {
+	buffer[(*index)++] = r;
+	buffer[(*index)++] = g;
+	buffer[(*index)++] = b;
+	buffer[(*index)++] = a;
+}
+
+static void push_char46(unsigned char* buffer, int* index, int r, int g, int b, int a) {
+	for(int k=0;k<6;k++) {
+		push_char4(buffer,index,r,g,b,a);
+	}
+}
+
 void map_damaged_voxels_render() {
 	matrix_identity();
 	matrix_upload();
 	glEnable(GL_POLYGON_OFFSET_FILL);
 	glPolygonOffset(0.0F,-100.0F);
 	glEnable(GL_BLEND);
-	glBegin(GL_QUADS);
 	for(int k=0;k<8;k++) {
 		if(map_get(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z)==0xFFFFFFFF) {
 			map_damaged_voxels[k].timer = 0;
 		} else {
 			if(window_time()-map_damaged_voxels[k].timer<=10.0F) {
-				glColor4f(0.0F,0.0F,0.0F,(float)map_damaged_voxels[k].damage/100.0F*0.75F);
-				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
-				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
-				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
-				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
+				float vertices[6*18];
+				unsigned char colors[6*24];
+				int color_index = 0, vertex_index = 0;
 
-				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
-				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
-				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
-				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
+				push_char46(colors,&color_index,0,0,0,map_damaged_voxels[k].damage*1.9125F);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
 
-				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
-				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
-				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
-				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+				push_char46(colors,&color_index,0,0,0,map_damaged_voxels[k].damage*1.9125F);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
 
-				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
-				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
-				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
-				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
+				push_char46(colors,&color_index,0,0,0,map_damaged_voxels[k].damage*1.9125F);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
 
-				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
-				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
-				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
-				glVertex3s(map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
+				push_char46(colors,&color_index,0,0,0,map_damaged_voxels[k].damage*1.9125F);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
 
-				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
-				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
-				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
-				glVertex3s(map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
+				push_char46(colors,&color_index,0,0,0,map_damaged_voxels[k].damage*1.9125F);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
+
+				push_char46(colors,&color_index,0,0,0,map_damaged_voxels[k].damage*1.9125F);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y+1,map_damaged_voxels[k].z+1);
+				push_float3(vertices,&vertex_index,map_damaged_voxels[k].x+1,map_damaged_voxels[k].y,map_damaged_voxels[k].z+1);
+
+				glEnableClientState(GL_VERTEX_ARRAY);
+				glEnableClientState(GL_COLOR_ARRAY);
+				glVertexPointer(3,GL_FLOAT,0,vertices);
+				glColorPointer(4,GL_UNSIGNED_BYTE,0,colors);
+				glDrawArrays(GL_TRIANGLES,0,vertex_index/3);
+				glDisableClientState(GL_COLOR_ARRAY);
+				glDisableClientState(GL_VERTEX_ARRAY);
 			}
 		}
 	}
-	glEnd();
 	glDisable(GL_BLEND);
 	glPolygonOffset(0.0F,0.0F);
 	glDisable(GL_POLYGON_OFFSET_FILL);
-	glColor4f(1.0F,1.0F,1.0F,1.0F);
 }
 
 struct voxel {
-	int x,y,z; //float makes it easier to reuse structure for rendering
+	int x,y,z;
 	char processed;
 };
 
-static char stack_contains(struct voxel* stack, int len, int x, int y, int z) {
+static char stack_contains(struct voxel* stack2, int len, int x, int y, int z) {
 	for(int k=0;k<len;k++)
-		if(stack[k].x==x && stack[k].y==y && stack[k].z==z)
+		if(stack2[k].x==x && stack2[k].y==y && stack2[k].z==z)
 			return 1;
 	return 0;
 }
@@ -132,15 +177,20 @@ static struct {
 	struct Position p2;
 	struct Orientation o;
 	char used, rotation, has_displaylist;
-	int displaylist;
+	struct glx_displaylist displaylist;
 } map_collapsing_structures[32] = {0};
 
+static struct voxel* stack = NULL;
+static int stack_size;
 
 static void map_update_physics_sub(int x, int y, int z) {
 	//TODO: remove calls to malloc and realloc
-	struct voxel* stack = malloc(4096*sizeof(struct voxel));
-	CHECK_ALLOCATION_ERROR(stack)
-	int stack_depth = 1, stack_size = 4096;
+	if(!stack) {
+		stack_size = 4096;
+		stack = malloc(stack_size*sizeof(struct voxel));
+		CHECK_ALLOCATION_ERROR(stack)
+	}
+	int stack_depth = 1;
 	stack[0].x = x;
 	stack[0].y = y;
 	stack[0].z = z;
@@ -149,7 +199,6 @@ static void map_update_physics_sub(int x, int y, int z) {
 	while(1) { //find all connected blocks
 		if(map_get(x,y-1,z)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x,y-1,z)) {
 			if(y<=2) {
-				free(stack);
 				return;
 			}
 			stack[stack_depth].processed = 0;
@@ -242,6 +291,7 @@ static void map_update_physics_sub(int x, int y, int z) {
 				if(level<1) {
 					level = 1;
 					level_best = k;
+					continue;
 				}
 			}
 		}
@@ -280,6 +330,7 @@ static void map_update_physics_sub(int x, int y, int z) {
 
 			map_collapsing_structures[k].used = 1;
 			map_collapsing_structures[k].voxels = stack;
+			stack = NULL;
 			map_collapsing_structures[k].v = (struct Velocity) {0,0,0};
 			map_collapsing_structures[k].o = (struct Orientation) {0,0,0};
 			map_collapsing_structures[k].p = (struct Position) {px,py,pz};
@@ -323,9 +374,23 @@ void map_collapsing_render(float dt) {
 			matrix_upload();
 			if(!map_collapsing_structures[k].has_displaylist) {
 				map_collapsing_structures[k].has_displaylist = 1;
-				map_collapsing_structures[k].displaylist = glGenLists(1);
-				glNewList(map_collapsing_structures[k].displaylist,GL_COMPILE);
-				glBegin(GL_QUADS);
+				glx_displaylist_create(&map_collapsing_structures[k].displaylist);
+
+				#ifdef OPENGL_ES
+					float* vertices = malloc(map_collapsing_structures[k].voxel_count*6*6*3*sizeof(float)); //max space needed
+					CHECK_ALLOCATION_ERROR(vertices)
+					unsigned char* colors = malloc(map_collapsing_structures[k].voxel_count*6*6*4*sizeof(unsigned char));
+					CHECK_ALLOCATION_ERROR(colors)
+				#else
+					float* vertices = malloc(map_collapsing_structures[k].voxel_count*6*4*3*sizeof(float)); //same
+					CHECK_ALLOCATION_ERROR(vertices)
+					unsigned char* colors = malloc(map_collapsing_structures[k].voxel_count*6*4*4*sizeof(unsigned char));
+					CHECK_ALLOCATION_ERROR(colors)
+				#endif
+
+				int vertex_index = 0;
+				int color_index = 0;
+
 				for(int i=0;i<map_collapsing_structures[k].voxel_count;i++) {
 					float x = map_collapsing_structures[k].voxels[i].x-map_collapsing_structures[k].p2.x;
 					float y = map_collapsing_structures[k].voxels[i].y-map_collapsing_structures[k].p2.y;
@@ -336,69 +401,136 @@ void map_collapsing_render(float dt) {
 					int z2 = map_collapsing_structures[k].voxels[i].z;
 
 					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2,y2-1,z2)) {
-						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F*0.5F,
-								  green(map_collapsing_structures[k].voxels_color[i])/255.0F*0.5F,
-								  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.5F,0.8F);
-						glVertex3f(x,y,z);
-						glVertex3f(x+1,y,z);
-						glVertex3f(x+1,y,z+1);
-						glVertex3f(x,y,z+1);
+						#ifdef OPENGL_ES
+						for(int l=0;l<6;l++) {
+						#else
+						for(int l=0;l<4;l++) {
+						#endif
+							push_char4(colors,&color_index,
+								red(map_collapsing_structures[k].voxels_color[i])*0.5F,
+								green(map_collapsing_structures[k].voxels_color[i])*0.5F,
+								blue(map_collapsing_structures[k].voxels_color[i])*0.5F,0xCC);
+						}
+						push_float3(vertices,&vertex_index,x,y,z);
+						push_float3(vertices,&vertex_index,x+1,y,z);
+						push_float3(vertices,&vertex_index,x+1,y,z+1);
+						#ifdef OPENGL_ES
+						push_float3(vertices,&vertex_index,x,y,z);
+						push_float3(vertices,&vertex_index,x+1,y,z+1);
+						#endif
+						push_float3(vertices,&vertex_index,x,y,z+1);
 					}
 
 					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2,y2+1,z2)) {
-						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F,
-								  green(map_collapsing_structures[k].voxels_color[i])/255.0F,
-								  blue(map_collapsing_structures[k].voxels_color[i])/255.0F,0.8F);
-						glVertex3f(x,y+1,z);
-						glVertex3f(x,y+1,z+1);
-						glVertex3f(x+1,y+1,z+1);
-						glVertex3f(x+1,y+1,z);
+						#ifdef OPENGL_ES
+						for(int l=0;l<6;l++) {
+						#else
+						for(int l=0;l<4;l++) {
+						#endif
+							push_char4(colors,&color_index,
+								red(map_collapsing_structures[k].voxels_color[i]),
+								green(map_collapsing_structures[k].voxels_color[i]),
+								blue(map_collapsing_structures[k].voxels_color[i]),0xCC);
+						}
+						push_float3(vertices,&vertex_index,x,y+1,z);
+						push_float3(vertices,&vertex_index,x,y+1,z+1);
+						push_float3(vertices,&vertex_index,x+1,y+1,z+1);
+						#ifdef OPENGL_ES
+						push_float3(vertices,&vertex_index,x,y+1,z);
+						push_float3(vertices,&vertex_index,x+1,y+1,z+1);
+						#endif
+						push_float3(vertices,&vertex_index,x+1,y+1,z);
 					}
 
 					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2,y2,z2-1)) {
-						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F*0.7F,
-								  green(map_collapsing_structures[k].voxels_color[i])/255.0F*0.7F,
-								  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.7F,0.8F);
-						glVertex3f(x,y,z);
-						glVertex3f(x,y+1,z);
-						glVertex3f(x+1,y+1,z);
-						glVertex3f(x+1,y,z);
+						#ifdef OPENGL_ES
+						for(int l=0;l<6;l++) {
+						#else
+						for(int l=0;l<4;l++) {
+						#endif
+							push_char4(colors,&color_index,
+								red(map_collapsing_structures[k].voxels_color[i])*0.7F,
+								green(map_collapsing_structures[k].voxels_color[i])*0.7F,
+								blue(map_collapsing_structures[k].voxels_color[i])*0.7F,0xCC);
+						}
+						push_float3(vertices,&vertex_index,x,y,z);
+						push_float3(vertices,&vertex_index,x,y+1,z);
+						push_float3(vertices,&vertex_index,x+1,y+1,z);
+						#ifdef OPENGL_ES
+						push_float3(vertices,&vertex_index,x,y,z);
+						push_float3(vertices,&vertex_index,x+1,y+1,z);
+						#endif
+						push_float3(vertices,&vertex_index,x+1,y,z);
 					}
 
 					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2,y2,z2+1)) {
-						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F*0.6F,
-								  green(map_collapsing_structures[k].voxels_color[i])/255.0F*0.6F,
-								  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.6F,0.8F);
-						glVertex3f(x,y,z+1);
-						glVertex3f(x+1,y,z+1);
-						glVertex3f(x+1,y+1,z+1);
-						glVertex3f(x,y+1,z+1);
+						#ifdef OPENGL_ES
+						for(int l=0;l<6;l++) {
+						#else
+						for(int l=0;l<4;l++) {
+						#endif
+							push_char4(colors,&color_index,
+								red(map_collapsing_structures[k].voxels_color[i])*0.6F,
+								green(map_collapsing_structures[k].voxels_color[i])*0.6F,
+								blue(map_collapsing_structures[k].voxels_color[i])*0.6F,0xCC);
+						}
+						push_float3(vertices,&vertex_index,x,y,z+1);
+						push_float3(vertices,&vertex_index,x+1,y,z+1);
+						push_float3(vertices,&vertex_index,x+1,y+1,z+1);
+						#ifdef OPENGL_ES
+						push_float3(vertices,&vertex_index,x,y,z+1);
+						push_float3(vertices,&vertex_index,x+1,y+1,z+1);
+						#endif
+						push_float3(vertices,&vertex_index,x,y+1,z+1);
 					}
 
 					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2-1,y2,z2)) {
-						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F*0.9F,
-								  green(map_collapsing_structures[k].voxels_color[i])/255.0F*0.9F,
-								  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.9F,0.8F);
-						glVertex3f(x,y,z);
-						glVertex3f(x,y,z+1);
-						glVertex3f(x,y+1,z+1);
-						glVertex3f(x,y+1,z);
+						#ifdef OPENGL_ES
+						for(int l=0;l<6;l++) {
+						#else
+						for(int l=0;l<4;l++) {
+						#endif
+							push_char4(colors,&color_index,
+								red(map_collapsing_structures[k].voxels_color[i])*0.9F,
+								green(map_collapsing_structures[k].voxels_color[i])*0.9F,
+								blue(map_collapsing_structures[k].voxels_color[i])*0.9F,0xCC);
+						}
+						push_float3(vertices,&vertex_index,x,y,z);
+						push_float3(vertices,&vertex_index,x,y,z+1);
+						push_float3(vertices,&vertex_index,x,y+1,z+1);
+						#ifdef OPENGL_ES
+						push_float3(vertices,&vertex_index,x,y,z);
+						push_float3(vertices,&vertex_index,x,y+1,z+1);
+						#endif
+						push_float3(vertices,&vertex_index,x,y+1,z);
 					}
 
 					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2+1,y2,z2)) {
-						glColor4f(red(map_collapsing_structures[k].voxels_color[i])/255.0F*0.8F,
-								  green(map_collapsing_structures[k].voxels_color[i])/255.0F*0.8F,
-								  blue(map_collapsing_structures[k].voxels_color[i])/255.0F*0.8F,0.8F);
-						glVertex3f(x+1,y,z);
-						glVertex3f(x+1,y+1,z);
-						glVertex3f(x+1,y+1,z+1);
-						glVertex3f(x+1,y,z+1);
+						#ifdef OPENGL_ES
+						for(int l=0;l<6;l++) {
+						#else
+						for(int l=0;l<4;l++) {
+						#endif
+							push_char4(colors,&color_index,
+								red(map_collapsing_structures[k].voxels_color[i])*0.8F,
+								green(map_collapsing_structures[k].voxels_color[i])*0.8F,
+								blue(map_collapsing_structures[k].voxels_color[i])*0.8F,0xCC);
+						}
+						push_float3(vertices,&vertex_index,x+1,y,z);
+						push_float3(vertices,&vertex_index,x+1,y+1,z);
+						push_float3(vertices,&vertex_index,x+1,y+1,z+1);
+						#ifdef OPENGL_ES
+						push_float3(vertices,&vertex_index,x+1,y,z);
+						push_float3(vertices,&vertex_index,x+1,y+1,z+1);
+						#endif
+						push_float3(vertices,&vertex_index,x+1,y,z+1);
 					}
 				}
-				glEnd();
-				glEndList();
+				glx_displaylist_update(&map_collapsing_structures[k].displaylist,vertex_index/3,GLX_DISPLAYLIST_ENHANCED,colors,vertices,NULL);
+				free(colors);
+				free(vertices);
 			}
-			glCallList(map_collapsing_structures[k].displaylist);
+			glx_displaylist_draw(&map_collapsing_structures[k].displaylist,GLX_DISPLAYLIST_ENHANCED);
 
 			if(absf(map_collapsing_structures[k].v.y)<0.1F && hit_floor) {
 				for(int i=0;i<map_collapsing_structures[k].voxel_count;i++) {
@@ -411,7 +543,8 @@ void map_collapsing_render(float dt) {
 				}
 				free(map_collapsing_structures[k].voxels);
 				free(map_collapsing_structures[k].voxels_color);
-				glDeleteLists(map_collapsing_structures[k].displaylist,1);
+
+				glx_displaylist_destroy(&map_collapsing_structures[k].displaylist);
 				map_collapsing_structures[k].used = 0;
 			}
 

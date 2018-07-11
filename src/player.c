@@ -550,12 +550,12 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 
     matrix_push();
     matrix_translate(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
+    if(!(id==local_player_id && camera_mode==CAMERAMODE_FPS))
+        matrix_translate(0.0F,p->input.keys.crouch*0.1F-0.1F*2,0.0F);
     matrix_pointAt(ox,oy,oz);
     matrix_rotate(90.0F,0.0F,1.0F,0.0F);
     if(id==local_player_id && camera_mode==CAMERAMODE_FPS)
         matrix_translate(0.0F,-2*0.1F,-2*0.1F);
-    else
-        matrix_translate(0.0F,-2*0.1F,p->input.keys.crouch*(-2)*0.1F);
 
     if(id==local_player_id && p->alive) {
         float speed = sqrt(pow(p->physics.velocity.x,2)+pow(p->physics.velocity.z,2))/0.25F;

@@ -175,7 +175,9 @@ char kv6_intersection(struct kv6_t* kv6, Ray* r) {
 
 void kv6_rebuild(struct kv6_t* kv6) {
 	if(kv6->has_display_list) {
-		glDeleteLists(kv6->display_list,3);
+		glx_displaylist_destroy(&kv6->display_list[0]);
+		glx_displaylist_destroy(&kv6->display_list[1]);
+		glx_displaylist_destroy(&kv6->display_list[2]);
 		if(kv6->colorize) {
 			free(kv6->vertices_final);
 			free(kv6->colors_final);
@@ -190,15 +192,26 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 	if(!kv6->has_display_list) {
 		int size = kv6->voxel_count*6;
 
-		kv6->vertices_final = malloc(size*12*sizeof(float));
+		#ifdef OPENGL_ES
+		kv6->vertices_final = malloc(size*3*6*sizeof(float));
 		CHECK_ALLOCATION_ERROR(kv6->vertices_final)
-		kv6->colors_final = malloc(size*12*sizeof(unsigned char)*2);
+		kv6->colors_final = malloc(size*4*6*sizeof(unsigned char)*2);
 		CHECK_ALLOCATION_ERROR(kv6->colors_final)
-		kv6->normals_final = malloc(size*12*sizeof(unsigned char));
+		kv6->normals_final = malloc(size*3*6*sizeof(unsigned char));
 		CHECK_ALLOCATION_ERROR(kv6->normals_final)
+		#else
+		kv6->vertices_final = malloc(size*3*4*sizeof(float));
+		CHECK_ALLOCATION_ERROR(kv6->vertices_final)
+		kv6->colors_final = malloc(size*4*4*sizeof(unsigned char)*2);
+		CHECK_ALLOCATION_ERROR(kv6->colors_final)
+		kv6->normals_final = malloc(size*3*4*sizeof(unsigned char));
+		CHECK_ALLOCATION_ERROR(kv6->normals_final)
+		#endif
 
 		if(!kv6->colorize) {
-			kv6->display_list = glGenLists(3);
+			glx_displaylist_create(&kv6->display_list[0]);
+			glx_displaylist_create(&kv6->display_list[1]);
+			glx_displaylist_create(&kv6->display_list[2]);
 		}
 
 		int v,c,n;
@@ -232,19 +245,34 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 				float p[3] = {(x-kv6->xpiv)*kv6->scale,(z-kv6->zpiv)*kv6->scale,(y-kv6->ypiv)*kv6->scale};
 
 				int i = 0;
-				float alpha[6];
+				float alpha[12];
 
 				//negative y
 				if(kv6->voxels[k].visfaces&16) {
 					kv6->vertices_final[v++] = p[0];
 					kv6->vertices_final[v++] = p[1]+kv6->scale;
 					kv6->vertices_final[v++] = p[2];
+
 					kv6->vertices_final[v++] = p[0];
 					kv6->vertices_final[v++] = p[1]+kv6->scale;
 					kv6->vertices_final[v++] = p[2]+kv6->scale;
+
 					kv6->vertices_final[v++] = p[0]+kv6->scale;
 					kv6->vertices_final[v++] = p[1]+kv6->scale;
 					kv6->vertices_final[v++] = p[2]+kv6->scale;
+
+					#ifdef OPENGL_ES
+					alpha[i++] = 1.0F;
+
+					kv6->vertices_final[v++] = p[0];
+					kv6->vertices_final[v++] = p[1]+kv6->scale;
+					kv6->vertices_final[v++] = p[2];
+
+					kv6->vertices_final[v++] = p[0]+kv6->scale;
+					kv6->vertices_final[v++] = p[1]+kv6->scale;
+					kv6->vertices_final[v++] = p[2]+kv6->scale;
+					#endif
+
 					kv6->vertices_final[v++] = p[0]+kv6->scale;
 					kv6->vertices_final[v++] = p[1]+kv6->scale;
 					kv6->vertices_final[v++] = p[2];
@@ -256,12 +284,27 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 					kv6->vertices_final[v++] = p[0];
 					kv6->vertices_final[v++] = p[1];
 					kv6->vertices_final[v++] = p[2];
+
 					kv6->vertices_final[v++] = p[0]+kv6->scale;
 					kv6->vertices_final[v++] = p[1];
 					kv6->vertices_final[v++] = p[2];
+
 					kv6->vertices_final[v++] = p[0]+kv6->scale;
 					kv6->vertices_final[v++] = p[1];
 					kv6->vertices_final[v++] = p[2]+kv6->scale;
+
+					#ifdef OPENGL_ES
+					alpha[i++] = 0.6F;
+
+					kv6->vertices_final[v++] = p[0];
+					kv6->vertices_final[v++] = p[1];
+					kv6->vertices_final[v++] = p[2];
+
+					kv6->vertices_final[v++] = p[0]+kv6->scale;
+					kv6->vertices_final[v++] = p[1];
+					kv6->vertices_final[v++] = p[2]+kv6->scale;
+					#endif
+
 					kv6->vertices_final[v++] = p[0];
 					kv6->vertices_final[v++] = p[1];
 					kv6->vertices_final[v++] = p[2]+kv6->scale;
@@ -273,12 +316,27 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 					kv6->vertices_final[v++] = p[0];
 					kv6->vertices_final[v++] = p[1];
 					kv6->vertices_final[v++] = p[2];
+
 					kv6->vertices_final[v++] = p[0];
 					kv6->vertices_final[v++] = p[1]+kv6->scale;
 					kv6->vertices_final[v++] = p[2];
+
 					kv6->vertices_final[v++] = p[0]+kv6->scale;
 					kv6->vertices_final[v++] = p[1]+kv6->scale;
 					kv6->vertices_final[v++] = p[2];
+
+					#ifdef OPENGL_ES
+					alpha[i++] = 0.95F;
+
+					kv6->vertices_final[v++] = p[0];
+					kv6->vertices_final[v++] = p[1];
+					kv6->vertices_final[v++] = p[2];
+
+					kv6->vertices_final[v++] = p[0]+kv6->scale;
+					kv6->vertices_final[v++] = p[1]+kv6->scale;
+					kv6->vertices_final[v++] = p[2];
+					#endif
+
 					kv6->vertices_final[v++] = p[0]+kv6->scale;
 					kv6->vertices_final[v++] = p[1];
 					kv6->vertices_final[v++] = p[2];
@@ -290,12 +348,27 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 					kv6->vertices_final[v++] = p[0];
 					kv6->vertices_final[v++] = p[1];
 					kv6->vertices_final[v++] = p[2]+kv6->scale;
+
 					kv6->vertices_final[v++] = p[0]+kv6->scale;
 					kv6->vertices_final[v++] = p[1];
 					kv6->vertices_final[v++] = p[2]+kv6->scale;
+
 					kv6->vertices_final[v++] = p[0]+kv6->scale;
 					kv6->vertices_final[v++] = p[1]+kv6->scale;
 					kv6->vertices_final[v++] = p[2]+kv6->scale;
+
+					#ifdef OPENGL_ES
+					alpha[i++] = 0.9F;
+
+					kv6->vertices_final[v++] = p[0];
+					kv6->vertices_final[v++] = p[1];
+					kv6->vertices_final[v++] = p[2]+kv6->scale;
+
+					kv6->vertices_final[v++] = p[0]+kv6->scale;
+					kv6->vertices_final[v++] = p[1]+kv6->scale;
+					kv6->vertices_final[v++] = p[2]+kv6->scale;
+					#endif
+
 					kv6->vertices_final[v++] = p[0];
 					kv6->vertices_final[v++] = p[1]+kv6->scale;
 					kv6->vertices_final[v++] = p[2]+kv6->scale;
@@ -307,12 +380,27 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 					kv6->vertices_final[v++] = p[0];
 					kv6->vertices_final[v++] = p[1];
 					kv6->vertices_final[v++] = p[2];
+
 					kv6->vertices_final[v++] = p[0];
 					kv6->vertices_final[v++] = p[1];
 					kv6->vertices_final[v++] = p[2]+kv6->scale;
+
 					kv6->vertices_final[v++] = p[0];
 					kv6->vertices_final[v++] = p[1]+kv6->scale;
 					kv6->vertices_final[v++] = p[2]+kv6->scale;
+
+					#ifdef OPENGL_ES
+					alpha[i++] = 0.85F;
+
+					kv6->vertices_final[v++] = p[0];
+					kv6->vertices_final[v++] = p[1];
+					kv6->vertices_final[v++] = p[2];
+
+					kv6->vertices_final[v++] = p[0];
+					kv6->vertices_final[v++] = p[1]+kv6->scale;
+					kv6->vertices_final[v++] = p[2]+kv6->scale;
+					#endif
+
 					kv6->vertices_final[v++] = p[0];
 					kv6->vertices_final[v++] = p[1]+kv6->scale;
 					kv6->vertices_final[v++] = p[2];
@@ -324,45 +412,54 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 					kv6->vertices_final[v++] = p[0]+kv6->scale;
 					kv6->vertices_final[v++] = p[1];
 					kv6->vertices_final[v++] = p[2];
+
 					kv6->vertices_final[v++] = p[0]+kv6->scale;
 					kv6->vertices_final[v++] = p[1]+kv6->scale;
 					kv6->vertices_final[v++] = p[2];
+
 					kv6->vertices_final[v++] = p[0]+kv6->scale;
 					kv6->vertices_final[v++] = p[1]+kv6->scale;
 					kv6->vertices_final[v++] = p[2]+kv6->scale;
+
+					#ifdef OPENGL_ES
+					alpha[i++] = 0.8F;
+
+					kv6->vertices_final[v++] = p[0]+kv6->scale;
+					kv6->vertices_final[v++] = p[1];
+					kv6->vertices_final[v++] = p[2];
+
+					kv6->vertices_final[v++] = p[0]+kv6->scale;
+					kv6->vertices_final[v++] = p[1]+kv6->scale;
+					kv6->vertices_final[v++] = p[2]+kv6->scale;
+					#endif
+
 					kv6->vertices_final[v++] = p[0]+kv6->scale;
 					kv6->vertices_final[v++] = p[1];
 					kv6->vertices_final[v++] = p[2]+kv6->scale;
 					alpha[i++] = 0.8F;
 				}
 
+				#ifdef OPENGL_ES
+				for(int k=0;k<i*3;k++) {
+					kv6->colors_final[c++] = r*alpha[k/3];
+					kv6->colors_final[c++] = g*alpha[k/3];
+					kv6->colors_final[c++] = b*alpha[k/3];
+					kv6->colors_final[c++] = 255;
+				#else
 				for(int k=0;k<i*4;k++) {
 					kv6->colors_final[c++] = r*alpha[k/4];
 					kv6->colors_final[c++] = g*alpha[k/4];
 					kv6->colors_final[c++] = b*alpha[k/4];
-
+					kv6->colors_final[c++] = 255;
+				#endif
 					kv6->normals_final[n++] = kv6_normals[a][0]*128;
 					kv6->normals_final[n++] = -kv6_normals[a][2]*128;
 					kv6->normals_final[n++] = kv6_normals[a][1]*128;
 				}
 			}
 
-			if(!kv6->colorize) {
-				glNewList(kv6->display_list+t,GL_COMPILE);
-				glEnable(GL_NORMALIZE);
-				glEnableClientState(GL_VERTEX_ARRAY);
-				glEnableClientState(GL_COLOR_ARRAY);
-				glEnableClientState(GL_NORMAL_ARRAY);
-				glVertexPointer(3,GL_FLOAT,0,kv6->vertices_final);
-				glColorPointer(3,GL_UNSIGNED_BYTE,0,kv6->colors_final);
-				glNormalPointer(GL_BYTE,0,kv6->normals_final);
-				glDrawArrays(GL_QUADS,0,v/3);
-				glDisableClientState(GL_NORMAL_ARRAY);
-				glDisableClientState(GL_COLOR_ARRAY);
-				glDisableClientState(GL_VERTEX_ARRAY);
-				glDisable(GL_NORMALIZE);
-				glEndList();
-			}
+			if(!kv6->colorize)
+				glx_displaylist_update(&kv6->display_list[t],v/3,GLX_DISPLAYLIST_ENHANCED,kv6->colors_final,kv6->vertices_final,kv6->normals_final);
 		}
 
 		if(!kv6->colorize) {
@@ -370,7 +467,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 			free(kv6->colors_final);
 			free(kv6->normals_final);
 		} else {
-			memcpy(kv6->colors_final+v*sizeof(unsigned char),kv6->colors_final,v*sizeof(unsigned char));
+			memcpy(kv6->colors_final+c*sizeof(unsigned char),kv6->colors_final,c*sizeof(unsigned char));
 			kv6->size = v/3;
 		}
 
@@ -379,28 +476,34 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		glEnable(GL_LIGHTING);
 		glEnable(GL_LIGHT0);
 		glEnable(GL_COLOR_MATERIAL);
+		#ifndef OPENGL_ES
 		glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
+		#endif
+		glEnable(GL_NORMALIZE);
 		if(!kv6->colorize) {
-			glCallList(kv6->display_list+(team%3));
+			glx_displaylist_draw(&kv6->display_list[team%3],GLX_DISPLAYLIST_ENHANCED);
 		} else {
-			for(int k=0;k<kv6->size*3;k+=3) {
-				kv6->colors_final[k+0] = min(((float)kv6->colors_final[k+0+kv6->size*3*sizeof(unsigned char)])/0.4335F*kv6->red,255);
-				kv6->colors_final[k+1] = min(((float)kv6->colors_final[k+1+kv6->size*3*sizeof(unsigned char)])/0.4335F*kv6->green,255);
-				kv6->colors_final[k+2] = min(((float)kv6->colors_final[k+2+kv6->size*3*sizeof(unsigned char)])/0.4335F*kv6->blue,255);
+			for(int k=0;k<kv6->size*4;k+=4) {
+				kv6->colors_final[k+0] = min(((float)kv6->colors_final[k+0+kv6->size*4*sizeof(unsigned char)])/0.4335F*kv6->red,255);
+				kv6->colors_final[k+1] = min(((float)kv6->colors_final[k+1+kv6->size*4*sizeof(unsigned char)])/0.4335F*kv6->green,255);
+				kv6->colors_final[k+2] = min(((float)kv6->colors_final[k+2+kv6->size*4*sizeof(unsigned char)])/0.4335F*kv6->blue,255);
 			}
-			glEnable(GL_NORMALIZE);
 			glEnableClientState(GL_VERTEX_ARRAY);
 			glEnableClientState(GL_COLOR_ARRAY);
 			glEnableClientState(GL_NORMAL_ARRAY);
 			glVertexPointer(3,GL_FLOAT,0,kv6->vertices_final);
-			glColorPointer(3,GL_UNSIGNED_BYTE,0,kv6->colors_final);
+			glColorPointer(4,GL_UNSIGNED_BYTE,0,kv6->colors_final);
 			glNormalPointer(GL_BYTE,0,kv6->normals_final);
+			#ifdef OPENGL_ES
+			glDrawArrays(GL_TRIANGLES,0,kv6->size);
+			#else
 			glDrawArrays(GL_QUADS,0,kv6->size);
+			#endif
 			glDisableClientState(GL_NORMAL_ARRAY);
 			glDisableClientState(GL_COLOR_ARRAY);
 			glDisableClientState(GL_VERTEX_ARRAY);
-			glDisable(GL_NORMALIZE);
 		}
+		glDisable(GL_NORMALIZE);
 		glDisable(GL_COLOR_MATERIAL);
 		glDisable(GL_LIGHT0);
 		glDisable(GL_LIGHTING);

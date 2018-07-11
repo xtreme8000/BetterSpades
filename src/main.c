@@ -19,6 +19,24 @@
 
 #include "common.h"
 
+#ifdef OPENGL_ES
+void glColor3f(float r, float g, float b) {
+	glColor4f(r,g,b,1.0F);
+}
+
+void glColor3ub(unsigned char r, unsigned char g, unsigned char b) {
+	glColor4ub(r,g,b,255);
+}
+
+void glDepthRange(float near, float far) {
+	glDepthRangef(near,far);
+}
+
+void glClearDepth(float x) {
+	glClearDepth(x);
+}
+#endif
+
 int fps = 0;
 
 int ms_seed = 1;
@@ -77,11 +95,7 @@ void drawScene(float dt) {
 	}
 
 	matrix_upload();
-	glEnableClientState(GL_COLOR_ARRAY);
-	glEnableClientState(GL_VERTEX_ARRAY);
 	chunk_draw_visible();
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_COLOR_ARRAY);
 
 	glShadeModel(GL_FLAT);
 	matrix_upload();
@@ -92,7 +106,7 @@ void drawScene(float dt) {
 	matrix_upload();
 
 	if(gamestate.gamemode_type==GAMEMODE_CTF) {
-		if(!gamestate.gamemode.ctf.team_1_intel && map_object_visible((float*)&gamestate.gamemode.ctf.team_1_intel_location.dropped)) {
+		if(!gamestate.gamemode.ctf.team_1_intel /*&& map_object_visible((float*)&gamestate.gamemode.ctf.team_1_intel_location.dropped)*/) {
 			matrix_push();
 			matrix_translate(gamestate.gamemode.ctf.team_1_intel_location.dropped.x,
 						 63.0F-gamestate.gamemode.ctf.team_1_intel_location.dropped.z+1.0F,
@@ -101,7 +115,7 @@ void drawScene(float dt) {
 			kv6_render(&model_intel,TEAM_1);
 			matrix_pop();
 		}
-		if(!gamestate.gamemode.ctf.team_2_intel && map_object_visible((float*)&gamestate.gamemode.ctf.team_2_intel_location.dropped)) {
+		if(!gamestate.gamemode.ctf.team_2_intel /*&& map_object_visible((float*)&gamestate.gamemode.ctf.team_2_intel_location.dropped)*/) {
 			matrix_push();
 			matrix_translate(gamestate.gamemode.ctf.team_2_intel_location.dropped.x,
 						 63.0F-gamestate.gamemode.ctf.team_2_intel_location.dropped.z+1.0F,
@@ -110,7 +124,7 @@ void drawScene(float dt) {
 			kv6_render(&model_intel,TEAM_2);
 			matrix_pop();
 		}
-        if(map_object_visible((float*)&gamestate.gamemode.ctf.team_1_base)) {
+        if(1/*map_object_visible((float*)&gamestate.gamemode.ctf.team_1_base)*/) {
     		matrix_push();
     		matrix_translate(gamestate.gamemode.ctf.team_1_base.x,
     					 63.0F-gamestate.gamemode.ctf.team_1_base.z+1.0F,
@@ -119,7 +133,7 @@ void drawScene(float dt) {
     		kv6_render(&model_tent,TEAM_1);
     		matrix_pop();
         }
-        if(map_object_visible((float*)&gamestate.gamemode.ctf.team_2_base)) {
+        if(1/*map_object_visible((float*)&gamestate.gamemode.ctf.team_2_base)*/) {
     		matrix_push();
     		matrix_translate(gamestate.gamemode.ctf.team_2_base.x,
     					 63.0F-gamestate.gamemode.ctf.team_2_base.z+1.0F,
@@ -156,7 +170,7 @@ void display(float dt) {
 
 		chunk_update_all();
 
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | (GL_STENCIL_BUFFER_BIT*settings.shadow_entities));
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		player_move(&players[local_player_id],dt,local_player_id);
 		last_cy = players[local_player_id].physics.eye.y-players[local_player_id].physics.velocity.y*0.4F;
@@ -405,7 +419,11 @@ void init() {
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 	glFrontFace(GL_CCW);
+	#ifdef OPENGL_ES
+	glHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_FASTEST);
+	#else
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT,GL_NICEST);
+	#endif
 	glClearDepth(1.0F);
 	glDepthFunc(GL_LEQUAL);
 	glShadeModel(GL_SMOOTH);
@@ -476,6 +494,7 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
 	if(hud_active->input_keyboard)
 		hud_active->input_keyboard(key,action,mods);
 
+	#ifdef USE_GLFW
 	if(key==WINDOW_KEY_FULLSCREEN && action==GLFW_PRESS) { //switch between fullscreen
 		const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 		if(!settings.fullscreen) {
@@ -486,6 +505,7 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
 			settings.fullscreen = 0;
 		}
 	}
+	#endif
 
 	if(key==WINDOW_KEY_SCREENSHOT && action==GLFW_PRESS) { //take screenshot
 		time_t pic_time;
@@ -554,13 +574,13 @@ int main(int argc, char** argv) {
 	settings.fullscreen = 0;
 	settings.greedy_meshing = 0;
 	settings.mouse_sensitivity = MOUSE_SENSITIVITY;
-    settings.show_news = 1;
-    settings.show_fps = 1;
+	settings.show_news = 1;
+	settings.show_fps = 1;
 	strcpy(settings.name,"DEV_CLIENT");
 
 	config_reload();
 
-    window_init();
+	window_init();
 
 	printf("Vendor: %s\n",glGetString(GL_VENDOR));
 	printf("Renderer: %s\n",glGetString(GL_RENDERER));
@@ -575,26 +595,6 @@ int main(int argc, char** argv) {
 		glGetIntegerv(GL_SAMPLES,&iNumSamples);
 		printf("MSAA on, GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d\n",iMultiSample,iNumSamples);
 	}
-
-	//for future reference
-	/*if(!settings.opengl14) {
-		int shadera = glCreateShader(GL_VERTEX_SHADER);
-		unsigned char* vertex = file_load("vertex.shader");
-		unsigned char* fragment = file_load("fragment.shader");
-
-		glShaderSource(shadera,1,(const GLchar* const*)&vertex,NULL);
-		glCompileShader(shadera);
-
-		int shaderb = glCreateShader(GL_FRAGMENT_SHADER);
-		glShaderSource(shaderb,1,(const GLchar* const*)&fragment,NULL);
-		glCompileShader(shaderb);
-
-		int program = glCreateProgram();
-		glAttachShader(program,shadera);
-		glAttachShader(program,shaderb);
-		glLinkProgram(program);
-		glUseProgram(program);
-	}*/
 
 	while(glGetError()!=GL_NO_ERROR);
 
@@ -624,8 +624,8 @@ int main(int argc, char** argv) {
 
 	float last_frame_start = 0.0F;
 	while(!window_closed()) {
-        float dt = window_time()-last_frame_start;
-        last_frame_start = window_time();
+		float dt = window_time()-last_frame_start;
+		last_frame_start = window_time();
 
 		display(dt);
 
@@ -633,16 +633,16 @@ int main(int argc, char** argv) {
 		sound_update();
 		network_update();
 
-        window_update();
+		window_update();
 
-        if(settings.vsync>1 && (window_time()-last_frame_start)<(1.0F/settings.vsync)) {
-            double sleep_s = 1.0F/settings.vsync-(window_time()-last_frame_start);
-            struct timespec ts;
-            ts.tv_sec = (int)sleep_s;
-            ts.tv_nsec = (sleep_s-ts.tv_sec)*1000000000.0;
-            nanosleep(&ts,NULL);
-        }
-        fps = 1.0F/(window_time()-last_frame_start);
+		if(settings.vsync>1 && (window_time()-last_frame_start)<(1.0F/settings.vsync)) {
+		    double sleep_s = 1.0F/settings.vsync-(window_time()-last_frame_start);
+		    struct timespec ts;
+		    ts.tv_sec = (int)sleep_s;
+		    ts.tv_nsec = (sleep_s-ts.tv_sec)*1000000000.0;
+		    nanosleep(&ts,NULL);
+		}
+		fps = 1.0F/(window_time()-last_frame_start);
 	}
 
     window_deinit();

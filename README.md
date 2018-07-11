@@ -1,4 +1,4 @@
-[![Build Status](http://bytebit.info.tm/jenkins/buildStatus/icon?job=BetterSpades)](http://bytebit.info.tm:8080/job/BetterSpades/)
+[![Build Status](http://bytebit.info.tm/jenkins/buildStatus/icon?job=BetterSpades)](http://bytebit.info.tm/jenkins/job/BetterSpades/)
 [![](https://img.shields.io/github/downloads/xtreme8000/BetterSpades/total.svg)](https://github.com/xtreme8000/BetterSpades/releases)
 [![GPL](https://img.shields.io/badge/license-GPL--3.0-red.svg)](https://github.com/xtreme8000/BetterSpades/blob/standalone/LICENSE)
 [![DonateBTC](https://img.shields.io/badge/bitcoin-donate-yellow.svg)](1AeSfdVmbEX6VCqxCgk9WkzSA8XJkKr4FM)
@@ -6,13 +6,15 @@
 ## ![](resources/icon_small.png) BetterSpades
 
 * Replicate of the great game *Ace of Spades* (classic voxlap)
-* runs on very old systems back to OpenGL 1.1
+* runs on very old systems back to OpenGL 1.1 (OpenGL ES support too)
 * shares similar if not even better performance to voxlap
+* can run on *"embedded"* systems like a [Steam Link](https://store.steampowered.com/app/353380/Steam_Link/)
 
 #### Why should I use this instead of ...?
 
 * free of any Jagex code, they can't shut it down
 * open for future expansion
+* easy to use
 * no hidden bugs
 
 ### Quick usage guide
@@ -46,11 +48,11 @@ These libraries and files are needed:
 You will need to compile the following by yourself, or get hold of precompiled binaries:
 
 * GLFW3
-* OpenAL soft
+* OpenAL soft *(only needed on Windows)*
 * libdeflate
 * enet
 
-Place produced static libraries in `lib/`.
+Follow the instructions on their project page, then place produced static libraries in `lib/`.
 
 Some files need to be copied to the `src/` directory.
 
@@ -83,7 +85,7 @@ When starting `client.exe`, you will be greeted by a server list. Select a serve
 You can also start the client the same way as you did with the voxlap version by opening cmd and putting an `aos://` link in as the first argument:
 
 ```
-client.exe -aos://16777343:32887 // Connects to a local server
+client.exe -aos://16777343:32887 //Connects to a local server
 ```
 
 #### Linux
@@ -96,7 +98,7 @@ sudo apt-get install libgl1-mesa libgl1-mesa-dev libopenal1 libopenal-dev libglf
 ```
 (this does not include libdeflate or lodepng which are a requirement too, see [_Wiki/Building_](https://github.com/xtreme8000/BetterSpades/wiki/Building) for more details)
 
-Start the client with the following inside the `build/bin/` directory:
+Start the client e.g. with the following inside the `build/bin/` directory:
 ```
 ./client -aos://16777343:32887
 ```

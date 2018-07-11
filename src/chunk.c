@@ -68,8 +68,8 @@ void chunk_draw_visible() {
 	int index = 0;
 
 	//go through all possible chunks and store all in range and view
-	for(char y=-9;y<CHUNKS_PER_DIM+9;y++) {
-		for(char x=-9;x<CHUNKS_PER_DIM+9;x++) {
+	for(int y=-9;y<CHUNKS_PER_DIM+9;y++) {
+		for(int x=-9;x<CHUNKS_PER_DIM+9;x++) {
 			if(((x*CHUNK_SIZE-camera_x)*(x*CHUNK_SIZE-camera_x)+(y*CHUNK_SIZE-camera_z)*(y*CHUNK_SIZE-camera_z))<(settings.render_distance+CHUNK_SIZE)*(settings.render_distance+CHUNK_SIZE)) {
 				int tmp_x = x, tmp_y = y;
 				if(tmp_x<0)
@@ -119,20 +119,8 @@ void chunk_render(int x, int y) {
 	if(y>=CHUNKS_PER_DIM)
 		y -= CHUNKS_PER_DIM;
 
-	if(chunks[((y*CHUNKS_PER_DIM)|x)].created) {
-		/*if(chunk_render_mode)
-			glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);*/
-		glx_displaylist_draw(chunks[((y*CHUNKS_PER_DIM)|x)].display_list,chunks[((y*CHUNKS_PER_DIM)|x)].vertex_count);
-		/*if(chunk_render_mode)
-			glPolygonMode(GL_FRONT_AND_BACK,GL_FILL);*/
-	}
-
-	/*glBegin(GL_QUADS);
-	glVertex3f(x*CHUNK_SIZE,chunk_max_height[((y*CHUNKS_PER_DIM)|x)]+0.1F,y*CHUNK_SIZE);
-	glVertex3f(x*CHUNK_SIZE,chunk_max_height[((y*CHUNKS_PER_DIM)|x)]+0.1F,y*CHUNK_SIZE+CHUNK_SIZE);
-	glVertex3f(x*CHUNK_SIZE+CHUNK_SIZE,chunk_max_height[((y*CHUNKS_PER_DIM)|x)]+0.1F,y*CHUNK_SIZE+CHUNK_SIZE);
-	glVertex3f(x*CHUNK_SIZE+CHUNK_SIZE,chunk_max_height[((y*CHUNKS_PER_DIM)|x)]+0.1F,y*CHUNK_SIZE);
-	glEnd();*/
+	if(chunks[((y*CHUNKS_PER_DIM)|x)].created)
+		glx_displaylist_draw(&chunks[((y*CHUNKS_PER_DIM)|x)].display_list,GLX_DISPLAYLIST_NORMAL);
 
 	matrix_pop();
 }
@@ -1344,6 +1332,14 @@ void chunk_generate_greedy(struct chunk_worker* worker) {
 //+Z = 0.625
 //-Z = 0.875
 
+#ifdef OPENGL_ES
+	#define VERTEX_ADVANCE	(3*6*sizeof(short))
+	#define COLOR_ADVANCE	(4*6*sizeof(unsigned char))
+#else
+	#define VERTEX_ADVANCE	(3*4*sizeof(short))
+	#define COLOR_ADVANCE	(3*4*sizeof(unsigned char))
+#endif
+
 void chunk_generate_naive(struct chunk_worker* worker) {
 	int size = 0;
 	int max_height = 0;
@@ -1375,27 +1371,25 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 					if((z==0 && map_colors[x+(y*map_size_z+map_size_z-1)*map_size_x]==0xFFFFFFFF) || (z>0 && map_colors[x+(y*map_size_z+z-1)*map_size_x]==0xFFFFFFFF)) {
 						if((size+1)>worker->mem_size) {
 							worker->mem_size += 512; //allow for 512 more quads
-							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*VERTEX_ADVANCE);
 							CHECK_ALLOCATION_ERROR(worker->vertex_data)
-							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
+							worker->color_data = realloc(worker->color_data,worker->mem_size*COLOR_ADVANCE);
 							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
-						worker->color_data[chunk_color_index++] = (int)(r*0.875F*(((col>>54)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.875F*(((col>>54)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.875F*(((col>>54)&1)*0.35F+0.65F));
-
-						worker->color_data[chunk_color_index++] = (int)(r*0.875F*(((col>>52)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.875F*(((col>>52)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.875F*(((col>>52)&1)*0.35F+0.65F));
-
-						worker->color_data[chunk_color_index++] = (int)(r*0.875F*(((col>>53)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.875F*(((col>>53)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.875F*(((col>>53)&1)*0.35F+0.65F));
-
-						worker->color_data[chunk_color_index++] = (int)(r*0.875F*(((col>>55)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.875F*(((col>>55)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.875F*(((col>>55)&1)*0.35F+0.65F));
+						
+						#ifdef OPENGL_ES
+						for(int l=0;l<6;l++) {
+						#else
+						for(int l=0;l<4;l++) {
+						#endif
+							worker->color_data[chunk_color_index++] = (int)(r*0.875F);
+							worker->color_data[chunk_color_index++] = (int)(g*0.875F);
+							worker->color_data[chunk_color_index++] = (int)(b*0.875F);
+						#ifdef OPENGL_ES
+							worker->color_data[chunk_color_index++] = 255;
+						#endif
+						}
 
 						worker->vertex_data[chunk_vertex_index++] = x;
 						worker->vertex_data[chunk_vertex_index++] = y;
@@ -1408,6 +1402,16 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 						worker->vertex_data[chunk_vertex_index++] = x+1;
 						worker->vertex_data[chunk_vertex_index++] = y+1;
 						worker->vertex_data[chunk_vertex_index++] = z;
+
+						#ifdef OPENGL_ES
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z;
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y+1;
+						worker->vertex_data[chunk_vertex_index++] = z;
+						#endif
 
 						worker->vertex_data[chunk_vertex_index++] = x+1;
 						worker->vertex_data[chunk_vertex_index++] = y;
@@ -1429,28 +1433,25 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 					if((z==map_size_z-1 && map_colors[x+(y*map_size_z)*map_size_x]==0xFFFFFFFF) || (z<map_size_z-1 && map_colors[x+(y*map_size_z+z+1)*map_size_x]==0xFFFFFFFF)) {
 						if((size+1)>worker->mem_size) {
 							worker->mem_size += 512; //allow for 512 more quads
-							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*VERTEX_ADVANCE);
 							CHECK_ALLOCATION_ERROR(worker->vertex_data)
-							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
+							worker->color_data = realloc(worker->color_data,worker->mem_size*COLOR_ADVANCE);
 							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
-						worker->color_data[chunk_color_index++] = (int)(r*0.625F*(((col>>50)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.625F*(((col>>50)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.625F*(((col>>50)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*0.625F*(((col>>51)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.625F*(((col>>51)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.625F*(((col>>51)&1)*0.35F+0.65F));
-
-						worker->color_data[chunk_color_index++] = (int)(r*0.625F*(((col>>49)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.625F*(((col>>49)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.625F*(((col>>49)&1)*0.35F+0.65F));
-
-						worker->color_data[chunk_color_index++] = (int)(r*0.625F*(((col>>48)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.625F*(((col>>48)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.625F*(((col>>48)&1)*0.35F+0.65F));
-
+						#ifdef OPENGL_ES
+						for(int l=0;l<6;l++) {
+						#else
+						for(int l=0;l<4;l++) {
+						#endif
+							worker->color_data[chunk_color_index++] = (int)(r*0.625F);
+							worker->color_data[chunk_color_index++] = (int)(g*0.625F);
+							worker->color_data[chunk_color_index++] = (int)(b*0.625F);
+						#ifdef OPENGL_ES
+							worker->color_data[chunk_color_index++] = 255;
+						#endif
+						}
 
 						worker->vertex_data[chunk_vertex_index++] = x;
 						worker->vertex_data[chunk_vertex_index++] = y;
@@ -1463,6 +1464,16 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 						worker->vertex_data[chunk_vertex_index++] = x+1;
 						worker->vertex_data[chunk_vertex_index++] = y+1;
 						worker->vertex_data[chunk_vertex_index++] = z+1;
+
+						#ifdef OPENGL_ES
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y+1;
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+						#endif
 
 						worker->vertex_data[chunk_vertex_index++] = x;
 						worker->vertex_data[chunk_vertex_index++] = y+1,
@@ -1484,27 +1495,25 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 					if((x==0 && map_colors[map_size_x-1+(y*map_size_z+z)*map_size_x]==0xFFFFFFFF) || (x>0 && map_colors[x+(y*map_size_z+z)*map_size_x-1]==0xFFFFFFFF)) {
 						if((size+1)>worker->mem_size) {
 							worker->mem_size += 512; //allow for 512 more quads
-							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*VERTEX_ADVANCE);
 							CHECK_ALLOCATION_ERROR(worker->vertex_data)
-							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
+							worker->color_data = realloc(worker->color_data,worker->mem_size*COLOR_ADVANCE);
 							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
-						worker->color_data[chunk_color_index++] = (int)(r*0.75F*(((col>>46)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.75F*(((col>>46)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.75F*(((col>>46)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*0.75F*(((col>>47)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.75F*(((col>>47)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.75F*(((col>>47)&1)*0.35F+0.65F));
-
-						worker->color_data[chunk_color_index++] = (int)(r*0.75F*(((col>>45)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.75F*(((col>>45)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.75F*(((col>>45)&1)*0.35F+0.65F));
-
-						worker->color_data[chunk_color_index++] = (int)(r*0.75F*(((col>>44)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.75F*(((col>>44)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.75F*(((col>>44)&1)*0.35F+0.65F));
+						#ifdef OPENGL_ES
+						for(int l=0;l<6;l++) {
+						#else
+						for(int l=0;l<4;l++) {
+						#endif
+							worker->color_data[chunk_color_index++] = (int)(r*0.75F);
+							worker->color_data[chunk_color_index++] = (int)(g*0.75F);
+							worker->color_data[chunk_color_index++] = (int)(b*0.75F);
+						#ifdef OPENGL_ES
+							worker->color_data[chunk_color_index++] = 255;
+						#endif
+						}
 
 						worker->vertex_data[chunk_vertex_index++] = x;
 						worker->vertex_data[chunk_vertex_index++] = y;
@@ -1517,6 +1526,16 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 						worker->vertex_data[chunk_vertex_index++] = x;
 						worker->vertex_data[chunk_vertex_index++] = y+1;
 						worker->vertex_data[chunk_vertex_index++] = z+1;
+
+						#ifdef OPENGL_ES
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z;
+						
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y+1;
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+						#endif
 
 						worker->vertex_data[chunk_vertex_index++] = x;
 						worker->vertex_data[chunk_vertex_index++] = y+1;
@@ -1538,27 +1557,25 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 					if((x==map_size_x-1 && map_colors[(y*map_size_z+z)*map_size_x]==0xFFFFFFFF) || (x<map_size_x-1 && map_colors[x+(y*map_size_z+z)*map_size_x+1]==0xFFFFFFFF)) {
 						if((size+1)>worker->mem_size) {
 							worker->mem_size += 512; //allow for 512 more quads
-							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*VERTEX_ADVANCE);
 							CHECK_ALLOCATION_ERROR(worker->vertex_data)
-							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
+							worker->color_data = realloc(worker->color_data,worker->mem_size*COLOR_ADVANCE);
 							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
-						worker->color_data[chunk_color_index++] = (int)(r*0.75F*(((col>>42)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.75F*(((col>>42)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.75F*(((col>>42)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*0.75F*(((col>>40)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.75F*(((col>>40)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.75F*(((col>>40)&1)*0.35F+0.65F));
-
-						worker->color_data[chunk_color_index++] = (int)(r*0.75F*(((col>>41)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.75F*(((col>>41)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.75F*(((col>>41)&1)*0.35F+0.65F));
-
-						worker->color_data[chunk_color_index++] = (int)(r*0.75F*(((col>>43)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.75F*(((col>>43)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.75F*(((col>>43)&1)*0.35F+0.65F));
+						#ifdef OPENGL_ES
+						for(int l=0;l<6;l++) {
+						#else
+						for(int l=0;l<4;l++) {
+						#endif
+							worker->color_data[chunk_color_index++] = (int)(r*0.75F);
+							worker->color_data[chunk_color_index++] = (int)(g*0.75F);
+							worker->color_data[chunk_color_index++] = (int)(b*0.75F);
+						#ifdef OPENGL_ES
+							worker->color_data[chunk_color_index++] = 255;
+						#endif
+						}
 
 						worker->vertex_data[chunk_vertex_index++] = x+1;
 						worker->vertex_data[chunk_vertex_index++] = y;
@@ -1569,8 +1586,18 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 						worker->vertex_data[chunk_vertex_index++] = z;
 
 						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y+1;
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+
+						#ifdef OPENGL_ES
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z;
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
 						worker->vertex_data[chunk_vertex_index++] = y+1,
 						worker->vertex_data[chunk_vertex_index++] = z+1;
+						#endif
 
 						worker->vertex_data[chunk_vertex_index++] = x+1;
 						worker->vertex_data[chunk_vertex_index++] = y;
@@ -1586,28 +1613,25 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 					if(y==map_size_y-1 || map_colors[x+((y+1)*map_size_z+z)*map_size_x]==0xFFFFFFFF) {
 						if((size+1)>worker->mem_size) {
 							worker->mem_size += 512; //allow for 512 more quads
-							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*VERTEX_ADVANCE);
 							CHECK_ALLOCATION_ERROR(worker->vertex_data)
-							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
+							worker->color_data = realloc(worker->color_data,worker->mem_size*COLOR_ADVANCE);
 							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
-						worker->color_data[chunk_color_index++] = (int)(r*(((col>>34)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*(((col>>34)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*(((col>>34)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*(((col>>32)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*(((col>>32)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*(((col>>32)&1)*0.35F+0.65F));
-
-						worker->color_data[chunk_color_index++] = (int)(r*(((col>>33)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*(((col>>33)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*(((col>>33)&1)*0.35F+0.65F));
-
-						worker->color_data[chunk_color_index++] = (int)(r*(((col>>35)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*(((col>>35)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*(((col>>35)&1)*0.35F+0.65F));
-
+						#ifdef OPENGL_ES
+						for(int l=0;l<6;l++) {
+						#else
+						for(int l=0;l<4;l++) {
+						#endif
+							worker->color_data[chunk_color_index++] = (int)(r);
+							worker->color_data[chunk_color_index++] = (int)(g);
+							worker->color_data[chunk_color_index++] = (int)(b);
+						#ifdef OPENGL_ES
+							worker->color_data[chunk_color_index++] = 255;
+						#endif
+						}
 
 						worker->vertex_data[chunk_vertex_index++] = x;
 						worker->vertex_data[chunk_vertex_index++] = y+1;
@@ -1620,6 +1644,16 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 						worker->vertex_data[chunk_vertex_index++] = x+1;
 						worker->vertex_data[chunk_vertex_index++] = y+1;
 						worker->vertex_data[chunk_vertex_index++] = z+1;
+
+						#ifdef OPENGL_ES
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y+1;
+						worker->vertex_data[chunk_vertex_index++] = z;
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y+1;
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+						#endif
 
 						worker->vertex_data[chunk_vertex_index++] = x+1;
 						worker->vertex_data[chunk_vertex_index++] = y+1;
@@ -1629,27 +1663,25 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 					if(y>0 && map_colors[x+((y-1)*map_size_z+z)*map_size_x]==0xFFFFFFFF) {
 						if((size+1)>worker->mem_size) {
 							worker->mem_size += 512; //allow for 512 more quads
-							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*24);
+							worker->vertex_data = realloc(worker->vertex_data,worker->mem_size*VERTEX_ADVANCE);
 							CHECK_ALLOCATION_ERROR(worker->vertex_data)
-							worker->color_data = realloc(worker->color_data,worker->mem_size*12);
+							worker->color_data = realloc(worker->color_data,worker->mem_size*COLOR_ADVANCE);
 							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
-						worker->color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>38)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.5F*(((col>>38)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.5F*(((col>>38)&1)*0.35F+0.65F));
 
-						worker->color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>39)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.5F*(((col>>39)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.5F*(((col>>39)&1)*0.35F+0.65F));
-
-						worker->color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>37)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.5F*(((col>>37)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.5F*(((col>>37)&1)*0.35F+0.65F));
-
-						worker->color_data[chunk_color_index++] = (int)(r*0.5F*(((col>>36)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(g*0.5F*(((col>>36)&1)*0.35F+0.65F));
-						worker->color_data[chunk_color_index++] = (int)(b*0.5F*(((col>>36)&1)*0.35F+0.65F));
+						#ifdef OPENGL_ES
+						for(int l=0;l<6;l++) {
+						#else
+						for(int l=0;l<4;l++) {
+						#endif
+							worker->color_data[chunk_color_index++] = (int)(r*0.5F);
+							worker->color_data[chunk_color_index++] = (int)(g*0.5F);
+							worker->color_data[chunk_color_index++] = (int)(b*0.5F);
+						#ifdef OPENGL_ES
+							worker->color_data[chunk_color_index++] = 255;
+						#endif
+						}
 
 						worker->vertex_data[chunk_vertex_index++] = x;
 						worker->vertex_data[chunk_vertex_index++] = y;
@@ -1662,6 +1694,16 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 						worker->vertex_data[chunk_vertex_index++] = x+1;
 						worker->vertex_data[chunk_vertex_index++] = y;
 						worker->vertex_data[chunk_vertex_index++] = z+1;
+
+						#ifdef OPENGL_ES
+						worker->vertex_data[chunk_vertex_index++] = x;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z;
+
+						worker->vertex_data[chunk_vertex_index++] = x+1;
+						worker->vertex_data[chunk_vertex_index++] = y;
+						worker->vertex_data[chunk_vertex_index++] = z+1;
+						#endif
 
 						worker->vertex_data[chunk_vertex_index++] = x;
 						worker->vertex_data[chunk_vertex_index++] = y;
@@ -1681,15 +1723,11 @@ void chunk_update_all() {
 	for(int j=0;j<CHUNK_WORKERS_MAX;j++) {
 		pthread_mutex_lock(&chunk_workers[j].state_lock);
 		if(chunk_workers[j].state==CHUNK_WORKERSTATE_FINISHED) {
-			//float s3 = window_time();
 			chunk_workers[j].state = CHUNK_WORKERSTATE_IDLE;
 			chunks[chunk_workers[j].chunk_id].max_height = chunk_workers[j].max_height;
 			chunks[chunk_workers[j].chunk_id].vertex_count = chunk_workers[j].data_size;
 
-			glx_displaylist_update(chunks[chunk_workers[j].chunk_id].display_list,chunk_workers[j].data_size,chunk_workers[j].color_data,chunk_workers[j].vertex_data);
-
-			//printf("(s3) %i\n",(int)((window_time()-s3)*1000.0F));
-			//s3 = window_time();
+			glx_displaylist_update(&chunks[chunk_workers[j].chunk_id].display_list,chunk_workers[j].data_size,GLX_DISPLAYLIST_NORMAL,chunk_workers[j].color_data,chunk_workers[j].vertex_data,NULL);
 
 			int tex_data[CHUNK_SIZE*CHUNK_SIZE];
 			for(int y=0;y<CHUNK_SIZE;y++) {
@@ -1703,13 +1741,8 @@ void chunk_update_all() {
 			glTexSubImage2D(GL_TEXTURE_2D,0,chunk_workers[j].chunk_x,chunk_workers[j].chunk_y,CHUNK_SIZE,CHUNK_SIZE,GL_RGBA,GL_UNSIGNED_BYTE,tex_data);
 			pthread_mutex_unlock(&chunk_minimap_lock);
 			glBindTexture(GL_TEXTURE_2D,0);
-
-			//free(chunk_workers[j].vertex_data);
-			//free(chunk_workers[j].color_data);
-			//printf("(s4) %i\n",(int)((window_time()-s3)*1000.0F));
 		}
 		if(chunk_workers[j].state==CHUNK_WORKERSTATE_IDLE && chunk_geometry_changed_lenght>0) {
-			//float s1 = window_time();
 			float closest_dist = 1e10;
 			int closest_index = 0;
 			for(int k=0;k<chunk_geometry_changed_lenght;k++) {
@@ -1725,23 +1758,18 @@ void chunk_update_all() {
 			int chunk_x = (chunk_geometry_changed[closest_index]%CHUNKS_PER_DIM)*CHUNK_SIZE;
 			int chunk_y = (chunk_geometry_changed[closest_index]/CHUNKS_PER_DIM)*CHUNK_SIZE;
 			if(!chunks[chunk_geometry_changed[closest_index]].created) {
-				chunks[chunk_geometry_changed[closest_index]].display_list = glx_displaylist_create();
+				 glx_displaylist_create(&chunks[chunk_geometry_changed[closest_index]].display_list);
 			}
 			chunk_workers[j].chunk_id = chunk_geometry_changed[closest_index];
 			chunk_workers[j].chunk_x = chunk_x;
 			chunk_workers[j].chunk_y = chunk_y;
 			chunk_workers[j].state = CHUNK_WORKERSTATE_BUSY;
-			//float s2 = window_time();
-			//pthread_create(&chunk_workers[j].thread,NULL,chunk_generate,&chunk_workers[j]);
-			//printf("(s2) thread creation time: %i\n",(int)((window_time()-s2)*1000.0F));
 			chunks[chunk_geometry_changed[closest_index]].last_update = window_time();
 			chunks[chunk_geometry_changed[closest_index]].created = 1;
-
 			for(int i=closest_index;i<chunk_geometry_changed_lenght-1;i++) {
 				chunk_geometry_changed[i] = chunk_geometry_changed[i+1];
 			}
 			chunk_geometry_changed_lenght--;
-			//printf("(s1) %i\n",(int)((window_time()-s1)*1000.0F));
 		}
 		pthread_mutex_unlock(&chunk_workers[j].state_lock);
 	}

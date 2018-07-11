@@ -230,7 +230,9 @@ int particle_render() {
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glVertexPointer(3,GL_FLOAT,0,particles_vertices);
 		glColorPointer(3,GL_UNSIGNED_BYTE,0,particles_colors);
+		#ifndef OPENGL_ES
 		glDrawArrays(GL_QUADS,0,vertex_index/3);
+		#endif
 		glDisableClientState(GL_COLOR_ARRAY);
 		glDisableClientState(GL_VERTEX_ARRAY);
 	}

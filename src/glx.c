@@ -25,7 +25,9 @@ int glx_version = 0;
 
 int glx_fog = 0;
 
+#ifndef OPENGL_ES
 PFNGLGENBUFFERSPROC glGenBuffers;
+PFNGLDELETEBUFFERSPROC glDeleteBuffers;
 PFNGLBINDBUFFERPROC glBindBuffer;
 PFNGLBUFFERDATAPROC glBufferData;
 
@@ -40,15 +42,22 @@ PFNGLUNIFORM1FPROC glUniform1f;
 PFNGLUNIFORM3FPROC glUniform3f;
 PFNGLUNIFORMMATRIX4FVPROC glUniformMatrix4fv;
 PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
+#endif
 
 static int glx_major_ver() {
+	#ifdef OPENGL_ES
+	return 2;
+	#else
 	return atoi(glGetString(GL_VERSION));
+	#endif
 }
 
 void glx_init() {
+	#ifndef OPENGL_ES
 	if(glx_major_ver()>=2) {
 		#ifdef OS_WINDOWS
 			glGenBuffers = (PFNGLGENBUFFERSPROC)wglGetProcAddress("glGenBuffers");
+			glDeleteBuffers = (PFNGLDELETEBUFFERSPROC)wglGetProcAddress("glDeleteBuffers");
 			glBindBuffer = (PFNGLBINDBUFFERPROC)wglGetProcAddress("glBindBuffer");
 			glBufferData = (PFNGLBUFFERDATAPROC)wglGetProcAddress("glBufferData");
 
@@ -73,75 +82,177 @@ void glx_init() {
 	} else {
 		glx_version = 0;
 	}
+	#else
+	glx_version = 1;
+	#endif
 }
 
-int glx_vertex_shader(const char* s) {
-	int shader = glCreateShader(GL_VERTEX_SHADER);
-	glShaderSource(shader,1,(const GLchar* const*)&s,NULL);
-	glCompileShader(shader);
+int glx_vertex_shader(const char* vertex, const char* fragment) {
+	#ifndef OPENGL_ES
+	int v,f;
+	if(vertex) {
+		v = glCreateShader(GL_VERTEX_SHADER);
+		glShaderSource(v,1,(const GLchar* const*)&vertex,NULL);
+		glCompileShader(v);
+	}
+	
+	if(fragment) {
+		f = glCreateShader(GL_FRAGMENT_SHADER);
+		glShaderSource(f,1,(const GLchar* const*)&fragment,NULL);
+		glCompileShader(f);
+	}
 
 	int program = glCreateProgram();
-	glAttachShader(program,shader);
+	if(vertex)
+		glAttachShader(program,v);
+	if(vertex)
+		glAttachShader(program,f);
 	glLinkProgram(program);
 	return program;
+	#else
+	return 0;
+	#endif
 }
 
-int glx_displaylist_create() {
-	int ret;
+void glx_displaylist_create(struct glx_displaylist* x) {
+	#ifndef OPENGL_ES
 	if(!glx_version)
-		ret = glGenLists(1);
+		x->legacy = glGenLists(1);
 	else
-		glGenBuffers(2,&ret);
-	return ret;
+		glGenBuffers(3,x->modern);
+	#else
+	glGenBuffers(3,x->modern);
+	#endif
 }
 
-void glx_displaylist_update(int id, int size, unsigned char* color, short* vertex) {
+void glx_displaylist_destroy(struct glx_displaylist* x) {
+	#ifndef OPENGL_ES
+	if(!glx_version) {
+		glDeleteLists(x->legacy,1);
+	} else {
+		glDeleteBuffers(3,x->modern);
+	}
+	#else
+	glDeleteBuffers(3,x->modern);
+	#endif
+}
+
+void glx_displaylist_update(struct glx_displaylist* x, int size, int type, void* color, void* vertex, void* normal) {
+	x->size = size;
+	x->has_normal = normal!=0;
+	#ifndef OPENGL_ES
 	if(!glx_version) {
 		glEnableClientState(GL_COLOR_ARRAY);
 		glEnableClientState(GL_VERTEX_ARRAY);
+		if(x->has_normal)
+			glEnableClientState(GL_NORMAL_ARRAY);
 
-		glNewList(id,GL_COMPILE);
+		glNewList(x->legacy,GL_COMPILE);
 		if(size>0) {
-			glColorPointer(3,GL_UNSIGNED_BYTE,0,color);
-			glVertexPointer(3,GL_SHORT,0,vertex);
-			glDrawArrays(GL_QUADS,0,size);
+			switch(type) {
+				case GLX_DISPLAYLIST_NORMAL:
+					glColorPointer(3,GL_UNSIGNED_BYTE,0,color);
+					glVertexPointer(3,GL_SHORT,0,vertex);
+					break;
+				case GLX_DISPLAYLIST_ENHANCED:
+					glColorPointer(4,GL_UNSIGNED_BYTE,0,color);
+					glVertexPointer(3,GL_FLOAT,0,vertex);
+					break;
+			}
+			if(x->has_normal)
+				glNormalPointer(GL_BYTE,0,normal);
+			glDrawArrays(GL_QUADS,0,x->size);
 		}
 		glEndList();
 
+		if(x->has_normal)
+			glDisableClientState(GL_NORMAL_ARRAY);
 		glDisableClientState(GL_COLOR_ARRAY);
 		glDisableClientState(GL_VERTEX_ARRAY);
 	} else {
-		glBindBuffer(GL_ARRAY_BUFFER,id);
-		glBufferData(GL_ARRAY_BUFFER,size*3*2,vertex,GL_STATIC_DRAW);
-		glBindBuffer(GL_ARRAY_BUFFER,id+1);
-		glBufferData(GL_ARRAY_BUFFER,size*3,color,GL_STATIC_DRAW);
+	#endif
+		glBindBuffer(GL_ARRAY_BUFFER,x->modern[0]);
+		switch(type) {
+			case GLX_DISPLAYLIST_NORMAL:
+				glBufferData(GL_ARRAY_BUFFER,x->size*3*sizeof(short),vertex,GL_DYNAMIC_DRAW);
+				glBindBuffer(GL_ARRAY_BUFFER,x->modern[1]);
+				#ifdef OPENGL_ES
+				glBufferData(GL_ARRAY_BUFFER,x->size*4,color,GL_DYNAMIC_DRAW);
+				#else
+				glBufferData(GL_ARRAY_BUFFER,x->size*3,color,GL_DYNAMIC_DRAW);
+				#endif
+				break;
+			case GLX_DISPLAYLIST_ENHANCED:
+				glBufferData(GL_ARRAY_BUFFER,x->size*3*sizeof(float),vertex,GL_DYNAMIC_DRAW);
+				glBindBuffer(GL_ARRAY_BUFFER,x->modern[1]);
+				glBufferData(GL_ARRAY_BUFFER,x->size*4,color,GL_DYNAMIC_DRAW);
+				break;
+		}
+		if(x->has_normal) {
+			glBindBuffer(GL_ARRAY_BUFFER,x->modern[2]);
+			glBufferData(GL_ARRAY_BUFFER,x->size*3,normal,GL_DYNAMIC_DRAW);
+		}
 		glBindBuffer(GL_ARRAY_BUFFER,0);
+	#ifndef OPENGL_ES
 	}
+	#endif
 }
 
-void glx_displaylist_draw(int id, int size) {
+
+
+void glx_displaylist_draw(struct glx_displaylist* x, int type) {
+	#ifndef OPENGL_ES
 	if(!glx_version) {
-		glCallList(id);
+		glCallList(x->legacy);
 	} else {
+	#endif
 		glEnableClientState(GL_COLOR_ARRAY);
 		glEnableClientState(GL_VERTEX_ARRAY);
-		glBindBuffer(GL_ARRAY_BUFFER,id);
-		glVertexPointer(3,GL_SHORT,0,NULL);
-		glBindBuffer(GL_ARRAY_BUFFER,id+1);
-		glColorPointer(3,GL_UNSIGNED_BYTE,0,NULL);
-		glDrawArrays(GL_QUADS,0,size);
+		if(x->has_normal)
+			glEnableClientState(GL_NORMAL_ARRAY);
+		glBindBuffer(GL_ARRAY_BUFFER,x->modern[0]);
+		switch(type) {
+			case GLX_DISPLAYLIST_NORMAL:
+				glVertexPointer(3,GL_SHORT,0,NULL);
+				glBindBuffer(GL_ARRAY_BUFFER,x->modern[1]);
+				#ifdef OPENGL_ES
+				glColorPointer(4,GL_UNSIGNED_BYTE,0,NULL);
+				#else
+				glColorPointer(3,GL_UNSIGNED_BYTE,0,NULL);
+				#endif
+				break;
+			case GLX_DISPLAYLIST_ENHANCED:
+				glVertexPointer(3,GL_FLOAT,0,NULL);
+				glBindBuffer(GL_ARRAY_BUFFER,x->modern[1]);
+				glColorPointer(4,GL_UNSIGNED_BYTE,0,NULL);
+				break;
+		}
+		if(x->has_normal) {
+			glBindBuffer(GL_ARRAY_BUFFER,x->modern[2]);
+			glNormalPointer(GL_BYTE,0,NULL);
+		}	
 		glBindBuffer(GL_ARRAY_BUFFER,0);
+		#ifdef OPENGL_ES
+		glDrawArrays(GL_TRIANGLES,0,x->size);
+		#else
+		glDrawArrays(GL_QUADS,0,x->size);
+		#endif
+		if(x->has_normal)
+			glDisableClientState(GL_NORMAL_ARRAY);
 		glDisableClientState(GL_COLOR_ARRAY);
 		glDisableClientState(GL_VERTEX_ARRAY);
+	#ifndef OPENGL_ES
 	}
+	#endif
 }
 
 void glx_enable_sphericalfog() {
+	#ifndef OPENGL_ES
 	glEnable(GL_TEXTURE_2D);
 	glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_DECAL);
 	glBindTexture(GL_TEXTURE_2D,texture_gradient.texture_id);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
 	glTexGeni(GL_T,GL_TEXTURE_GEN_MODE,GL_EYE_LINEAR);
 	glTexGeni(GL_S,GL_TEXTURE_GEN_MODE,GL_EYE_LINEAR);
 	float t_plane[4] = {1.0F/settings.render_distance/2.0F,0.0F,0.0F,-camera_x/settings.render_distance/2.0F+0.5F};
@@ -150,14 +261,17 @@ void glx_enable_sphericalfog() {
 	glTexGenfv(GL_S,GL_EYE_PLANE,s_plane);
 	glEnable(GL_TEXTURE_GEN_T);
 	glEnable(GL_TEXTURE_GEN_S);
+	#endif
 	glx_fog = 1;
 }
 
 void glx_disable_sphericalfog() {
+	#ifndef OPENGL_ES
 	glDisable(GL_TEXTURE_GEN_T);
 	glDisable(GL_TEXTURE_GEN_S);
 	glBindTexture(GL_TEXTURE_2D,0);
 	glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
 	glDisable(GL_TEXTURE_2D);
+	#endif
 	glx_fog = 0;
 }

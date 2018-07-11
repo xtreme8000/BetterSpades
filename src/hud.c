@@ -266,7 +266,6 @@ static void hud_ingame_render(float scalex, float scalef) {
         font_render(0.0F,8.0F*scalef,8.0F*scalef,"Created by ByteBit, visit https://github.com/xtreme8000/BetterSpades");
         font_select(FONT_FIXEDSYS);
     } else {
-
         if(window_key_down(WINDOW_KEY_HIDEHUD)) {
             return;
         }
@@ -404,6 +403,11 @@ static void hud_ingame_render(float scalex, float scalef) {
                 }
             }
             glColor3f(1.0F,1.0F,1.0F);
+
+            if(window_time()-local_player_last_damage_timer<=0.5F || 1) {
+                float ang = -camera_rot_x-atan2(camera_z-local_player_last_damage_z,camera_x-local_player_last_damage_x);
+                texture_draw_rotated(&texture_indicator,settings.window_width/2.0F,settings.window_height/2.0F,200,200,ang);
+            }
         }
 
         if(camera_mode==CAMERAMODE_FPS) {
@@ -614,22 +618,22 @@ static void hud_ingame_render(float scalex, float scalef) {
                 }
 
                 if(gamestate.gamemode_type==GAMEMODE_CTF) {
-                    if(!gamestate.gamemode.ctf.team_1_intel && map_object_visible((float*)&gamestate.gamemode.ctf.team_1_intel_location.dropped)) {
+                    if(!gamestate.gamemode.ctf.team_1_intel /*&& map_object_visible((float*)&gamestate.gamemode.ctf.team_1_intel_location.dropped)*/) {
                         glColor3ub(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue);
                         texture_draw_rotated(&texture_intel,minimap_x+gamestate.gamemode.ctf.team_1_intel_location.dropped.x*scalef,minimap_y-gamestate.gamemode.ctf.team_1_intel_location.dropped.y*scalef,12*scalef,12*scalef,0.0F);
                     }
-                    if(map_object_visible((float*)&gamestate.gamemode.ctf.team_1_base)) {
+                    if(1/*map_object_visible((float*)&gamestate.gamemode.ctf.team_1_base)*/) {
                         glColor3f(gamestate.team_1.red*0.94F,gamestate.team_1.green*0.94F,gamestate.team_1.blue*0.94F);
                         texture_draw_empty_rotated(minimap_x+gamestate.gamemode.ctf.team_1_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_1_base.y*scalef,12*scalef,12*scalef,0.0F);
                         glColor3f(1.0F,1.0F,1.0F);
                         texture_draw_rotated(&texture_medical,minimap_x+gamestate.gamemode.ctf.team_1_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_1_base.y*scalef,12*scalef,12*scalef,0.0F);
                     }
 
-                    if(!gamestate.gamemode.ctf.team_2_intel && map_object_visible((float*)&gamestate.gamemode.ctf.team_2_intel_location.dropped)) {
+                    if(!gamestate.gamemode.ctf.team_2_intel /*&& map_object_visible((float*)&gamestate.gamemode.ctf.team_2_intel_location.dropped)*/) {
                         glColor3ub(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue);
                         texture_draw_rotated(&texture_intel,minimap_x+gamestate.gamemode.ctf.team_2_intel_location.dropped.x*scalef,minimap_y-gamestate.gamemode.ctf.team_2_intel_location.dropped.y*scalef,12*scalef,12*scalef,0.0F);
                     }
-                    if(map_object_visible((float*)&gamestate.gamemode.ctf.team_1_base)) {
+                    if(1/*map_object_visible((float*)&gamestate.gamemode.ctf.team_1_base)*/) {
                         glColor3f(gamestate.team_2.red*0.94F,gamestate.team_2.green*0.94F,gamestate.team_2.blue*0.94F);
                         texture_draw_empty_rotated(minimap_x+gamestate.gamemode.ctf.team_2_base.x*scalef,minimap_y-gamestate.gamemode.ctf.team_2_base.y*scalef,12*scalef,12*scalef,0.0F);
                         glColor3f(1.0F,1.0F,1.0F);
@@ -703,26 +707,26 @@ static void hud_ingame_render(float scalex, float scalef) {
                     float tent2_x = min(max(gamestate.gamemode.ctf.team_2_base.x,view_x),view_x+128.0F)-view_x;
                     float tent2_y = min(max(gamestate.gamemode.ctf.team_2_base.y,view_z),view_z+128.0F)-view_z;
 
-                    if(map_object_visible((float*)&gamestate.gamemode.ctf.team_1_base)) {
+                    if(1/*map_object_visible((float*)&gamestate.gamemode.ctf.team_1_base)*/) {
                         glColor3f(gamestate.team_1.red*0.94F,gamestate.team_1.green*0.94F,gamestate.team_1.blue*0.94F);
                         texture_draw_empty_rotated(settings.window_width-143*scalef+tent1_x*scalef,(585-tent1_y)*scalef,12*scalef,12*scalef,0.0F);
                         glColor3f(1.0F,1.0F,1.0F);
                         texture_draw_rotated(&texture_medical,settings.window_width-143*scalef+tent1_x*scalef,(585-tent1_y)*scalef,12*scalef,12*scalef,0.0F);
                     }
-                    if(!gamestate.gamemode.ctf.team_1_intel && map_object_visible((float*)&gamestate.gamemode.ctf.team_1_intel_location.dropped)) {
+                    if(!gamestate.gamemode.ctf.team_1_intel /*&& map_object_visible((float*)&gamestate.gamemode.ctf.team_1_intel_location.dropped)*/) {
                         float intel_x = min(max(gamestate.gamemode.ctf.team_1_intel_location.dropped.x,view_x),view_x+128.0F)-view_x;
                         float intel_y = min(max(gamestate.gamemode.ctf.team_1_intel_location.dropped.y,view_z),view_z+128.0F)-view_z;
                         glColor3ub(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue);
                         texture_draw_rotated(&texture_intel,settings.window_width-143*scalef+intel_x*scalef,(585-intel_y)*scalef,12*scalef,12*scalef,0.0F);
                     }
 
-                    if(map_object_visible((float*)&gamestate.gamemode.ctf.team_2_base)) {
+                    if(1/*map_object_visible((float*)&gamestate.gamemode.ctf.team_2_base)*/) {
                         glColor3f(gamestate.team_2.red*0.94F,gamestate.team_2.green*0.94F,gamestate.team_2.blue*0.94F);
                         texture_draw_empty_rotated(settings.window_width-143*scalef+tent2_x*scalef,(585-tent2_y)*scalef,12*scalef,12*scalef,0.0F);
                         glColor3f(1.0F,1.0F,1.0F);
                         texture_draw_rotated(&texture_medical,settings.window_width-143*scalef+tent2_x*scalef,(585-tent2_y)*scalef,12*scalef,12*scalef,0.0F);
                     }
-                    if(!gamestate.gamemode.ctf.team_2_intel && map_object_visible((float*)&gamestate.gamemode.ctf.team_2_intel_location.dropped)) {
+                    if(!gamestate.gamemode.ctf.team_2_intel /*&& map_object_visible((float*)&gamestate.gamemode.ctf.team_2_intel_location.dropped)*/) {
                         float intel_x = min(max(gamestate.gamemode.ctf.team_2_intel_location.dropped.x,view_x),view_x+128.0F)-view_x;
                         float intel_y = min(max(gamestate.gamemode.ctf.team_2_intel_location.dropped.y,view_z),view_z+128.0F)-view_z;
                         glColor3ub(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue);
@@ -814,7 +818,7 @@ static void hud_ingame_render(float scalex, float scalef) {
         glColor3f(1.0F,1.0F,1.0F);
         sprintf(debug_str,"PING: %ims",network_ping());
         font_render(11.0F*scalef,settings.window_height*0.33F,20.0F*scalef,debug_str);
-        sprintf(debug_str,"FPS: %i",fps);
+        sprintf(debug_str,"FPS: %i",(int)fps);
         font_render(11.0F*scalef,settings.window_height*0.33F-20.0F*scalef,20.0F*scalef,debug_str);
     }
 }
@@ -1189,7 +1193,9 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 			        players[local_player_id].items_show_start = window_time();
 			        players[local_player_id].items_show = 1;
 				}
+            }
 
+            if(screen_current==SCREEN_NONE) {
 				if(key==WINDOW_KEY_CHANGETEAM) {
 					screen_current = SCREEN_TEAM_SELECT;
 					return;
@@ -1199,6 +1205,7 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 					return;
 				}
 			}
+
 			if(screen_current==SCREEN_TEAM_SELECT) {
 				int new_team = 256;
 				switch(key) {
@@ -1339,11 +1346,11 @@ struct hud hud_ingame = {
 
 struct serverlist_entry {
     int current, max;
-    char* name;
-    char* map;
-    char* gamemode;
+    char name[32];
+    char map[21];
+    char gamemode[8];
     int ping;
-    char* identifier;
+    char identifier[32];
 };
 
 static http_t* request_serverlist = NULL;
@@ -1378,6 +1385,12 @@ static int hud_serverlist_sort(const void* a, const void* b) {
     struct serverlist_entry* bb = (struct serverlist_entry*)b;
     if(aa->current+bb->current==0) {
         return aa->ping-bb->ping;
+    }
+    if(aa->current<0) {
+        return -1;
+    }
+    if(bb->current<0) {
+        return 1;
     }
     return bb->current-aa->current;
 }
@@ -1454,10 +1467,13 @@ static void hud_serverlist_render(float scalex, float scaley) {
             tmp = k;
         }
 
-        float f = ((serverlist[k].current && serverlist[k].current<serverlist[k].max) || tmp==k)?1.0F:0.5F;
+        float f = ((serverlist[k].current && serverlist[k].current<serverlist[k].max) || tmp==k || serverlist[k].current<0)?1.0F:0.5F;
         glColor3f(f,f,f);
 
-        sprintf(total_str,"%i/%i",serverlist[k].current,serverlist[k].max);
+        if(serverlist[k].current>=0)
+            sprintf(total_str,"%i/%i",serverlist[k].current,serverlist[k].max);
+        else
+            strcpy(total_str,"-");
         font_render((settings.window_width-600*scaley)/2.0F+0*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,total_str);
         font_render((settings.window_width-600*scaley)/2.0F+75*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,serverlist[k].name);
         font_render((settings.window_width-600*scaley)/2.0F+350*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,serverlist[k].map);
@@ -1531,21 +1547,29 @@ static void hud_serverlist_render(float scalex, float scaley) {
             case HTTP_STATUS_COMPLETED:
             {
                 JSON_Array* servers = json_value_get_array(json_parse_string(request_serverlist->response_data));
-                server_count = json_array_get_count(servers);
+                server_count = json_array_get_count(servers)+1;
                 serverlist = realloc(serverlist,server_count*sizeof(struct serverlist_entry));
 				CHECK_ALLOCATION_ERROR(serverlist)
                 player_count = 0;
-                for(int k=0;k<server_count;k++) {
-                    JSON_Object* s = json_array_get_object(servers,k);
+                for(int k=1;k<server_count;k++) {
+                    JSON_Object* s = json_array_get_object(servers,k-1);
                     serverlist[k].current = (int)json_object_get_number(s,"players_current");
                     serverlist[k].max = (int)json_object_get_number(s,"players_max");
-                    serverlist[k].name = (char*)json_object_get_string(s,"name");
-                    serverlist[k].map = (char*)json_object_get_string(s,"map");
-                    serverlist[k].gamemode = (char*)json_object_get_string(s,"game_mode");
                     serverlist[k].ping = (int)json_object_get_number(s,"latency");
-                    serverlist[k].identifier = (char*)json_object_get_string(s,"identifier");
+
+                    strncpy(serverlist[k].name,json_object_get_string(s,"name"),31);
+                    strncpy(serverlist[k].map,json_object_get_string(s,"map"),20);
+                    strncpy(serverlist[k].gamemode,json_object_get_string(s,"game_mode"),7);
+                    strncpy(serverlist[k].identifier,json_object_get_string(s,"identifier"),31);
                     player_count += serverlist[k].current;
                 }
+                serverlist[0].current = serverlist[0].max = -1;
+                serverlist[0].ping = 0;
+                strcpy(serverlist[0].name,"localhost on 32887");
+                strcpy(serverlist[0].map,"-");
+                strcpy(serverlist[0].gamemode,"-");
+                strcpy(serverlist[0].identifier,"aos://16777343:32887");
+
                 qsort(serverlist,server_count,sizeof(struct serverlist_entry),hud_serverlist_sort);
                 http_release(request_serverlist);
                 request_serverlist = NULL;
@@ -1565,12 +1589,12 @@ static void hud_serverlist_scroll(double yoffset) {
 
 static void server_c(char* s) {
     if(file_exists(s)) {
-		map_vxl_load(file_load(s),map_colors);
-		chunk_rebuild_all();
-		camera_mode = CAMERAMODE_FPS;
-		players[local_player_id].pos.x = map_size_x/2.0F;
-		players[local_player_id].pos.y = map_size_y-1.0F;
-		players[local_player_id].pos.z = map_size_z/2.0F;
+	map_vxl_load(file_load(s),map_colors);
+	chunk_rebuild_all();
+	camera_mode = CAMERAMODE_FPS;
+	players[local_player_id].pos.x = map_size_x/2.0F;
+	players[local_player_id].pos.y = map_size_y-1.0F;
+	players[local_player_id].pos.z = map_size_z/2.0F;
         hud_change(&hud_ingame);
     } else {
         hud_change(network_connect_string(s)?&hud_ingame:&hud_serverlist);

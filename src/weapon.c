@@ -94,7 +94,7 @@ int weapon_block_damage(int gun) {
         case WEAPON_SMG:
             return 34;
         case WEAPON_SHOTGUN:
-            return 26;
+            return 20;
     }
 }
 

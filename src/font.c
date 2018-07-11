@@ -150,28 +150,32 @@ void font_render(float x, float y, float h, char* text) {
             stbtt_GetBakedQuad(font->cdata,font->w,font->h,*text-31,&x,&y2,&q,1);
             font_coords_buffer[k+0] = q.s0*8192.0F;
             font_coords_buffer[k+1] = q.t1*8192.0F;
-
             font_coords_buffer[k+2] = q.s1*8192.0F;
             font_coords_buffer[k+3] = q.t1*8192.0F;
-
             font_coords_buffer[k+4] = q.s1*8192.0F;
             font_coords_buffer[k+5] = q.t0*8192.0F;
 
             font_coords_buffer[k+6] = q.s0*8192.0F;
-            font_coords_buffer[k+7] = q.t0*8192.0F;
+            font_coords_buffer[k+7] = q.t1*8192.0F;
+            font_coords_buffer[k+8] = q.s1*8192.0F;
+            font_coords_buffer[k+9] = q.t0*8192.0F;
+            font_coords_buffer[k+10] = q.s0*8192.0F;
+            font_coords_buffer[k+11] = q.t0*8192.0F;
 
             font_vertex_buffer[k+0] = q.x0;
             font_vertex_buffer[k+1] = -q.y1+y;
-
             font_vertex_buffer[k+2] = q.x1;
             font_vertex_buffer[k+3] = -q.y1+y;
-
             font_vertex_buffer[k+4] = q.x1;
             font_vertex_buffer[k+5] = -q.y0+y;
 
             font_vertex_buffer[k+6] = q.x0;
-            font_vertex_buffer[k+7] = -q.y0+y;
-            k += 8;
+            font_vertex_buffer[k+7] = -q.y1+y;
+            font_vertex_buffer[k+8] = q.x1;
+            font_vertex_buffer[k+9] = -q.y0+y;
+            font_vertex_buffer[k+10] = q.x0;
+            font_vertex_buffer[k+11] = -q.y0+y;
+            k += 12;
         } else {
             x += h*0.49F;
         }
@@ -196,7 +200,7 @@ void font_render(float x, float y, float h, char* text) {
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     glVertexPointer(2,GL_SHORT,0,font_vertex_buffer);
     glTexCoordPointer(2,GL_SHORT,0,font_coords_buffer);
-    glDrawArrays(GL_QUADS,0,k/2);
+    glDrawArrays(GL_TRIANGLES,0,k/2);
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
 

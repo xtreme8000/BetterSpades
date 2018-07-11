@@ -27,7 +27,7 @@ struct kv6_t {
 	unsigned short xsiz, ysiz, zsiz;
 	float xpiv, ypiv, zpiv;
 	unsigned char has_display_list, colorize;
-	int display_list;
+	struct glx_displaylist display_list[3];
 	struct kv6_voxel* voxels;
 	int voxel_count;
 	float scale;

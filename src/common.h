@@ -23,13 +23,36 @@
 #define BETTERSPADES_MINOR      1
 #define BETTERSPADES_MAJOR      0
 
-#if __APPLE__
-#include <OpenGL/gl.h>
-#include <OpenGL/glu.h>
-#include <OpenGL/glext.h>
+#define USE_GLFW
+
+#ifndef OPENGL_ES
+	#if __APPLE__
+	#include <OpenGL/gl.h>
+	#include <OpenGL/glu.h>
+	#include <OpenGL/glext.h>
+	#else
+	#include <GL/gl.h>
+	#include "GL/glext.h"
+	#endif
+
+	#include <enet/enet.h>
+	#include "GLFW/glfw3.h"
 #else
-#include <GL/gl.h>
-#include "GL/glext.h"
+	#include "SDL2/SDL_opengles.h"
+	#include "enet/enet.h"
+
+	void glColor3f(float r, float g, float b);
+	void glColor3ub(unsigned char r, unsigned char g, unsigned char b);
+	void glDepthRange(float near, float far);
+	void void glClearDepth(float x);
+#endif
+
+#ifdef USE_GLFW
+#include "GLFW/glfw3.h"
+#endif
+
+#ifdef USE_SDL
+#include "SDL2/SDL.h"
 #endif
 
 #include <stdlib.h>
@@ -44,9 +67,6 @@
 #include <time.h>
 #include <pthread.h>
 
-#include <enet/enet.h>
-
-#include "GLFW/glfw3.h"
 #include "lodepng/lodepng.h"
 #include "libdeflate.h"
 #include "ini.h"
@@ -61,10 +81,6 @@
 
 #ifdef __APPLE__
 #define OS_APPLE
-#endif
-
-#ifdef DEVICE_RASPBERRYPI
-#define OS_LINUX
 #endif
 
 #ifndef min

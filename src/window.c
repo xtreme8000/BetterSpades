@@ -19,6 +19,8 @@
 
 #include "common.h"
 
+#ifdef USE_GLFW
+
 static void window_impl_mouseclick(GLFWwindow* window, int button, int action, int mods) {
     int b = 0;
     switch(button) {
@@ -160,3 +162,154 @@ void window_update() {
 int window_closed() {
     return glfwWindowShouldClose(hud_window->impl);
 }
+
+#endif
+
+
+#ifdef USE_SDL
+
+float window_time() {
+    return ((double)SDL_GetTicks())/1000.0F;
+}
+
+int window_pressed_keys[64] = {0};
+
+const char* window_clipboard() {
+    return SDL_HasClipboardText()?SDL_GetClipboardText():NULL;
+}
+
+int window_key_translate(int key, int dir) {
+    return config_key_translate(key,dir);
+}
+
+int window_key_down(int key) {
+    return window_pressed_keys[key];
+}
+
+void window_mousemode(int mode) {
+	int s = SDL_GetRelativeMouseMode();
+	if((s && mode==WINDOW_CURSOR_ENABLED) || (!s && mode==WINDOW_CURSOR_DISABLED)) {
+		SDL_SetRelativeMouseMode(mode==WINDOW_CURSOR_ENABLED?0:1);
+	}
+}
+
+void window_mouseloc(double* x, double* y) {
+	int xi,yi;
+	SDL_GetMouseState(&xi,&yi);
+	*x = xi;
+	*y = yi;
+}
+
+void window_swapping(int value) {
+    SDL_GL_SetSwapInterval(value);
+}
+
+void window_init() {
+	static struct window_instance i;
+	hud_window = &i;
+
+	SDL_Init(SDL_INIT_VIDEO|SDL_INIT_EVENTS|SDL_INIT_TIMER);
+
+	hud_window->impl = SDL_CreateWindow("BetterSpades "BETTERSPADES_VERSION,SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,settings.window_width,settings.window_height,SDL_WINDOW_OPENGL);
+
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION,1);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION,1);
+	SDL_GL_SetAttribute(SDL_GL_RED_SIZE,8);
+	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE,8);
+	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,8);
+	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,16);
+	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,1);
+	SDL_GLContext* ctx = SDL_GL_CreateContext(hud_window->impl);
+}
+
+void window_deinit() {
+	SDL_DestroyWindow(hud_window->impl);
+	SDL_Quit();
+}
+
+static int quit = 0;
+void window_update() {
+	SDL_GL_SwapWindow(hud_window->impl);
+	SDL_Event event;
+	while(SDL_PollEvent(&event)) {
+		switch(event.type) {
+			case SDL_QUIT:
+				quit = 1;
+				break;
+			case SDL_KEYDOWN:
+			{
+				int tr = window_key_translate(event.key.keysym.sym,0);
+				if(tr>=0)
+					keys(hud_window,tr,0,WINDOW_PRESS,0);
+				break;
+			}
+			case SDL_KEYUP:
+			{
+				int tr = window_key_translate(event.key.keysym.sym,0);
+				if(tr>=0)
+					keys(hud_window,tr,0,WINDOW_RELEASE,0);
+				break;
+			}
+			case SDL_MOUSEBUTTONDOWN:
+			{
+				int a = 0;
+				switch(event.button.button) {
+					case SDL_BUTTON_LEFT:
+						a = WINDOW_MOUSE_LMB;
+						break;
+					case SDL_BUTTON_RIGHT:
+						a = WINDOW_MOUSE_RMB;
+						break;
+					case SDL_BUTTON_MIDDLE:
+						a = WINDOW_MOUSE_MMB;
+						break;
+				}
+				mouse_click(hud_window,a,WINDOW_PRESS,0);
+				break;
+			}
+			case SDL_MOUSEBUTTONUP:
+			{
+				int a = 0;
+				switch(event.button.button) {
+					case SDL_BUTTON_LEFT:
+						a = WINDOW_MOUSE_LMB;
+						break;
+					case SDL_BUTTON_RIGHT:
+						a = WINDOW_MOUSE_RMB;
+						break;
+					case SDL_BUTTON_MIDDLE:
+						a = WINDOW_MOUSE_MMB;
+						break;
+				}
+				mouse_click(hud_window,a,WINDOW_RELEASE,0);
+				break;
+			}
+			case SDL_WINDOWEVENT:
+				if(event.window.event==SDL_WINDOWEVENT_RESIZED
+				|| event.window.event==SDL_WINDOWEVENT_SIZE_CHANGED) {
+					reshape(hud_window,event.window.data1,event.window.data2);
+				}
+				break;
+			case SDL_MOUSEWHEEL:
+				mouse_scroll(hud_window,event.wheel.x,event.wheel.y);
+				break;
+			case SDL_MOUSEMOTION:
+			{
+				static int x_sum = 0, y_sum = 0;
+				x_sum += event.motion.xrel;
+				y_sum += event.motion.yrel;
+				mouse(hud_window,x_sum,y_sum);
+				break;
+			}
+			case SDL_TEXTINPUT:
+				text_input(hud_window,event.text.text[0]);
+				break;
+		}
+	}
+}
+
+int window_closed() {
+    return quit;
+}
+
+#endif

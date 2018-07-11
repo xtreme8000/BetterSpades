@@ -17,6 +17,8 @@
     along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+const char* network_reason_disconnect(int code);
+
 unsigned int network_ping(void);
 void network_send(int id, void* data, int len);
 void network_updateColor(void);

@@ -22,7 +22,9 @@
 extern int glx_version;
 extern int glx_fog;
 
+#ifndef OPENGL_ES
 extern PFNGLGENBUFFERSPROC glGenBuffers;
+extern PFNGLDELETEBUFFERSPROC glDeleteBuffers;
 extern PFNGLBINDBUFFERPROC glBindBuffer;
 extern PFNGLBUFFERDATAPROC glBufferData;
 
@@ -38,14 +40,28 @@ extern PFNGLUNIFORM1FPROC glUniform1f;
 extern PFNGLUNIFORM3FPROC glUniform3f;
 extern PFNGLUNIFORMMATRIX4FVPROC glUniformMatrix4fv;
 extern PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
+#endif
+
+struct glx_displaylist {
+	int legacy;
+	int modern[3];
+	int size;
+	int has_normal;
+};
+
+enum {
+    GLX_DISPLAYLIST_NORMAL,
+    GLX_DISPLAYLIST_ENHANCED
+};
 
 void glx_init(void);
 
-int glx_vertex_shader(const char* s);
+int glx_vertex_shader(const char* vertex, const char* fragment);
 
 void glx_enable_sphericalfog(void);
 void glx_disable_sphericalfog(void);
 
-int glx_displaylist_create(void);
-void glx_displaylist_update(int id, int size, unsigned char* color, short* vertex);
-void glx_displaylist_draw(int id, int size);
+void glx_displaylist_create(struct glx_displaylist* x);
+void glx_displaylist_destroy(struct glx_displaylist* x);
+void glx_displaylist_update(struct glx_displaylist* x, int size, int type, void* color, void* vertex, void* normal);
+void glx_displaylist_draw(struct glx_displaylist* x, int type);
