@@ -66,6 +66,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <pthread.h>
+#include <limits.h>
 
 #include "lodepng/lodepng.h"
 #include "libdeflate.h"

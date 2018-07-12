@@ -52,7 +52,7 @@ You will need to compile the following by yourself, or get hold of precompiled b
 * libdeflate
 * enet
 
-Follow the instructions on their project page, then place produced static libraries in `lib/`.
+Follow the instructions on their project page, then place produced static libraries in `libs/`.
 
 Some files need to be copied to the `src/` directory.
 

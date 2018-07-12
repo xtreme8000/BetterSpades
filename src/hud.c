@@ -860,8 +860,8 @@ static void hud_ingame_mouselocation(double x, double y) {
 		s = 0.5F;
 	}
 
-	camera_rot_x -= dx*settings.mouse_sensitivity*s;
-	camera_rot_y += dy*settings.mouse_sensitivity*s;
+	camera_rot_x -= dx*settings.mouse_sensitivity/5.0F*MOUSE_SENSITIVITY*s;
+	camera_rot_y += dy*settings.mouse_sensitivity/5.0F*MOUSE_SENSITIVITY*s;
 
 	camera_overflow_adjust();
 }
@@ -1588,17 +1588,17 @@ static void hud_serverlist_scroll(double yoffset) {
 }
 
 static void server_c(char* s) {
-    if(file_exists(s)) {
-	map_vxl_load(file_load(s),map_colors);
-	chunk_rebuild_all();
-	camera_mode = CAMERAMODE_FPS;
-	players[local_player_id].pos.x = map_size_x/2.0F;
-	players[local_player_id].pos.y = map_size_y-1.0F;
-	players[local_player_id].pos.z = map_size_z/2.0F;
-        hud_change(&hud_ingame);
-    } else {
-        hud_change(network_connect_string(s)?&hud_ingame:&hud_serverlist);
-    }
+	if(file_exists(s)) {
+		map_vxl_load(file_load(s),map_colors);
+		chunk_rebuild_all();
+		camera_mode = CAMERAMODE_FPS;
+		players[local_player_id].pos.x = map_size_x/2.0F;
+		players[local_player_id].pos.y = map_size_y-1.0F;
+		players[local_player_id].pos.z = map_size_z/2.0F;
+		hud_change(&hud_ingame);
+	} else {
+		hud_change(network_connect_string(s)?&hud_ingame:&hud_serverlist);
+	}
 }
 
 static void hud_serverlist_mouseclick(int button, int action, int mods) {
@@ -1663,6 +1663,8 @@ struct hud hud_serverlist = {
 
 /*         HUD_SETTINGS START        */
 
+static struct config_setting* hud_settings_edit = NULL;
+
 static void hud_settings_render(float scalex, float scaley) {
     glColor3f(0.5F,0.5F,0.5F);
     float t = window_time()*0.03125F;
@@ -1678,10 +1680,122 @@ static void hud_settings_render(float scalex, float scaley) {
     glColor3f(0.5F,0.5F,0.5F);
     font_centered((settings.window_width-600*scaley)/2.0F+210*scaley,535*scaley-12*scaley,20*scaley,"Controls");
     font_centered((settings.window_width-600*scaley)/2.0F+320*scaley,535*scaley-12*scaley,20*scaley,"Server list");
+
+	for(int k=0;k<list_size(&config_settings);k++) {
+		struct config_setting* a = list_get(&config_settings,k);
+		glColor3f(1.0F,1.0F,0.0F);
+		font_render((settings.window_width-600*scaley)/2.0F,(460-40*k)*scaley,16*scaley,a->name);
+
+		char tmp[32];
+		switch(a->type) {
+			case CONFIG_TYPE_STRING:
+				glColor3f(1.0F,1.0F,1.0F);
+				texture_draw_sector(&texture_ui_input,(settings.window_width-600*scaley)/2.0F+174*scaley,(466-40*k)*scaley,8*scaley,32*scaley,0.0F,0.0F,0.25F,1.0F);
+				texture_draw_sector(&texture_ui_input,(settings.window_width-600*scaley)/2.0F+182*scaley,(466-40*k)*scaley,200*scaley,32*scaley,0.25F,0.0F,0.5F,1.0F);
+				texture_draw_sector(&texture_ui_input,settings.window_width/2.0F-300*scaley+382*scaley,(466-40*k)*scaley,8*scaley,32*scaley,0.75F,0.0F,0.25F,1.0F);
+				if(hud_settings_edit==a)
+					glColor3f(1.0F,0.0F,0.0F);
+				font_render((settings.window_width-600*scaley)/2.0F+182*scaley,(460-40*k)*scaley,20*scaley,(hud_settings_edit==a)?chat[0][0]:a->value);
+				break;
+			case CONFIG_TYPE_INT:
+				glColor3f(1.0F,1.0F,1.0F);
+				if(hud_settings_edit==a)
+					strcpy(tmp,chat[0][0]);
+				else
+					sprintf(tmp,"%i",*(int*)a->value);
+				if(a->max==1) {
+					texture_draw_rotated(*(int*)a->value?&texture_ui_box_check:&texture_ui_box_empty,
+						(settings.window_width-600*scaley)/2.0F+240*scaley,(450-40*k)*scaley,32*scaley,32*scaley,0.0F);
+				} else {
+					texture_draw_rotated(&texture_ui_arrow,(settings.window_width-600*scaley)/2.0F+290*scaley,(450-40*k)*scaley,32*scaley,32*scaley,0.0F);
+					texture_draw_rotated(&texture_ui_arrow,(settings.window_width-600*scaley)/2.0F+190*scaley,(450-40*k)*scaley,32*scaley,32*scaley,PI);
+					if(hud_settings_edit==a)
+						glColor3f(1.0F,0.0F,0.0F);
+					font_centered((settings.window_width-600*scaley)/2.0F+240*scaley,(460-40*k)*scaley,20*scaley,tmp);
+				}
+				break;
+			case CONFIG_TYPE_FLOAT:
+				glColor3f(1.0F,1.0F,1.0F);
+				texture_draw_rotated(&texture_ui_arrow,(settings.window_width-600*scaley)/2.0F+290*scaley,(450-40*k)*scaley,32*scaley,32*scaley,0.0F);
+				texture_draw_rotated(&texture_ui_arrow,(settings.window_width-600*scaley)/2.0F+190*scaley,(450-40*k)*scaley,32*scaley,32*scaley,PI);
+				if(hud_settings_edit==a) {
+					glColor3f(1.0F,0.0F,0.0F);
+					strcpy(tmp,chat[0][0]);
+				} else {
+					sprintf(tmp,"%0.2f",*(float*)a->value);
+				}
+				font_centered((settings.window_width-600*scaley)/2.0F+240*scaley,(460-40*k)*scaley,20*scaley,tmp);
+				break;
+		}
+	}
+}
+
+static int is_inside_centered(double mx, double my, int x, int y, int w, int h) {
+	return mx>=x-w/2 && mx<x+w/2 && my>=y-h/2 && my<y+h/2;
+}
+
+static int is_inside(double mx, double my, int x, int y, int w, int h) {
+	return mx>=x && mx<x+w && my>=y && my<y+h;
+}
+
+static int is_int(const char* x) {
+	while(*x) {
+		if(!(*x>='0' && *x<='9'))
+			return 0;
+		x++;
+	}
+	return 1;
+}
+
+static int is_float(char* x) {
+	char* decimalpoint = strchr(x,'.');
+	if(!decimalpoint) {
+		return is_int(x);
+	} else {
+		*decimalpoint = 0;
+		if(is_int(x)) {
+			if(is_int(decimalpoint+1)) {
+				*decimalpoint = '.';
+				return 1;
+			} else {
+				return 0;
+			}
+		} else {
+			return 0;
+		}
+	}
+}
+
+static void hud_settings_keyboard(int key, int action, int mods) {
+	if(hud_settings_edit && action!=WINDOW_RELEASE && key==WINDOW_KEY_BACKSPACE) {
+		size_t text_len = strlen(chat[0][0]);
+		if(text_len>0){
+			chat[0][0][text_len-1] = 0;
+		}
+	}
 }
 
 static void hud_settings_mouseclick(int button, int action, int mods) {
     if(action==WINDOW_PRESS) {
+		if(hud_settings_edit) {
+			if(strlen(chat[0][0])) {
+				switch(hud_settings_edit->type) {
+					case CONFIG_TYPE_INT:
+						if(is_int(chat[0][0]))
+							*(int*)hud_settings_edit->value = max(min(strtol(chat[0][0],NULL,10),hud_settings_edit->max),0);
+						break;
+					case CONFIG_TYPE_FLOAT:
+						if(is_float(chat[0][0]))
+							*(float*)hud_settings_edit->value = max(min(strtod(chat[0][0],NULL),hud_settings_edit->max),0);
+						break;
+					case CONFIG_TYPE_STRING:
+						strncpy(hud_settings_edit->value,chat[0][0],hud_settings_edit->max);
+						break;
+				}
+			}
+			hud_settings_edit = NULL;
+		}
+
         double x,y;
         window_mouseloc(&x,&y);
         float scaley = settings.window_height/600.0F;
@@ -1697,6 +1811,79 @@ static void hud_settings_mouseclick(int button, int action, int mods) {
         && y>=77*scaley && y<97*scaley) {
             hud_change(&hud_controls);
         }
+
+		y = settings.window_height-y;
+
+		for(int k=0;k<list_size(&config_settings);k++) {
+			struct config_setting* a = list_get(&config_settings,k);
+			if(is_inside_centered(x,y,
+				(settings.window_width-600*scaley)/2.0F+240*scaley,
+				(450-40*k)*scaley,68*scaley,32*scaley)
+			&& !(a->type==CONFIG_TYPE_INT && a->max==1)) {
+					hud_settings_edit = a;
+					switch(a->type) {
+						case CONFIG_TYPE_INT:
+							sprintf(chat[0][0],"%i",*(int*)a->value);
+							break;
+						case CONFIG_TYPE_FLOAT:
+							sprintf(chat[0][0],"%0.2f",*(float*)a->value);
+							break;
+						case CONFIG_TYPE_STRING:
+							strcpy(chat[0][0],a->value);
+							break;
+					}
+			}
+			switch(a->type) {
+				case CONFIG_TYPE_INT:
+					if(a->max==1) {
+						if(is_inside_centered(x,y,
+							(settings.window_width-600*scaley)/2.0F+240*scaley,
+							(450-40*k)*scaley,32*scaley,32*scaley)) { //checkbox pressed
+							*(int*)a->value = !*(int*)a->value;
+						}
+					} else {
+						if(is_inside_centered(x,y,
+							(settings.window_width-600*scaley)/2.0F+290*scaley,
+							(450-40*k)*scaley,32*scaley,32*scaley)) { //right arrow pressed
+							int next = (*(int*)a->value)+1;
+							int diff = INT_MAX;
+							for(int l=0;l<a->defaults_length;l++) {
+								if(a->defaults[l]>*(int*)a->value && a->defaults[l]-*(int*)a->value<diff) {
+									diff = a->defaults[l]-*(int*)a->value;
+									next = a->defaults[l];
+								}
+							}
+							*(int*)a->value = min(next,a->max);
+						}
+						if(is_inside_centered(x,y,
+							(settings.window_width-600*scaley)/2.0F+190*scaley,
+							(450-40*k)*scaley,32*scaley,32*scaley)) { //left arrow pressed
+							int next = (*(int*)a->value)-1;
+							int diff = INT_MAX;
+							for(int l=0;l<a->defaults_length;l++) {
+								if(a->defaults[l]<*(int*)a->value && *(int*)a->value-a->defaults[l]<diff) {
+									diff = *(int*)a->value-a->defaults[l];
+									next = a->defaults[l];
+								}
+							}
+							*(int*)a->value = max(next,0);
+						}
+					}
+					break;
+				case CONFIG_TYPE_FLOAT:
+					if(is_inside_centered(x,y,
+						(settings.window_width-600*scaley)/2.0F+290*scaley,
+						(450-40*k)*scaley,32*scaley,32*scaley)) { //right arrow pressed
+						*(float*)a->value = min((*(float*)a->value)+0.1F,a->max);
+					}
+					if(is_inside_centered(x,y,
+						(settings.window_width-600*scaley)/2.0F+190*scaley,
+						(450-40*k)*scaley,32*scaley,32*scaley)) { //left arrow pressed
+						*(float*)a->value = max((*(float*)a->value)-0.1F,0);
+					}
+					break;
+			}
+		}
     }
 }
 
@@ -1704,7 +1891,7 @@ struct hud hud_settings = {
     (void*)NULL,
     (void*)NULL,
     hud_settings_render,
-    (void*)NULL,
+    hud_settings_keyboard,
     (void*)NULL,
     hud_settings_mouseclick,
     (void*)NULL,
@@ -1713,7 +1900,7 @@ struct hud hud_settings = {
 };
 
 
-/*         HUD_SETTINGS START        */
+/*         HUD_CONTROLS START        */
 
 static void hud_controls_render(float scalex, float scaley) {
     glColor3f(0.5F,0.5F,0.5F);

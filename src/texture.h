@@ -55,6 +55,9 @@ extern struct texture texture_ui_join;
 extern struct texture texture_ui_reload;
 extern struct texture texture_ui_bg;
 extern struct texture texture_ui_input;
+extern struct texture texture_ui_box_empty;
+extern struct texture texture_ui_box_check;
+extern struct texture texture_ui_arrow;
 
 #define TEXTURE_FILTER_NEAREST  0
 #define TEXTURE_FILTER_LINEAR   1

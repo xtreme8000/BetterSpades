@@ -53,6 +53,9 @@ struct texture texture_ui_join;
 struct texture texture_ui_reload;
 struct texture texture_ui_bg;
 struct texture texture_ui_input;
+struct texture texture_ui_box_empty;
+struct texture texture_ui_box_check;
+struct texture texture_ui_arrow;
 
 void texture_filter(struct texture* t, int filter) {
     glBindTexture(GL_TEXTURE_2D,t->texture_id);
@@ -325,6 +328,10 @@ void texture_init() {
     texture_create(&texture_ui_reload,"png/ui/reload.png");
     texture_create(&texture_ui_bg,"png/ui/bg.png");
     texture_create(&texture_ui_input,"png/ui/input.png");
+
+	texture_create(&texture_ui_box_empty,"png/ui/box_empty.png");
+	texture_create(&texture_ui_box_check,"png/ui/box_check.png");
+	texture_create(&texture_ui_arrow,"png/ui/arrow.png");
 
 
     unsigned int* pixels = malloc(64*64*sizeof(unsigned int));

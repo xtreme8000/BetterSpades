@@ -18,7 +18,7 @@
 */
 
 extern struct RENDER_OPTIONS {
-    char name[17];
+    char name[16];
 	int opengl14;
 	int color_correction;
 	int shadow_entities;
@@ -29,11 +29,11 @@ extern struct RENDER_OPTIONS {
 	unsigned char multisamples;
 	int player_arms;
 	int fullscreen;
-    int greedy_meshing;
-    int vsync;
-    float mouse_sensitivity;
-    int show_news;
-    int show_fps;
+	int greedy_meshing;
+	int vsync;
+	float mouse_sensitivity;
+	int show_news;
+	int show_fps;
 } settings;
 
 extern struct list config_keys;
@@ -44,6 +44,24 @@ struct config_key_pair {
     int toggle;
     char name[32];
 };
+
+enum {
+	CONFIG_TYPE_STRING,
+	CONFIG_TYPE_INT,
+	CONFIG_TYPE_FLOAT
+};
+
+struct config_setting {
+	void* value;
+	int type;
+	int max;
+	char name[32];
+	char help[32];
+	int defaults[8];
+	int defaults_length;
+};
+
+extern struct list config_settings;
 
 void config_register_key(int internal, int def, const char* name, int toggle);
 int config_key_translate(int key, int dir);

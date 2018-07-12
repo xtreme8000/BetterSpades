@@ -21,6 +21,7 @@
 
 struct RENDER_OPTIONS settings;
 struct list config_keys;
+struct list config_settings;
 
 static int config_read_key(void* user, const char* section, const char* name, const char* value) {
     if(!strcmp(section,"client")) {
@@ -46,7 +47,7 @@ static int config_read_key(void* user, const char* section, const char* name, co
             settings.vsync = atoi(value);
         }
         if(!strcmp(name,"mouse_sensitivity")) {
-            settings.mouse_sensitivity = atof(value)/5.0F*MOUSE_SENSITIVITY;
+            settings.mouse_sensitivity = atof(value);
         }
         if(!strcmp(name,"show_news")) {
             settings.show_news = atoi(value);
@@ -160,7 +161,7 @@ void config_reload() {
     config_register_key(WINDOW_KEY_COMMAND,SDLK_SLASH,"chat_command",0);
     config_register_key(WINDOW_KEY_HIDEHUD,SDLK_F6,"hide_hud",1);
 	#endif
-	
+
 	#ifdef USE_GLFW
 	config_register_key(WINDOW_KEY_UP,GLFW_KEY_W,"move_forward",0);
     config_register_key(WINDOW_KEY_DOWN,GLFW_KEY_S,"move_backward",0);
@@ -203,6 +204,76 @@ void config_reload() {
     config_register_key(WINDOW_KEY_COMMAND,GLFW_KEY_SLASH,"chat_command",0);
 	config_register_key(WINDOW_KEY_HIDEHUD,GLFW_KEY_F6,"hide_hud",1);
 	#endif
+
+	list_create(&config_settings,sizeof(struct config_setting));
+
+	list_add(&config_settings,&(struct config_setting){
+		.value=settings.name,
+		.type=CONFIG_TYPE_STRING,
+		.max=sizeof(settings.name)-1,
+		.name="Name",
+		.help="ingame player name"
+	});
+	list_add(&config_settings,&(struct config_setting){
+		.value=&settings.mouse_sensitivity,
+		.type=CONFIG_TYPE_FLOAT,
+		.max=INT_MAX,
+		.name="Mouse sensitivity"
+	});
+	list_add(&config_settings,&(struct config_setting){
+		.value=&settings.window_width,
+		.type=CONFIG_TYPE_INT,
+		.max=INT_MAX,
+		.name="Game width",
+		.defaults=640,800,854,1024,1280,1920,
+		.defaults_length=6
+	});
+	list_add(&config_settings,&(struct config_setting){
+		.value=&settings.window_height,
+		.type=CONFIG_TYPE_INT,
+		.max=INT_MAX,
+		.name="Game height",
+		.defaults=480,600,720,768,1024,1080,
+		.defaults_length=6
+	});
+	list_add(&config_settings,&(struct config_setting){
+		.value=&settings.vsync,
+		.type=CONFIG_TYPE_INT,
+		.max=INT_MAX,
+		.name="V-Sync",
+		.help="limits your game's fps",
+		.defaults=0,1,60,120,240,
+		.defaults_length=5
+	});
+	list_add(&config_settings,&(struct config_setting){
+		.value=&settings.fullscreen,
+		.type=CONFIG_TYPE_INT,
+		.max=1,
+		.name="Fullscreen"
+	});
+	list_add(&config_settings,&(struct config_setting){
+		.value=&settings.multisamples,
+		.type=CONFIG_TYPE_INT,
+		.max=16,
+		.name="Multisamples",
+		.help="smooth out block edges",
+		.defaults=0,1,2,4,8,16,
+		.defaults_length=6
+	});
+	list_add(&config_settings,&(struct config_setting){
+		.value=&settings.show_fps,
+		.type=CONFIG_TYPE_INT,
+		.max=1,
+		.name="Show fps",
+		.help="show your current fps and ping"
+	});
+	list_add(&config_settings,&(struct config_setting){
+		.value=&settings.show_news,
+		.type=CONFIG_TYPE_INT,
+		.max=1,
+		.name="Show news",
+		.help="opens the bns news on exit"
+	});
 
     ini_parse("config.ini",config_read_key,NULL);
 }
