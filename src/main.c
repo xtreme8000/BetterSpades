@@ -575,7 +575,8 @@ int main(int argc, char** argv) {
 	settings.greedy_meshing = 0;
 	settings.mouse_sensitivity = MOUSE_SENSITIVITY;
 	settings.show_news = 1;
-	settings.show_fps = 1;
+	settings.show_fps = 0;
+	settings.volume = 0;
 	strcpy(settings.name,"DEV_CLIENT");
 
 	config_reload();

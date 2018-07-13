@@ -1080,15 +1080,15 @@ static void hud_ingame_keyboard(int key, int action, int mods) {
 			}
 
             if(key==WINDOW_KEY_VOLUME_UP) {
-                sound_global_volume = min(sound_global_volume+1,10);
+                settings.volume = min(settings.volume+1,10);
             }
             if(key==WINDOW_KEY_VOLUME_DOWN) {
-                sound_global_volume = max(sound_global_volume-1,0);
+                settings.volume = max(settings.volume-1,0);
             }
             if(key==WINDOW_KEY_VOLUME_UP || key==WINDOW_KEY_VOLUME_DOWN) {
-                sound_volume(sound_global_volume/10.0F);
+                sound_volume(settings.volume/10.0F);
                 char volstr[64];
-                sprintf(volstr,"Volume: %i",(int)sound_global_volume);
+                sprintf(volstr,"Volume: %i",settings.volume);
                 chat_add(0,0x0000FF,volstr);
             }
 
@@ -1665,25 +1665,30 @@ struct hud hud_serverlist = {
 
 static struct config_setting* hud_settings_edit = NULL;
 
+static void hud_settings_init() {
+	memcpy(&settings_tmp,&settings,sizeof(struct RENDER_OPTIONS));
+}
+
 static void hud_settings_render(float scalex, float scaley) {
-    glColor3f(0.5F,0.5F,0.5F);
-    float t = window_time()*0.03125F;
-    texture_draw_sector(&texture_ui_bg,0.0F,settings.window_height,settings.window_width,settings.window_height,t,t,settings.window_width/512.0F,settings.window_height/512.0F);
+	glColor3f(0.5F,0.5F,0.5F);
+	float t = window_time()*0.03125F;
+	texture_draw_sector(&texture_ui_bg,0.0F,settings.window_height,settings.window_width,settings.window_height,t,t,settings.window_width/512.0F,settings.window_height/512.0F);
 
-    glColor4f(0.0F,0.0F,0.0F,0.66F);
-    glEnable(GL_BLEND);
-    texture_draw_empty((settings.window_width-640*scaley)/2.0F,550*scaley,640*scaley,600*scaley);
-    glDisable(GL_BLEND);
+	glColor4f(0.0F,0.0F,0.0F,0.66F);
+	glEnable(GL_BLEND);
+	texture_draw_empty((settings.window_width-640*scaley)/2.0F,550*scaley,640*scaley,600*scaley);
+	glDisable(GL_BLEND);
 
-    glColor3f(1.0F,1.0F,0.0F);
-    font_render((settings.window_width-600*scaley)/2.0F+0*scaley,535*scaley,36*scaley,"Settings");
-    glColor3f(0.5F,0.5F,0.5F);
-    font_centered((settings.window_width-600*scaley)/2.0F+210*scaley,535*scaley-12*scaley,20*scaley,"Controls");
-    font_centered((settings.window_width-600*scaley)/2.0F+320*scaley,535*scaley-12*scaley,20*scaley,"Server list");
+	glColor3f(1.0F,1.0F,0.0F);
+	font_render((settings.window_width-600*scaley)/2.0F+0*scaley,535*scaley,36*scaley,"Settings");
+	font_centered((settings.window_width-600*scaley)/2.0F+174*scaley,70*scaley,30*scaley,"Apply");
+	glColor3f(0.5F,0.5F,0.5F);
+	font_centered((settings.window_width-600*scaley)/2.0F+210*scaley,535*scaley-12*scaley,20*scaley,"Controls");
+	font_centered((settings.window_width-600*scaley)/2.0F+320*scaley,535*scaley-12*scaley,20*scaley,"Server list");
 
 	for(int k=0;k<list_size(&config_settings);k++) {
 		struct config_setting* a = list_get(&config_settings,k);
-		glColor3f(1.0F,1.0F,0.0F);
+		glColor3f(1.0F,1.0F,1.0F);
 		font_render((settings.window_width-600*scaley)/2.0F,(460-40*k)*scaley,16*scaley,a->name);
 
 		char tmp[32];
@@ -1769,7 +1774,7 @@ static int is_float(char* x) {
 static void hud_settings_keyboard(int key, int action, int mods) {
 	if(hud_settings_edit && action!=WINDOW_RELEASE && key==WINDOW_KEY_BACKSPACE) {
 		size_t text_len = strlen(chat[0][0]);
-		if(text_len>0){
+		if(text_len>0) {
 			chat[0][0][text_len-1] = 0;
 		}
 	}
@@ -1814,6 +1819,15 @@ static void hud_settings_mouseclick(int button, int action, int mods) {
 
 		y = settings.window_height-y;
 
+		if(x>=(settings.window_width-600*scaley)/2.0F+174*scaley-font_length(30*scaley,"Apply")/2
+		&& x<(settings.window_width-600*scaley)/2.0F+174*scaley+font_length(30*scaley,"Apply")/2
+		&& y>=40*scaley && y<70*scaley) {
+			memcpy(&settings,&settings_tmp,sizeof(struct RENDER_OPTIONS));
+			window_fromsettings();
+			sound_volume(settings.volume/10.0F);
+			config_save();
+		}
+
 		for(int k=0;k<list_size(&config_settings);k++) {
 			struct config_setting* a = list_get(&config_settings,k);
 			if(is_inside_centered(x,y,
@@ -1845,7 +1859,7 @@ static void hud_settings_mouseclick(int button, int action, int mods) {
 						if(is_inside_centered(x,y,
 							(settings.window_width-600*scaley)/2.0F+290*scaley,
 							(450-40*k)*scaley,32*scaley,32*scaley)) { //right arrow pressed
-							int next = (*(int*)a->value)+1;
+							int next = a->defaults_length?(*(int*)a->value):((*(int*)a->value)+1);
 							int diff = INT_MAX;
 							for(int l=0;l<a->defaults_length;l++) {
 								if(a->defaults[l]>*(int*)a->value && a->defaults[l]-*(int*)a->value<diff) {
@@ -1858,7 +1872,7 @@ static void hud_settings_mouseclick(int button, int action, int mods) {
 						if(is_inside_centered(x,y,
 							(settings.window_width-600*scaley)/2.0F+190*scaley,
 							(450-40*k)*scaley,32*scaley,32*scaley)) { //left arrow pressed
-							int next = (*(int*)a->value)-1;
+							int next = a->defaults_length?(*(int*)a->value):((*(int*)a->value)-1);
 							int diff = INT_MAX;
 							for(int l=0;l<a->defaults_length;l++) {
 								if(a->defaults[l]<*(int*)a->value && *(int*)a->value-a->defaults[l]<diff) {
@@ -1888,15 +1902,15 @@ static void hud_settings_mouseclick(int button, int action, int mods) {
 }
 
 struct hud hud_settings = {
-    (void*)NULL,
-    (void*)NULL,
-    hud_settings_render,
-    hud_settings_keyboard,
-    (void*)NULL,
-    hud_settings_mouseclick,
-    (void*)NULL,
-    0,
-    0
+	hud_settings_init,
+	(void*)NULL,
+	hud_settings_render,
+	hud_settings_keyboard,
+	(void*)NULL,
+	hud_settings_mouseclick,
+	(void*)NULL,
+	0,
+	0
 };
 
 

@@ -17,6 +17,12 @@
     along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+struct config_file_entry {
+	char section[32];
+	char name[32];
+	char value[32];
+};
+
 extern struct RENDER_OPTIONS {
     char name[16];
 	int opengl14;
@@ -34,7 +40,8 @@ extern struct RENDER_OPTIONS {
 	float mouse_sensitivity;
 	int show_news;
 	int show_fps;
-} settings;
+	int volume;
+} settings, settings_tmp;
 
 extern struct list config_keys;
 
@@ -68,3 +75,4 @@ int config_key_translate(int key, int dir);
 struct config_key_pair* config_key(int key);
 void config_key_reset_togglestates();
 void config_reload(void);
+void config_save(void);

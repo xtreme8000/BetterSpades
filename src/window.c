@@ -139,9 +139,8 @@ void window_init() {
 	glfwSetWindowPos(hud_window->impl,(mode->width-settings.window_width)/2.0F,(mode->height-settings.window_height)/2.0F);
 	glfwShowWindow(hud_window->impl);
 
-    glfwMakeContextCurrent(hud_window->impl);
-
 	glfwMakeContextCurrent(hud_window->impl);
+
 	glfwSetFramebufferSizeCallback(hud_window->impl,window_impl_reshape);
 	glfwSetCursorPosCallback(hud_window->impl,window_impl_mouse);
 	glfwSetKeyCallback(hud_window->impl,window_impl_keys);
@@ -150,8 +149,24 @@ void window_init() {
 	glfwSetCharCallback(hud_window->impl,window_impl_textinput);
 }
 
+void window_fromsettings() {
+	glfwWindowHint(GLFW_SAMPLES,settings.multisamples);
+	glfwSetWindowSize(hud_window->impl,settings.window_width,settings.window_height);
+
+	if(settings.vsync<2)
+		window_swapping(settings.vsync);
+	if(settings.vsync>1)
+		window_swapping(0);
+
+	const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+	if(settings.fullscreen)
+		glfwSetWindowMonitor(hud_window->impl,glfwGetPrimaryMonitor(),0,0,settings.window_width,settings.window_height,mode->refreshRate);
+	else
+		glfwSetWindowMonitor(hud_window->impl,NULL,(mode->width-settings.window_width)/2,(mode->height-settings.window_height)/2,settings.window_width,settings.window_height,0);
+}
+
 void window_deinit() {
-    glfwTerminate();
+	glfwTerminate();
 }
 
 void window_update() {

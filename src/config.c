@@ -19,11 +19,71 @@
 
 #include "common.h"
 
-struct RENDER_OPTIONS settings;
+struct RENDER_OPTIONS settings, settings_tmp;
 struct list config_keys;
 struct list config_settings;
 
+struct list config_file;
+
+static void config_sets(const char* name, const char* value) {
+	for(int k=0;k<list_size(&config_file);k++) {
+		struct config_file_entry* e = list_get(&config_file,k);
+		if(strcmp(e->name,name)==0) {
+			strncpy(e->value,value,sizeof(e->value)-1);
+			break;
+		}
+	}
+}
+
+static void config_seti(const char* name, int value) {
+	char tmp[32];
+	sprintf(tmp,"%i",value);
+	config_sets(name,tmp);
+}
+
+static void config_setf(const char* name, float value) {
+	char tmp[32];
+	sprintf(tmp,"%0.6f",value);
+	config_sets(name,tmp);
+}
+
+void config_save() {
+	config_sets("name",settings.name);
+	config_seti("xres",settings.window_width);
+	config_seti("yres",settings.window_height);
+	config_seti("windowed",!settings.fullscreen);
+	config_seti("multisamples",settings.multisamples);
+	config_seti("greedy_meshing",settings.greedy_meshing);
+	config_seti("vsync",settings.vsync);
+	config_setf("mouse_sensitivity",settings.mouse_sensitivity);
+	config_seti("show_news",settings.show_news);
+	config_seti("vol",settings.volume);
+	config_seti("show_fps",settings.show_fps);
+
+
+	FILE* f = fopen("config.ini","w");
+	char last_section[32] = {0};
+	for(int k=0;k<list_size(&config_file);k++) {
+		struct config_file_entry* e = list_get(&config_file,k);
+		if(strcmp(e->section,last_section)!=0) {
+			fprintf(f,"\r\n[%s]\r\n",e->section);
+			strcpy(last_section,e->section);
+		}
+		fprintf(f,"%s",e->name);
+		for(int l=0;l<31-strlen(e->name);l++)
+			fprintf(f," ");
+		fprintf(f,"= %s\r\n",e->value);
+	}
+	fclose(f);
+}
+
 static int config_read_key(void* user, const char* section, const char* name, const char* value) {
+	struct config_file_entry e;
+	strncpy(e.section,section,sizeof(e.section)-1);
+	strncpy(e.name,name,sizeof(e.name)-1);
+	strncpy(e.value,value,sizeof(e.value)-1);
+	list_add(&config_file,&e);
+
     if(!strcmp(section,"client")) {
         if(!strcmp(name,"name")) {
             strcpy(settings.name,value);
@@ -53,8 +113,8 @@ static int config_read_key(void* user, const char* section, const char* name, co
             settings.show_news = atoi(value);
         }
         if(!strcmp(name,"vol")) {
-            sound_global_volume = max(min(atoi(value),10),0);
-            sound_volume(sound_global_volume/10.0F);
+            settings.volume = max(min(atoi(value),10),0);
+            sound_volume(settings.volume/10.0F);
         }
         if(!strcmp(name,"show_fps")) {
             settings.show_fps = atoi(value);
@@ -114,6 +174,12 @@ void config_key_reset_togglestates() {
 }
 
 void config_reload() {
+	if(!list_created(&config_file))
+        list_create(&config_file,sizeof(struct config_file_entry));
+    else
+        list_clear(&config_file);
+
+
     if(!list_created(&config_keys))
         list_create(&config_keys,sizeof(struct config_key_pair));
     else
@@ -205,23 +271,34 @@ void config_reload() {
 	config_register_key(WINDOW_KEY_HIDEHUD,GLFW_KEY_F6,"hide_hud",1);
 	#endif
 
-	list_create(&config_settings,sizeof(struct config_setting));
+	ini_parse("config.ini",config_read_key,NULL);
+
+	if(!list_created(&config_settings))
+		list_create(&config_settings,sizeof(struct config_setting));
+	else
+		list_clear(&config_settings);
 
 	list_add(&config_settings,&(struct config_setting){
-		.value=settings.name,
+		.value=settings_tmp.name,
 		.type=CONFIG_TYPE_STRING,
 		.max=sizeof(settings.name)-1,
 		.name="Name",
 		.help="ingame player name"
 	});
 	list_add(&config_settings,&(struct config_setting){
-		.value=&settings.mouse_sensitivity,
+		.value=&settings_tmp.mouse_sensitivity,
 		.type=CONFIG_TYPE_FLOAT,
 		.max=INT_MAX,
 		.name="Mouse sensitivity"
 	});
 	list_add(&config_settings,&(struct config_setting){
-		.value=&settings.window_width,
+		.value=&settings_tmp.volume,
+		.type=CONFIG_TYPE_INT,
+		.max=10,
+		.name="Volume"
+	});
+	list_add(&config_settings,&(struct config_setting){
+		.value=&settings_tmp.window_width,
 		.type=CONFIG_TYPE_INT,
 		.max=INT_MAX,
 		.name="Game width",
@@ -229,7 +306,7 @@ void config_reload() {
 		.defaults_length=6
 	});
 	list_add(&config_settings,&(struct config_setting){
-		.value=&settings.window_height,
+		.value=&settings_tmp.window_height,
 		.type=CONFIG_TYPE_INT,
 		.max=INT_MAX,
 		.name="Game height",
@@ -237,7 +314,7 @@ void config_reload() {
 		.defaults_length=6
 	});
 	list_add(&config_settings,&(struct config_setting){
-		.value=&settings.vsync,
+		.value=&settings_tmp.vsync,
 		.type=CONFIG_TYPE_INT,
 		.max=INT_MAX,
 		.name="V-Sync",
@@ -246,13 +323,13 @@ void config_reload() {
 		.defaults_length=5
 	});
 	list_add(&config_settings,&(struct config_setting){
-		.value=&settings.fullscreen,
+		.value=&settings_tmp.fullscreen,
 		.type=CONFIG_TYPE_INT,
 		.max=1,
 		.name="Fullscreen"
 	});
 	list_add(&config_settings,&(struct config_setting){
-		.value=&settings.multisamples,
+		.value=&settings_tmp.multisamples,
 		.type=CONFIG_TYPE_INT,
 		.max=16,
 		.name="Multisamples",
@@ -261,19 +338,17 @@ void config_reload() {
 		.defaults_length=6
 	});
 	list_add(&config_settings,&(struct config_setting){
-		.value=&settings.show_fps,
+		.value=&settings_tmp.show_fps,
 		.type=CONFIG_TYPE_INT,
 		.max=1,
 		.name="Show fps",
 		.help="show your current fps and ping"
 	});
 	list_add(&config_settings,&(struct config_setting){
-		.value=&settings.show_news,
+		.value=&settings_tmp.show_news,
 		.type=CONFIG_TYPE_INT,
 		.max=1,
 		.name="Show news",
 		.help="opens the bns news on exit"
 	});
-
-    ini_parse("config.ini",config_read_key,NULL);
 }

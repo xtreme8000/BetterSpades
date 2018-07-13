@@ -76,8 +76,6 @@ struct Sound_wav sound_debris;
 struct Sound_wav sound_bounce;
 struct Sound_wav sound_impact;
 
-float sound_global_volume = 10.0F;
-
 void sound_volume(float vol) {
     if(sound_enabled)
         alListenerf(AL_GAIN,vol);
@@ -94,7 +92,6 @@ int sound_free_index() {
 struct Sound_source* sound_create(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z) {
     return sound_createEx(s,option,w,x,y,z,0.0F,0.0F,0.0F);
 }
-
 
 static struct Sound_source dummy;
 struct Sound_source* sound_createEx(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z, float vx, float vy, float vz) {
@@ -227,7 +224,7 @@ void sound_init() {
 
     alDistanceModel(AL_LINEAR_DISTANCE_CLAMPED);
 
-    sound_volume(sound_global_volume/10.0F);
+    sound_volume(settings.volume/10.0F);
 
     sound_load(&sound_footstep1,"wav/footstep1.wav",0.1F,32.0F);
     sound_load(&sound_footstep2,"wav/footstep2.wav",0.1F,32.0F);
