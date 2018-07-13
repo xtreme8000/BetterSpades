@@ -73,6 +73,10 @@ static void window_impl_keys(GLFWwindow* window, int key, int scancode, int acti
     int tr = window_key_translate(key,0);
     if(tr>=0)
         keys(hud_window,tr,scancode,a,mods>0);
+	else
+		tr = WINDOW_KEY_UNKNOWN;
+	if(hud_active->input_keyboard)
+		hud_active->input_keyboard(tr,action,mods,key);
 }
 
 float window_time() {

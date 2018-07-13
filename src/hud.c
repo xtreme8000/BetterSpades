@@ -1040,7 +1040,7 @@ static const char* hud_ingame_completeword(const char* s) {
     return (strlen(candidates[0].str)>0 && candidates[0].acceptance>0)?candidates[0].str:NULL;
 }
 
-static void hud_ingame_keyboard(int key, int action, int mods) {
+static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
     if(chat_input_mode!=CHAT_NO_INPUT && action==WINDOW_PRESS && key==WINDOW_KEY_TAB && strlen(chat[0][0])>0) {
         //autocomplete word
         char* incomplete = strrchr(chat[0][0],' ')+1;
@@ -1629,7 +1629,7 @@ static void hud_serverlist_mouseclick(int button, int action, int mods) {
     }
 }
 
-static void hud_serverlist_keyboard(int key, int action, int mods) {
+static void hud_serverlist_keyboard(int key, int action, int mods, int internal) {
     if(action!=WINDOW_RELEASE) {
         if(key==WINDOW_KEY_UP || key==WINDOW_KEY_CURSOR_UP) {
             serverlist_scroll += 20.0F;
@@ -1771,7 +1771,7 @@ static int is_float(char* x) {
 	}
 }
 
-static void hud_settings_keyboard(int key, int action, int mods) {
+static void hud_settings_keyboard(int key, int action, int mods, int internal) {
 	if(hud_settings_edit && action!=WINDOW_RELEASE && key==WINDOW_KEY_BACKSPACE) {
 		size_t text_len = strlen(chat[0][0]);
 		if(text_len>0) {
@@ -1916,51 +1916,111 @@ struct hud hud_settings = {
 
 /*         HUD_CONTROLS START        */
 
+static struct config_key_pair* hud_controls_edit = NULL;
+
 static void hud_controls_render(float scalex, float scaley) {
-    glColor3f(0.5F,0.5F,0.5F);
-    float t = window_time()*0.03125F;
-    texture_draw_sector(&texture_ui_bg,0.0F,settings.window_height,settings.window_width,settings.window_height,t,t,settings.window_width/512.0F,settings.window_height/512.0F);
+	glColor3f(0.5F,0.5F,0.5F);
+	float t = window_time()*0.03125F;
+	texture_draw_sector(&texture_ui_bg,0.0F,settings.window_height,settings.window_width,settings.window_height,t,t,settings.window_width/512.0F,settings.window_height/512.0F);
 
-    glColor4f(0.0F,0.0F,0.0F,0.66F);
-    glEnable(GL_BLEND);
-    texture_draw_empty((settings.window_width-640*scaley)/2.0F,550*scaley,640*scaley,600*scaley);
-    glDisable(GL_BLEND);
+	glColor4f(0.0F,0.0F,0.0F,0.66F);
+	glEnable(GL_BLEND);
+	texture_draw_empty((settings.window_width-640*scaley)/2.0F,550*scaley,640*scaley,600*scaley);
+	glDisable(GL_BLEND);
 
-    glColor3f(1.0F,1.0F,0.0F);
-    font_render((settings.window_width-600*scaley)/2.0F+0*scaley,535*scaley,36*scaley,"Controls");
-    glColor3f(0.5F,0.5F,0.5F);
-    font_centered((settings.window_width-600*scaley)/2.0F+225*scaley,535*scaley-12*scaley,20*scaley,"Server list");
-    font_centered((settings.window_width-600*scaley)/2.0F+340*scaley,535*scaley-12*scaley,20*scaley,"Settings");
+	glColor3f(1.0F,1.0F,0.0F);
+	font_render((settings.window_width-600*scaley)/2.0F+0*scaley,535*scaley,36*scaley,"Controls");
+	glColor3f(0.5F,0.5F,0.5F);
+	font_centered((settings.window_width-600*scaley)/2.0F+225*scaley,535*scaley-12*scaley,20*scaley,"Server list");
+	font_centered((settings.window_width-600*scaley)/2.0F+340*scaley,535*scaley-12*scaley,20*scaley,"Settings");
+
+	int x_off = 0;
+	int y_off = 0;
+	for(int k=0;k<list_size(&config_keys);k++) {
+		struct config_key_pair* a = list_get(&config_keys,k);
+		if(*a->display) {
+			glColor3f(1.0F,1.0F,1.0F);
+			font_render((settings.window_width-600*scaley)/2.0F+200*x_off*scaley,(460-40*y_off)*scaley,16*scaley,a->display);
+
+			texture_draw_sector(&texture_ui_input,(settings.window_width-600*scaley)/2.0F+(200*x_off+110)*scaley,(466-40*y_off)*scaley,8*scaley,32*scaley,0.0F,0.0F,0.25F,1.0F);
+			texture_draw_sector(&texture_ui_input,(settings.window_width-600*scaley)/2.0F+(200*x_off+118)*scaley,(466-40*y_off)*scaley,64*scaley,32*scaley,0.25F,0.0F,0.5F,1.0F);
+			texture_draw_sector(&texture_ui_input,(settings.window_width-600*scaley)/2.0F+(200*x_off+182)*scaley,(466-40*y_off)*scaley,8*scaley,32*scaley,0.75F,0.0F,0.25F,1.0F);
+
+			if(hud_controls_edit==a)
+				glColor3f(1.0F,0.0F,0.0F);
+			font_centered((settings.window_width-600*scaley)/2.0F+(200*x_off+150)*scaley,(460-40*y_off)*scaley,20*scaley,glfwGetKeyName(a->def,0)!=NULL?(char*)glfwGetKeyName(a->def,0):"?");
+
+			y_off++;
+			if(y_off>10) {
+				y_off = 0;
+				x_off++;
+			}
+		}
+	}
 }
 
 static void hud_controls_mouseclick(int button, int action, int mods) {
-    if(action==WINDOW_PRESS) {
-        double x,y;
-        window_mouseloc(&x,&y);
-        float scaley = settings.window_height/600.0F;
+	if(action==WINDOW_PRESS) {
+		if(hud_controls_edit)
+			hud_controls_edit = NULL;
 
-        if(x>=(settings.window_width-600*scaley)/2.0F+225*scaley-font_length(20*scaley,"Server list")/2
-        && x<(settings.window_width-600*scaley)/2.0F+225*scaley+font_length(20*scaley,"Server list")/2
-        && y>=77*scaley && y<97*scaley) {
-            hud_change(&hud_serverlist);
-        }
+		double x,y;
+		window_mouseloc(&x,&y);
+		float scaley = settings.window_height/600.0F;
 
-        if(x>=(settings.window_width-600*scaley)/2.0F+340*scaley-font_length(20*scaley,"Settings")/2
-        && x<(settings.window_width-600*scaley)/2.0F+340*scaley+font_length(20*scaley,"Settings")/2
-        && y>=77*scaley && y<97*scaley) {
-            hud_change(&hud_settings);
-        }
+		if(x>=(settings.window_width-600*scaley)/2.0F+225*scaley-font_length(20*scaley,"Server list")/2
+		&& x<(settings.window_width-600*scaley)/2.0F+225*scaley+font_length(20*scaley,"Server list")/2
+		&& y>=77*scaley && y<97*scaley) {
+			hud_change(&hud_serverlist);
+		}
+
+		if(x>=(settings.window_width-600*scaley)/2.0F+340*scaley-font_length(20*scaley,"Settings")/2
+		&& x<(settings.window_width-600*scaley)/2.0F+340*scaley+font_length(20*scaley,"Settings")/2
+		&& y>=77*scaley && y<97*scaley) {
+			hud_change(&hud_settings);
+		}
+
+		y = settings.window_height-y;
+
+		int x_off = 0;
+		int y_off = 0;
+		for(int k=0;k<list_size(&config_keys);k++) {
+			struct config_key_pair* a = list_get(&config_keys,k);
+			if(*a->display) {
+
+				if(is_inside(x,y,
+					(settings.window_width-600*scaley)/2.0F+(200*x_off+110)*scaley,
+					(434-40*y_off)*scaley,80*scaley,32*scaley)) {
+					hud_controls_edit = a;
+					break;
+				}
+
+				y_off++;
+				if(y_off>10) {
+					y_off = 0;
+					x_off++;
+				}
+			}
+		}
     }
 }
 
+static void hud_controls_keyboard(int key, int action, int mods, int internal) {
+	if(hud_controls_edit) {
+		hud_controls_edit->def = internal;
+		hud_controls_edit = NULL;
+		config_save();
+	}
+}
+
 struct hud hud_controls = {
-    (void*)NULL,
-    (void*)NULL,
-    hud_controls_render,
-    (void*)NULL,
-    (void*)NULL,
-    hud_controls_mouseclick,
-    (void*)NULL,
-    0,
-    0
+	(void*)NULL,
+	(void*)NULL,
+	hud_controls_render,
+	hud_controls_keyboard,
+	(void*)NULL,
+	hud_controls_mouseclick,
+	(void*)NULL,
+	0,
+	0
 };

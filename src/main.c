@@ -491,8 +491,6 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
     }
     if(action==WINDOW_RELEASE && !config_key(key)->toggle)
         window_pressed_keys[key] = 0;
-	if(hud_active->input_keyboard)
-		hud_active->input_keyboard(key,action,mods);
 
 	#ifdef USE_GLFW
 	if(key==WINDOW_KEY_FULLSCREEN && action==GLFW_PRESS) { //switch between fullscreen

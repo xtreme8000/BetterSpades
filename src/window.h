@@ -28,6 +28,7 @@ enum {
 };
 
 enum window_keys {
+	WINDOW_KEY_UNKNOWN,
     WINDOW_KEY_UP,
     WINDOW_KEY_DOWN,
     WINDOW_KEY_LEFT,
