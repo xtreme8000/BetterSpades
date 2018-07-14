@@ -202,19 +202,6 @@ void chunk_draw_shadow_volume(float* data, int max) {
 	glEnd();*/
 }
 
-//see this for details: https://github.com/infogulch/pyspades/blob/protocol075/pyspades/vxl_c.cpp#L380
-float sunblock(int x, int y, int z) {
-    int dec = 18;
-    int i = 127;
-
-    while(dec && y<64) {
-        if((map_get(x,++y,--z)&0xFFFFFFFF)!=0xFFFFFFFF)
-            i -= dec;
-        dec -= 2;
-    }
-    return (float)i/127.0F;
-}
-
 void* chunk_generate(void* data) {
 	struct chunk_worker* worker = (struct chunk_worker*)data;
 
@@ -1358,7 +1345,7 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 					unsigned char r = (col&0xFF);
 					unsigned char g = ((col>>8)&0xFF);
 					unsigned char b = ((col>>16)&0xFF);
-					float shade = sunblock(x,y,z);
+					float shade = map_sunblock(x,y,z);
 					r *= shade;
 					g *= shade;
 					b *= shade;
@@ -1377,7 +1364,7 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 							CHECK_ALLOCATION_ERROR(worker->color_data)
 						}
 						size++;
-						
+
 						#ifdef OPENGL_ES
 						for(int l=0;l<6;l++) {
 						#else
@@ -1531,7 +1518,7 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 						worker->vertex_data[chunk_vertex_index++] = x;
 						worker->vertex_data[chunk_vertex_index++] = y;
 						worker->vertex_data[chunk_vertex_index++] = z;
-						
+
 						worker->vertex_data[chunk_vertex_index++] = x;
 						worker->vertex_data[chunk_vertex_index++] = y+1;
 						worker->vertex_data[chunk_vertex_index++] = z+1;

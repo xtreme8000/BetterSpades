@@ -403,11 +403,6 @@ static void hud_ingame_render(float scalex, float scalef) {
                 }
             }
             glColor3f(1.0F,1.0F,1.0F);
-
-            if(window_time()-local_player_last_damage_timer<=0.5F || 1) {
-                float ang = -camera_rot_x-atan2(camera_z-local_player_last_damage_z,camera_x-local_player_last_damage_x);
-                texture_draw_rotated(&texture_indicator,settings.window_width/2.0F,settings.window_height/2.0F,200,200,ang);
-            }
         }
 
         if(camera_mode==CAMERAMODE_FPS) {
@@ -594,7 +589,7 @@ static void hud_ingame_render(float scalex, float scalef) {
         if(camera_mode!=CAMERAMODE_SELECTION) {
             glColor3f(1.0F,1.0F,1.0F);
             //large
-            if(chat_input_mode==CHAT_NO_INPUT && window_key_down(WINDOW_KEY_MAP)) {
+            if(window_key_down(WINDOW_KEY_MAP)) {
                 float minimap_x = (settings.window_width-(map_size_x+1)*scalef)/2.0F;
                 float minimap_y = ((600-map_size_z-1)/2.0F+map_size_z+1)*scalef;
 
@@ -677,17 +672,14 @@ static void hud_ingame_render(float scalex, float scalef) {
                 glColor3f(1.0F,1.0F,1.0F);
             } else {
                 //minimized, top right
-                float view_x = min(max(camera_x-64.0F,0.0F),map_size_x+1-128.0F);
-                float view_z = min(max(camera_z-64.0F,0.0F),map_size_z+1-128.0F);
+                float view_x = camera_x-64.0F;//min(max(camera_x-64.0F,0.0F),map_size_x+1-128.0F);
+                float view_z = camera_z-64.0F;//min(max(camera_z-64.0F,0.0F),map_size_z+1-128.0F);
 
                 glColor3ub(0,0,0);
                 texture_draw_empty(settings.window_width-144*scalef,586*scalef,130*scalef,130*scalef);
                 glColor3f(1.0F,1.0F,1.0F);
 
-                glEnable(GL_SCISSOR_TEST);
-                glScissor(settings.window_width-143*scalef,585*scalef-128*scalef,128*scalef,128*scalef);
-                texture_draw(&texture_minimap,settings.window_width-(143+(int)view_x)*scalef,(585+(int)view_z)*scalef,512*scalef,512*scalef);
-                glDisable(GL_SCISSOR_TEST);
+				texture_draw_sector(&texture_minimap,settings.window_width-143*scalef,585*scalef,128*scalef,128*scalef,(camera_x-64.0F)/512.0F,(camera_z-64.0F)/512.0F,0.25F,0.25F);
 
                 for(int k=0;k<TRACER_MAX;k++) {
                     if(tracers[k].used) {
@@ -753,7 +745,7 @@ static void hud_ingame_render(float scalex, float scalef) {
                 }
 
                 for(int k=0;k<PLAYERS_MAX;k++) {
-                    if(players[k].connected && players[k].alive && (players[k].team==players[local_player_id].team || (camera_mode==CAMERAMODE_SPECTATOR && k==local_player_id))) {
+                    if(players[k].connected && players[k].alive && (players[k].team==players[local_player_id].team || (camera_mode==CAMERAMODE_SPECTATOR && (k==local_player_id || players[k].team!=TEAM_SPECTATOR)))) {
                         if(k==local_player_id) {
                             glColor3ub(0,255,255);
                         } else {
@@ -1091,6 +1083,12 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
                 sprintf(volstr,"Volume: %i",settings.volume);
                 chat_add(0,0x0000FF,volstr);
             }
+
+			if(key==WINDOW_KEY_COMMAND) {
+				chat_input_mode = CHAT_ALL_INPUT;
+				text_input_first = 1;
+				strcpy(chat[0][0],"/");
+			}
 
 			if(key==WINDOW_KEY_CHAT) {
 				chat_input_mode = CHAT_ALL_INPUT;
@@ -1553,6 +1551,8 @@ static void hud_serverlist_render(float scalex, float scaley) {
                 player_count = 0;
                 for(int k=1;k<server_count;k++) {
                     JSON_Object* s = json_array_get_object(servers,k-1);
+					memset(&serverlist[k],0,sizeof(struct serverlist_entry));
+
                     serverlist[k].current = (int)json_object_get_number(s,"players_current");
                     serverlist[k].max = (int)json_object_get_number(s,"players_max");
                     serverlist[k].ping = (int)json_object_get_number(s,"latency");

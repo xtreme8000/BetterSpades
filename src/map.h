@@ -41,6 +41,7 @@ int map_object_visible(float* loc);
 int map_damage(int x, int y, int z, int damage);
 void map_damaged_voxels_render();
 void map_update_physics(int x, int y, int z);
+float map_sunblock(int x, int y, int z);
 unsigned long long map_get(int x, int y, int z);
 unsigned long long map_get_unblocked(int x, int y, int z);
 void map_set(int x, int y, int z, unsigned long long color);

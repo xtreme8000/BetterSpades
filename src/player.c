@@ -398,6 +398,9 @@ static float foot_function(struct Player* p) {
 }
 
 int player_render(struct Player* p, int id, Ray* ray, char render) {
+	if(render)
+		kv6_calclight(p->pos.x,p->pos.y,p->pos.z);
+
     if(camera_mode==CAMERAMODE_SPECTATOR && p->team!=TEAM_SPECTATOR) {
         int old_state = glx_fog;
         if(old_state)

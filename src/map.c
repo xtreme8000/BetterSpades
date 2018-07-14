@@ -569,6 +569,19 @@ void map_update_physics(int x, int y, int z) {
 		map_update_physics_sub(x,y+1,z);
 }
 
+//see this for details: https://github.com/infogulch/pyspades/blob/protocol075/pyspades/vxl_c.cpp#L380
+float map_sunblock(int x, int y, int z) {
+	int dec = 18;
+	int i = 127;
+
+	while(dec && y<64) {
+		if((map_get(x,++y,--z)&0xFFFFFFFF)!=0xFFFFFFFF)
+			i -= dec;
+		dec -= 2;
+	}
+	return (float)i/127.0F;
+}
+
 unsigned long long map_get(int x, int y, int z) {
 	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_y || z>=map_size_z)
 		return 0xFFFFFFFF;

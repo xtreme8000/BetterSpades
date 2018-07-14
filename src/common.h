@@ -17,9 +17,9 @@
     along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define BETTERSPADES_VERSION    "v0.1.2"
+#define BETTERSPADES_VERSION    "v0.1.3"
 
-#define BETTERSPADES_PATCH      2
+#define BETTERSPADES_PATCH      3
 #define BETTERSPADES_MINOR      1
 #define BETTERSPADES_MAJOR      0
 

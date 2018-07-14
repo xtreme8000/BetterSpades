@@ -187,6 +187,16 @@ void kv6_rebuild(struct kv6_t* kv6) {
 	}
 }
 
+void kv6_calclight(int x, int y, int z) {
+	float f = 1.0F;
+	if(x>=0 && y>=0 && z>=0)
+		f = map_sunblock(x,y,z);
+	float lambient[4] = {0.5F*f,0.5F*f,0.5F*f,1.0F};
+	float ldiffuse[4] = {0.5F*f,0.5F*f,0.5F*f,1.0F};
+	glLightfv(GL_LIGHT0,GL_AMBIENT,lambient);
+	glLightfv(GL_LIGHT0,GL_DIFFUSE,ldiffuse);
+}
+
 static int kv6_program = -1;
 void kv6_render(struct kv6_t* kv6, unsigned char team) {
 	if(!kv6->has_display_list) {
@@ -532,7 +542,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 											"	float d = clamp(dot(N,L),0.0,1.0)*0.5+0.5;\n" \
 											"	gl_FrontColor = mix(vec4(d,d,d,1.0)*gl_Color,vec4(fog,1.0),min(dist/128.0,1.0));\n" \
 											"	gl_PointSize = size/gl_Position.w;\n" \
-											"}\n");
+											"}\n",NULL);
 		}
 	}
 

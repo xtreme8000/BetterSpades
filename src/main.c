@@ -98,6 +98,7 @@ void drawScene(float dt) {
 	chunk_draw_visible();
 
 	glShadeModel(GL_FLAT);
+	kv6_calclight(-1,-1,-1);
 	matrix_upload();
 	particle_render();
 	tracer_render();
@@ -111,6 +112,9 @@ void drawScene(float dt) {
 			matrix_translate(gamestate.gamemode.ctf.team_1_intel_location.dropped.x,
 						 63.0F-gamestate.gamemode.ctf.team_1_intel_location.dropped.z+1.0F,
 						 gamestate.gamemode.ctf.team_1_intel_location.dropped.y);
+			kv6_calclight(gamestate.gamemode.ctf.team_1_intel_location.dropped.x,
+						 63.0F-gamestate.gamemode.ctf.team_1_intel_location.dropped.z+1.0F,
+						 gamestate.gamemode.ctf.team_1_intel_location.dropped.y);
 			matrix_upload();
 			kv6_render(&model_intel,TEAM_1);
 			matrix_pop();
@@ -120,6 +124,9 @@ void drawScene(float dt) {
 			matrix_translate(gamestate.gamemode.ctf.team_2_intel_location.dropped.x,
 						 63.0F-gamestate.gamemode.ctf.team_2_intel_location.dropped.z+1.0F,
 						 gamestate.gamemode.ctf.team_2_intel_location.dropped.y);
+			kv6_calclight(gamestate.gamemode.ctf.team_2_intel_location.dropped.x,
+ 						 63.0F-gamestate.gamemode.ctf.team_2_intel_location.dropped.z+1.0F,
+ 						 gamestate.gamemode.ctf.team_2_intel_location.dropped.y);
 			matrix_upload();
 			kv6_render(&model_intel,TEAM_2);
 			matrix_pop();
@@ -129,6 +136,9 @@ void drawScene(float dt) {
     		matrix_translate(gamestate.gamemode.ctf.team_1_base.x,
     					 63.0F-gamestate.gamemode.ctf.team_1_base.z+1.0F,
     					 gamestate.gamemode.ctf.team_1_base.y);
+			kv6_calclight(gamestate.gamemode.ctf.team_1_base.x,
+     					 63.0F-gamestate.gamemode.ctf.team_1_base.z+1.0F,
+     					 gamestate.gamemode.ctf.team_1_base.y);
     		matrix_upload();
     		kv6_render(&model_tent,TEAM_1);
     		matrix_pop();
@@ -138,6 +148,9 @@ void drawScene(float dt) {
     		matrix_translate(gamestate.gamemode.ctf.team_2_base.x,
     					 63.0F-gamestate.gamemode.ctf.team_2_base.z+1.0F,
     					 gamestate.gamemode.ctf.team_2_base.y);
+			kv6_calclight(gamestate.gamemode.ctf.team_2_base.x,
+     					 63.0F-gamestate.gamemode.ctf.team_2_base.z+1.0F,
+     					 gamestate.gamemode.ctf.team_2_base.y);
     		matrix_upload();
     		kv6_render(&model_tent,TEAM_2);
     		matrix_pop();
@@ -149,6 +162,9 @@ void drawScene(float dt) {
 			matrix_translate(gamestate.gamemode.tc.territory[k].x,
 						 63.0F-gamestate.gamemode.tc.territory[k].z+1.0F,
 						 gamestate.gamemode.tc.territory[k].y);
+			kv6_calclight(gamestate.gamemode.tc.territory[k].x,
+ 						 63.0F-gamestate.gamemode.tc.territory[k].z+1.0F,
+ 						 gamestate.gamemode.tc.territory[k].y);
 			matrix_upload();
 			kv6_render(&model_tent,min(gamestate.gamemode.tc.territory[k].team,2));
 			matrix_pop();
@@ -196,13 +212,9 @@ void display(float dt) {
 			matrix_select(matrix_model);
 			matrix_identity();
 
-			float lpos[4] = {0.0F,-1.0F,1.0F,0.0F};
-			float lambient[4] = {0.5F,0.5F,0.5F,1.0F};
-			float ldiffuse[4] = {0.5F,0.5F,0.5F,1.0F};
 			matrix_upload();
+			float lpos[4] = {0.0F,-1.0F,1.0F,0.0F};
 			glLightfv(GL_LIGHT0,GL_POSITION,lpos);
-			glLightfv(GL_LIGHT0,GL_AMBIENT,lambient);
-			glLightfv(GL_LIGHT0,GL_DIFFUSE,ldiffuse);
 
 			map_sun[0] = 1.0F;
 			map_sun[1] = -3.0F;
@@ -219,9 +231,6 @@ void display(float dt) {
 		}
 
 		camera_ExtractFrustum();
-
-		float fps = 1.0F/dt;
-		//printf("FPS: %0.2f\n",fps);
 
 		if(!network_map_transfer) {
 
@@ -484,13 +493,16 @@ void text_input(struct window_instance* window, unsigned int codepoint) {
 
 void keys(struct window_instance* window, int key, int scancode, int action, int mods) {
     if(action==WINDOW_PRESS) {
-        if(config_key(key)->toggle)
-            window_pressed_keys[key] = !window_pressed_keys[key];
-        else
-            window_pressed_keys[key] = 1;
-    }
-    if(action==WINDOW_RELEASE && !config_key(key)->toggle)
-        window_pressed_keys[key] = 0;
+        if(config_key(key)->toggle) {
+			if(chat_input_mode==CHAT_NO_INPUT) {
+				window_pressed_keys[key] = !window_pressed_keys[key];
+			}
+		} else {
+			window_pressed_keys[key] = 1;
+		}
+	}
+	if(action==WINDOW_RELEASE && !config_key(key)->toggle)
+		window_pressed_keys[key] = 0;
 
 	#ifdef USE_GLFW
 	if(key==WINDOW_KEY_FULLSCREEN && action==GLFW_PRESS) { //switch between fullscreen
