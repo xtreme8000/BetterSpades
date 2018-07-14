@@ -15,14 +15,15 @@
 #
 #   enet::enet
 #
-
 find_package(PkgConfig)
 pkg_check_modules(PC_enet QUIET enet)
+
 find_path(enet_INCLUDE_DIR
-  NAMES enet.h
+  NAMES enet/enet.h
   PATHS ${PC_enet_INCLUDE_DIRS}
   PATH_SUFFIXES enet
 )
+
 find_library(enet_LIBRARY
   NAMES enet
   PATHS ${PC_enet_LIBRARY_DIRS}

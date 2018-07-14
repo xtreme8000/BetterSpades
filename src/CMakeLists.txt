@@ -55,13 +55,17 @@ list(APPEND CLIENT_SOURCES ${BetterSpades_SOURCE_DIR}/resources/icon.rc)
 
 add_executable(client ${CLIENT_SOURCES})
 target_compile_definitions(client PRIVATE DR_WAV_IMPLEMENTATION)
-set_target_properties(client PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${BetterSpades_SOURCE_DIR}/build/BetterSpades)
+set_target_properties(
+	client PROPERTIES 
+	RUNTIME_OUTPUT_DIRECTORY ${BetterSpades_SOURCE_DIR}/build/BetterSpades
+	C_STANDARD 99
+)
 
 set(CMAKE_PREFIX_PATH  ${CMAKE_PREFIX_PATH} ${BetterSpades_SOURCE_DIR}/deps)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${BetterSpades_SOURCE_DIR}/cmake/Modules)
-find_package(GLFW3 REQUIRED)
-find_package(OPENGL REQUIRED)
-find_package(OPENAL CONFIG REQUIRED)
+find_package(glfw3 REQUIRED)
+find_package(OpenGL REQUIRED)
+find_package(OpenAL CONFIG REQUIRED)
 find_package(enet REQUIRED)
 find_package(deflate REQUIRED)
 
