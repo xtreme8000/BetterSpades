@@ -1,9 +1,9 @@
 [![Build Status](http://bytebit.info.tm/jenkins/buildStatus/icon?job=BetterSpades)](http://bytebit.info.tm/jenkins/job/BetterSpades/)
 [![](https://img.shields.io/github/downloads/xtreme8000/BetterSpades/total.svg)](https://github.com/xtreme8000/BetterSpades/releases)
 [![GPL](https://img.shields.io/badge/license-GPL--3.0-red.svg)](https://github.com/xtreme8000/BetterSpades/blob/standalone/LICENSE)
-[![DonateBTC](https://img.shields.io/badge/bitcoin-donate-yellow.svg)](1AeSfdVmbEX6VCqxCgk9WkzSA8XJkKr4FM)
+[![DonateBTC](https://img.shields.io/badge/bitcoin-donate-yellow.svg)](https://github.com/xtreme8000/BetterSpades#donate)
 
-## ![](resources/icon_small.png) BetterSpades
+## ![](docs/icon_small.png) BetterSpades
 
 * Replicate of the great game *Ace of Spades* (classic voxlap)
 * runs on very old systems back to OpenGL 1.1 (OpenGL ES support too)
@@ -117,7 +117,7 @@ The development headers for OpenAL and OpenGL don't have to be installed since t
 | :-: | :-: | :-: |
 | <img src="/docs/pic04.png" width="250px"><br />*grenade fun* | <img src="/docs/pic05.png" width="250px"><br />*falling block animation* | <img src="/docs/pic06.png" width="250px"><br />*sniping on normandie* |
 
-##
+## Donate
 
 >*Donations are greatly appreciated* :+1:
 >
