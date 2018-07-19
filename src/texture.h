@@ -58,10 +58,12 @@ extern struct texture texture_ui_input;
 extern struct texture texture_ui_box_empty;
 extern struct texture texture_ui_box_check;
 extern struct texture texture_ui_arrow;
+extern struct texture texture_ui_flags;
 
 #define TEXTURE_FILTER_NEAREST  0
 #define TEXTURE_FILTER_LINEAR   1
 
+void texture_flag_offset(const char* country, float* u, float* v);
 void texture_filter(struct texture* t, int filter);
 void texture_init(void);
 int texture_create(struct texture* t, char* filename);

@@ -1349,6 +1349,7 @@ struct serverlist_entry {
     char gamemode[8];
     int ping;
     char identifier[32];
+	char country[4];
 };
 
 static http_t* request_serverlist = NULL;
@@ -1478,6 +1479,12 @@ static void hud_serverlist_render(float scalex, float scaley) {
         font_render((settings.window_width-600*scaley)/2.0F+480*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,serverlist[k].gamemode);
         sprintf(total_str,"%ims",serverlist[k].ping);
 
+		if(serverlist[k].current>=0) {
+			float u,v;
+			texture_flag_offset(serverlist[k].country,&u,&v);
+			texture_draw_sector(&texture_ui_flags,(settings.window_width-600*scaley)/2.0F+55*scaley,448*scaley-20*scaley*(k+1)-serverlist_scroll,18*scaley,12*scaley,u,v,18.0F/256.0F,12.0F/256.0F);
+		}
+
         if(serverlist[k].ping<110)
             glColor3f(0.0F,1.0F*f,0.0F);
         else if(serverlist[k].ping<200)
@@ -1561,6 +1568,7 @@ static void hud_serverlist_render(float scalex, float scaley) {
                     strncpy(serverlist[k].map,json_object_get_string(s,"map"),20);
                     strncpy(serverlist[k].gamemode,json_object_get_string(s,"game_mode"),7);
                     strncpy(serverlist[k].identifier,json_object_get_string(s,"identifier"),31);
+					strncpy(serverlist[k].country,json_object_get_string(s,"country"),3);
                     player_count += serverlist[k].current;
                 }
                 serverlist[0].current = serverlist[0].max = -1;
@@ -1569,6 +1577,7 @@ static void hud_serverlist_render(float scalex, float scaley) {
                 strcpy(serverlist[0].map,"-");
                 strcpy(serverlist[0].gamemode,"-");
                 strcpy(serverlist[0].identifier,"aos://16777343:32887");
+				strcpy(serverlist[0].country,"US");
 
                 qsort(serverlist,server_count,sizeof(struct serverlist_entry),hud_serverlist_sort);
                 http_release(request_serverlist);

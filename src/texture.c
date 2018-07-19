@@ -56,6 +56,38 @@ struct texture texture_ui_input;
 struct texture texture_ui_box_empty;
 struct texture texture_ui_box_check;
 struct texture texture_ui_arrow;
+struct texture texture_ui_flags;
+
+static char* texture_flags[250] = {
+									"AD","AE","AF","AG","AI","AL","AM","AN","AO","AQ","AR","AS","AT","AU",
+									"AW","AX","AZ","BA","BB","BD","BE","BF","BG","BH","BI","BJ","BL","BM",
+									"BN","BO","BR","BS","BT","BV","BW","BY","BZ","CA","CC","CD","CF","CG",
+									"CH","CI","CK","CL","CM","CN","CO","CR","CS","CU","CV","CX","CY","CZ",
+									"DE","DJ","DK","DM","DO","DZ","EC","EE","EG","EH","ER","ES","ET","FI",
+									"FJ","FK","FM","FO","FR","FX","GA","GB","GD","GE","GF","GG","GH","GI",
+									"GL","GM","GN","GP","GQ","GR","GS","GT","GU","GW","GY","HK","HM","HN",
+									"HR","HT","HU","ID","IE","IL","IN","IO","IQ","IR","IS","IT","JE","JM",
+									"JO","JP","KE","KG","KH","KI","KM","KN","KP","KR","KW","KY","KZ","LA",
+									"LB","LC","LI","LK","LR","LS","LT","LU","LV","LY","MA","MC","MD","ME",
+									"MF","MG","MH","MK","ML","MM","MN","MO","MP","MQ","MR","MS","MT","MU",
+									"MV","MW","MX","MY","MZ","NA","NC","NE","NF","NG","NI","NL","NO","NP",
+									"NR","NU","NZ","OM","PA","PE","PF","PG","PH","PK","PL","PM","PN","PR",
+									"PS","PT","PW","PY","QA","RE","RO","RS","RU","RW","SA","SB","SC","SD",
+									"SE","SG","SH","SI","SJ","SK","SL","SM","SN","SO","SR","ST","SV","SY",
+									"SZ","TC","TD","TF","TG","TH","TJ","TK","TL","TM","TN","TO","TP","TR",
+									"TT","TV","TW","TZ","UA","UG","UM","US","UY","UZ","VA","VC","VE","VG",
+									"VI","VN","VU","WF","WS","XT","YE","YT","YU","ZA","ZM","ZW"
+								};
+
+static int texture_flag_cmp(const void* a, const void* b) {
+	return strcmp(a,*(const void* const*)b);
+}
+
+void texture_flag_offset(const char* country, float* u, float* v) {
+	int i = (char**)bsearch(country,texture_flags,250,sizeof(char*),texture_flag_cmp)-texture_flags;
+	*u = (i%14)*(18.0F/256.0F);
+	*v = (i/14)*(12.0F/256.0F);
+}
 
 void texture_filter(struct texture* t, int filter) {
     glBindTexture(GL_TEXTURE_2D,t->texture_id);
@@ -328,10 +360,11 @@ void texture_init() {
     texture_create(&texture_ui_reload,"png/ui/reload.png");
     texture_create(&texture_ui_bg,"png/ui/bg.png");
     texture_create(&texture_ui_input,"png/ui/input.png");
-
 	texture_create(&texture_ui_box_empty,"png/ui/box_empty.png");
 	texture_create(&texture_ui_box_check,"png/ui/box_check.png");
 	texture_create(&texture_ui_arrow,"png/ui/arrow.png");
+	texture_create(&texture_ui_flags,"png/ui/flags.png");
+	texture_filter(&texture_ui_flags,TEXTURE_FILTER_LINEAR);
 
 
     unsigned int* pixels = malloc(64*64*sizeof(unsigned int));
