@@ -606,7 +606,7 @@ void map_set(int x, int y, int z, unsigned long long color) {
 
 	/*int err = pthread_rwlock_trywrlock(&chunk_map_lock);
 	if(err!=0) {
-		printf("pthread: %i\n",err);
+		log_debug("pthread: %i",err);
 		return;
 	}*/
 	pthread_rwlock_wrlock(&chunk_map_locks[x+z*map_size_x]);

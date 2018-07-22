@@ -85,7 +85,7 @@ int sound_free_index() {
     for(int k=0;k<SOUND_VOICES_MAX;k++)
         if(sound_sources_free[k])
             return k;
-    printf("Could not find free sound channel!\n");
+    log_warn("Could not find free sound channel!");
     return 0;
 }
 
@@ -185,7 +185,7 @@ void sound_load(struct Sound_wav* wav, char* name, float min, float max) {
     uint64_t samplecount;
     short* samples = drwav_open_and_read_file_s16(name,&channels,&samplerate,&samplecount);
     if(samples==NULL) {
-        printf("Could not load sound %s\n",name);
+        log_fatal("Could not load sound %s",name);
         exit(1);
     }
 
@@ -211,14 +211,14 @@ void sound_init() {
 
     if(!device) {
         sound_enabled = 0;
-        printf("Could not open sound device!\n");
+        log_warn("Could not open sound device!");
         return;
     }
 
     ALCcontext* context = alcCreateContext(device,NULL);
     if(!alcMakeContextCurrent(context)) {
         sound_enabled = 0;
-        printf("Could not enter sound device context!\n");
+        log_warn("Could not enter sound device context!");
         return;
     }
 

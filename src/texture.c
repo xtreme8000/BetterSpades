@@ -84,9 +84,15 @@ static int texture_flag_cmp(const void* a, const void* b) {
 }
 
 void texture_flag_offset(const char* country, float* u, float* v) {
-	int i = (char**)bsearch(country,texture_flags,250,sizeof(char*),texture_flag_cmp)-texture_flags;
-	*u = (i%14)*(18.0F/256.0F);
-	*v = (i/14)*(12.0F/256.0F);
+	char** res = bsearch(country,texture_flags,250,sizeof(char*),texture_flag_cmp);
+	if(res) {
+		int i = res-texture_flags;
+		*u = (i%14)*(18.0F/256.0F);
+		*v = (i/14)*(12.0F/256.0F);
+	} else {
+		*u = 0.0F;
+		*v = 0.9375F;
+	}
 }
 
 void texture_filter(struct texture* t, int filter) {
@@ -107,7 +113,7 @@ void texture_filter(struct texture* t, int filter) {
 int texture_create(struct texture* t, char* filename) {
     int error = lodepng_decode32_file(&t->pixels,&t->width,&t->height,filename);
     if(error) {
-        printf("Could not load texture (%u): %s\n",error,lodepng_error_text(error));
+        log_warn("Could not load texture (%u): %s",error,lodepng_error_text(error));
         return 0;
     }
 
@@ -276,7 +282,7 @@ void texture_resize_pow2(struct texture* t, int min_size) {
     if(t->width==w && t->height==h)
         return;
 
-    printf("original: %i:%i now: %i:%i limit: %i\n",t->width,t->height,w,h,max_size);
+    log_info("texture original: %i:%i now: %i:%i limit: %i",t->width,t->height,w,h,max_size);
 
     unsigned int* pixels_new = malloc(w*h*sizeof(unsigned int));
     CHECK_ALLOCATION_ERROR(pixels_new)
@@ -353,7 +359,6 @@ void texture_init() {
     texture_create(&texture_intel,"png/intel.png");
     texture_create(&texture_command,"png/command.png");
     texture_create(&texture_tracer,"png/tracer.png");
-
 
     texture_create(&texture_ui_wait,"png/ui/wait.png");
     texture_create(&texture_ui_join,"png/ui/join.png");

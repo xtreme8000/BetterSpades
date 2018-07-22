@@ -1064,7 +1064,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 					camera_mode = CAMERAMODE_BODYVIEW;
 				}
 				if(key==WINDOW_KEY_SNEAK) {
-					printf("%f,%f,%f,%f,%f\n",camera_x,camera_y,camera_z,camera_rot_x,camera_rot_y);
+					log_debug("%f,%f,%f,%f,%f",camera_x,camera_y,camera_z,camera_rot_x,camera_rot_y);
 					players[local_player_id].pos.x = 256.0F;
 					players[local_player_id].pos.y = 63.0F;
 					players[local_player_id].pos.z = 256.0F;
@@ -1086,13 +1086,11 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 
 			if(key==WINDOW_KEY_COMMAND) {
 				chat_input_mode = CHAT_ALL_INPUT;
-				text_input_first = 1;
 				strcpy(chat[0][0],"/");
 			}
 
 			if(key==WINDOW_KEY_CHAT) {
 				chat_input_mode = CHAT_ALL_INPUT;
-				text_input_first = 1;
 				chat[0][0][0] = 0;
 			}
 
@@ -1104,10 +1102,8 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 			if(key==WINDOW_KEY_YES) {
 				if(show_exit) {
 					hud_change(&hud_serverlist);
-                    text_input_first = 1;
 				} else {
 					chat_input_mode = CHAT_TEAM_INPUT;
-					text_input_first = 1;
 					chat[0][0][0] = 0;
 				}
 			}
@@ -1374,7 +1370,6 @@ static void hud_serverlist_init() {
     request_version = http_get("http://aos.party/bs/version/",NULL);
 
     chat_input_mode = CHAT_ALL_INPUT;
-    text_input_first = 0;
     chat[0][0][0] = 0;
     serverlist_is_outdated = 0;
 }
@@ -1432,8 +1427,8 @@ static void hud_serverlist_render(float scalex, float scaley) {
 
     font_render((settings.window_width-600*scaley)/2.0F+0*scaley,450*scaley,18*scaley,"Players");
     font_render((settings.window_width-600*scaley)/2.0F+75*scaley,450*scaley,18*scaley,"Name");
-    font_render((settings.window_width-600*scaley)/2.0F+350*scaley,450*scaley,18*scaley,"Map");
-    font_render((settings.window_width-600*scaley)/2.0F+480*scaley,450*scaley,18*scaley,"Mode");
+    font_render((settings.window_width-600*scaley)/2.0F+335*scaley,450*scaley,18*scaley,"Map");
+    font_render((settings.window_width-600*scaley)/2.0F+490*scaley,450*scaley,18*scaley,"Mode");
     font_render((settings.window_width-600*scaley)/2.0F+560*scaley,450*scaley,18*scaley,"Ping");
 
     //texture_draw(&texture_ui_reload,(settings.window_width-600*scaley)/2.0F+375*scaley,500*scaley,32*scaley,32*scaley);
@@ -1475,8 +1470,8 @@ static void hud_serverlist_render(float scalex, float scaley) {
             strcpy(total_str,"-");
         font_render((settings.window_width-600*scaley)/2.0F+0*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,total_str);
         font_render((settings.window_width-600*scaley)/2.0F+75*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,serverlist[k].name);
-        font_render((settings.window_width-600*scaley)/2.0F+350*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,serverlist[k].map);
-        font_render((settings.window_width-600*scaley)/2.0F+480*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,serverlist[k].gamemode);
+        font_render((settings.window_width-600*scaley)/2.0F+335*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,serverlist[k].map);
+        font_render((settings.window_width-600*scaley)/2.0F+490*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,serverlist[k].gamemode);
         sprintf(total_str,"%ims",serverlist[k].ping);
 
 		if(serverlist[k].current>=0) {
@@ -1528,8 +1523,8 @@ static void hud_serverlist_render(float scalex, float scaley) {
         switch(http_process(request_version)) {
             case HTTP_STATUS_COMPLETED:
                 serverlist_is_outdated = 1;
-                printf("newest game version: %s\n",request_version->response_data);
-                printf("current game version: %s\n",BETTERSPADES_VERSION);
+                log_info("newest game version: %s",request_version->response_data);
+                log_info("current game version: %s",BETTERSPADES_VERSION);
                 serverlist_is_outdated = strcmp(request_version->response_data,BETTERSPADES_VERSION)!=0;
                 http_release(request_version);
                 request_version = NULL;
@@ -1676,6 +1671,8 @@ static struct config_setting* hud_settings_edit = NULL;
 
 static void hud_settings_init() {
 	memcpy(&settings_tmp,&settings,sizeof(struct RENDER_OPTIONS));
+	chat_input_mode = CHAT_ALL_INPUT;
+    chat[0][0][0] = 0;
 }
 
 static void hud_settings_render(float scalex, float scaley) {

@@ -124,7 +124,7 @@ void window_init() {
     glfwSetErrorCallback(window_impl_error);
 
 	if(!glfwInit()) {
-		printf("GLFW3 init failed\n");
+		log_fatal("GLFW3 init failed");
     	exit(1);
 	}
 
@@ -134,7 +134,7 @@ void window_init() {
 
 	hud_window->impl = glfwCreateWindow(settings.window_width,settings.window_height,"BetterSpades "BETTERSPADES_VERSION,settings.fullscreen?glfwGetPrimaryMonitor():NULL,NULL);
 	if(!hud_window->impl) {
-		printf("Could not open window\n");
+		log_fatal("Could not open window");
 		glfwTerminate();
 		exit(1);
 	}

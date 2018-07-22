@@ -129,7 +129,7 @@ static int config_read_key(void* user, const char* section, const char* name, co
         for(int k=0;k<list_size(&config_keys);k++) {
             struct config_key_pair* key = list_get(&config_keys,k);
             if(!strcmp(name,key->name)) {
-                //printf("found override for %s, from %i to %i\n",key->name,key->def,atoi(value));
+                log_debug("found override for %s, from %i to %i",key->name,key->def,atoi(value));
                 key->def = strtol(value,NULL,0);
                 break;
             }

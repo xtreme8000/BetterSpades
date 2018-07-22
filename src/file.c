@@ -27,7 +27,7 @@ unsigned char* file_load(const char* name) {
 	FILE* f;
 	f = fopen(name,"rb");
 	if (!f) {
-		printf("ERROR: failed to open '%s', exiting\n", name);
+		log_fatal("ERROR: failed to open '%s', exiting", name);
 		exit(1);
 	}
 	fseek(f,0,SEEK_END);

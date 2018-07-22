@@ -59,6 +59,8 @@ void chat_add(int channel, unsigned int color, const char* msg) {
 	strcpy(chat[channel][1],msg);
 	chat_color[channel][1] = color;
 	chat_timer[channel][1] = window_time();
+	if(channel==0)
+		log_info(msg);
 }
 char chat_popup[256] = {};
 float chat_popup_timer = 0.0F;
@@ -474,15 +476,9 @@ void reshape(struct window_instance* window, int width, int height) {
        window_swapping(0);
 }
 
-char text_input_first;
 void text_input(struct window_instance* window, unsigned int codepoint) {
-	if(chat_input_mode==CHAT_NO_INPUT) {
+	if(chat_input_mode==CHAT_NO_INPUT)
 		return;
-	}
-	if(text_input_first) {
-		text_input_first = 0;
-		return;
-	}
 
 	int len = strlen(chat[0][0]);
 	if(len<128) {
@@ -567,8 +563,8 @@ void deinit() {
 }
 
 void on_error(int i, const char* s) {
-    printf("Major error occured: [%i] %s\n",i,s);
-    getchar();
+	log_fatal("Major error occured: [%i] %s",i,s);
+	getchar();
 }
 
 int main(int argc, char** argv) {
@@ -589,13 +585,22 @@ int main(int argc, char** argv) {
 	settings.volume = 0;
 	strcpy(settings.name,"DEV_CLIENT");
 
+	log_set_level(LOG_INFO);
+
+	time_t t = time(NULL);
+	char buf[32];
+	strftime(buf,32,"logs/%m-%d-%Y.log",localtime(&t));
+	log_set_fp(fopen(buf,"a"));
+
+	log_info("Game started!");
+
 	config_reload();
 
 	window_init();
 
-	printf("Vendor: %s\n",glGetString(GL_VENDOR));
-	printf("Renderer: %s\n",glGetString(GL_RENDERER));
-	printf("Version: %s\n",glGetString(GL_VERSION));
+	log_info("Vendor: %s",glGetString(GL_VENDOR));
+	log_info("Renderer: %s",glGetString(GL_RENDERER));
+	log_info("Version: %s",glGetString(GL_VERSION));
 
 	if(settings.multisamples>0) {
 		glEnable(GL_MULTISAMPLE);
@@ -604,7 +609,7 @@ int main(int argc, char** argv) {
 		int iNumSamples = 0;
 		glGetIntegerv(GL_SAMPLE_BUFFERS,&iMultiSample);
 		glGetIntegerv(GL_SAMPLES,&iNumSamples);
-		printf("MSAA on, GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d\n",iMultiSample,iNumSamples);
+		log_info("MSAA on, GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d",iMultiSample,iNumSamples);
 	}
 
 	while(glGetError()!=GL_NO_ERROR);
@@ -619,16 +624,16 @@ int main(int argc, char** argv) {
 
 	if(argc>1) {
 		if(!strcmp(argv[1],"--help")) {
-			printf("Usage: client                     [server browser]\n");
-			printf("       client -aos://<ip>:<port>  [custom address]\n");
+			log_info("Usage: client                     [server browser]");
+			log_info("       client -aos://<ip>:<port>  [custom address]");
 			exit(0);
 		}
 
 		if(!network_connect_string(argv[1]+1)) {
-			printf("Error: Connection failed (use --help for instructions)\n");
+			log_error("Error: Connection failed (use --help for instructions)");
 			exit(1);
 		} else {
-			printf("Connection to %s successfull\n",argv[1]+1);
+			log_info("Connection to %s successful",argv[1]+1);
 			hud_change(&hud_ingame);
 		}
 	}

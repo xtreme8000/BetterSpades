@@ -44,6 +44,7 @@ These libraries and files are needed:
 | libdeflate   | *MIT*           | decompression of maps  | [Link](https://github.com/ebiggers/libdeflate)    |
 | enet         | *MIT*           | networking library     | [Link](https://github.com/lsalzman/enet)          |
 | parson       | *MIT*           | JSON parser            | [Link](https://github.com/kgabis/parson)          |
+| log.c        | *MIT*           | logger                 | [Link](https://github.com/xtreme8000/log.c)       |
 
 You will need to compile the following by yourself, or get hold of precompiled binaries:
 

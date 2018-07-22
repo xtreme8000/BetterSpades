@@ -121,7 +121,6 @@ void read_PacketChatMessage(void* data, int len) {
 	}
 	strncat(m, p->message, body_len);
 
-	printf("%s\n",m);
 	unsigned int color;
 	switch(p->chat_type) {
 		case CHAT_SYSTEM:
@@ -194,9 +193,7 @@ void read_PacketBlockAction(void* data, int len) {
 					players[p->player_id].block.red |
 					(players[p->player_id].block.green<<8) |
 					(players[p->player_id].block.blue<<16));
-				sound_create(NULL,SOUND_WORLD,&sound_build,
-							 p->x+0.5F,63-p->z+0.5F,p->y+0.5F
-						 	);
+				sound_create(NULL,SOUND_WORLD,&sound_build,p->x+0.5F,63-p->z+0.5F,p->y+0.5F);
 			}
 			break;
 	}
@@ -253,7 +250,7 @@ void read_PacketStateData(void* data, int len) {
 			memcpy(&gamestate.gamemode,&p->gamemode_data,sizeof(struct GM_TC));
 			break;
 		default:
-			printf("Unknown gamemode!\n");
+			log_error("Unknown gamemode!");
 	}
 
 	sound_create(NULL,SOUND_LOCAL,&sound_intro,0.0F,0.0F,0.0F);
@@ -279,7 +276,7 @@ void read_PacketStateData(void* data, int len) {
 	screen_current = SCREEN_TEAM_SELECT;
 	network_map_transfer = 0;
 
-	printf("map data was %i bytes\n",compressed_chunk_data_offset);
+	log_info("map data was %i bytes",compressed_chunk_data_offset);
 	if(!network_map_cached) {
 		int avail_size = 1024*1024;
 		void* decompressed = malloc(avail_size);
@@ -298,7 +295,7 @@ void read_PacketStateData(void* data, int len) {
 				map_vxl_load(decompressed,map_colors);
 				char filename[128];
 				sprintf(filename,"cache/%08X.vxl",libdeflate_crc32(0,decompressed,decompressed_size));
-				printf(filename);
+				log_info("%s",filename);
 				FILE* f = fopen(filename,"wb");
 				fwrite(decompressed,1,decompressed_size,f);
 				fclose(f);
@@ -313,7 +310,7 @@ void read_PacketStateData(void* data, int len) {
 		free(compressed_chunk_data);
 		libdeflate_free_decompressor(d);
 	} else {
-
+		//TODO?
 	}
 
 	kv6_rebuild_all();
@@ -416,11 +413,11 @@ void read_PacketMapStart(void* data, int len) {
 	} else {
 		struct PacketMapStart076* p = (struct PacketMapStart076*)data;
 		compressed_chunk_data_estimate = p->map_size;
-		printf("map name: %s\n",p->map_name);
-		printf("map crc32: 0x%08X\n",p->crc32);
+		log_info("map name: %s",p->map_name);
+		log_info("map crc32: 0x%08X",p->crc32);
 		char filename[128];
 		sprintf(filename,"cache/%02X%02X%02X%02X.vxl",red(p->crc32),green(p->crc32),blue(p->crc32),alpha(p->crc32));
-		printf(filename);
+		log_info(filename);
 		if(file_exists(filename)) {
 			network_map_cached = 1;
 			map_vxl_load(file_load(filename),map_colors);
@@ -438,8 +435,8 @@ void read_PacketMapStart(void* data, int len) {
 
 void read_PacketWorldUpdate(void* data, int len) {
 	if(len>0) {
-		char is_075 = (len%sizeof(struct PacketWorldUpdate075)==0);
-		char is_076 = (len%sizeof(struct PacketWorldUpdate076)==0);
+		int is_075 = (len%sizeof(struct PacketWorldUpdate075)==0);
+		int is_076 = (len%sizeof(struct PacketWorldUpdate076)==0);
 
 		if(is_075) {
 			for(int k=0;k<(len/sizeof(struct PacketWorldUpdate075));k++) { //supports up to 256 players
@@ -594,11 +591,7 @@ void read_PacketKillAction(void* data, int len) {
 void read_PacketShortPlayerData(void* data, int len) {
 	//should never be received, but process it anyway
 	struct PacketShortPlayerData* p = (struct PacketShortPlayerData*)data;
-	printf("Unexpected ShortPlayerDataPacket!!!\n");
-	/*if(p->player_id<PLAYERS_MAX) {
-		players[p->player_id].team = p->team;
-		players[p->player_id].weapon = p->weapon;
-	}*/
+	log_warn("Unexpected ShortPlayerDataPacket");
 }
 
 void read_PacketGrenade(void* data, int len) {
@@ -639,7 +632,7 @@ void read_PacketChangeWeapon(void* data, int len) {
 	struct PacketChangeWeapon* p = (struct PacketChangeWeapon*)data;
 	if(p->player_id<PLAYERS_MAX) {
 		if(p->player_id==local_player_id) {
-			printf("Unexpected ChangeWeaponPacket!!!\n");
+			log_warn("Unexpected ChangeWeaponPacket");
 			return;
 		}
 		players[p->player_id].weapon = p->weapon;
@@ -821,14 +814,18 @@ void read_PacketVersionGet(void* data, int len) {
 	ver.major = BETTERSPADES_MAJOR;
 	ver.minor = BETTERSPADES_MINOR;
 	ver.revision = BETTERSPADES_PATCH;
-	#ifdef OS_WINDOWS
-		char* os = "BetterSpades (Windows)";
-	#endif
-	#ifdef OS_LINUX
-		char* os = "BetterSpades (Linux)";
-	#endif
-	#ifdef OS_APPLE
-		char* os = "BetterSpades (Apple)";
+	#ifndef OPENGL_ES
+		#ifdef OS_WINDOWS
+			char* os = "BetterSpades (Windows)";
+		#endif
+		#ifdef OS_LINUX
+			char* os = "BetterSpades (Linux)";
+		#endif
+		#ifdef OS_APPLE
+			char* os = "BetterSpades (Apple)";
+		#endif
+	#else
+		char* os = "BetterSpades (Mobile)";
 	#endif
 	strcpy(ver.operatingsystem,os);
 	network_send(PACKET_VERSIONSEND_ID,&ver,sizeof(ver)-sizeof(ver.operatingsystem)+strlen(os));
@@ -906,7 +903,7 @@ int network_connect_sub(char* ip, int port, int version) {
 }
 
 int network_connect(char* ip, int port) {
-	printf("Connecting to %s at port %i\n",ip,port);
+	log_info("Connecting to %s at port %i",ip,port);
 	if(network_connected) {
 		network_disconnect();
 	}
@@ -948,10 +945,10 @@ int network_update() {
 				{
 					int id = event.packet->data[0];
 					if(id<sizeof(packets)/sizeof(packets[0]) && *packets[id]!=NULL) {
-						//printf("packet id %i\n",id);
+						log_debug("packet id %i",id);
 						(*packets[id]) (event.packet->data+1,event.packet->dataLength-1);
 					} else {
-						printf("Invalid packet id %i, length: %i\n",id,(int)event.packet->dataLength-1);
+						log_error("Invalid packet id %i, length: %i",id,(int)event.packet->dataLength-1);
 					}
 					network_received_packets++;
 					enet_packet_destroy(event.packet);
@@ -960,7 +957,7 @@ int network_update() {
 				case ENET_EVENT_TYPE_DISCONNECT:
 					hud_change(&hud_serverlist);
 					chat_showpopup(network_reason_disconnect(event.data),10.0F);
-					printf("server disconnected! reason: %s\n",network_reason_disconnect(event.data));
+					log_error("server disconnected! reason: %s",network_reason_disconnect(event.data));
 					event.peer->data = NULL;
 					network_connected = 0;
 					network_logged_in = 0;
