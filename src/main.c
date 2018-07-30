@@ -449,7 +449,7 @@ void init() {
 	//set minimap borders (white on 64x64 chunks, black map border)
 	memset(map_minimap,0xCCCCCCFF,map_size_x*map_size_z*sizeof(unsigned char)*4);
 
-    glx_init();
+	glx_init();
 
 	font_init();
 	player_init();
@@ -460,7 +460,8 @@ void init() {
 	sound_init();
 	tracer_init();
 	hud_init();
-    chunk_init();
+	chunk_init();
+	ping_init();
 
 	weapon_set();
 }
@@ -556,10 +557,12 @@ void mouse_scroll(struct window_instance* window, double xoffset, double yoffset
 }
 
 void deinit() {
-    if(settings.show_news)
-        file_url("https://www.buildandshoot.com/news/");
+	ping_deinit();
+	if(settings.show_news)
+		file_url("https://www.buildandshoot.com/news/");
 	if(network_connected)
 		network_disconnect();
+	window_deinit();
 }
 
 void on_error(int i, const char* s) {
@@ -660,6 +663,4 @@ int main(int argc, char** argv) {
 		}
 		fps = 1.0F/(window_time()-last_frame_start);
 	}
-
-    window_deinit();
 }

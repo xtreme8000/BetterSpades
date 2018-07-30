@@ -589,7 +589,7 @@ void read_PacketKillAction(void* data, int len) {
 }
 
 void read_PacketShortPlayerData(void* data, int len) {
-	//should never be received, but process it anyway
+	//should never be received
 	struct PacketShortPlayerData* p = (struct PacketShortPlayerData*)data;
 	log_warn("Unexpected ShortPlayerDataPacket");
 }
@@ -642,7 +642,6 @@ void read_PacketChangeWeapon(void* data, int len) {
 void read_PacketWeaponReload(void* data, int len) {
 	struct PacketWeaponReload* p = (struct PacketWeaponReload*)data;
 	if(p->player_id==local_player_id) {
-		weapon_set();
 		local_player_ammo = p->ammo;
 		local_player_ammo_reserved = p->reserved;
 	} else {
@@ -915,6 +914,28 @@ int network_connect(char* ip, int port) {
 	}
 	network_connected = 0;
 	return 0;
+}
+
+int network_identifier_split(char* addr, char* ip_out, int* port_out) {
+	char* ip_start = strstr(addr,"aos://")+6;
+	if((size_t)ip_start<=6)
+		return 0;
+	char* port_start = strchr(ip_start,':');
+	if(port_start)
+		*port_start = 0;
+
+	if(strchr(ip_start,'.')) {
+		*port_out = port_start?atoi(port_start+1):32887;
+		strcpy(ip_out,ip_start);
+	} else {
+		int ip = atoi(ip_start);
+		char ip_str[32];
+		sprintf(ip_str,"%i.%i.%i.%i",ip&255,(ip>>8)&255,(ip>>16)&255,(ip>>24)&255);
+
+		*port_out = port_start?atoi(port_start+1):32887;
+		strcpy(ip_out,ip_str);
+	}
+	return 1;
 }
 
 int network_connect_string(char* addr) {

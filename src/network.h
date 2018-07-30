@@ -23,6 +23,7 @@ unsigned int network_ping(void);
 void network_send(int id, void* data, int len);
 void network_updateColor(void);
 void network_disconnect(void);
+int network_identifier_split(char* addr, char* ip_out, int* port_out);
 int network_connect(char* ip, int port);
 int network_connect_string(char* addr);
 int network_update(void);
@@ -314,9 +315,9 @@ struct PacketChatMessage {
 	unsigned char chat_type;
 	char message[255];
 };
-#define CHAT_ALL	0
-#define CHAT_TEAM	1
-#define CHAT_SYSTEM	2
+#define CHAT_ALL		0
+#define CHAT_TEAM		1
+#define CHAT_SYSTEM		2
 
 #define PACKET_FOGCOLOR_ID 27
 struct PacketFogColor {

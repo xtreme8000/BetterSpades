@@ -68,6 +68,8 @@ This means:
 | `parson.c` and `parson.h`     | &rightarrow; | `src/parson.c` and `src/parson.h`                                             |
 | `http.h`                      | &rightarrow; | `src/http.h`                                                                  |
 | `stb_truetype.h`              | &rightarrow; | `src/stb_truetype.h`                                                          |
+| `log.h` and `log.c`           | &rightarrow; | `src/log.h` and `src/log.c`                                                   |
+
 
 Because state of copyright of 0.75 assets is unknown, you will need to get them *[here](http://aos.party/bsresources.zip)*. Unzip the file and extract all contents to `resources/` manually.
 

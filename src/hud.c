@@ -1285,7 +1285,11 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 					screen_current = SCREEN_NONE;
 				}
 			}
-			if(key==WINDOW_KEY_PICKCOLOR) {
+			if(key==WINDOW_KEY_PICKCOLOR && players[local_player_id].held_item==TOOL_BLOCK) {
+				players[local_player_id].item_disabled = window_time();
+	            players[local_player_id].items_show_start = window_time();
+	            players[local_player_id].items_show = 1;
+
 				int* pos = camera_terrain_pick(1);
 				if(pos!=NULL) {
 					players[local_player_id].block.packed = map_get(pos[0],pos[1],pos[2]);
@@ -1356,30 +1360,35 @@ static struct serverlist_entry* serverlist;
 static float serverlist_scroll;
 static int serverlist_hover;
 static int serverlist_is_outdated;
+static pthread_mutex_t serverlist_lock;
 
 static void hud_serverlist_init() {
-    network_disconnect();
+	network_disconnect();
 
-    window_mousemode(WINDOW_CURSOR_ENABLED);
+	window_mousemode(WINDOW_CURSOR_ENABLED);
 
-    player_count = 0;
-    server_count = 0;
-    serverlist_scroll = 0.0F;
-    serverlist_hover = -1;
-    request_serverlist = http_get("http://services.buildandshoot.com/serverlist.json",NULL);
-    request_version = http_get("http://aos.party/bs/version/",NULL);
+	player_count = 0;
+	server_count = 0;
+	serverlist_scroll = 0.0F;
+	serverlist_hover = -1;
+	request_serverlist = http_get("http://services.buildandshoot.com/serverlist.json",NULL);
+	request_version = http_get("http://aos.party/bs/version/",NULL);
 
-    chat_input_mode = CHAT_ALL_INPUT;
-    chat[0][0][0] = 0;
-    serverlist_is_outdated = 0;
+	chat_input_mode = CHAT_ALL_INPUT;
+	chat[0][0][0] = 0;
+	serverlist_is_outdated = 0;
+
+	pthread_mutex_init(&serverlist_lock,NULL);
 }
 
 static int hud_serverlist_sort(const void* a, const void* b) {
     struct serverlist_entry* aa = (struct serverlist_entry*)a;
     struct serverlist_entry* bb = (struct serverlist_entry*)b;
-    if(aa->current+bb->current==0) {
-        return aa->ping-bb->ping;
-    }
+    if(abs(aa->current-bb->current)==0)
+		if(abs(aa->ping-bb->ping)==0)
+			return strcmp(aa->name,bb->name);
+		else
+			return aa->ping-bb->ping;
     if(aa->current<0) {
         return -1;
     }
@@ -1387,6 +1396,18 @@ static int hud_serverlist_sort(const void* a, const void* b) {
         return 1;
     }
     return bb->current-aa->current;
+}
+
+static void hud_serverlist_pingupdate(struct ping_entry* e, float time_delta, void* user_data) {
+	pthread_mutex_lock(&serverlist_lock);
+	(*(int*)user_data) = ceil(time_delta*1000.0F);
+	pthread_mutex_unlock(&serverlist_lock);
+}
+
+static void hud_serverlist_pingcomplete() {
+	pthread_mutex_lock(&serverlist_lock);
+	qsort(serverlist,server_count,sizeof(struct serverlist_entry),hud_serverlist_sort);
+	pthread_mutex_unlock(&serverlist_lock);
 }
 
 static void hud_serverlist_render(float scalex, float scaley) {
@@ -1461,6 +1482,8 @@ static void hud_serverlist_render(float scalex, float scaley) {
             tmp = k;
         }
 
+		pthread_mutex_lock(&serverlist_lock);
+
         float f = ((serverlist[k].current && serverlist[k].current<serverlist[k].max) || tmp==k || serverlist[k].current<0)?1.0F:0.5F;
         glColor3f(f,f,f);
 
@@ -1488,6 +1511,8 @@ static void hud_serverlist_render(float scalex, float scaley) {
             glColor3f(1.0F*f,0.0F,0.0F);
         font_render((settings.window_width-600*scaley)/2.0F+560*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,total_str);
         glColor3f(1.0F,1.0F,1.0F);
+
+		pthread_mutex_unlock(&serverlist_lock);
     }
     serverlist_hover = tmp;
 
@@ -1548,6 +1573,8 @@ static void hud_serverlist_render(float scalex, float scaley) {
             {
                 JSON_Array* servers = json_value_get_array(json_parse_string(request_serverlist->response_data));
                 server_count = json_array_get_count(servers)+1;
+
+				pthread_mutex_lock(&serverlist_lock);
                 serverlist = realloc(serverlist,server_count*sizeof(struct serverlist_entry));
 				CHECK_ALLOCATION_ERROR(serverlist)
                 player_count = 0;
@@ -1557,13 +1584,18 @@ static void hud_serverlist_render(float scalex, float scaley) {
 
                     serverlist[k].current = (int)json_object_get_number(s,"players_current");
                     serverlist[k].max = (int)json_object_get_number(s,"players_max");
-                    serverlist[k].ping = (int)json_object_get_number(s,"latency");
 
                     strncpy(serverlist[k].name,json_object_get_string(s,"name"),31);
                     strncpy(serverlist[k].map,json_object_get_string(s,"map"),20);
                     strncpy(serverlist[k].gamemode,json_object_get_string(s,"game_mode"),7);
                     strncpy(serverlist[k].identifier,json_object_get_string(s,"identifier"),31);
 					strncpy(serverlist[k].country,json_object_get_string(s,"country"),3);
+
+					int port;
+					char ip[32];
+					if(network_identifier_split(serverlist[k].identifier,ip,&port))
+						ping_check(ip,port,&serverlist[k].ping,hud_serverlist_pingupdate);
+
                     player_count += serverlist[k].current;
                 }
                 serverlist[0].current = serverlist[0].max = -1;
@@ -1574,7 +1606,11 @@ static void hud_serverlist_render(float scalex, float scaley) {
                 strcpy(serverlist[0].identifier,"aos://16777343:32887");
 				strcpy(serverlist[0].country,"US");
 
+				ping_start(hud_serverlist_pingcomplete);
+
                 qsort(serverlist,server_count,sizeof(struct serverlist_entry),hud_serverlist_sort);
+				pthread_mutex_unlock(&serverlist_lock);
+
                 http_release(request_serverlist);
                 request_serverlist = NULL;
                 break;
@@ -1613,7 +1649,9 @@ static void hud_serverlist_mouseclick(int button, int action, int mods) {
             return;
         }
         if(serverlist_hover>=0) {
+			pthread_mutex_lock(&serverlist_lock);
             server_c(serverlist[serverlist_hover].identifier);
+			pthread_mutex_unlock(&serverlist_lock);
         }
         double x,y;
         window_mouseloc(&x,&y);

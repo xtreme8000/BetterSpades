@@ -157,7 +157,7 @@ float* player_tool_translate_func(struct Player* p) {
             return ret;
         }
         if(p->held_item==TOOL_GUN && window_time()-weapon_last_shot<weapon_delay(players[local_player_id].weapon)) {
-            ret[2] = -(weapon_delay(players[local_player_id].weapon)-(window_time()-weapon_last_shot))/weapon_delay(players[local_player_id].weapon)*weapon_recoil(players[local_player_id].weapon)*(local_player_ammo>0);
+            ret[2] = -(weapon_delay(players[local_player_id].weapon)-(window_time()-weapon_last_shot))/weapon_delay(players[local_player_id].weapon)*weapon_recoil_anim(players[local_player_id].weapon)*(local_player_ammo>0);
             return ret;
         }
 

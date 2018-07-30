@@ -76,15 +76,17 @@ void weapon_update() {
     }
 }
 
-float weapon_recoil(int gun) {
-    switch(gun) {
-        case WEAPON_RIFLE:
-            return 0.3F;
-        case WEAPON_SMG:
-            return 0.125F;
-        case WEAPON_SHOTGUN:
-            return 0.75F;
-    }
+float weapon_recoil_anim(int gun) {
+	switch(gun) {
+		case WEAPON_RIFLE:
+			return 0.3F;
+		case WEAPON_SMG:
+			return 0.125F;
+		case WEAPON_SHOTGUN:
+			return 0.75F;
+		default:
+			return 0.0F;
+	}
 }
 
 int weapon_block_damage(int gun) {
@@ -149,40 +151,60 @@ void weapon_spread(struct Player* p, float* d) {
     d[2] += (ms_rand()-ms_rand())/16383.0F*spread*(p->input.buttons.rmb?0.5F:1.0F)*((p->input.keys.crouch && p->weapon!=WEAPON_SHOTGUN)?0.5F:1.0F);
 }
 
+void weapon_recoil(int gun, double* horiz_recoil, double* vert_recoil) {
+	switch(gun) {
+		case WEAPON_RIFLE:
+			*horiz_recoil = 0.0001;
+			*vert_recoil = 0.050000001;
+			break;
+		case WEAPON_SMG:
+			*horiz_recoil = 0.00005;
+			*vert_recoil = 0.0125;
+			break;
+		case WEAPON_SHOTGUN:
+			*horiz_recoil = 0.0002;
+			*vert_recoil = 0.1;
+			break;
+		default:
+			*horiz_recoil = 0.0F;
+			*vert_recoil = 0.0F;
+	}
+}
+
 int weapon_ammo(int gun) {
-    switch(players[local_player_id].weapon) {
-        case WEAPON_RIFLE:
-            return 10;
-        case WEAPON_SMG:
-            return 30;
-        case WEAPON_SHOTGUN:
-            return 6;
-    }
+	switch(players[local_player_id].weapon) {
+		case WEAPON_RIFLE:
+			return 10;
+		case WEAPON_SMG:
+			return 30;
+		case WEAPON_SHOTGUN:
+			return 6;
+		default:
+			return 0;
+	}
 }
 
 void weapon_set() {
-    //players[local_player_id].weapon = WEAPON_SHOTGUN;
-    switch(players[local_player_id].weapon) {
-        case WEAPON_RIFLE:
-            local_player_ammo = 10;
-            local_player_ammo_reserved = 50;
-            break;
-        case WEAPON_SMG:
-            local_player_ammo = 30;
-            local_player_ammo_reserved = 120;
-            break;
-        case WEAPON_SHOTGUN:
-            local_player_ammo = 6;
-            local_player_ammo_reserved = 48;
-            break;
-    }
-    weapon_reload_inprogress = 0;
+	//players[local_player_id].weapon = WEAPON_SHOTGUN;
+	local_player_ammo = weapon_ammo(players[local_player_id].weapon);
+	weapon_reload_inprogress = 0;
+	switch(players[local_player_id].weapon) {
+		case WEAPON_RIFLE:
+			local_player_ammo_reserved = 50;
+			return;
+		case WEAPON_SMG:
+			local_player_ammo_reserved = 120;
+			return;
+		case WEAPON_SHOTGUN:
+			local_player_ammo_reserved = 48;
+			return;
+	}
 }
 
 void weapon_reload() {
-    if(local_player_ammo_reserved==0 || weapon_reload_inprogress || !weapon_can_reload()) {
-        return;
-    }
+	if(local_player_ammo_reserved==0 || weapon_reload_inprogress || !weapon_can_reload())
+		return;
+
     weapon_reload_start = window_time();
     weapon_reload_inprogress = 1;
 
@@ -209,19 +231,8 @@ int weapon_reloading() {
 }
 
 int weapon_can_reload() {
-    int mag_size;
-    switch(players[local_player_id].weapon) {
-        case WEAPON_RIFLE:
-            mag_size = 10;
-            break;
-        case WEAPON_SMG:
-            mag_size = 30;
-            break;
-        case WEAPON_SHOTGUN:
-            mag_size = 6;
-            break;
-    }
-    return max(min(min(local_player_ammo_reserved,mag_size),mag_size-local_player_ammo),0);
+	int mag_size = weapon_ammo(players[local_player_id].weapon);
+	return max(min(min(local_player_ammo_reserved,mag_size),mag_size-local_player_ammo),0);
 }
 
 void weapon_shoot() {
@@ -297,21 +308,8 @@ void weapon_shoot() {
                   );
     }
 
-    double horiz_recoil, vert_recoil;
-    switch(players[local_player_id].weapon) {
-        case WEAPON_RIFLE:
-            horiz_recoil = 0.0001;
-            vert_recoil = 0.050000001;
-            break;
-        case WEAPON_SMG:
-            horiz_recoil = 0.00005;
-            vert_recoil = 0.0125;
-            break;
-        case WEAPON_SHOTGUN:
-            horiz_recoil = 0.0002;
-            vert_recoil = 0.1;
-            break;
-    }
+	double horiz_recoil, vert_recoil;
+	weapon_recoil(players[local_player_id].weapon,&horiz_recoil,&vert_recoil);
 
     long triangle_wave = (long)(window_time()*1000)&511;
     horiz_recoil *= ((double)triangle_wave-255.5);
@@ -349,19 +347,7 @@ void weapon_shoot() {
 
     camera_overflow_adjust();
 
-    struct Sound_wav* shoot;
-    switch(players[local_player_id].weapon) {
-        case WEAPON_RIFLE:
-            shoot = &sound_rifle_shoot;
-            break;
-        case WEAPON_SMG:
-            shoot = &sound_smg_shoot;
-            break;
-        case WEAPON_SHOTGUN:
-            shoot = &sound_shotgun_shoot;
-            break;
-    }
-
-    sound_create(NULL,SOUND_LOCAL,shoot,players[local_player_id].pos.x,players[local_player_id].pos.y,players[local_player_id].pos.z);
+    sound_create(NULL,SOUND_LOCAL,weapon_sound(players[local_player_id].weapon),
+		players[local_player_id].pos.x,players[local_player_id].pos.y,players[local_player_id].pos.z);
     particle_create_casing(&players[local_player_id]);
 }
