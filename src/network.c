@@ -935,6 +935,9 @@ int network_identifier_split(char* addr, char* ip_out, int* port_out) {
 		*port_out = port_start?atoi(port_start+1):32887;
 		strcpy(ip_out,ip_str);
 	}
+
+	if(port_start)
+		*port_start = ':';
 	return 1;
 }
 

@@ -1,35 +1,73 @@
 #include "common.h"
+#include "parson.h"
 
 struct list list_pings;
-ENetSocket sock;
+ENetSocket sock, lan;
 pthread_t ping_thread;
-pthread_mutex_t list_ping_lock;
 void (*ping_finished) ();
+void (*ping_result) (void*, float time_delta, void* user_data);
 
 void ping_init() {
 	list_create(&list_pings,sizeof(struct ping_entry));
+
 	sock = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
 	enet_socket_set_option(sock,ENET_SOCKOPT_NONBLOCK,1);
-	enet_socket_set_option(sock,ENET_SOCKOPT_NODELAY,1);
-	pthread_mutex_init(&list_ping_lock,NULL);
+
+	lan = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
+	enet_socket_set_option(lan,ENET_SOCKOPT_NONBLOCK,1);
+	enet_socket_set_option(lan,ENET_SOCKOPT_BROADCAST,1);
 }
 
 void ping_deinit() {
 	enet_socket_destroy(sock);
+	enet_socket_destroy(lan);
 }
 
 void* ping_update(void* data) {
-	while(1) {
-		ENetBuffer buf;
-		buf.dataLength = 32;
+	ping_lan();
+	float ping_start = window_time();
 
-		pthread_mutex_lock(&list_ping_lock);
+	while(1) {
+		char tmp[512];
+
+		ENetBuffer buf;
+		buf.data = tmp;
+
+		ENetAddress from;
+
+		while(1) {
+			buf.dataLength = 512;
+			memset(tmp,0,buf.dataLength);
+			int response = enet_socket_receive(sock,&from,&buf,1);
+			if(response!=0) {
+				struct ping_entry* entry;
+				int k;
+				for(k=list_size(&list_pings)-1;k>=0;k--) {
+					entry = list_get(&list_pings,k);
+					if(entry->addr.host==from.host && entry->addr.port==from.port)
+						break;
+				}
+
+				switch(response) {
+					default: //received something!
+						if(strcmp(buf.data,"HI")==0) {
+							ping_result(NULL,window_time()-entry->time_start,entry->user_data);
+						}
+					case -1: //connection was closed
+						list_remove(&list_pings,k);
+				}
+			} else { //would block
+				break;
+			}
+		}
+
+		int retry = 0;
 		for(int k=list_size(&list_pings)-1;k>=0;k--) {
 			struct ping_entry* entry = list_get(&list_pings,k);
 
-			if(window_time()-entry->time_start>3.0F) { //timeout
-				if(entry->trycount<3) {
-					log_warn("Ping timeout, retrying (%i)",entry->trycount);
+			if(window_time()-entry->time_start>2.0F) { //timeout
+				if(entry->trycount<3) { //try up to 3 times after first failed attempt
+					retry = 1;
 					ENetBuffer buffer;
 					buffer.data = "HELLO";
 					buffer.dataLength = 5;
@@ -41,36 +79,57 @@ void* ping_update(void* data) {
 					continue;
 				}
 			}
-
-			char tmp[32] = {0};
-			buf.data = tmp;
-
-			switch(enet_socket_receive(sock,&entry->addr,&buf,1)) {
-				case 0: //would block
-					break;
-				default: //received something!
-					if(strcmp(buf.data,"HI")==0 && entry->callback)
-						entry->callback(entry,window_time()-entry->time_start,entry->user_data);
-				case -1: //connection was closed
-					list_remove(&list_pings,k);
-			}
 		}
 
-		int size = list_size(&list_pings);
-		pthread_mutex_unlock(&list_ping_lock);
-		if(!size) {
+		if(retry)
+			log_warn("Ping timeout on some server(s), retrying");
+
+		buf.dataLength = 512;
+		memset(tmp,0,buf.dataLength);
+		int length = enet_socket_receive(lan,&from,&buf,1);
+		if(length) {
+			struct serverlist_entry e;
+
+			strcpy(e.country,"LAN");
+			e.ping = ceil((window_time()-ping_start)*1000.0F);
+			sprintf(e.identifier,"aos://%i:%i",from.host,from.port);
+
+			JSON_Value* js = json_parse_string(tmp);
+			JSON_Object* root = json_value_get_object(js);
+			strcpy(e.name,json_object_get_string(root,"name"));
+			strcpy(e.gamemode,json_object_get_string(root,"game_mode"));
+			strcpy(e.map,json_object_get_string(root,"map"));
+			e.current = json_object_get_number(root,"players_current");
+			e.max = json_object_get_number(root,"players_max");
+			json_value_free(js);
+			ping_result(&e,window_time()-ping_start,NULL);
+		}
+
+		if(!list_size(&list_pings)) {
 			ping_finished();
 			return NULL;
 		}
+
+		usleep(1);
 	}
 }
 
-void ping_check(char* addr, int port, void* user_data, void (*callback) (struct ping_entry*, float time_delta, void* user_data)) {
+void ping_lan() {
+	ENetAddress addr;
+	addr.host = 0xFFFFFFFF; //255.255.255.255
+
+	ENetBuffer buffer;
+	buffer.data = "HELLOLAN";
+	buffer.dataLength = 8;
+	for(addr.port=32880;addr.port<32890;addr.port++)
+		enet_socket_send(lan,&addr,&buffer,1);
+}
+
+void ping_check(char* addr, int port, void* user_data) {
 	struct ping_entry* entry = list_add(&list_pings,NULL);
 
-	entry->callback = callback;
-	entry->user_data = user_data;
-	entry->trycount = 1;
+	strcpy(entry->user_data,user_data);
+	entry->trycount = 0;
 
 	enet_address_set_host(&entry->addr,addr);
 	entry->addr.port = port;
@@ -83,7 +142,8 @@ void ping_check(char* addr, int port, void* user_data, void (*callback) (struct 
 	enet_socket_send(sock,&entry->addr,&buffer,1);
 }
 
-void ping_start(void (*callback) ()) {
+void ping_start(void (*finished) (), void (*result) (void*, float, void*)) {
 	pthread_create(&ping_thread,NULL,ping_update,NULL);
-	ping_finished = callback;
+	ping_finished = finished;
+	ping_result = result;
 }

@@ -1342,16 +1342,6 @@ struct hud hud_ingame = {
 
 /*         HUD_SERVERLIST START        */
 
-struct serverlist_entry {
-    int current, max;
-    char name[32];
-    char map[21];
-    char gamemode[8];
-    int ping;
-    char identifier[32];
-	char country[4];
-};
-
 static http_t* request_serverlist = NULL;
 static http_t* request_version = NULL;
 static int server_count = 0;
@@ -1382,25 +1372,38 @@ static void hud_serverlist_init() {
 }
 
 static int hud_serverlist_sort(const void* a, const void* b) {
-    struct serverlist_entry* aa = (struct serverlist_entry*)a;
-    struct serverlist_entry* bb = (struct serverlist_entry*)b;
-    if(abs(aa->current-bb->current)==0)
+	struct serverlist_entry* aa = (struct serverlist_entry*)a;
+	struct serverlist_entry* bb = (struct serverlist_entry*)b;
+
+	if(strcmp(aa->country,"LAN")==0) {
+		return -1;
+	}
+	if(strcmp(bb->country,"LAN")==0) {
+		return 1;
+	}
+
+	if(abs(aa->current-bb->current)==0)
 		if(abs(aa->ping-bb->ping)==0)
 			return strcmp(aa->name,bb->name);
 		else
 			return aa->ping-bb->ping;
-    if(aa->current<0) {
-        return -1;
-    }
-    if(bb->current<0) {
-        return 1;
-    }
-    return bb->current-aa->current;
+
+	return bb->current-aa->current;
 }
 
-static void hud_serverlist_pingupdate(struct ping_entry* e, float time_delta, void* user_data) {
+static void hud_serverlist_pingupdate(void* e, float time_delta, void* user_data) {
 	pthread_mutex_lock(&serverlist_lock);
-	(*(int*)user_data) = ceil(time_delta*1000.0F);
+	if(!e) {
+		for(int k=0;k<server_count;k++)
+			if(strcmp(serverlist[k].identifier,user_data)==0) {
+				serverlist[k].ping = ceil(time_delta*1000.0F);
+				break;
+			}
+	} else {
+		serverlist = realloc(serverlist,(++server_count)*sizeof(struct serverlist_entry));
+		memcpy(&serverlist[server_count-1],e,sizeof(struct serverlist_entry));
+	}
+	qsort(serverlist,server_count,sizeof(struct serverlist_entry),hud_serverlist_sort);
 	pthread_mutex_unlock(&serverlist_lock);
 }
 
@@ -1495,22 +1498,21 @@ static void hud_serverlist_render(float scalex, float scaley) {
         font_render((settings.window_width-600*scaley)/2.0F+75*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,serverlist[k].name);
         font_render((settings.window_width-600*scaley)/2.0F+335*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,serverlist[k].map);
         font_render((settings.window_width-600*scaley)/2.0F+490*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,serverlist[k].gamemode);
-        sprintf(total_str,"%ims",serverlist[k].ping);
 
-		if(serverlist[k].current>=0) {
-			float u,v;
-			texture_flag_offset(serverlist[k].country,&u,&v);
-			texture_draw_sector(&texture_ui_flags,(settings.window_width-600*scaley)/2.0F+55*scaley,448*scaley-20*scaley*(k+1)-serverlist_scroll,18*scaley,12*scaley,u,v,18.0F/256.0F,12.0F/256.0F);
-		}
+		float u,v;
+		texture_flag_offset(serverlist[k].country,&u,&v);
+		texture_draw_sector(&texture_ui_flags,(settings.window_width-600*scaley)/2.0F+55*scaley,448*scaley-20*scaley*(k+1)-serverlist_scroll,18*scaley,12*scaley,u,v,18.0F/256.0F,12.0F/256.0F);
 
-        if(serverlist[k].ping<110)
-            glColor3f(0.0F,1.0F*f,0.0F);
-        else if(serverlist[k].ping<200)
-            glColor3f(1.0F*f,1.0F*f,0.0F);
-        else
-            glColor3f(1.0F*f,0.0F,0.0F);
-        font_render((settings.window_width-600*scaley)/2.0F+560*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,total_str);
-        glColor3f(1.0F,1.0F,1.0F);
+		if(serverlist[k].ping<110)
+			glColor3f(0.0F,1.0F*f,0.0F);
+		else if(serverlist[k].ping<200)
+			glColor3f(1.0F*f,1.0F*f,0.0F);
+		else
+			glColor3f(1.0F*f,0.0F,0.0F);
+
+		sprintf(total_str,"%ims",serverlist[k].ping);
+		font_render((settings.window_width-600*scaley)/2.0F+560*scaley,450*scaley-20*scaley*(k+1)-serverlist_scroll,16*scaley,(serverlist[k].ping>=0)?total_str:"?");
+		glColor3f(1.0F,1.0F,1.0F);
 
 		pthread_mutex_unlock(&serverlist_lock);
     }
@@ -1571,19 +1573,21 @@ static void hud_serverlist_render(float scalex, float scaley) {
                 break;
             case HTTP_STATUS_COMPLETED:
             {
-                JSON_Array* servers = json_value_get_array(json_parse_string(request_serverlist->response_data));
-                server_count = json_array_get_count(servers)+1;
+				JSON_Value* js = json_parse_string(request_serverlist->response_data);
+                JSON_Array* servers = json_value_get_array(js);
+                server_count = json_array_get_count(servers);
 
 				pthread_mutex_lock(&serverlist_lock);
                 serverlist = realloc(serverlist,server_count*sizeof(struct serverlist_entry));
 				CHECK_ALLOCATION_ERROR(serverlist)
                 player_count = 0;
-                for(int k=1;k<server_count;k++) {
-                    JSON_Object* s = json_array_get_object(servers,k-1);
+                for(int k=0;k<server_count;k++) {
+                    JSON_Object* s = json_array_get_object(servers,k);
 					memset(&serverlist[k],0,sizeof(struct serverlist_entry));
 
                     serverlist[k].current = (int)json_object_get_number(s,"players_current");
                     serverlist[k].max = (int)json_object_get_number(s,"players_max");
+					serverlist[k].ping = -1;
 
                     strncpy(serverlist[k].name,json_object_get_string(s,"name"),31);
                     strncpy(serverlist[k].map,json_object_get_string(s,"map"),20);
@@ -1594,24 +1598,18 @@ static void hud_serverlist_render(float scalex, float scaley) {
 					int port;
 					char ip[32];
 					if(network_identifier_split(serverlist[k].identifier,ip,&port))
-						ping_check(ip,port,&serverlist[k].ping,hud_serverlist_pingupdate);
+						ping_check(ip,port,serverlist[k].identifier);
 
                     player_count += serverlist[k].current;
                 }
-                serverlist[0].current = serverlist[0].max = -1;
-                serverlist[0].ping = 0;
-                strcpy(serverlist[0].name,"localhost on 32887");
-                strcpy(serverlist[0].map,"-");
-                strcpy(serverlist[0].gamemode,"-");
-                strcpy(serverlist[0].identifier,"aos://16777343:32887");
-				strcpy(serverlist[0].country,"US");
 
-				ping_start(hud_serverlist_pingcomplete);
+				ping_start(hud_serverlist_pingcomplete,hud_serverlist_pingupdate);
 
                 qsort(serverlist,server_count,sizeof(struct serverlist_entry),hud_serverlist_sort);
 				pthread_mutex_unlock(&serverlist_lock);
 
                 http_release(request_serverlist);
+				json_value_free(js);
                 request_serverlist = NULL;
                 break;
             }
