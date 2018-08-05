@@ -45,6 +45,7 @@ PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
 #endif
 
 static int glx_major_ver() {
+	return 1;
 	#ifdef OPENGL_ES
 	return 2;
 	#else

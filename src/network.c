@@ -815,16 +815,16 @@ void read_PacketVersionGet(void* data, int len) {
 	ver.revision = BETTERSPADES_PATCH;
 	#ifndef OPENGL_ES
 		#ifdef OS_WINDOWS
-			char* os = "BetterSpades (Windows)";
+			char* os = "Windows";
 		#endif
 		#ifdef OS_LINUX
-			char* os = "BetterSpades (Linux)";
+			char* os = "Linux";
 		#endif
 		#ifdef OS_APPLE
-			char* os = "BetterSpades (Apple)";
+			char* os = "Apple";
 		#endif
 	#else
-		char* os = "BetterSpades (Mobile)";
+		char* os = "Mobile";
 	#endif
 	strcpy(ver.operatingsystem,os);
 	network_send(PACKET_VERSIONSEND_ID,&ver,sizeof(ver)-sizeof(ver.operatingsystem)+strlen(os));
