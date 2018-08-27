@@ -366,15 +366,22 @@ void display(float dt) {
 				if(hud_active->render_localplayer) {
 					float tmp2 = players[local_player_id].physics.eye.y;
 					players[local_player_id].physics.eye.y = last_cy;
-					if(camera_mode==CAMERAMODE_FPS) {
+					if(camera_mode==CAMERAMODE_FPS)
 						glDepthRange(0.0F,0.05F);
-					}
 					matrix_select(matrix_projection);
 					matrix_push();
 					matrix_translate(0.0F,-0.25F,0.0F);
 					matrix_upload_p();
 					matrix_select(matrix_model);
+					#ifdef OPENGL_ES
+					if(camera_mode==CAMERAMODE_FPS)
+						glx_disable_sphericalfog();
+					#endif
 					player_render(&players[local_player_id],local_player_id,NULL,1);
+					#ifdef OPENGL_ES
+					if(camera_mode==CAMERAMODE_FPS)
+						glx_enable_sphericalfog();
+					#endif
 					matrix_select(matrix_projection);
 					matrix_pop();
 					matrix_select(matrix_model);

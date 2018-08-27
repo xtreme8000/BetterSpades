@@ -236,6 +236,7 @@ void config_reload() {
 	config_register_key(WINDOW_KEY_PICKCOLOR,SDLK_e,"cube_color_sample","Pick color");
 	config_register_key(WINDOW_KEY_COMMAND,SDLK_SLASH,"chat_command",0,"Command");
 	config_register_key(WINDOW_KEY_HIDEHUD,SDLK_F6,"hide_hud",1,"Hide HUD");
+	config_register_key(WINDOW_KEY_LASTTOOL,SDLK_q,"last_tool",1,"Last tool");
 	#endif
 
 	#ifdef USE_GLFW
@@ -279,6 +280,7 @@ void config_reload() {
 	config_register_key(WINDOW_KEY_PICKCOLOR,GLFW_KEY_E,"cube_color_sample",0,"Pick color");
 	config_register_key(WINDOW_KEY_COMMAND,GLFW_KEY_SLASH,"chat_command",0,"Command");
 	config_register_key(WINDOW_KEY_HIDEHUD,GLFW_KEY_F6,"hide_hud",1,"Hide HUD");
+	config_register_key(WINDOW_KEY_LASTTOOL,GLFW_KEY_Q,"last_tool",1,"Last tool");
 	#endif
 
 	ini_parse("config.ini",config_read_key,NULL);

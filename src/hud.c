@@ -818,6 +818,8 @@ static void hud_ingame_render(float scalex, float scalef) {
 static void hud_ingame_scroll(double yoffset) {
     if(camera_mode==CAMERAMODE_FPS && yoffset!=0.0F) {
 		int h = players[local_player_id].held_item;
+		if(!players[local_player_id].items_show)
+			local_player_lasttool = h;
 		h += (yoffset<0)?1:-1;
 		if(h<0)
 			h = 3;
@@ -1071,6 +1073,15 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				}
 			}
 
+			if(key==WINDOW_KEY_LASTTOOL) {
+				int tmp = players[local_player_id].held_item;
+				players[local_player_id].held_item = local_player_lasttool;
+				local_player_lasttool = tmp;
+				players[local_player_id].item_disabled = window_time();
+				players[local_player_id].items_show_start = window_time();
+				players[local_player_id].items_show = 1;
+			}
+
             if(key==WINDOW_KEY_VOLUME_UP) {
                 settings.volume = min(settings.volume+1,10);
             }
@@ -1157,24 +1168,28 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				switch(key) {
 					case WINDOW_KEY_TOOL1:
 						if(players[local_player_id].held_item!=TOOL_SPADE) {
+							local_player_lasttool = players[local_player_id].held_item;
 							players[local_player_id].held_item = TOOL_SPADE;
 							tool_switch = 1;
 						}
 						break;
 					case WINDOW_KEY_TOOL2:
 						if(players[local_player_id].held_item!=TOOL_BLOCK) {
+							local_player_lasttool = players[local_player_id].held_item;
 							players[local_player_id].held_item = TOOL_BLOCK;
 							tool_switch = 1;
 						}
 						break;
 					case WINDOW_KEY_TOOL3:
 						if(players[local_player_id].held_item!=TOOL_GUN) {
+							local_player_lasttool = players[local_player_id].held_item;
 							players[local_player_id].held_item = TOOL_GUN;
 							tool_switch = 1;
 						}
 						break;
 					case WINDOW_KEY_TOOL4:
 						if(players[local_player_id].held_item!=TOOL_GRENADE) {
+							local_player_lasttool = players[local_player_id].held_item;
 							players[local_player_id].held_item = TOOL_GRENADE;
 							tool_switch = 1;
 						}
@@ -1184,10 +1199,10 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				if(tool_switch) {
 					sound_create(NULL,SOUND_LOCAL,&sound_switch,0.0F,0.0F,0.0F)->stick_to_player = local_player_id;
 					players[local_player_id].item_disabled = window_time();
-			        players[local_player_id].items_show_start = window_time();
-			        players[local_player_id].items_show = 1;
+					players[local_player_id].items_show_start = window_time();
+					players[local_player_id].items_show = 1;
 				}
-            }
+			}
 
             if(screen_current==SCREEN_NONE) {
 				if(key==WINDOW_KEY_CHANGETEAM) {

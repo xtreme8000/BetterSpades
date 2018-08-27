@@ -30,6 +30,7 @@ unsigned char local_player_respawn_time = 0;
 float         local_player_death_time = 0.0F;
 unsigned char local_player_respawn_cnt_last = 255;
 unsigned char local_player_newteam;
+unsigned char local_player_lasttool;
 
 float local_player_last_damage_timer;
 float local_player_last_damage_x;

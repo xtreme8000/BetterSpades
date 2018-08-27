@@ -63,7 +63,7 @@ void read_PacketProgressBar(void* data, int len);
 void read_PacketHandshakeInit(void* data, int len);
 void read_PacketVersionGet(void* data, int len);
 
-extern void (*packets[35]) (void* data, int len);
+extern void (*packets[256]) (void* data, int len);
 extern int network_connected;
 extern int network_logged_in;
 extern int network_map_transfer;
@@ -394,7 +394,7 @@ struct PacketProgressBar {
 	float progress;
 };
 
-#define PACKET_ENTITYCREATE	0xE0
+#define PACKET_ENTITYCREATE_ID	0xE0
 struct PacketEntityCreate {
 	unsigned int entity_id;
 	float x,y,z;
@@ -403,37 +403,37 @@ struct PacketEntityCreate {
 	unsigned int kv6_id;
 };
 
-#define PACKET_ENTITYDESTROY 0xE1
+#define PACKET_ENTITYDESTROY_ID 0xE1
 struct PacketEntityDestroy {
 	unsigned int entity_id;
 };
 
-#define PACKET_ENTITYMOVE 0xE2
+#define PACKET_ENTITYMOVE_ID 0xE2
 struct PacketEntityMove {
 	unsigned int entity_id;
 	float x,y,z;
 };
 
-#define PACKET_ENTITYVELOCITY 0xE3
+#define PACKET_ENTITYVELOCITY_ID 0xE3
 struct PacketEntityVelocity {
 	unsigned int entity_id;
 	float x,y,z;
 };
 
-#define PACKET_ENTITYROTATE 0xE4
+#define PACKET_ENTITYROTATE_ID 0xE4
 struct PacketEntityRotate {
 	unsigned int entity_id;
 	unsigned char absolute;
 	char x_rot, y_rot;
 };
 
-#define PACKET_ENTITYTEAM 0xE5
+#define PACKET_ENTITYTEAM_ID 0xE5
 struct PacketEntityTeam {
 	unsigned int entity_id;
 	unsigned char r,g,b;
 };
 
-#define PACKET_KV6LOAD 0xE6
+#define PACKET_KV6LOAD_ID 0xE6
 struct PacketKv6Load {
 	unsigned int kv6_id;
 	unsigned int data_size;

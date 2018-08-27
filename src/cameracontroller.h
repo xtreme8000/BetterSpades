@@ -18,6 +18,7 @@
 */
 
 extern int cameracontroller_bodyview_player;
+extern float cameracontroller_bodyview_zoom;
 
 void cameracontroller_fps(float dt);
 void cameracontroller_spectator(float dt);

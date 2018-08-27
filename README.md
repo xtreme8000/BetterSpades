@@ -27,6 +27,17 @@ You can either:
 * use the client temporarily by extracting the downloaded zip into a new directory.
 * extract all contents to your current Ace of Spades installation directory (normally found at `C:/Ace of Spades/`), effectively replacing the old voxlap version
 
+## System requirements
+
+| Type    | min. requirement                                     |
+| ------- | ---------------------------------------------------- |
+| OS      | Windows 98 or Linux                                  |
+| CPU     | 1 GHz single core processor                          |
+| GPU     | 64MB VRAM, Mobile Intel 945GM or equivalent          |
+| RAM     | 256MB                                                |
+| Display | 800x600px                                            |
+| Others  | Keyboard and mouse<br />Dial up network connection   |
+
 
 ## Build requirements
 

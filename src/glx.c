@@ -95,7 +95,7 @@ int glx_vertex_shader(const char* vertex, const char* fragment) {
 		glShaderSource(v,1,(const GLchar* const*)&vertex,NULL);
 		glCompileShader(v);
 	}
-	
+
 	if(fragment) {
 		f = glCreateShader(GL_FRAGMENT_SHADER);
 		glShaderSource(f,1,(const GLchar* const*)&fragment,NULL);
@@ -230,7 +230,7 @@ void glx_displaylist_draw(struct glx_displaylist* x, int type) {
 		if(x->has_normal) {
 			glBindBuffer(GL_ARRAY_BUFFER,x->modern[2]);
 			glNormalPointer(GL_BYTE,0,NULL);
-		}	
+		}
 		glBindBuffer(GL_ARRAY_BUFFER,0);
 		#ifdef OPENGL_ES
 		glDrawArrays(GL_TRIANGLES,0,x->size);
@@ -261,6 +261,33 @@ void glx_enable_sphericalfog() {
 	glTexGenfv(GL_S,GL_EYE_PLANE,s_plane);
 	glEnable(GL_TEXTURE_GEN_T);
 	glEnable(GL_TEXTURE_GEN_S);
+	#else
+	matrix_select(matrix_model);
+	matrix_push();
+	matrix_identity();
+	matrix_upload();
+	matrix_pop();
+
+	glEnable(GL_LIGHT1);
+	glEnable(GL_LIGHTING);
+	glEnable(GL_COLOR_MATERIAL);
+	//glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
+	float amb[4] = {0.0F,0.0F,0.0F,1.0F};
+	glLightModelfv(GL_LIGHT_MODEL_AMBIENT,amb);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+
+	float lpos[4] = {camera_x,(settings.render_distance*map_size_y)/16.0F,camera_z,1.0F};
+	glLightfv(GL_LIGHT1,GL_POSITION,lpos);
+	float dir[3] = {0.0F,-1.0F,0.0F};
+	glLightfv(GL_LIGHT1,GL_SPOT_DIRECTION,dir);
+	float dif[4] = {1.0F,1.0F,1.0F,1.0F};
+	glLightfv(GL_LIGHT1,GL_DIFFUSE,dif);
+	glLightfv(GL_LIGHT1,GL_AMBIENT,amb);
+	glLightf(GL_LIGHT1,GL_SPOT_CUTOFF,tan(16.0F/map_size_y)/PI*180.0F);
+	glLightf(GL_LIGHT1,GL_SPOT_EXPONENT,128.0F);
+	glNormal3f(0.0F,1.0F,0.0F);
+	fog_color[0] = fog_color[1] = fog_color[2] = 0;
 	#endif
 	glx_fog = 1;
 }
@@ -272,6 +299,12 @@ void glx_disable_sphericalfog() {
 	glBindTexture(GL_TEXTURE_2D,0);
 	glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
 	glDisable(GL_TEXTURE_2D);
+	#else
+	glDisable(GL_COLOR_MATERIAL);
+	glDisable(GL_LIGHT1);
+	glDisable(GL_LIGHTING);
+	float a[4] = {0.2F,0.2F,0.2F,1.0F};
+	glLightModelfv(GL_LIGHT_MODEL_AMBIENT,a);
 	#endif
 	glx_fog = 0;
 }

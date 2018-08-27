@@ -19,7 +19,7 @@
 
 #include "common.h"
 
-void (*packets[35]) (void* data, int len) = {NULL};
+void (*packets[256]) (void* data, int len) = {NULL};
 
 int network_connected = 0;
 int network_logged_in = 0;
@@ -381,6 +381,7 @@ void read_PacketCreatePlayer(void* data, int len) {
 			local_player_health = 100;
 			local_player_blocks = 50;
 			local_player_grenades = 3;
+			local_player_lasttool = TOOL_GUN;
 			weapon_set();
 		}
 	}
@@ -530,6 +531,7 @@ void read_PacketKillAction(void* data, int len) {
 		if(p->player_id==local_player_id) {
 			camera_mode = CAMERAMODE_BODYVIEW;
 			cameracontroller_bodyview_player = local_player_id;
+			cameracontroller_bodyview_zoom = 0.0F;
 			local_player_death_time = window_time();
 			local_player_respawn_time = p->respawn_time;
 			local_player_respawn_cnt_last = 255;
@@ -830,6 +832,35 @@ void read_PacketVersionGet(void* data, int len) {
 	network_send(PACKET_VERSIONSEND_ID,&ver,sizeof(ver)-sizeof(ver.operatingsystem)+strlen(os));
 }
 
+/*struct list network_list_kv6s;
+struct list network_list_entities;
+
+struct network_kv6 {
+	int id;
+	int size;
+	void* data;
+	kv6_t object;
+};
+
+struct network_entity {
+	int id;
+	float x,y,z;
+	unsigned char r,g,b;
+	float scale;
+	int kv6_id;
+};
+
+void read_PacketKv6Load(void* data, int len) {
+	struct PacketKv6Load* p = (struct PacketKv6Load*)data;
+
+}
+
+void read_PacketEntityCreate(void* data, int len) {
+	struct PacketEntityCreate* p = (struct PacketEntityCreate*)data;
+	struct network_entity e;
+
+}*/
+
 void network_updateColor() {
 	struct PacketSetColor c;
 	c.player_id = local_player_id;
@@ -968,8 +999,8 @@ int network_update() {
 				case ENET_EVENT_TYPE_RECEIVE:
 				{
 					int id = event.packet->data[0];
-					if(id<sizeof(packets)/sizeof(packets[0]) && *packets[id]!=NULL) {
-						log_debug("packet id %i",id);
+					if(*packets[id]) {
+						log_debug("Packet id %i",id);
 						(*packets[id]) (event.packet->data+1,event.packet->dataLength-1);
 					} else {
 						log_error("Invalid packet id %i, length: %i",id,(int)event.packet->dataLength-1);
@@ -1079,4 +1110,7 @@ void network_init() {
 	packets[PACKET_CHANGEWEAPON_ID]		= read_PacketChangeWeapon;
 	packets[PACKET_HANDSHAKEINIT_ID]	= read_PacketHandshakeInit;
 	packets[PACKET_VERSIONGET_ID]		= read_PacketVersionGet;
+
+	/*packets[PACKET_KV6LOAD_ID]			= read_PacketKv6Load;
+	packets[PACKET_ENTITYCREATE_ID]		= read_PacketEntityCreate;*/
 }

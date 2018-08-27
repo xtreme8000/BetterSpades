@@ -47,6 +47,7 @@ extern unsigned char local_player_respawn_time;
 extern float		 local_player_death_time;
 extern unsigned char local_player_respawn_cnt_last;
 extern unsigned char local_player_newteam;
+extern unsigned char local_player_lasttool;
 
 extern float local_player_last_damage_timer;
 extern float local_player_last_damage_x;
