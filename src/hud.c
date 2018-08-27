@@ -1595,6 +1595,9 @@ static void hud_serverlist_render(float scalex, float scaley) {
 				pthread_mutex_lock(&serverlist_lock);
                 serverlist = realloc(serverlist,server_count*sizeof(struct serverlist_entry));
 				CHECK_ALLOCATION_ERROR(serverlist)
+
+				ping_stop();
+
                 player_count = 0;
                 for(int k=0;k<server_count;k++) {
                     JSON_Object* s = json_array_get_object(servers,k);

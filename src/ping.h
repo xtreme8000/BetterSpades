@@ -11,3 +11,4 @@ void ping_check(char* addr, int port, void* user_data);
 void* ping_update(void* data);
 void ping_start(void (*finished) (),  void (*result) (void*, float, void*));
 void ping_lan();
+void ping_stop();

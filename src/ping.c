@@ -4,6 +4,7 @@
 struct list list_pings;
 ENetSocket sock, lan;
 pthread_t ping_thread;
+pthread_mutex_t ping_lock;
 void (*ping_finished) ();
 void (*ping_result) (void*, float time_delta, void* user_data);
 
@@ -16,6 +17,8 @@ void ping_init() {
 	lan = enet_socket_create(ENET_SOCKET_TYPE_DATAGRAM);
 	enet_socket_set_option(lan,ENET_SOCKOPT_NONBLOCK,1);
 	enet_socket_set_option(lan,ENET_SOCKOPT_BROADCAST,1);
+
+	pthread_mutex_init(&ping_lock,NULL);
 }
 
 void ping_deinit() {
@@ -34,6 +37,8 @@ void* ping_update(void* data) {
 		buf.data = tmp;
 
 		ENetAddress from;
+
+		pthread_mutex_lock(&ping_lock);
 
 		while(1) {
 			buf.dataLength = 512;
@@ -110,6 +115,8 @@ void* ping_update(void* data) {
 			return NULL;
 		}
 
+		pthread_mutex_unlock(&ping_lock);
+
 		usleep(1);
 	}
 }
@@ -126,6 +133,7 @@ void ping_lan() {
 }
 
 void ping_check(char* addr, int port, void* user_data) {
+	pthread_mutex_lock(&ping_lock);
 	struct ping_entry* entry = list_add(&list_pings,NULL);
 
 	strcpy(entry->user_data,user_data);
@@ -140,10 +148,18 @@ void ping_check(char* addr, int port, void* user_data) {
 
 	entry->time_start = window_time();
 	enet_socket_send(sock,&entry->addr,&buffer,1);
+	pthread_mutex_unlock(&ping_lock);
 }
 
 void ping_start(void (*finished) (), void (*result) (void*, float, void*)) {
 	pthread_create(&ping_thread,NULL,ping_update,NULL);
 	ping_finished = finished;
 	ping_result = result;
+}
+
+void ping_stop() {
+	pthread_mutex_lock(&ping_lock);
+	list_clear(&list_pings);
+	pthread_cancel(ping_thread);
+	pthread_mutex_unlock(&ping_lock);
 }

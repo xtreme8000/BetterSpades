@@ -227,7 +227,7 @@ void cameracontroller_bodyview(float dt) {
 
 	float tmp = (traverse_lengths[0]<=0)?(-traverse_lengths[1]):traverse_lengths[0];
 
-	cameracontroller_bodyview_zoom = (tmp<cameracontroller_bodyview_zoom)?tmp:min(tmp,cameracontroller_bodyview_zoom*pow(0.9F,dt*60.0F)+tmp*pow(0.1F,dt*60.0F));
+	cameracontroller_bodyview_zoom = (tmp<cameracontroller_bodyview_zoom)?tmp:min(tmp,cameracontroller_bodyview_zoom+dt*8.0F);
 
     //this is needed to determine which chunks need/can be rendered and for sound, minimap etc...
     camera_x = players[cameracontroller_bodyview_player].pos.x-sin(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom;
