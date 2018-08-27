@@ -770,7 +770,7 @@ void read_PacketTerritoryCapture(void* data, int len) {
 		gamestate.gamemode.tc.territory[p->tent].team = p->team;
 		sound_create(NULL,SOUND_LOCAL,p->winning?&sound_horn:&sound_pickup,0.0F,0.0F,0.0F);
 		char x = (int)(gamestate.gamemode.tc.territory[p->tent].x/64.0F)+'A';
-		char y = (int)(gamestate.gamemode.tc.territory[p->tent].y/64.0F)+'0';
+		char y = (int)(gamestate.gamemode.tc.territory[p->tent].y/64.0F)+'1';
 		char capture_str[128];
 		char* team_n;
 		switch(p->team) {
