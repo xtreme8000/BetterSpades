@@ -59,6 +59,18 @@ int map_damage(int x, int y, int z, int damage) {
 	return damage;
 }
 
+int map_damage_get(int x, int y, int z) {
+	for(int k=0;k<8;k++) {
+		if(window_time()-map_damaged_voxels[k].timer<=10.0F
+		&& map_damaged_voxels[k].x==x
+		&& map_damaged_voxels[k].y==y
+		&& map_damaged_voxels[k].z==z) {
+			return map_damaged_voxels[k].damage;
+		}
+	}
+	return 0;
+}
+
 static void push_float3(float* buffer, int* index, float x, float y, float z) {
 	buffer[(*index)++] = x;
 	buffer[(*index)++] = y;

@@ -41,8 +41,8 @@ int fps = 0;
 
 int ms_seed = 1;
 int ms_rand() {
-  ms_seed = ms_seed*0x343FD+0x269EC3;
-  return (ms_seed>>0x10) & 0x7FFF;
+	ms_seed = ms_seed*0x343FD+0x269EC3;
+	return (ms_seed>>0x10) & 0x7FFF;
 }
 
 int chat_input_mode = CHAT_NO_INPUT;
@@ -462,13 +462,13 @@ void init() {
 	player_init();
 	particle_init();
 	network_init();
+	ping_init();
 	kv6_init();
 	texture_init();
 	sound_init();
 	tracer_init();
 	hud_init();
 	chunk_init();
-	ping_init();
 
 	weapon_set();
 }
@@ -592,7 +592,7 @@ int main(int argc, char** argv) {
 	settings.mouse_sensitivity = MOUSE_SENSITIVITY;
 	settings.show_news = 1;
 	settings.show_fps = 0;
-	settings.volume = 0;
+	settings.volume = 10;
 	strcpy(settings.name,"DEV_CLIENT");
 
 	log_set_level(LOG_INFO);
@@ -602,11 +602,17 @@ int main(int argc, char** argv) {
 	strftime(buf,32,"logs/%m-%d-%Y.log",localtime(&t));
 	log_set_fp(fopen(buf,"a"));
 
+	srand(t);
+
 	log_info("Game started!");
 
 	config_reload();
 
 	window_init();
+
+	if(glewInit()) {
+		log_error("Could not load extended OpenGL functions!");
+	}
 
 	log_info("Vendor: %s",glGetString(GL_VENDOR));
 	log_info("Renderer: %s",glGetString(GL_RENDERER));
@@ -614,12 +620,7 @@ int main(int argc, char** argv) {
 
 	if(settings.multisamples>0) {
 		glEnable(GL_MULTISAMPLE);
-		//glHint(GL_MULTISAMPLE_FILTER_HINT_NV,GL_NICEST);
-		int iMultiSample = 0;
-		int iNumSamples = 0;
-		glGetIntegerv(GL_SAMPLE_BUFFERS,&iMultiSample);
-		glGetIntegerv(GL_SAMPLES,&iNumSamples);
-		log_info("MSAA on, GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d",iMultiSample,iNumSamples);
+		log_info("MSAAx%i on",settings.multisamples);
 	}
 
 	while(glGetError()!=GL_NO_ERROR);
@@ -662,11 +663,11 @@ int main(int argc, char** argv) {
 		window_update();
 
 		if(settings.vsync>1 && (window_time()-last_frame_start)<(1.0F/settings.vsync)) {
-		    double sleep_s = 1.0F/settings.vsync-(window_time()-last_frame_start);
-		    struct timespec ts;
-		    ts.tv_sec = (int)sleep_s;
-		    ts.tv_nsec = (sleep_s-ts.tv_sec)*1000000000.0;
-		    nanosleep(&ts,NULL);
+			double sleep_s = 1.0F/settings.vsync-(window_time()-last_frame_start);
+			struct timespec ts;
+			ts.tv_sec = (int)sleep_s;
+			ts.tv_nsec = (sleep_s-ts.tv_sec)*1000000000.0;
+			nanosleep(&ts,NULL);
 		}
 		fps = 1.0F/(window_time()-last_frame_start);
 	}

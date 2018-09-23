@@ -19,35 +19,7 @@
 
 #include "common.h"
 
-void aabb_render(AABB* a) {
-	/*glLineWidth(1.0F);
-	glBegin(GL_LINES);
-	glVertex3f(a->min_x,a->min_y,a->min_z);
-	glVertex3f(a->max_x,a->min_y,a->min_z);
-	glVertex3f(a->min_x,a->min_y,a->min_z);
-	glVertex3f(a->min_x,a->min_y,a->max_z);
-	glVertex3f(a->max_x,a->min_y,a->min_z);
-	glVertex3f(a->max_x,a->min_y,a->max_z);
-	glVertex3f(a->min_x,a->min_y,a->max_z);
-	glVertex3f(a->max_x,a->min_y,a->max_z);
-	glVertex3f(a->min_x,a->max_y,a->min_z);
-	glVertex3f(a->max_x,a->max_y,a->min_z);
-	glVertex3f(a->min_x,a->max_y,a->min_z);
-	glVertex3f(a->min_x,a->max_y,a->max_z);
-	glVertex3f(a->max_x,a->max_y,a->min_z);
-	glVertex3f(a->max_x,a->max_y,a->max_z);
-	glVertex3f(a->min_x,a->max_y,a->max_z);
-	glVertex3f(a->max_x,a->max_y,a->max_z);
-	glVertex3f(a->min_x,a->min_y,a->min_z);
-	glVertex3f(a->min_x,a->max_y,a->min_z);
-	glVertex3f(a->max_x,a->min_y,a->min_z);
-	glVertex3f(a->max_x,a->max_y,a->min_z);
-	glVertex3f(a->max_x,a->min_y,a->max_z);
-	glVertex3f(a->max_x,a->max_y,a->max_z);
-	glVertex3f(a->min_x,a->min_y,a->max_z);
-	glVertex3f(a->min_x,a->max_y,a->max_z);
-	glEnd();*/
-}
+void aabb_render(AABB* a) {}
 
 char aabb_intersection_ray(AABB* a, Ray* r) {
 	double t1 = (a->min_x-r->origin.x)/r->direction.x;

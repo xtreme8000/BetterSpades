@@ -25,25 +25,6 @@ int glx_version = 0;
 
 int glx_fog = 0;
 
-#ifndef OPENGL_ES
-PFNGLGENBUFFERSPROC glGenBuffers;
-PFNGLDELETEBUFFERSPROC glDeleteBuffers;
-PFNGLBINDBUFFERPROC glBindBuffer;
-PFNGLBUFFERDATAPROC glBufferData;
-
-PFNGLCREATESHADERPROC glCreateShader;
-PFNGLSHADERSOURCEPROC glShaderSource;
-PFNGLCOMPILESHADERPROC glCompileShader;
-PFNGLCREATEPROGRAMPROC glCreateProgram;
-PFNGLATTACHSHADERPROC glAttachShader;
-PFNGLLINKPROGRAMPROC glLinkProgram;
-PFNGLUSEPROGRAMPROC glUseProgram;
-PFNGLUNIFORM1FPROC glUniform1f;
-PFNGLUNIFORM3FPROC glUniform3f;
-PFNGLUNIFORMMATRIX4FVPROC glUniformMatrix4fv;
-PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
-#endif
-
 static int glx_major_ver() {
 	#ifdef OPENGL_ES
 	return 2;
@@ -54,34 +35,7 @@ static int glx_major_ver() {
 
 void glx_init() {
 	#ifndef OPENGL_ES
-	if(glx_major_ver()>=2) {
-		#ifdef OS_WINDOWS
-			glGenBuffers = (PFNGLGENBUFFERSPROC)wglGetProcAddress("glGenBuffers");
-			glDeleteBuffers = (PFNGLDELETEBUFFERSPROC)wglGetProcAddress("glDeleteBuffers");
-			glBindBuffer = (PFNGLBINDBUFFERPROC)wglGetProcAddress("glBindBuffer");
-			glBufferData = (PFNGLBUFFERDATAPROC)wglGetProcAddress("glBufferData");
-
-			glCreateShader = (PFNGLCREATESHADERPROC)wglGetProcAddress("glCreateShader");
-			glShaderSource = (PFNGLSHADERSOURCEPROC)wglGetProcAddress("glShaderSource");
-			glCompileShader = (PFNGLCOMPILESHADERPROC)wglGetProcAddress("glCompileShader");
-			glCreateProgram = (PFNGLCREATEPROGRAMPROC)wglGetProcAddress("glCreateProgram");
-			glAttachShader = (PFNGLATTACHSHADERPROC)wglGetProcAddress("glAttachShader");
-			glLinkProgram = (PFNGLLINKPROGRAMPROC)wglGetProcAddress("glLinkProgram");
-			glUseProgram = (PFNGLUSEPROGRAMPROC)wglGetProcAddress("glUseProgram");
-			glUniform1f = (PFNGLUNIFORM1FPROC)wglGetProcAddress("glUniform1f");
-			glUniform3f = (PFNGLUNIFORM3FPROC)wglGetProcAddress("glUniform3f");
-			glUniformMatrix4fv = (PFNGLUNIFORMMATRIX4FVPROC)wglGetProcAddress("glUniformMatrix4fv");
-			glGetUniformLocation = (PFNGLGETUNIFORMLOCATIONPROC)wglGetProcAddress("glGetUniformLocation");
-		#endif
-		#if defined(OS_LINUX) || defined(OS_APPLE)
-			glGenBuffers = (PFNGLGENBUFFERSPROC)glXGetProcAddress("glGenBuffers");
-			glBindBuffer = (PFNGLBINDBUFFERPROC)glXGetProcAddress("glBindBuffer");
-			glBufferData = (PFNGLBUFFERDATAPROC)glXGetProcAddress("glBufferData");
-		#endif
-		glx_version = 1;
-	} else {
-		glx_version = 0;
-	}
+	glx_version = glx_major_ver()>=2;
 	#else
 	glx_version = 1;
 	#endif
@@ -268,14 +222,12 @@ void glx_enable_sphericalfog() {
 	matrix_upload();
 	matrix_pop();
 
-	glEnable(GL_LIGHT1);
 	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT1);
 	glEnable(GL_COLOR_MATERIAL);
 	//glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
 	float amb[4] = {0.0F,0.0F,0.0F,1.0F};
 	glLightModelfv(GL_LIGHT_MODEL_AMBIENT,amb);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
 	float lpos[4] = {camera_x,(settings.render_distance*map_size_y)/16.0F,camera_z,1.0F};
 	glLightfv(GL_LIGHT1,GL_POSITION,lpos);

@@ -266,9 +266,8 @@ static void hud_ingame_render(float scalex, float scalef) {
         font_render(0.0F,8.0F*scalef,8.0F*scalef,"Created by ByteBit, visit https://github.com/xtreme8000/BetterSpades");
         font_select(FONT_FIXEDSYS);
     } else {
-        if(window_key_down(WINDOW_KEY_HIDEHUD)) {
+        if(window_key_down(WINDOW_KEY_HIDEHUD))
             return;
-        }
 
         if(screen_current==SCREEN_TEAM_SELECT) {
             glColor3f(1.0F,0.0F,0.0F);
@@ -1302,12 +1301,16 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 			}
 			if(key==WINDOW_KEY_PICKCOLOR && players[local_player_id].held_item==TOOL_BLOCK) {
 				players[local_player_id].item_disabled = window_time();
-	            players[local_player_id].items_show_start = window_time();
-	            players[local_player_id].items_show = 1;
+				players[local_player_id].items_show_start = window_time();
+				players[local_player_id].items_show = 1;
 
 				int* pos = camera_terrain_pick(1);
 				if(pos!=NULL) {
 					players[local_player_id].block.packed = map_get(pos[0],pos[1],pos[2]);
+					float dmg = (100.0F-map_damage_get(pos[0],pos[1],pos[2]))/100.0F*0.75F+0.25F;
+					players[local_player_id].block.red *= dmg;
+					players[local_player_id].block.green *= dmg;
+					players[local_player_id].block.blue *= dmg;
 				} else {
 					players[local_player_id].block.red = fog_color[0]*255;
 					players[local_player_id].block.green = fog_color[1]*255;
@@ -1321,7 +1324,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 			if(key==WINDOW_KEY_V && mods) {
 				const char* clipboard = window_clipboard();
 				if(clipboard)
-    				strcpy(chat[0][0]+strlen(chat[0][0]),clipboard);
+					strcpy(chat[0][0]+strlen(chat[0][0]),clipboard);
 			}
 			if(key==WINDOW_KEY_ESCAPE || key==WINDOW_KEY_ENTER) {
 				if(key==WINDOW_KEY_ENTER && strlen(chat[0][0])>0) {
@@ -1368,6 +1371,7 @@ static int serverlist_is_outdated;
 static pthread_mutex_t serverlist_lock;
 
 static void hud_serverlist_init() {
+	ping_stop();
 	network_disconnect();
 
 	window_mousemode(WINDOW_CURSOR_ENABLED);

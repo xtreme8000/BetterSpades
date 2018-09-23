@@ -1,3 +1,22 @@
+/*
+	Copyright (c) 2017-2018 ByteBit
+
+	This file is part of BetterSpades.
+
+	BetterSpades is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	BetterSpades is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "common.h"
 #include "parson.h"
 
@@ -112,6 +131,8 @@ void* ping_update(void* data) {
 
 		if(!list_size(&list_pings)) {
 			ping_finished();
+			log_info("Ping thread stopped");
+			pthread_mutex_unlock(&ping_lock);
 			return NULL;
 		}
 
@@ -159,7 +180,7 @@ void ping_start(void (*finished) (), void (*result) (void*, float, void*)) {
 
 void ping_stop() {
 	pthread_mutex_lock(&ping_lock);
-	list_clear(&list_pings);
-	pthread_cancel(ping_thread);
+	if(list_created(&list_pings))
+		list_clear(&list_pings);
 	pthread_mutex_unlock(&ping_lock);
 }

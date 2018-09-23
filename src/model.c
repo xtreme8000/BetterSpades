@@ -155,6 +155,25 @@ void kv6_load(struct kv6_t* kv6, unsigned char* bytes, float scale) {
 	}
 }
 
+void kv6_boundingbox(struct kv6_t* kv6, AABB* bb) {
+	matrix_push();
+	matrix_load(matrix_model);
+	matrix_multiply(matrix_view);
+	matrix_multiply(matrix_projection);
+
+	for(int k=0;k<8;k++) {
+		float v[4] = {(kv6->xsiz*((k&1)>0)-kv6->xpiv)*kv6->scale,(kv6->zsiz*((k&2)>0)-kv6->zpiv)*kv6->scale,(kv6->ysiz*((k&4)>0)-kv6->ypiv)*kv6->scale,1.0F};
+		matrix_vector(v);
+
+		bb->min_x = min(bb->min_x,v[0]);
+		bb->min_y = min(bb->min_y,v[1]);
+		bb->max_x = max(bb->max_x,v[0]);
+		bb->max_y = max(bb->max_y,v[1]);
+	}
+
+	matrix_pop();
+}
+
 char kv6_intersection(struct kv6_t* kv6, Ray* r) {
 	AABB bb;
 

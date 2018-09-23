@@ -26,19 +26,14 @@
 #define USE_GLFW
 
 #ifndef OPENGL_ES
-	#if __APPLE__
-	#include <OpenGL/gl.h>
-	#include <OpenGL/glu.h>
-	#include <OpenGL/glext.h>
-	#else
-	#include <GL/gl.h>
-	#include "GL/glext.h"
-	#endif
+	#define GLEW_STATIC
+	#include <GL/glew.h>
 
 	#include <enet/enet.h>
-	#include "GLFW/glfw3.h"
 #else
-	#include "SDL2/SDL_opengles.h"
+	#ifdef USE_SDL
+		#include "SDL2/SDL_opengles.h"
+	#endif
 	#include "enet/enet.h"
 
 	void glColor3f(float r, float g, float b);
