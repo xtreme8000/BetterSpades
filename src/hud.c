@@ -247,6 +247,51 @@ static void hud_ingame_render3D() {
 static void hud_ingame_render(float scalex, float scalef) {
     hud_active->render_localplayer = players[local_player_id].team!=TEAM_SPECTATOR && (screen_current==SCREEN_NONE || camera_mode!=CAMERAMODE_FPS);
 
+	if(window_key_down(WINDOW_KEY_NETWORKSTATS)) {
+		if(network_map_transfer)
+			glColor3f(1.0F,1.0F,1.0F);
+		else
+			glColor3f(0.0F,0.0F,0.0F);
+		glEnable(GL_DEPTH_TEST);
+		glColorMask(0,0,0,0);
+		texture_draw_empty(8.0F*scalex,380.0F*scalef,160.0F*scalef,160.0F*scalef);
+		glColorMask(1,1,1,1);
+		glDepthFunc(GL_NOTEQUAL);
+		texture_draw_empty(7.0F*scalex,381.0F*scalef,162.0F*scalef,162.0F*scalef);
+		glDepthFunc(GL_LEQUAL);
+		glDisable(GL_DEPTH_TEST);
+		font_select(FONT_SMALLFNT);
+		char dbg_str[32];
+		for(int k=0;k<40;k++) {
+			float in_h = min((float)network_stats[39-k].ingoing/90.0F,160.0F);
+			float out_h = min(in_h+(float)network_stats[39-k].outgoing/90.0F,160.0F);
+			float ping_h = min(out_h+network_stats[39-k].avg_ping/25.0F,160.0F);
+
+			glColor3f(1.0F,0.0F,0.0F);
+			texture_draw_empty(8.0F*scalex+4*k*scalef,(220.0F+ping_h)*scalef,4.0F*scalef,ping_h*scalef);
+			if(!k) {
+				sprintf(dbg_str,"ping: %i",network_stats[1].avg_ping);
+				font_render(8.0F*scalex,202.0F*scalef,8.0F*scalef,dbg_str);
+			}
+
+			glColor3f(0.0F,0.0F,1.0F);
+			texture_draw_empty(8.0F*scalex+4*k*scalef,(220.0F+out_h)*scalef,4.0F*scalef,out_h*scalef);
+			if(!k) {
+				sprintf(dbg_str,"out: %i b/s",network_stats[1].outgoing);
+				font_render(8.0F*scalex+80*scalef,212.0F*scalef,8.0F*scalef,dbg_str);
+			}
+
+			glColor3f(0.0F,1.0F,0.0F);
+			texture_draw_empty(8.0F*scalex+4*k*scalef,(220.0F+in_h)*scalef,4.0F*scalef,in_h*scalef);
+			if(!k) {
+				sprintf(dbg_str,"in: %i b/s",network_stats[1].ingoing);
+				font_render(8.0F*scalex,212.0F*scalef,8.0F*scalef,dbg_str);
+			}
+		}
+		font_select(FONT_FIXEDSYS);
+		glColor3f(1.0F,1.0F,1.0F);
+	}
+
     if(network_map_transfer) {
         glColor3f(1.0F,1.0F,1.0F);
         texture_draw(&texture_splash,(settings.window_width-settings.window_height*4.0F/3.0F*0.7F)*0.5F,560*scalef,settings.window_height*4.0F/3.0F*0.7F,settings.window_height*0.7F);
@@ -331,8 +376,6 @@ static void hud_ingame_render(float scalex, float scalef) {
                 }
             }
             font_centered(settings.window_width/4.0F*3.0F,487*scalef,53.0F*scalef,score_str);
-            glColor3f(1.0F,1.0F,1.0F);
-
 
 
             struct player_table pt[PLAYERS_MAX];
@@ -345,7 +388,7 @@ static void hud_ingame_render(float scalex, float scalef) {
             }
             qsort(pt,connected,sizeof(struct player_table),playertable_sort);
 
-            unsigned char cntt[3] = {0};
+            int cntt[3] = {0};
             for(int k=0;k<connected;k++) {
                 int mul = 0;
                 switch(players[pt[k].id].team) {
@@ -360,6 +403,10 @@ static void hud_ingame_render(float scalex, float scalef) {
                         mul = 2;
                         break;
                 }
+				if(pt[k].id==local_player_id)
+					glColor3f(1.0F,1.0F,0.0F);
+				else
+					glColor3f(1.0F,1.0F,1.0F);
                 char id_str[16];
                 sprintf(id_str,"#%i",pt[k].id);
                 font_render(settings.window_width/4.0F*mul-font_length(18.0F*scalef,players[pt[k].id].name),(427-18*cntt[mul-1])*scalef,18.0F*scalef,players[pt[k].id].name);
@@ -532,6 +579,7 @@ static void hud_ingame_render(float scalex, float scalef) {
             font_select(FONT_FIXEDSYS);
             glColor3f(1.0F,1.0F,1.0F);
         } else {
+			glColor3f(1.0F,1.0F,1.0F);
             texture_draw(&texture_splash,(settings.window_width-240*scalef)*0.5F,599*scalef,240*scalef,180*scalef);
             glColor3f(1.0F,1.0F,0.0F);
             font_centered(settings.window_width/2.0F,420*scalef,27*scalef,"CONTROLS");
@@ -1368,7 +1416,9 @@ static struct serverlist_entry* serverlist;
 static float serverlist_scroll;
 static int serverlist_hover;
 static int serverlist_is_outdated;
+static int serverlist_con_established;
 static pthread_mutex_t serverlist_lock;
+static int hud_serverlist_drag = 0;
 
 static void hud_serverlist_init() {
 	ping_stop();
@@ -1376,6 +1426,7 @@ static void hud_serverlist_init() {
 
 	window_mousemode(WINDOW_CURSOR_ENABLED);
 
+	hud_serverlist_drag = 0;
 	player_count = 0;
 	server_count = 0;
 	serverlist_scroll = 0.0F;
@@ -1386,6 +1437,7 @@ static void hud_serverlist_init() {
 	chat_input_mode = CHAT_ALL_INPUT;
 	chat[0][0][0] = 0;
 	serverlist_is_outdated = 0;
+	serverlist_con_established = request_serverlist!=NULL;
 
 	pthread_mutex_init(&serverlist_lock,NULL);
 }
@@ -1582,13 +1634,11 @@ static void hud_serverlist_render(float scalex, float scaley) {
         }
     }
 
+	int render_status_icon = !serverlist_con_established;
     if(request_serverlist) {
         switch(http_process(request_serverlist)) {
             case HTTP_STATUS_PENDING:
-                glColor3f(1.0F,1.0F,1.0F);
-            	texture_filter(&texture_ui_wait,TEXTURE_FILTER_LINEAR);
-            	texture_draw_rotated(&texture_ui_wait,settings.window_width/2.0F,settings.window_height/2.0F,48*scaley,48*scaley,-window_time()*5.0F);
-                font_centered(settings.window_width/2.0F,settings.window_height/2.0F-24*scaley,18*scaley,"Please wait...");
+				render_status_icon = 1;
                 break;
             case HTTP_STATUS_COMPLETED:
             {
@@ -1641,10 +1691,17 @@ static void hud_serverlist_render(float scalex, float scaley) {
                 break;
         }
     }
+
+	if(render_status_icon) {
+		glColor3f(1.0F,1.0F,1.0F);
+		texture_draw_rotated(serverlist_con_established?&texture_ui_wait:&texture_ui_alert,settings.window_width/2.0F,settings.window_height/2.0F,48*scaley,48*scaley,serverlist_con_established?-window_time()*5.0F:0.0F);
+		font_centered(settings.window_width/2.0F,settings.window_height/2.0F-24*scaley,18*scaley,serverlist_con_established?"Please wait...":"No connection");
+	}
 }
 
 static void hud_serverlist_scroll(double yoffset) {
-    serverlist_scroll += yoffset*20.0F;
+	if(!hud_serverlist_drag)
+		serverlist_scroll += yoffset*20.0F;
 }
 
 static void server_c(char* s) {
@@ -1662,6 +1719,10 @@ static void server_c(char* s) {
 }
 
 static void hud_serverlist_mouseclick(int button, int action, int mods) {
+	double x,y;
+	window_mouseloc(&x,&y);
+	float scaley = settings.window_height/600.0F;
+
     if(action==WINDOW_PRESS) {
         if(serverlist_is_outdated) {
             serverlist_is_outdated = 0;
@@ -1673,9 +1734,6 @@ static void hud_serverlist_mouseclick(int button, int action, int mods) {
             server_c(serverlist[serverlist_hover].identifier);
 			pthread_mutex_unlock(&serverlist_lock);
         }
-        double x,y;
-        window_mouseloc(&x,&y);
-    	float scaley = settings.window_height/600.0F;
 
         if(x>=(settings.window_width-600*scaley)/2.0F+250*scaley-font_length(20*scaley,"Settings")/2
         && x<(settings.window_width-600*scaley)/2.0F+250*scaley+font_length(20*scaley,"Settings")/2
@@ -1688,27 +1746,44 @@ static void hud_serverlist_mouseclick(int button, int action, int mods) {
         && y>=77*scaley && y<97*scaley) {
             hud_change(&hud_controls);
         }
-    }
+
+		//inside progress bar thingy
+		float progress = serverlist_scroll/(-(server_count*20-430+50)*scaley);
+		if(x>=(settings.window_width-600*scaley)/2.0F-20*scaley
+		&& x<=(settings.window_width-600*scaley)/2.0F-20*scaley+10*scaley
+		&& y<=settings.window_height-(450*scaley-(430-50)*scaley*progress-20*scaley)
+		&& y>=settings.window_height-(450*scaley-(430-50)*scaley*progress)) {
+			hud_serverlist_drag = 1;
+		}
+	}
+
+	if(hud_serverlist_drag && action==WINDOW_RELEASE)
+		hud_serverlist_drag = 0;
+}
+
+void hud_serverlist_mouselocation(double x, double y) {
+	if(hud_serverlist_drag) {
+		float scaley = settings.window_height/600.0F;
+		serverlist_scroll = -((y-160*scaley)*(20*server_count*scaley-380*scaley))/(380*scaley);
+	}
 }
 
 static void hud_serverlist_keyboard(int key, int action, int mods, int internal) {
-    if(action!=WINDOW_RELEASE) {
-        if(key==WINDOW_KEY_UP || key==WINDOW_KEY_CURSOR_UP) {
-            serverlist_scroll += 20.0F;
-        }
-        if(key==WINDOW_KEY_DOWN || key==WINDOW_KEY_CURSOR_DOWN) {
-            serverlist_scroll -= 20.0F;
-        }
-        if(key==WINDOW_KEY_BACKSPACE) {
-            size_t text_len = strlen(chat[0][0]);
-            if (text_len > 0){
-                chat[0][0][text_len-1] = 0;
-            }
-        }
-        if(key==WINDOW_KEY_ENTER && strlen(chat[0][0])>0) {
-            server_c(chat[0][0]);
-        }
-    }
+	if(action!=WINDOW_RELEASE) {
+		if(!hud_serverlist_drag) {
+			if(key==WINDOW_KEY_UP || key==WINDOW_KEY_CURSOR_UP)
+				serverlist_scroll += 20.0F;
+			if(key==WINDOW_KEY_DOWN || key==WINDOW_KEY_CURSOR_DOWN)
+				serverlist_scroll -= 20.0F;
+		}
+		if(key==WINDOW_KEY_BACKSPACE) {
+			size_t text_len = strlen(chat[0][0]);
+			if(text_len>0)
+				chat[0][0][text_len-1] = 0;
+		}
+		if(key==WINDOW_KEY_ENTER && strlen(chat[0][0])>0)
+			server_c(chat[0][0]);
+	}
 }
 
 struct hud hud_serverlist = {
@@ -1716,7 +1791,7 @@ struct hud hud_serverlist = {
     (void*)NULL,
     hud_serverlist_render,
     hud_serverlist_keyboard,
-    (void*)NULL,
+    hud_serverlist_mouselocation,
     hud_serverlist_mouseclick,
     hud_serverlist_scroll,
     0,
@@ -2012,7 +2087,7 @@ static void hud_controls_render(float scalex, float scaley) {
 
 			if(hud_controls_edit==a)
 				glColor3f(1.0F,0.0F,0.0F);
-			font_centered((settings.window_width-600*scaley)/2.0F+(200*x_off+150)*scaley,(460-40*y_off)*scaley,20*scaley,glfwGetKeyName(a->def,0)!=NULL?(char*)glfwGetKeyName(a->def,0):"?");
+			font_centered((settings.window_width-600*scaley)/2.0F+(200*x_off+150)*scaley,(460-40*y_off)*scaley,20*scaley,window_keyname(a->def));
 
 			y_off++;
 			if(y_off>10) {

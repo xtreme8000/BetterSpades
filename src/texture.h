@@ -59,6 +59,7 @@ extern struct texture texture_ui_box_empty;
 extern struct texture texture_ui_box_check;
 extern struct texture texture_ui_arrow;
 extern struct texture texture_ui_flags;
+extern struct texture texture_ui_alert;
 
 #define TEXTURE_FILTER_NEAREST  0
 #define TEXTURE_FILTER_LINEAR   1

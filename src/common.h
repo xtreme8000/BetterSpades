@@ -62,6 +62,7 @@
 #include <time.h>
 #include <pthread.h>
 #include <limits.h>
+#include <dirent.h>
 
 #include "lodepng/lodepng.h"
 #include "libdeflate.h"
@@ -81,29 +82,31 @@
 #endif
 
 #ifndef min
-#define min(a,b) ((a)<(b)?(a):(b))
+#define min(a,b)						((a)<(b)?(a):(b))
 #endif
 #ifndef max
-#define max(a,b) ((a)>(b)?(a):(b))
+#define max(a,b)						((a)>(b)?(a):(b))
 #endif
 
-#define absf(a) (((a)>0)?(a):-(a))
+#define absf(a)							(((a)>0)?(a):-(a))
 
-#define distance2D(x1,y1,x2,y2) (((x2)-(x1))*((x2)-(x1))+((y2)-(y1))*((y2)-(y1)))
-#define distance3D(x1,y1,z1,x2,y2,z2) (((x2)-(x1))*((x2)-(x1))+((y2)-(y1))*((y2)-(y1))+((z2)-(z1))*((z2)-(z1)))
+#define distance2D(x1,y1,x2,y2)			(((x2)-(x1))*((x2)-(x1))+((y2)-(y1))*((y2)-(y1)))
+#define distance3D(x1,y1,z1,x2,y2,z2)	(((x2)-(x1))*((x2)-(x1))+((y2)-(y1))*((y2)-(y1))+((z2)-(z1))*((z2)-(z1)))
+#define len2D(x,y)						sqrt(pow(x,2)+pow(y,2))
+#define len3D(x,y,z)					sqrt(pow(x,2)+pow(y,2)+pow(z,2))
 
-#define rgb(r,g,b)	(((b)<<16)|((g)<<8)|(r))
-#define red(col)	((col)&0xFF)
-#define green(col)	(((col)>>8)&0xFF)
-#define blue(col)	(((col)>>16)&0xFF)
-#define alpha(col)	(((col)>>24)&0xFF)
+#define rgb(r,g,b)						(((b)<<16)|((g)<<8)|(r))
+#define red(col)						((col)&0xFF)
+#define green(col)						(((col)>>8)&0xFF)
+#define blue(col)						(((col)>>16)&0xFF)
+#define alpha(col)						(((col)>>24)&0xFF)
 
-#define PI			3.1415F
-#define DOUBLEPI	(PI*2.0F)
-#define HALFPI		(PI*0.5F)
-#define EPSILON		0.005F
+#define PI								3.1415F
+#define DOUBLEPI						(PI*2.0F)
+#define HALFPI							(PI*0.5F)
+#define EPSILON							0.005F
 
-#define MOUSE_SENSITIVITY 0.002F
+#define MOUSE_SENSITIVITY				0.002F
 
 #include "ping.h"
 #include "glx.h"

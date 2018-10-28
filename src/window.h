@@ -68,7 +68,8 @@ enum window_keys {
     WINDOW_KEY_SCREENSHOT,
     WINDOW_KEY_COMMAND,
     WINDOW_KEY_HIDEHUD,
-	WINDOW_KEY_LASTTOOL
+	WINDOW_KEY_LASTTOOL,
+	WINDOW_KEY_NETWORKSTATS
 };
 
 enum {
@@ -85,6 +86,7 @@ enum {
 extern int window_pressed_keys[64];
 
 float window_time(void);
+char* window_keyname(int keycode);
 const char* window_clipboard(void);
 int window_key_translate(int key, int dir);
 int window_key_down(int key);
@@ -96,3 +98,4 @@ void window_fromsettings(void);
 void window_deinit(void);
 void window_update(void);
 int window_closed(void);
+int window_cpucores();

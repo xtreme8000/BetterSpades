@@ -83,6 +83,14 @@ extern int compressed_chunk_data_size;
 extern int compressed_chunk_data_offset;
 extern int compressed_chunk_data_estimate;
 
+extern struct network_stat {
+	int outgoing;
+	int ingoing;
+	int avg_ping;
+} network_stats[40];
+
+extern float network_stats_last;
+
 #pragma pack(push,1)
 
 #define PACKET_HANDSHAKEINIT_ID 31

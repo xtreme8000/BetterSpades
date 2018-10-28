@@ -79,6 +79,10 @@ static void window_impl_keys(GLFWwindow* window, int key, int scancode, int acti
 		hud_active->input_keyboard(tr,action,mods,key);
 }
 
+char* window_keyname(int keycode) {
+	return glfwGetKeyName(keycode,0)!=NULL?(char*)glfwGetKeyName(keycode,0):"?";
+}
+
 float window_time() {
     return glfwGetTime();
 }
@@ -187,6 +191,14 @@ int window_closed() {
 
 #ifdef USE_SDL
 
+void window_fromsettings() {
+
+}
+
+char* window_keyname(int keycode) {
+	return (char*)SDL_GetKeyName(keycode);
+}
+
 float window_time() {
     return ((double)SDL_GetTicks())/1000.0F;
 }
@@ -236,7 +248,7 @@ void window_init() {
 	SDL_GL_SetAttribute(SDL_GL_RED_SIZE,8);
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE,8);
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,8);
-	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,16);
+	//SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,16);
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,1);
 	SDL_GLContext* ctx = SDL_GL_CreateContext(hud_window->impl);
 }
@@ -257,16 +269,26 @@ void window_update() {
 				break;
 			case SDL_KEYDOWN:
 			{
+				if(event.key.keysym.sym==SDLK_p)
+					exit(0);
 				int tr = window_key_translate(event.key.keysym.sym,0);
 				if(tr>=0)
-					keys(hud_window,tr,0,WINDOW_PRESS,0);
+					keys(hud_window,tr,event.key.keysym.sym,WINDOW_PRESS,0);
+				else
+					tr = WINDOW_KEY_UNKNOWN;
+				if(hud_active->input_keyboard)
+					hud_active->input_keyboard(tr,WINDOW_PRESS,0,event.key.keysym.sym);
 				break;
 			}
 			case SDL_KEYUP:
 			{
 				int tr = window_key_translate(event.key.keysym.sym,0);
 				if(tr>=0)
-					keys(hud_window,tr,0,WINDOW_RELEASE,0);
+					keys(hud_window,tr,event.key.keysym.sym,WINDOW_RELEASE,0);
+				else
+					tr = WINDOW_KEY_UNKNOWN;
+				if(hud_active->input_keyboard)
+					hud_active->input_keyboard(tr,WINDOW_RELEASE,0,event.key.keysym.sym);
 				break;
 			}
 			case SDL_MOUSEBUTTONDOWN:
@@ -332,3 +354,18 @@ int window_closed() {
 }
 
 #endif
+
+int window_cpucores() {
+	#ifdef OS_LINUX
+		int count;
+		int size = sizeof(int);
+		sysctlbyname("hw.ncpu",&count,&size,NULL,0);
+		return count;
+	#endif
+	#ifdef OS_WINDOWS
+		SYSTEM_INFO info;
+		GetSystemInfo(&info);
+		return info.dwNumberOfProcessors;
+	#endif
+	return 1;
+}

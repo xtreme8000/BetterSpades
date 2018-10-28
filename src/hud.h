@@ -18,15 +18,15 @@
 */
 
 struct hud {
-    void (*init) ();
-    void (*render_3D) ();
-    void (*render_2D) (float scalex, float scaley);
-    void (*input_keyboard) (int key, int action, int mods, int internal);
-    void (*input_mouselocation) (double x, double y);
-    void (*input_mouseclick) (int button, int action, int mods);
-    void (*input_mousescroll) (double yoffset);
-    char render_world;
-    char render_localplayer;
+	void (*init) ();
+	void (*render_3D) ();
+	void (*render_2D) (float scalex, float scaley);
+	void (*input_keyboard) (int key, int action, int mods, int internal);
+	void (*input_mouselocation) (double x, double y);
+	void (*input_mouseclick) (int button, int action, int mods);
+	void (*input_mousescroll) (double yoffset);
+	char render_world;
+	char render_localplayer;
 };
 
 struct serverlist_entry {

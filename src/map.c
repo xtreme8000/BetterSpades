@@ -594,27 +594,30 @@ float map_sunblock(int x, int y, int z) {
 	return (float)i/127.0F;
 }
 
-unsigned long long map_get(int x, int y, int z) {
+int map_isair(int x, int y, int z) {
+	return map_get(x,y,z)==0xFFFFFFFF;
+}
+
+unsigned int map_get(int x, int y, int z) {
 	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_y || z>=map_size_z)
 		return 0xFFFFFFFF;
 
 	pthread_rwlock_rdlock(&chunk_map_locks[x+z*map_size_x]);
-	unsigned long long ret = map_colors[x+(y*map_size_z+z)*map_size_x];
+	unsigned int ret = map_colors[x+(y*map_size_z+z)*map_size_x];
 	pthread_rwlock_unlock(&chunk_map_locks[x+z*map_size_x]);
 	return ret;
 }
 
-unsigned long long map_get_unblocked(int x, int y, int z) {
+unsigned int map_get_unblocked(int x, int y, int z) {
 	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_y || z>=map_size_z)
 		return 0xFFFFFFFF;
 
 	return map_colors[x+(y*map_size_z+z)*map_size_x];
 }
 
-void map_set(int x, int y, int z, unsigned long long color) {
-	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_y || z>=map_size_z) {
+void map_set(int x, int y, int z, unsigned int color) {
+	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_y || z>=map_size_z)
 		return;
-	}
 
 	/*int err = pthread_rwlock_trywrlock(&chunk_map_lock);
 	if(err!=0) {
@@ -658,17 +661,15 @@ void map_set(int x, int y, int z, unsigned long long color) {
 }
 
 void map_vxl_setgeom(int x, int y, int z, unsigned int t, unsigned int* map) {
-	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_z || z>=map_size_y) {
+	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_z || z>=map_size_y)
 		return;
-	}
 
 	map[x+((map_size_y-1-z)*map_size_z+y)*map_size_x] = t;
 }
 
 void map_vxl_setcolor(int x, int y, int z, unsigned int t, unsigned int* map) {
-	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_z || z>=map_size_y) {
+	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_z || z>=map_size_y)
 		return;
-	}
 	unsigned char r = t & 255;
 	unsigned char g = (t>>8) & 255;
 	unsigned char b = (t>>16) & 255;
@@ -752,13 +753,13 @@ int map_cube_line(int x1, int y1, int z1, int x2, int y2, int z2, struct Point* 
 }
 
 static int lerp(int a, int b, int amt) { //amt from 0 to 8
-    return a + (b-a)*amt/8;
+	return a + (b-a)*amt/8;
 }
 
 static int dirt_color_table[] = {
-    0x506050, 0x605848, 0x705040,
-    0x804838, 0x704030, 0x603828,
-    0x503020, 0x402818, 0x302010
+	0x506050, 0x605848, 0x705040,
+	0x804838, 0x704030, 0x603828,
+	0x503020, 0x402818, 0x302010
 };
 
 //thanks to BR_ for deobfuscating this method

@@ -17,7 +17,9 @@
     along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-char file_exists(const char* name);
+int file_dir_exists(const char* path);
+int file_dir_create(const char* path);
+int file_exists(const char* name);
 unsigned char* file_load(const char* name);
 float buffer_readf(unsigned char* buffer, int index);
 unsigned int buffer_read32(unsigned char* buffer, int index);

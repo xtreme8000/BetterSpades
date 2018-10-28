@@ -41,7 +41,7 @@ void glx_init() {
 	#endif
 }
 
-int glx_vertex_shader(const char* vertex, const char* fragment) {
+int glx_shader(const char* vertex, const char* fragment) {
 	#ifndef OPENGL_ES
 	int v,f;
 	if(vertex) {
@@ -108,6 +108,7 @@ void glx_displaylist_update(struct glx_displaylist* x, int size, int type, void*
 					glColorPointer(3,GL_UNSIGNED_BYTE,0,color);
 					glVertexPointer(3,GL_SHORT,0,vertex);
 					break;
+				case GLX_DISPLAYLIST_POINTS:
 				case GLX_DISPLAYLIST_ENHANCED:
 					glColorPointer(4,GL_UNSIGNED_BYTE,0,color);
 					glVertexPointer(3,GL_FLOAT,0,vertex);
@@ -115,7 +116,7 @@ void glx_displaylist_update(struct glx_displaylist* x, int size, int type, void*
 			}
 			if(x->has_normal)
 				glNormalPointer(GL_BYTE,0,normal);
-			glDrawArrays(GL_QUADS,0,x->size);
+			glDrawArrays((type==GLX_DISPLAYLIST_POINTS)?GL_POINTS:GL_QUADS,0,x->size);
 		}
 		glEndList();
 
@@ -136,6 +137,7 @@ void glx_displaylist_update(struct glx_displaylist* x, int size, int type, void*
 				glBufferData(GL_ARRAY_BUFFER,x->size*3,color,GL_DYNAMIC_DRAW);
 				#endif
 				break;
+			case GLX_DISPLAYLIST_POINTS:
 			case GLX_DISPLAYLIST_ENHANCED:
 				glBufferData(GL_ARRAY_BUFFER,x->size*3*sizeof(float),vertex,GL_DYNAMIC_DRAW);
 				glBindBuffer(GL_ARRAY_BUFFER,x->modern[1]);
@@ -175,6 +177,7 @@ void glx_displaylist_draw(struct glx_displaylist* x, int type) {
 				glColorPointer(3,GL_UNSIGNED_BYTE,0,NULL);
 				#endif
 				break;
+			case GLX_DISPLAYLIST_POINTS:
 			case GLX_DISPLAYLIST_ENHANCED:
 				glVertexPointer(3,GL_FLOAT,0,NULL);
 				glBindBuffer(GL_ARRAY_BUFFER,x->modern[1]);
@@ -186,11 +189,15 @@ void glx_displaylist_draw(struct glx_displaylist* x, int type) {
 			glNormalPointer(GL_BYTE,0,NULL);
 		}
 		glBindBuffer(GL_ARRAY_BUFFER,0);
-		#ifdef OPENGL_ES
-		glDrawArrays(GL_TRIANGLES,0,x->size);
-		#else
-		glDrawArrays(GL_QUADS,0,x->size);
-		#endif
+		if(type==GLX_DISPLAYLIST_POINTS) {
+			glDrawArrays(GL_POINTS,0,x->size);
+		} else {
+			#ifdef OPENGL_ES
+			glDrawArrays(GL_TRIANGLES,0,x->size);
+			#else
+			glDrawArrays(GL_QUADS,0,x->size);
+			#endif
+		}
 		if(x->has_normal)
 			glDisableClientState(GL_NORMAL_ARRAY);
 		glDisableClientState(GL_COLOR_ARRAY);

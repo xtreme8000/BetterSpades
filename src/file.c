@@ -19,7 +19,21 @@
 
 #include "common.h"
 
-char file_exists(const char* name) {
+int file_dir_exists(const char* path) {
+	DIR* d = opendir(path);
+	if(d) {
+		closedir(d);
+		return 1;
+	} else {
+		return 0;
+	}
+}
+
+int file_dir_create(const char* path) {
+	mkdir(path);
+}
+
+int file_exists(const char* name) {
 	return !access(name,F_OK);
 }
 

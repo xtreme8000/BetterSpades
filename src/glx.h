@@ -22,26 +22,6 @@
 extern int glx_version;
 extern int glx_fog;
 
-#ifndef OPENGL_ES
-extern PFNGLGENBUFFERSPROC glGenBuffers;
-extern PFNGLDELETEBUFFERSPROC glDeleteBuffers;
-extern PFNGLBINDBUFFERPROC glBindBuffer;
-extern PFNGLBUFFERDATAPROC glBufferData;
-
-extern PFNGLCREATESHADERPROC glCreateShader;
-extern PFNGLSHADERSOURCEPROC glShaderSource;
-extern PFNGLCOMPILESHADERPROC glCompileShader;
-extern PFNGLCREATEPROGRAMPROC glCreateProgram;
-extern PFNGLATTACHSHADERPROC glAttachShader;
-extern PFNGLLINKPROGRAMPROC glLinkProgram;
-extern PFNGLUSEPROGRAMPROC glUseProgram;
-
-extern PFNGLUNIFORM1FPROC glUniform1f;
-extern PFNGLUNIFORM3FPROC glUniform3f;
-extern PFNGLUNIFORMMATRIX4FVPROC glUniformMatrix4fv;
-extern PFNGLGETUNIFORMLOCATIONPROC glGetUniformLocation;
-#endif
-
 struct glx_displaylist {
 	int legacy;
 	int modern[3];
@@ -50,13 +30,14 @@ struct glx_displaylist {
 };
 
 enum {
-    GLX_DISPLAYLIST_NORMAL,
-    GLX_DISPLAYLIST_ENHANCED
+	GLX_DISPLAYLIST_NORMAL,
+	GLX_DISPLAYLIST_ENHANCED,
+	GLX_DISPLAYLIST_POINTS
 };
 
 void glx_init(void);
 
-int glx_vertex_shader(const char* vertex, const char* fragment);
+int glx_shader(const char* vertex, const char* fragment);
 
 void glx_enable_sphericalfog(void);
 void glx_disable_sphericalfog(void);

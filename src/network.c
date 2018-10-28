@@ -38,6 +38,9 @@ int compressed_chunk_data_size;
 int compressed_chunk_data_offset = 0;
 int compressed_chunk_data_estimate = 0;
 
+struct network_stat network_stats[40];
+float network_stats_last = 0.0F;
+
 ENetHost* client;
 ENetPeer* peer;
 
@@ -275,6 +278,7 @@ void read_PacketStateData(void* data, int len) {
 	camera_mode = CAMERAMODE_SELECTION;
 	screen_current = SCREEN_TEAM_SELECT;
 	network_map_transfer = 0;
+	chat_popup_duration = 0;
 
 	log_info("map data was %i bytes",compressed_chunk_data_offset);
 	if(!network_map_cached) {
@@ -302,15 +306,12 @@ void read_PacketStateData(void* data, int len) {
 				chunk_rebuild_all();
 				break;
 			}
-			if(r==LIBDEFLATE_BAD_DATA || r==LIBDEFLATE_SHORT_OUTPUT) {
+			if(r==LIBDEFLATE_BAD_DATA || r==LIBDEFLATE_SHORT_OUTPUT)
 				break;
-			}
 		}
 		free(decompressed);
 		free(compressed_chunk_data);
 		libdeflate_free_decompressor(d);
-	} else {
-		//TODO?
 	}
 
 	kv6_rebuild_all();
@@ -421,7 +422,9 @@ void read_PacketMapStart(void* data, int len) {
 		log_info(filename);
 		if(file_exists(filename)) {
 			network_map_cached = 1;
-			map_vxl_load(file_load(filename),map_colors);
+			void* mapd = file_load(filename);
+			map_vxl_load(mapd,map_colors);
+			free(mapd);
 			chunk_rebuild_all();
 		}
 
@@ -873,6 +876,7 @@ void network_updateColor() {
 unsigned char network_send_tmp[512];
 void network_send(int id, void* data, int len) {
 	if(network_connected) {
+		network_stats[0].outgoing += len+1;
 		network_send_tmp[0] = id;
 		memcpy(network_send_tmp+1,data,len);
 		enet_peer_send(peer,0,enet_packet_create(network_send_tmp,len+1,ENET_PACKET_FLAG_RELIABLE));
@@ -911,6 +915,7 @@ int network_connect_sub(char* ip, int port, int version) {
 	address.port = port;
 	peer = enet_host_connect(client,&address,1,version);
 	network_logged_in = 0;
+	memset(network_stats,0,sizeof(struct network_stat)*40);
 	if(peer==NULL) {
 		return 0;
 	}
@@ -993,11 +998,21 @@ int network_connect_string(char* addr) {
 
 int network_update() {
 	if(network_connected) {
+		if(window_time()-network_stats_last>=1.0F) {
+			for(int k=39;k>0;k--)
+				network_stats[k] = network_stats[k-1];
+			network_stats[0].ingoing = 0;
+			network_stats[0].outgoing = 0;
+			network_stats[0].avg_ping = network_ping();
+			network_stats_last = window_time();
+		}
+
 		ENetEvent event;
 		while(enet_host_service(client,&event,0)>0) {
 			switch(event.type) {
 				case ENET_EVENT_TYPE_RECEIVE:
 				{
+					network_stats[0].ingoing += event.packet->dataLength;
 					int id = event.packet->data[0];
 					if(*packets[id]) {
 						log_debug("Packet id %i",id);

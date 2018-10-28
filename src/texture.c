@@ -57,6 +57,7 @@ struct texture texture_ui_box_empty;
 struct texture texture_ui_box_check;
 struct texture texture_ui_arrow;
 struct texture texture_ui_flags;
+struct texture texture_ui_alert;
 
 static char* texture_flags[251] = {
 									"AD","AE","AF","AG","AI","AL","AM","AN","AO","AQ","AR","AS","AT","AU",
@@ -361,6 +362,7 @@ void texture_init() {
     texture_create(&texture_tracer,"png/tracer.png");
 
     texture_create(&texture_ui_wait,"png/ui/wait.png");
+	texture_filter(&texture_ui_wait,TEXTURE_FILTER_LINEAR);
     texture_create(&texture_ui_join,"png/ui/join.png");
     texture_create(&texture_ui_reload,"png/ui/reload.png");
     texture_create(&texture_ui_bg,"png/ui/bg.png");
@@ -370,6 +372,8 @@ void texture_init() {
 	texture_create(&texture_ui_arrow,"png/ui/arrow.png");
 	texture_create(&texture_ui_flags,"png/ui/flags.png");
 	texture_filter(&texture_ui_flags,TEXTURE_FILTER_LINEAR);
+	texture_create(&texture_ui_alert,"png/ui/alert.png");
+	texture_filter(&texture_ui_alert,TEXTURE_FILTER_LINEAR);
 
 
     unsigned int* pixels = malloc(64*64*sizeof(unsigned int));

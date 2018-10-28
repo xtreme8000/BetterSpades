@@ -71,6 +71,7 @@ extern struct Player {
 	struct Orientation {
 		float x,y,z;
 	} orientation;
+	AABB bb_2d;
 	struct Orientation orientation_smooth;
 	struct Position gun_pos;
 	struct Position casing_dir;

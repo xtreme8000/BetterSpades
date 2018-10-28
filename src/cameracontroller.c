@@ -248,7 +248,7 @@ void cameracontroller_bodyview(float dt) {
 
 void cameracontroller_selection(float dt) {
     camera_x = 256.0F;
-    camera_y = 125.0F;
+    camera_y = 79.0F;
     camera_z = 256.0F;
     camera_vx = 0.0F;
     camera_vy = 0.0F;

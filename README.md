@@ -56,10 +56,12 @@ These libraries and files are needed:
 | enet         | *MIT*           | networking library     | [Link](https://github.com/lsalzman/enet)          |
 | parson       | *MIT*           | JSON parser            | [Link](https://github.com/kgabis/parson)          |
 | log.c        | *MIT*           | logger                 | [Link](https://github.com/xtreme8000/log.c)       |
+| GLEW         | *MIT*           | OpenGL extensions      | [Link](https://github.com/nigels-com/glew)        |
 
 You will need to compile the following by yourself, or get hold of precompiled binaries:
 
 * GLFW3
+* GLEW
 * OpenAL soft *(only needed on Windows)*
 * libdeflate
 * enet
@@ -108,7 +110,7 @@ Compilation now works the same on Linux. Just change the build system to `Unix M
 
 You can build each library yourself, or install them with your distro's package manager:
 ```
-sudo apt-get install libgl1-mesa libgl1-mesa-dev libopenal1 libopenal-dev libglfw-dev libenet-dev
+sudo apt-get install libgl1-mesa libgl1-mesa-dev libopenal1 libopenal-dev libglfw-dev libenet-dev libglew-dev
 ```
 (this does not include libdeflate or lodepng which are a requirement too, see [_Wiki/Building_](https://github.com/xtreme8000/BetterSpades/wiki/Building) for more details)
 

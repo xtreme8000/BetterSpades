@@ -41,6 +41,7 @@ extern struct RENDER_OPTIONS {
 	int show_news;
 	int show_fps;
 	int volume;
+	int voxlap_models;
 } settings, settings_tmp;
 
 extern struct list config_keys;

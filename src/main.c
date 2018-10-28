@@ -33,7 +33,7 @@ void glDepthRange(float near, float far) {
 }
 
 void glClearDepth(float x) {
-	glClearDepth(x);
+	glClearDepthf(x);
 }
 #endif
 
@@ -509,7 +509,7 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
 		window_pressed_keys[key] = 0;
 
 	#ifdef USE_GLFW
-	if(key==WINDOW_KEY_FULLSCREEN && action==GLFW_PRESS) { //switch between fullscreen
+	if(key==WINDOW_KEY_FULLSCREEN && action==WINDOW_PRESS) { //switch between fullscreen
 		const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 		if(!settings.fullscreen) {
 			glfwSetWindowMonitor(window->impl,glfwGetPrimaryMonitor(),0,0,mode->width,mode->height,mode->refreshRate);
@@ -521,7 +521,7 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
 	}
 	#endif
 
-	if(key==WINDOW_KEY_SCREENSHOT && action==GLFW_PRESS) { //take screenshot
+	if(key==WINDOW_KEY_SCREENSHOT && action==WINDOW_PRESS) { //take screenshot
 		time_t pic_time;
 		time(&pic_time);
 		char pic_name[128];
@@ -593,7 +593,15 @@ int main(int argc, char** argv) {
 	settings.show_news = 1;
 	settings.show_fps = 0;
 	settings.volume = 10;
+	settings.voxlap_models = 0;
 	strcpy(settings.name,"DEV_CLIENT");
+
+	if(!file_dir_exists("logs"))
+		file_dir_create("logs");
+	if(!file_dir_exists("cache"))
+		file_dir_create("cache");
+	if(!file_dir_exists("screenshots"))
+		file_dir_create("screenshots");
 
 	log_set_level(LOG_INFO);
 

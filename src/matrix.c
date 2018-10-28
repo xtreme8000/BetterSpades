@@ -166,7 +166,7 @@ void matrix_pointAt(float dx, float dy, float dz) {
     float rx = -atan2(dz,dx)/3.1415926535F*180.0F;
     matrix_rotate(rx,0.0F,1.0F,0.0F);
     if(dy) {
-        float ry = asin(dy/sqrt(dx*dx+dy*dy+dz*dz))/3.1415926535F*180.0F;
+        float ry = asin(dy)/3.1415926535F*180.0F;
         matrix_rotate(ry,0.0F,0.0F,1.0F);
     }
 }

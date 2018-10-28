@@ -399,10 +399,17 @@ static float foot_function(struct Player* p) {
 }
 
 int player_render(struct Player* p, int id, Ray* ray, char render) {
+	p->bb_2d = (AABB) {
+					.min_x = INT_MAX,
+					.min_y = INT_MAX,
+					.max_x = -INT_MAX,
+					.max_y = -INT_MAX
+				};
+
 	if(render)
 		kv6_calclight(p->pos.x,p->pos.y,p->pos.z);
 
-    if(camera_mode==CAMERAMODE_SPECTATOR && p->team!=TEAM_SPECTATOR) {
+    if(camera_mode==CAMERAMODE_SPECTATOR && p->team!=TEAM_SPECTATOR && render) {
         int old_state = glx_fog;
         if(old_state)
             glx_disable_sphericalfog();
@@ -428,7 +435,9 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
         font_select(FONT_FIXEDSYS);
         glEnable(GL_ALPHA_TEST);
         glAlphaFunc(GL_GREATER,0.5F);
+		glDisable(GL_DEPTH_TEST);
         font_centered(0,0,64,p->name);
+		glEnable(GL_DEPTH_TEST);
         glDisable(GL_ALPHA_TEST);
         matrix_pop();
         matrix_upload();
@@ -441,17 +450,19 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
     float oy = p->orientation_smooth.y/l;
     float oz = p->orientation_smooth.z/l;
 
-    if(!p->alive) {
-        matrix_push();
-        matrix_translate(p->pos.x,p->pos.y+0.25F,p->pos.z);
-        matrix_pointAt(ox,0.0F,oz);
-        matrix_rotate(90.0F,0.0F,1.0F,0.0F);
-        matrix_upload();
-        if(render)
-            kv6_render(&model_playerdead,p->team);
-        matrix_pop();
-        return 0;
-    }
+	if(!p->alive) {
+		if(render) {
+			matrix_push();
+			matrix_translate(p->pos.x,p->pos.y+0.25F,p->pos.z);
+			matrix_pointAt(ox,0.0F,oz);
+			matrix_rotate(90.0F,0.0F,1.0F,0.0F);
+			matrix_upload();
+			kv6_render(&model_playerdead,p->team);
+			kv6_boundingbox(&model_playerdead,&p->bb_2d);
+			matrix_pop();
+		}
+		return 0;
+	}
 
     float time = window_time()*1000.0F;
 
@@ -476,11 +487,16 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
     if(id!=local_player_id || !p->alive || camera_mode!=CAMERAMODE_FPS) {
         matrix_push();
         matrix_translate(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
+		float head_scale = sqrt(pow(p->orientation.x,2.0F)+pow(p->orientation.y,2.0F)+pow(p->orientation.z,2.0F));
+		matrix_translate(0.0F,model_playerhead.zpiv*(head_scale*model_playerhead.scale-model_playerhead.scale),0.0F);
+		matrix_scale3(head_scale);
         matrix_pointAt(ox,oy,oz);
         matrix_rotate(90.0F,0.0F,1.0F,0.0F);
-        matrix_upload();
-        if(render)
-            kv6_render(&model_playerhead,p->team);
+		if(render) {
+			matrix_upload();
+			kv6_render(&model_playerhead,p->team);
+		}
+		kv6_boundingbox(&model_playerhead,&p->bb_2d);
         if(ray!=NULL && kv6_intersection(&model_playerhead,ray)) {
             intersections |= (1<<HITTYPE_HEAD);
         }
@@ -490,15 +506,17 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
         matrix_translate(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z-0.01F);
         matrix_pointAt(ox,0.0F,oz);
         matrix_rotate(90.0F,0.0F,1.0F,0.0F);
-        matrix_upload();
-        if(render)
+		if(render) {
+			matrix_upload();
             kv6_render(torso,p->team);
+		}
+		kv6_boundingbox(torso,&p->bb_2d);
         if(ray!=NULL && kv6_intersection(torso,ray)) {
             intersections |= (1<<HITTYPE_TORSO);
         }
         matrix_pop();
 
-        if(gamestate.gamemode_type==GAMEMODE_CTF &&
+        if(render && gamestate.gamemode_type==GAMEMODE_CTF &&
             ((gamestate.gamemode.ctf.team_1_intel && gamestate.gamemode.ctf.team_1_intel_location.held.player_id==id) ||
             (gamestate.gamemode.ctf.team_2_intel && gamestate.gamemode.ctf.team_2_intel_location.held.player_id==id))) {
             matrix_push();
@@ -518,6 +536,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
             if(gamestate.gamemode.ctf.team_2_intel && gamestate.gamemode.ctf.team_2_intel_location.held.player_id==id)
                 t = TEAM_2;
             kv6_render(&model_intel,t);
+			kv6_boundingbox(&model_intel,&p->bb_2d);
             matrix_pop();
         }
 
@@ -528,9 +547,11 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
         matrix_translate(torso->xsiz*0.1F*0.5F-leg->xsiz*0.1F*0.5F,-torso->zsiz*0.1F*(p->input.keys.crouch?0.6F:1.0F),p->input.keys.crouch?(-torso->zsiz*0.1F*0.75F):0.0F);
         matrix_rotate(45.0F*foot_function(p)*a,1.0F,0.0F,0.0F);
         matrix_rotate(45.0F*foot_function(p)*b,0.0F,0.0F,1.0F);
-        matrix_upload();
-        if(render)
+		if(render) {
+			matrix_upload();
             kv6_render(leg,p->team);
+		}
+		kv6_boundingbox(leg,&p->bb_2d);
         if(ray!=NULL && kv6_intersection(leg,ray)) {
             intersections |= (1<<HITTYPE_LEGS);
         }
@@ -543,9 +564,11 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
         matrix_translate(-torso->xsiz*0.1F*0.5F+leg->xsiz*0.1F*0.5F,-torso->zsiz*0.1F*(p->input.keys.crouch?0.6F:1.0F),p->input.keys.crouch?(-torso->zsiz*0.1F*0.75F):0.0F);
         matrix_rotate(-45.0F*foot_function(p)*a,1.0F,0.0F,0.0F);
         matrix_rotate(-45.0F*foot_function(p)*b,0.0F,0.0F,1.0F);
-        matrix_upload();
-        if(render)
+		if(render) {
+			matrix_upload();
             kv6_render(leg,p->team);
+		}
+		kv6_boundingbox(leg,&p->bb_2d);
         if(ray!=NULL && kv6_intersection(leg,ray)) {
             intersections |= (1<<HITTYPE_LEGS);
         }
@@ -579,75 +602,110 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
         matrix_rotate(angles[1],0.0F,1.0F,0.0F);
     }
     if(id!=local_player_id || settings.player_arms || camera_mode!=CAMERAMODE_FPS) {
-        matrix_upload();
-        if(render)
+		if(render) {
+			matrix_upload();
             kv6_render(&model_playerarms,p->team);
+		}
+		kv6_boundingbox(&model_playerarms,&p->bb_2d);
         if(ray!=NULL && kv6_intersection(&model_playerarms,ray)) {
             intersections |= (1<<HITTYPE_ARMS);
         }
     }
 
-    matrix_translate(-3.5F*0.1F+0.01F,0.0F,10*0.1F);
-    if(p->held_item==TOOL_SPADE && id==local_player_id && window_time()-p->item_showup>=0.5F && camera_mode==CAMERAMODE_FPS) {
-        float* angles = player_tool_func(p);
-        matrix_translate(0.0F,(model_spade.zpiv-model_spade.zsiz)*0.05F,0.0F);
-        matrix_rotate(angles[0],1.0F,0.0F,0.0F);
-        matrix_rotate(angles[1],0.0F,1.0F,0.0F);
-        matrix_translate(0.0F,-(model_spade.zpiv-model_spade.zsiz)*0.05F,0.0F);
-    }
+	if(render) {
+		matrix_translate(-3.5F*0.1F+0.01F,0.0F,10*0.1F);
+		if(p->held_item==TOOL_SPADE && id==local_player_id && window_time()-p->item_showup>=0.5F && camera_mode==CAMERAMODE_FPS) {
+			float* angles = player_tool_func(p);
+			matrix_translate(0.0F,(model_spade.zpiv-model_spade.zsiz)*0.05F,0.0F);
+			matrix_rotate(angles[0],1.0F,0.0F,0.0F);
+			matrix_rotate(angles[1],0.0F,1.0F,0.0F);
+			matrix_translate(0.0F,-(model_spade.zpiv-model_spade.zsiz)*0.05F,0.0F);
+		}
 
-    matrix_upload();
-    switch(p->held_item) {
-        case TOOL_SPADE:
-            if(render)
-                kv6_render(&model_spade,p->team);
-            break;
-        case TOOL_BLOCK:
-            model_block.red = p->block.red/255.0F;
-            model_block.green = p->block.green/255.0F;
-            model_block.blue = p->block.blue/255.0F;
-            if(render)
-                kv6_render(&model_block,p->team);
-            break;
-        case TOOL_GUN:
-            //matrix_translate(3.0F*0.1F-0.01F+0.025F,0.25F,-0.0625F);
-            //matrix_upload();
-            if((!(camera_mode==CAMERAMODE_FPS && players[local_player_id].input.buttons.rmb) && id==local_player_id) || id!=local_player_id) {
-                switch(p->weapon) {
-                    case WEAPON_RIFLE:
-                        if(render)
-                            kv6_render(&model_semi,p->team);
-                        break;
-                    case WEAPON_SMG:
-                        if(render)
-                            kv6_render(&model_smg,p->team);
-                        break;
-                    case WEAPON_SHOTGUN:
-                        if(render)
-                            kv6_render(&model_shotgun,p->team);
-                        break;
-                }
-            }
-            break;
-        case TOOL_GRENADE:
-            if(render)
-                kv6_render(&model_grenade,p->team);
-            break;
-    }
-    float v[4] = {0.1F,0,-0.3F,1};
-    matrix_vector(v);
-    float v2[4] = {1.1F,0,-0.3F,1};
-    matrix_vector(v2);
+		matrix_upload();
+		switch(p->held_item) {
+			case TOOL_SPADE:
+				kv6_render(&model_spade,p->team);
+				break;
+			case TOOL_BLOCK:
+				model_block.red = p->block.red/255.0F;
+				model_block.green = p->block.green/255.0F;
+				model_block.blue = p->block.blue/255.0F;
+				kv6_render(&model_block,p->team);
+				break;
+			case TOOL_GUN:
+				//matrix_translate(3.0F*0.1F-0.01F+0.025F,0.25F,-0.0625F);
+				//matrix_upload();
+				if((!(camera_mode==CAMERAMODE_FPS && players[local_player_id].input.buttons.rmb) && id==local_player_id) || id!=local_player_id) {
+					switch(p->weapon) {
+						case WEAPON_RIFLE:
+							kv6_render(&model_semi,p->team);
+							break;
+						case WEAPON_SMG:
+							kv6_render(&model_smg,p->team);
+							break;
+						case WEAPON_SHOTGUN:
+							kv6_render(&model_shotgun,p->team);
+							break;
+					}
+				}
+				break;
+			case TOOL_GRENADE:
+				kv6_render(&model_grenade,p->team);
+				break;
+		}
 
-    p->gun_pos.x = v[0];
-    p->gun_pos.y = v[1];
-    p->gun_pos.z = v[2];
+		float v[4] = {0.1F,0,-0.3F,1};
+		matrix_vector(v);
+		float v2[4] = {1.1F,0,-0.3F,1};
+		matrix_vector(v2);
 
-    p->casing_dir.x = v[0]-v2[0];
-    p->casing_dir.y = v[1]-v2[1];
-    p->casing_dir.z = v[2]-v2[2];
+		p->gun_pos.x = v[0];
+		p->gun_pos.y = v[1];
+		p->gun_pos.z = v[2];
 
-    matrix_pop();
+		p->casing_dir.x = v[0]-v2[0];
+		p->casing_dir.y = v[1]-v2[1];
+		p->casing_dir.z = v[2]-v2[2];
+	}
+
+	matrix_pop();
+
+	if(render && 0) {
+		matrix_select(matrix_model);
+		matrix_identity();
+		matrix_select(matrix_view);
+		matrix_push();
+		matrix_identity();
+		matrix_select(matrix_projection);
+		matrix_push();
+		matrix_identity();
+
+		matrix_upload();
+		matrix_upload_p();
+
+		glBegin(GL_LINES);
+		glColor3f(1.0F,0.0F,0.0F);
+		glVertex3f(p->bb_2d.min_x,p->bb_2d.min_y,-1.0F);
+		glVertex3f(p->bb_2d.max_x,p->bb_2d.min_y,-1.0F);
+
+		glVertex3f(p->bb_2d.min_x,p->bb_2d.max_y,-1.0F);
+		glVertex3f(p->bb_2d.max_x,p->bb_2d.max_y,-1.0F);
+
+		glVertex3f(p->bb_2d.max_x,p->bb_2d.min_y,-1.0F);
+		glVertex3f(p->bb_2d.max_x,p->bb_2d.max_y,-1.0F);
+
+		glVertex3f(p->bb_2d.min_x,p->bb_2d.min_y,-1.0F);
+		glVertex3f(p->bb_2d.min_x,p->bb_2d.max_y,-1.0F);
+		glEnd();
+
+		matrix_pop();
+		matrix_select(matrix_view);
+		matrix_pop();
+		matrix_select(matrix_model);
+
+		matrix_upload_p();
+	}
 
     return intersections;
 }
@@ -821,7 +879,10 @@ void player_boxclipmove(struct Player* p, float fsynctics) {
 int player_move(struct Player* p, float fsynctics, int id) {
     if(!p->alive) {
         p->physics.velocity.y -= fsynctics;
-        if(map_get(p->pos.x+p->physics.velocity.x*fsynctics*32.0F,p->pos.y+p->physics.velocity.y*fsynctics*32.0F,p->pos.z+p->physics.velocity.z*fsynctics*32.0F)==0xFFFFFFFF) {
+        AABB dead_bb = {0};
+        aabb_set_size(&dead_bb,1.0F,0.15F,1.0F);
+        aabb_set_center(&dead_bb,p->pos.x+p->physics.velocity.x*fsynctics*32.0F,p->pos.y+p->physics.velocity.y*fsynctics*32.0F,p->pos.z+p->physics.velocity.z*fsynctics*32.0F);
+        if(!aabb_intersection_terrain(&dead_bb,0)) {
             p->pos.x += p->physics.velocity.x*fsynctics*32.0F;
             p->pos.y += p->physics.velocity.y*fsynctics*32.0F;
             p->pos.z += p->physics.velocity.z*fsynctics*32.0F;
@@ -833,7 +894,7 @@ int player_move(struct Player* p, float fsynctics, int id) {
         return 0;
     }
 
-    unsigned char local = (id==local_player_id && camera_mode==CAMERAMODE_FPS);
+    int local = (id==local_player_id && camera_mode==CAMERAMODE_FPS);
 
     player_coordsystem_adjust1(p);
     float f, f2;
