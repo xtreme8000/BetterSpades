@@ -72,23 +72,6 @@ void chat_showpopup(const char* msg, float duration) {
     chat_popup_duration = duration;
 }
 
-const char* reason_disconnect(int code) {
-    switch(code) {
-        case 1:
-            return "Banned";
-        case 2:
-            return "Connection limit";
-        case 3:
-            return "Wrong protocol";
-        case 4:
-            return "Server full";
-        case 10:
-            return "Kicked";
-        default:
-            return "Unknown";
-    }
-}
-
 void drawScene(float dt) {
 	if(settings.ambient_occlusion) {
 		glShadeModel(GL_SMOOTH);

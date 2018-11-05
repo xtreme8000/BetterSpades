@@ -54,8 +54,12 @@ const char* network_reason_disconnect(int code) {
 			return "Wrong protocol";
 		case 4:
 			return "Server full";
+		case 5:
+			return "Server shutdown";
 		case 10:
 			return "Kicked";
+		case 20:
+			return "Invalid name";
 		default:
 			return "Unknown";
 	}
