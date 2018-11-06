@@ -39,7 +39,7 @@
 	void glColor3f(float r, float g, float b);
 	void glColor3ub(unsigned char r, unsigned char g, unsigned char b);
 	void glDepthRange(float near, float far);
-	void void glClearDepth(float x);
+	void glClearDepth(float x);
 #endif
 
 #ifdef USE_GLFW
@@ -75,6 +75,7 @@
 
 #ifdef __linux__
 #define OS_LINUX
+#include <sys/sysinfo.h>
 #endif
 
 #ifdef __APPLE__

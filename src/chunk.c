@@ -37,6 +37,8 @@ struct chunk_d {
 
 struct chunk_worker chunk_workers[CHUNK_WORKERS_MAX];
 
+int chunk_enabled_cores;
+
 pthread_rwlock_t* chunk_map_locks;
 pthread_mutex_t chunk_minimap_lock;
 
@@ -48,12 +50,14 @@ static int chunk_sort(const void* a, const void* b) {
 }
 
 void chunk_init() {
+	chunk_enabled_cores = min(max(window_cpucores()/2,1),CHUNK_WORKERS_MAX);
+	log_info("%i cores enabled for chunk generation",chunk_enabled_cores);
 	pthread_mutex_init(&chunk_minimap_lock,NULL);
 	chunk_map_locks = malloc(map_size_x*map_size_z*sizeof(pthread_rwlock_t));
 	CHECK_ALLOCATION_ERROR(chunk_map_locks);
 	for(int k=0;k<map_size_x*map_size_z;k++)
 		pthread_rwlock_init(&chunk_map_locks[k],NULL);
-	for(int k=0;k<CHUNK_WORKERS_MAX;k++) {
+	for(int k=0;k<chunk_enabled_cores;k++) {
 		chunk_workers[k].state = CHUNK_WORKERSTATE_IDLE;
 		chunk_workers[k].mem_size = 0;
 		chunk_workers[k].vertex_data = NULL;
@@ -1027,7 +1031,7 @@ void chunk_generate_naive(struct chunk_worker* worker) {
 }
 
 void chunk_update_all() {
-	for(int j=0;j<CHUNK_WORKERS_MAX;j++) {
+	for(int j=0;j<chunk_enabled_cores;j++) {
 		pthread_mutex_lock(&chunk_workers[j].state_lock);
 		if(chunk_workers[j].state==CHUNK_WORKERSTATE_FINISHED) {
 			chunk_workers[j].state = CHUNK_WORKERSTATE_IDLE;
