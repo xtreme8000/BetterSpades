@@ -961,23 +961,16 @@ int network_identifier_split(char* addr, char* ip_out, int* port_out) {
 	if((size_t)ip_start<=6)
 		return 0;
 	char* port_start = strchr(ip_start,':');
-	if(port_start)
-		*port_start = 0;
 
 	if(strchr(ip_start,'.')) {
-		*port_out = port_start?atoi(port_start+1):32887;
+		*port_out = port_start?strtoul(port_start+1,NULL,10):32887;
 		strcpy(ip_out,ip_start);
 	} else {
-		int ip = atoi(ip_start);
-		char ip_str[32];
-		sprintf(ip_str,"%i.%i.%i.%i",ip&255,(ip>>8)&255,(ip>>16)&255,(ip>>24)&255);
-
-		*port_out = port_start?atoi(port_start+1):32887;
-		strcpy(ip_out,ip_str);
+		unsigned int ip = strtoul(ip_start,NULL,10);
+		sprintf(ip_out,"%i.%i.%i.%i",ip&255,(ip>>8)&255,(ip>>16)&255,(ip>>24)&255);
+		*port_out = port_start?strtoul(port_start+1,NULL,10):32887;
 	}
 
-	if(port_start)
-		*port_start = ':';
 	return 1;
 }
 
