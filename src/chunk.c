@@ -74,7 +74,7 @@ void chunk_draw_visible() {
 	//go through all possible chunks and store all in range and view
 	for(int y=-9;y<CHUNKS_PER_DIM+9;y++) {
 		for(int x=-9;x<CHUNKS_PER_DIM+9;x++) {
-			if(((x*CHUNK_SIZE-camera_x)*(x*CHUNK_SIZE-camera_x)+(y*CHUNK_SIZE-camera_z)*(y*CHUNK_SIZE-camera_z))<(settings.render_distance+CHUNK_SIZE)*(settings.render_distance+CHUNK_SIZE)) {
+			if(distance2D((x+0.5F)*CHUNK_SIZE,(y+0.5F)*CHUNK_SIZE,camera_x,camera_z)<=pow(settings.render_distance+1.414F*CHUNK_SIZE,2)) {
 				int tmp_x = x, tmp_y = y;
 				if(tmp_x<0)
 					tmp_x += CHUNKS_PER_DIM;
@@ -85,7 +85,7 @@ void chunk_draw_visible() {
 				if(tmp_y>=CHUNKS_PER_DIM)
 					tmp_y -= CHUNKS_PER_DIM;
 
-				if(camera_CubeInFrustum(x*CHUNK_SIZE+CHUNK_SIZE/2,0.0F,y*CHUNK_SIZE+CHUNK_SIZE/2,CHUNK_SIZE/2,chunks[tmp_y*CHUNKS_PER_DIM+tmp_x].max_height))
+				if(camera_CubeInFrustum((x+0.5F)*CHUNK_SIZE,0.0F,(y+0.5F)*CHUNK_SIZE,CHUNK_SIZE/2,chunks[tmp_y*CHUNKS_PER_DIM+tmp_x].max_height))
 					chunks_draw[index++] = (struct chunk_d){x*CHUNK_SIZE,y*CHUNK_SIZE};
 			}
 		}
