@@ -382,7 +382,7 @@ void display(float dt) {
 			map_collapsing_render(dt);
 			matrix_upload();
 
-			if(map_get(camera_x,camera_y,camera_z)!=0xFFFFFFFF) {
+			if(!map_isair(camera_x,camera_y,camera_z)) {
 				glClear(GL_COLOR_BUFFER_BIT);
 			}
 

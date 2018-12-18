@@ -203,7 +203,7 @@ int* camera_terrain_pickEx(unsigned char mode, float gx0, float gy0, float gz0, 
 		}
 		switch(mode) {
 			case 0:
-				if(map_get(gx,gy,gz)!=0xFFFFFFFF && map_get(gx_pre,gy_pre,gz_pre)==0xFFFFFFFF) {
+				if(!map_isair(gx,gy,gz) && map_isair(gx_pre,gy_pre,gz_pre)) {
 					ret[0] = gx_pre;
 					ret[1] = gy_pre;
 					ret[2] = gz_pre;
@@ -211,7 +211,7 @@ int* camera_terrain_pickEx(unsigned char mode, float gx0, float gy0, float gz0, 
 				}
 				break;
 			case 1:
-				if(map_get(gx,gy,gz)!=0xFFFFFFFF) {
+				if(!map_isair(gx,gy,gz)) {
 					ret[0] = gx;
 					ret[1] = gy;
 					ret[2] = gz;

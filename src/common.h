@@ -93,6 +93,7 @@
 
 #define distance2D(x1,y1,x2,y2)			(((x2)-(x1))*((x2)-(x1))+((y2)-(y1))*((y2)-(y1)))
 #define distance3D(x1,y1,z1,x2,y2,z2)	(((x2)-(x1))*((x2)-(x1))+((y2)-(y1))*((y2)-(y1))+((z2)-(z1))*((z2)-(z1)))
+#define angle3D(x1,y1,z1,x2,y2,z2)		acos((x1)*(x2)+(y1)*(y2)+(z1)*(z2)) //vectors should be normalized
 #define len2D(x,y)						sqrt(pow(x,2)+pow(y,2))
 #define len3D(x,y,z)					sqrt(pow(x,2)+pow(y,2)+pow(z,2))
 

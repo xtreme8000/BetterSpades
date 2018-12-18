@@ -53,7 +53,7 @@ int grenade_clipworld(int x, int y, int z) {
         return 1;
     else if (sz < 0)
         return 0;
-    return map_get((int)x,63-sz,(int)y)!=0xFFFFFFFF;
+    return !map_isair((int)x,63-sz,(int)y);
 }
 
 int grenade_move(struct Grenade* g, float dt) {

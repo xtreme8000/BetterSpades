@@ -28,7 +28,9 @@ int network_received_packets = 0;
 int network_map_cached = 0;
 
 float network_pos_update = 0.0F;
+struct Position network_pos_last;
 float network_orient_update = 0.0F;
+struct Orientation network_orient_last;
 unsigned char network_keys_last = 0;
 unsigned char network_buttons_last = 0;
 unsigned char network_tool_last = 255;
@@ -920,9 +922,8 @@ int network_connect_sub(char* ip, int port, int version) {
 	peer = enet_host_connect(client,&address,1,version);
 	network_logged_in = 0;
 	memset(network_stats,0,sizeof(struct network_stat)*40);
-	if(peer==NULL) {
+	if(peer==NULL)
 		return 0;
-	}
 	if(enet_host_service(client,&event,2500)>0 && event.type==ENET_EVENT_TYPE_CONNECT) {
 		network_received_packets = 0;
 		network_connected = 1;
@@ -1025,7 +1026,7 @@ int network_update() {
 			}
 		}
 
-		if(network_logged_in && players[local_player_id].team!=TEAM_SPECTATOR) {
+		if(network_logged_in && players[local_player_id].team!=TEAM_SPECTATOR && players[local_player_id].alive) {
 			if(players[local_player_id].input.keys.packed!=network_keys_last) {
 				struct PacketInputData in;
 				in.player_id = local_player_id;
@@ -1052,16 +1053,22 @@ int network_update() {
 				network_tool_last = players[local_player_id].held_item;
 			}
 
-			if(window_time()-network_pos_update>1.0F) {
+			if(window_time()-network_pos_update>1.0F
+			&& distance3D(network_pos_last.x,network_pos_last.y,network_pos_last.z,
+				players[local_player_id].pos.x,players[local_player_id].pos.y,players[local_player_id].pos.z)>0.01F) {
 				network_pos_update = window_time();
+				memcpy(&network_pos_last,&players[local_player_id].pos,sizeof(struct Position));
 				struct PacketPositionData pos;
 				pos.x = players[local_player_id].pos.x;
 				pos.y = players[local_player_id].pos.z;
 				pos.z = 63.0F-players[local_player_id].pos.y;
 				network_send(PACKET_POSITIONDATA_ID,&pos,sizeof(pos));
 			}
-			if(window_time()-network_orient_update>0.05F) {
+			if(window_time()-network_orient_update>0.05F
+			&& angle3D(network_orient_last.x,network_orient_last.y,network_orient_last.z,
+				players[local_player_id].orientation.x,players[local_player_id].orientation.y,players[local_player_id].orientation.z)>0.5F/180.0F*PI) {
 				network_orient_update = window_time();
+				memcpy(&network_orient_last,&players[local_player_id].orientation,sizeof(struct Orientation));
 				struct PacketPositionData orient;
 				orient.x = players[local_player_id].orientation.x;
 				orient.y = players[local_player_id].orientation.z;

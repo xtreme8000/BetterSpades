@@ -325,7 +325,8 @@ void player_update(float dt) {
         }
         if(players[k].connected && k!=local_player_id) {
             player_move(&players[k],dt,k);
-            if(camera_CubeInFrustum(players[k].pos.x,players[k].pos.y,players[k].pos.z,1.0F,2.0F)) {
+            if(camera_CubeInFrustum(players[k].pos.x,players[k].pos.y,players[k].pos.z,1.0F,2.0F)
+			&& distance2D(players[k].pos.x,players[k].pos.z,camera_x,camera_z)<=pow(settings.render_distance+2.0F,2.0F)) {
                 int intersections = player_render(&players[k],k,&ray,1);
                 float d = (camera_x-players[k].pos.x)*(camera_x-players[k].pos.x)
                          +(camera_y-players[k].pos.y)*(camera_y-players[k].pos.y)
@@ -722,7 +723,7 @@ int player_clipbox(float x, float y, float z) {
         sz=62;
     else if (sz >= 64)
         return 1;
-    return map_get((int)x,63-sz,(int)y)!=0xFFFFFFFF;
+    return !map_isair((int)x,63-sz,(int)y);
 }
 
 void player_reposition(struct Player* p)  {

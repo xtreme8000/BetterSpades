@@ -968,8 +968,9 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 		players[local_player_id].input.buttons.rmb_start = window_time();
 		if(camera_mode==CAMERAMODE_BODYVIEW) {
 			do {
-		        cameracontroller_bodyview_player = (cameracontroller_bodyview_player+1)%PLAYERS_MAX;
-            } while(!player_can_spectate(&players[cameracontroller_bodyview_player]));
+				cameracontroller_bodyview_player = (cameracontroller_bodyview_player+1)%PLAYERS_MAX;
+			} while(!player_can_spectate(&players[cameracontroller_bodyview_player]));
+			cameracontroller_bodyview_zoom = 0.0F;
 		}
 	}
 	if(button==WINDOW_MOUSE_LMB) {
@@ -1012,11 +1013,12 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 		}
 
 		if(camera_mode==CAMERAMODE_BODYVIEW) {
-            do {
-		        cameracontroller_bodyview_player = (cameracontroller_bodyview_player-1)%PLAYERS_MAX;
-                if(cameracontroller_bodyview_player<0)
-                    cameracontroller_bodyview_player = PLAYERS_MAX-1;
-            } while(!player_can_spectate(&players[cameracontroller_bodyview_player]));
+			do {
+				cameracontroller_bodyview_player = (cameracontroller_bodyview_player-1)%PLAYERS_MAX;
+				if(cameracontroller_bodyview_player<0)
+					cameracontroller_bodyview_player = PLAYERS_MAX-1;
+			} while(!player_can_spectate(&players[cameracontroller_bodyview_player]));
+			cameracontroller_bodyview_zoom = 0.0F;
 		}
 	}
 }
