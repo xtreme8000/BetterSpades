@@ -405,6 +405,8 @@ static void hud_ingame_render(float scalex, float scalef) {
                 }
 				if(pt[k].id==local_player_id)
 					glColor3f(1.0F,1.0F,0.0F);
+				else if(!players[pt[k].id].alive)
+					glColor3f(0.6F,0.6F,0.6F);
 				else
 					glColor3f(1.0F,1.0F,1.0F);
                 char id_str[16];

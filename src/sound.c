@@ -176,14 +176,14 @@ void sound_update() {
 
 }
 
-extern short* drwav_open_and_read_file_s16(const char* filename, unsigned int* channels, unsigned int* sampleRate, uint64_t* totalSampleCount);
+extern short* drwav_open_file_and_read_pcm_frames_s16(const char* filename, unsigned int* channels, unsigned int* sampleRate, uint64_t* totalFrameCount);
 
 void sound_load(struct Sound_wav* wav, char* name, float min, float max) {
     if(!sound_enabled)
         return;
     unsigned int channels, samplerate;
     uint64_t samplecount;
-    short* samples = drwav_open_and_read_file_s16(name,&channels,&samplerate,&samplecount);
+    short* samples = drwav_open_file_and_read_pcm_frames_s16(name,&channels,&samplerate,&samplecount);
     if(samples==NULL) {
         log_fatal("Could not load sound %s",name);
         exit(1);
