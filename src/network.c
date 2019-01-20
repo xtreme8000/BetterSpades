@@ -46,7 +46,11 @@ float network_stats_last = 0.0F;
 ENetHost* client;
 ENetPeer* peer;
 
+char network_custom_reason[17];
+
 const char* network_reason_disconnect(int code) {
+	if(*network_custom_reason)
+		return network_custom_reason;
 	switch(code) {
 		case 1:
 			return "Banned";
@@ -120,6 +124,10 @@ void read_PacketChatMessage(void* data, int len) {
 			sprintf(m,": ");
 		}
 	} else {
+		if(p->player_id==255) {
+			strncpy(network_custom_reason,p->message,16);
+			return; //dont add message to chat
+		}
 		m[0] = 0;
 	}
 
@@ -921,6 +929,7 @@ int network_connect_sub(char* ip, int port, int version) {
 	address.port = port;
 	peer = enet_host_connect(client,&address,1,version);
 	network_logged_in = 0;
+	*network_custom_reason = 0;
 	memset(network_stats,0,sizeof(struct network_stat)*40);
 	if(peer==NULL)
 		return 0;
