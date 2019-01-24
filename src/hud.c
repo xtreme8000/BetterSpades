@@ -1098,11 +1098,6 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 
 	if(chat_input_mode==CHAT_NO_INPUT) {
 		if(action==WINDOW_PRESS) {
-			if(key==WINDOW_KEY_ESCAPE) {
-				show_exit ^= 1;
-                window_mousemode(show_exit?WINDOW_CURSOR_ENABLED:WINDOW_CURSOR_DISABLED);
-			}
-
 			if(!network_connected) {
 				if(key==WINDOW_KEY_F1) {
 					camera_mode = CAMERAMODE_SELECTION;
@@ -1308,8 +1303,9 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 						return;
 					}
 				}
-				if(key==WINDOW_KEY_CHANGETEAM && (!network_connected || (network_connected && network_logged_in))) {
+				if((key==WINDOW_KEY_CHANGETEAM || key==WINDOW_KEY_ESCAPE) && (!network_connected || (network_connected && network_logged_in))) {
 					screen_current = SCREEN_NONE;
+					return;
 				}
 			}
 			if(screen_current==SCREEN_GUN_SELECT) {
@@ -1347,10 +1343,18 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 					screen_current = SCREEN_NONE;
 					return;
 				}
-				if(key==WINDOW_KEY_CHANGEWEAPON && (!network_connected || (network_connected && network_logged_in))) {
+				if((key==WINDOW_KEY_CHANGEWEAPON || key==WINDOW_KEY_ESCAPE) && (!network_connected || (network_connected && network_logged_in))) {
 					screen_current = SCREEN_NONE;
+					return;
 				}
 			}
+
+			if(key==WINDOW_KEY_ESCAPE) {
+				show_exit ^= 1;
+				window_mousemode(show_exit?WINDOW_CURSOR_ENABLED:WINDOW_CURSOR_DISABLED);
+				return;
+			}
+
 			if(key==WINDOW_KEY_PICKCOLOR && players[local_player_id].held_item==TOOL_BLOCK) {
 				players[local_player_id].item_disabled = window_time();
 				players[local_player_id].items_show_start = window_time();
