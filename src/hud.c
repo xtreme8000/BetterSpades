@@ -890,7 +890,9 @@ static void hud_ingame_scroll(double yoffset) {
 
 static double last_x, last_y;
 static void hud_ingame_mouselocation(double x, double y) {
-    if(show_exit) {
+	if(show_exit) {
+		last_x = x;
+		last_y = y;
 		return;
 	}
     int dx = x-last_x;
