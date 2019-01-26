@@ -724,6 +724,21 @@ static void hud_ingame_render(float scalex, float scalef) {
                 float view_x = camera_x-64.0F;//min(max(camera_x-64.0F,0.0F),map_size_x+1-128.0F);
                 float view_z = camera_z-64.0F;//min(max(camera_z-64.0F,0.0F),map_size_z+1-128.0F);
 
+				switch(players[local_player_id].team) {
+					case TEAM_1:
+						glColor3ub(gamestate.team_1.red,gamestate.team_1.green,gamestate.team_1.blue);
+						break;
+					case TEAM_2:
+						glColor3ub(gamestate.team_2.red,gamestate.team_2.green,gamestate.team_2.blue);
+						break;
+					case TEAM_SPECTATOR:
+					default:
+						glColor3f(0.0F,0.0F,0.0F); //same as chat
+				}
+
+				char sector_str[3] = {(int)(camera_x/64.0F)+'A',(int)(camera_z/64.0F)+'1',0};
+				font_centered(settings.window_width-79*scalef,456*scalef,20.0F*scalef,sector_str);
+
                 glColor3ub(0,0,0);
                 texture_draw_empty(settings.window_width-144*scalef,586*scalef,130*scalef,130*scalef);
                 glColor3f(1.0F,1.0F,1.0F);
