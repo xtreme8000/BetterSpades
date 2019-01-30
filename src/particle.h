@@ -17,19 +17,17 @@
     along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-typedef struct {
+struct Particle {
 	float x,y,z;
 	float vx,vy,vz;
 	float ox,oy,oz;
 	unsigned char type;
 	float size;
-	float created;
 	float fade;
 	unsigned int color;
-	int alive;
-} Particle;
+};
 
-extern Particle* particles;
+extern struct Particle* particles;
 extern float* particles_vertices;
 extern unsigned char* particles_colors;
 #define PARTICLES_MAX 8192
