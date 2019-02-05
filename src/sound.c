@@ -95,7 +95,7 @@ struct Sound_source* sound_create(struct Sound_source* s, int option, struct Sou
 
 static struct Sound_source dummy;
 struct Sound_source* sound_createEx(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z, float vx, float vy, float vz) {
-    if(!sound_enabled)
+    if(!sound_enabled || !w)
         return &dummy;
 
     if(option==SOUND_WORLD && distance2D(camera_x,camera_z,x,z)>128.0F*128.0F)

@@ -190,14 +190,17 @@ static void particle_render_single(int k, int* vertex_index, int* color_index) {
 		particles_vertices[(*vertex_index)++] = particles[k].y+size;
 		particles_vertices[(*vertex_index)++] = particles[k].z+size;
 	} else {
-		matrix_push();
-		matrix_identity();
-		matrix_translate(particles[k].x,particles[k].y,particles[k].z);
-		matrix_pointAt(particles[k].ox,particles[k].oy*max(1.0F-(window_time()-particles[k].fade)/0.5F,0.0F),particles[k].oz);
-		matrix_rotate(90.0F,0.0F,1.0F,0.0F);
-		matrix_upload();
-		kv6_render((struct kv6_t*[]){&model_semi_casing,&model_smg_casing,&model_shotgun_casing}[particles[k].type],TEAM_1);
-		matrix_pop();
+		struct kv6_t* casing = weapon_casing(particles[k].type);
+		if(casing) {
+			matrix_push();
+			matrix_identity();
+			matrix_translate(particles[k].x,particles[k].y,particles[k].z);
+			matrix_pointAt(particles[k].ox,particles[k].oy*max(1.0F-(window_time()-particles[k].fade)/0.5F,0.0F),particles[k].oz);
+			matrix_rotate(90.0F,0.0F,1.0F,0.0F);
+			matrix_upload();
+			kv6_render(casing,TEAM_1);
+			matrix_pop();
+		}
 	}
 }
 
@@ -205,6 +208,7 @@ int particle_render() {
 	int color_index = 0;
 	int vertex_index = 0;
 
+	#ifndef OPENGL_ES
 	if(particle_remove<=particle_insert) {
 		for(int k=particle_remove;k<particle_insert;k++)
 			particle_render_single(k,&vertex_index,&color_index);
@@ -221,12 +225,12 @@ int particle_render() {
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glVertexPointer(3,GL_FLOAT,0,particles_vertices);
 		glColorPointer(3,GL_UNSIGNED_BYTE,0,particles_colors);
-		#ifndef OPENGL_ES
 		glDrawArrays(GL_QUADS,0,vertex_index/3);
-		#endif
 		glDisableClientState(GL_COLOR_ARRAY);
 		glDisableClientState(GL_VERTEX_ARRAY);
 	}
+	#endif
+
 	return vertex_index/72;
 }
 

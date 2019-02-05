@@ -97,6 +97,8 @@ int weapon_block_damage(int gun) {
             return 34;
         case WEAPON_SHOTGUN:
             return 20;
+		default:
+			return 0;
     }
 }
 
@@ -108,6 +110,8 @@ float weapon_delay(int gun) {
             return 0.1F;
         case WEAPON_SHOTGUN:
             return 1.0F;
+		default:
+			return 0.0F;
     }
 }
 
@@ -119,6 +123,8 @@ struct Sound_wav* weapon_sound(int gun) {
             return &sound_smg_shoot;
         case WEAPON_SHOTGUN:
             return &sound_shotgun_shoot;
+		default:
+			return NULL;
     }
 }
 
@@ -130,6 +136,8 @@ struct Sound_wav* weapon_sound_reload(int gun) {
             return &sound_smg_reload;
         case WEAPON_SHOTGUN:
             return &sound_shotgun_reload;
+		default:
+			return NULL;
     }
 }
 
@@ -172,7 +180,7 @@ void weapon_recoil(int gun, double* horiz_recoil, double* vert_recoil) {
 }
 
 int weapon_ammo(int gun) {
-	switch(players[local_player_id].weapon) {
+	switch(gun) {
 		case WEAPON_RIFLE:
 			return 10;
 		case WEAPON_SMG:
@@ -181,6 +189,19 @@ int weapon_ammo(int gun) {
 			return 6;
 		default:
 			return 0;
+	}
+}
+
+struct kv6_t* weapon_casing(int gun) {
+	switch(gun) {
+		case WEAPON_RIFLE:
+			return &model_semi_casing;
+		case WEAPON_SMG:
+			return &model_smg_casing;
+		case WEAPON_SHOTGUN:
+			return &model_shotgun_casing;
+		default:
+			return NULL;
 	}
 }
 
