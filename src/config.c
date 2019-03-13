@@ -62,6 +62,7 @@ void config_save() {
 	config_seti("vol",settings.volume);
 	config_seti("show_fps",settings.show_fps);
 	config_seti("voxlap_models",settings.voxlap_models);
+	config_seti("force_displaylist",settings.force_displaylist);
 
 	for(int k=0;k<list_size(&config_keys);k++) {
 		struct config_key_pair* e = list_get(&config_keys,k);
@@ -129,6 +130,9 @@ static int config_read_key(void* user, const char* section, const char* name, co
         }
 		if(!strcmp(name,"voxlap_models")) {
 			settings.voxlap_models = atoi(value);
+		}
+		if(!strcmp(name,"force_displaylist")) {
+			settings.force_displaylist = atoi(value);
 		}
     }
     if(!strcmp(section,"controls")) {
@@ -370,6 +374,13 @@ void config_reload() {
 		.max=1,
 		.help="join similar mesh faces",
 		.name="Greedy meshing"
+	});
+	list_add(&config_settings,&(struct config_setting){
+		.value=&settings_tmp.force_displaylist,
+		.type=CONFIG_TYPE_INT,
+		.max=1,
+		.help="Enable this on buggy drivers",
+		.name="Force Displaylist"
 	});
 	list_add(&config_settings,&(struct config_setting){
 		.value=&settings_tmp.show_fps,

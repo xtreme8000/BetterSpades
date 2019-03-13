@@ -862,7 +862,7 @@ static void hud_ingame_render(float scalex, float scalef) {
             font_render(settings.window_width-font_length(27.0F*scalef,play_time),settings.window_height,27.0F*scalef,play_time);
         }
         if(window_time()-chat_popup_timer<chat_popup_duration) {
-            glColor3f(1.0F,0.0F,0.0F);
+            glColor3ub(red(chat_popup_color),green(chat_popup_color),blue(chat_popup_color));
             font_render((settings.window_width-font_length(53.0F*scalef,chat_popup))/2.0F,settings.window_height/2.0F,53.0F*scalef,chat_popup);
         }
         glColor3f(1.0F,1.0F,1.0F);
@@ -1026,7 +1026,7 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 				}
 				if(local_player_ammo==0 && window_time()-players[local_player_id].item_showup>=0.5F) {
 					sound_create(NULL,SOUND_LOCAL,&sound_empty,0.0F,0.0F,0.0F);
-					chat_showpopup("RELOAD",0.4F);
+					chat_showpopup("RELOAD",0.4F,rgb(255,0,0));
 				}
 			}
 		}
@@ -1133,6 +1133,9 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 					players[local_player_id].pos.x = 256.0F;
 					players[local_player_id].pos.y = 63.0F;
 					players[local_player_id].pos.z = 256.0F;
+				}
+				if(key==WINDOW_KEY_CROUCH) {
+					particle_create(0xFF00FF,players[local_player_id].pos.x,players[local_player_id].pos.y,players[local_player_id].pos.z,2.0F,1.0F,1024,0.1F,0.25F);
 				}
 			}
 
@@ -1377,17 +1380,26 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				players[local_player_id].items_show_start = window_time();
 				players[local_player_id].items_show = 1;
 
-				int* pos = camera_terrain_pick(1);
-				if(pos!=NULL) {
-					players[local_player_id].block.packed = map_get(pos[0],pos[1],pos[2]);
-					float dmg = (100.0F-map_damage_get(pos[0],pos[1],pos[2]))/100.0F*0.75F+0.25F;
-					players[local_player_id].block.red *= dmg;
-					players[local_player_id].block.green *= dmg;
-					players[local_player_id].block.blue *= dmg;
-				} else {
-					players[local_player_id].block.red = fog_color[0]*255;
-					players[local_player_id].block.green = fog_color[1]*255;
-					players[local_player_id].block.blue = fog_color[2]*255;
+				struct Camera_HitType hit;
+				camera_hit_fromplayer(&hit,local_player_id,128.0F);
+
+				switch(hit.type) {
+					case CAMERA_HITTYPE_BLOCK:
+						players[local_player_id].block.packed = map_get(hit.x,hit.y,hit.z);
+						float dmg = (100.0F-map_damage_get(hit.x,hit.y,hit.z))/100.0F*0.75F+0.25F;
+						players[local_player_id].block.red *= dmg;
+						players[local_player_id].block.green *= dmg;
+						players[local_player_id].block.blue *= dmg;
+						break;
+					case CAMERA_HITTYPE_PLAYER:
+						players[local_player_id].block.packed = players[hit.player_id].block.packed;
+						break;
+					case CAMERA_HITTYPE_NONE:
+					default:
+						players[local_player_id].block.red = fog_color[0]*255;
+						players[local_player_id].block.green = fog_color[1]*255;
+						players[local_player_id].block.blue = fog_color[2]*255;
+						break;
 				}
 				network_updateColor();
 			}

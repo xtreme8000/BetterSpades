@@ -237,13 +237,31 @@ void cameracontroller_bodyview(float dt) {
     camera_vy = players[cameracontroller_bodyview_player].physics.velocity.y;
     camera_vz = players[cameracontroller_bodyview_player].physics.velocity.z;
 
-    matrix_lookAt(players[cameracontroller_bodyview_player].pos.x-sin(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom,
-              players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*cameracontroller_bodyview_zoom+player_height2(&players[cameracontroller_bodyview_player]),
-              players[cameracontroller_bodyview_player].pos.z-cos(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom,
-              players[cameracontroller_bodyview_player].pos.x,
-              players[cameracontroller_bodyview_player].pos.y+player_height2(&players[cameracontroller_bodyview_player]),
-              players[cameracontroller_bodyview_player].pos.z,
-              0.0F,1.0F,0.0F);
+	/*if(players[cameracontroller_bodyview_player].alive) {
+		struct Player* p = &players[cameracontroller_bodyview_player];
+		camera_x = p->physics.eye.x;
+		camera_y = p->physics.eye.y+player_height(p);
+		camera_z = p->physics.eye.z;
+
+		camera_vx = p->physics.velocity.x;
+		camera_vy = p->physics.velocity.y;
+		camera_vz = p->physics.velocity.z;
+
+		float l = sqrt(distance3D(p->orientation_smooth.x,p->orientation_smooth.y,p->orientation_smooth.z,0,0,0));
+		float ox = p->orientation_smooth.x/l;
+		float oy = p->orientation_smooth.y/l;
+		float oz = p->orientation_smooth.z/l;
+
+		matrix_lookAt(camera_x,camera_y,camera_z,camera_x+ox,camera_y+oy,camera_z+oz,0.0F,1.0F,0.0F);
+	} else {*/
+		matrix_lookAt(players[cameracontroller_bodyview_player].pos.x-sin(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom,
+					  players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*cameracontroller_bodyview_zoom+player_height2(&players[cameracontroller_bodyview_player]),
+					  players[cameracontroller_bodyview_player].pos.z-cos(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom,
+					  players[cameracontroller_bodyview_player].pos.x,
+					  players[cameracontroller_bodyview_player].pos.y+player_height2(&players[cameracontroller_bodyview_player]),
+					  players[cameracontroller_bodyview_player].pos.z,
+					  0.0F,1.0F,0.0F);
+	//}
 }
 
 void cameracontroller_selection(float dt) {

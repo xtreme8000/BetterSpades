@@ -326,6 +326,10 @@ struct PacketChatMessage {
 #define CHAT_ALL		0
 #define CHAT_TEAM		1
 #define CHAT_SYSTEM		2
+#define CHAT_BIG		3
+#define CHAT_INFO		4
+#define CHAT_WARNING	5
+#define CHAT_ERROR		6
 
 #define PACKET_FOGCOLOR_ID 27
 struct PacketFogColor {

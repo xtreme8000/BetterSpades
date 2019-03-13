@@ -37,7 +37,7 @@ void glx_init() {
 	#ifndef OPENGL_ES
 	glx_version = glx_major_ver()>=2;
 	#else
-	glx_version = 1;
+	glx_version = 0;
 	#endif
 }
 
@@ -70,7 +70,7 @@ int glx_shader(const char* vertex, const char* fragment) {
 
 void glx_displaylist_create(struct glx_displaylist* x) {
 	#ifndef OPENGL_ES
-	if(!glx_version)
+	if(!glx_version || settings.force_displaylist)
 		x->legacy = glGenLists(1);
 	else
 		glGenBuffers(3,x->modern);
@@ -81,7 +81,7 @@ void glx_displaylist_create(struct glx_displaylist* x) {
 
 void glx_displaylist_destroy(struct glx_displaylist* x) {
 	#ifndef OPENGL_ES
-	if(!glx_version) {
+	if(!glx_version || settings.force_displaylist) {
 		glDeleteLists(x->legacy,1);
 	} else {
 		glDeleteBuffers(3,x->modern);
@@ -95,7 +95,7 @@ void glx_displaylist_update(struct glx_displaylist* x, int size, int type, void*
 	x->size = size;
 	x->has_normal = normal!=0;
 	#ifndef OPENGL_ES
-	if(!glx_version) {
+	if(!glx_version || settings.force_displaylist) {
 		glEnableClientState(GL_COLOR_ARRAY);
 		glEnableClientState(GL_VERTEX_ARRAY);
 		if(x->has_normal)
@@ -158,7 +158,7 @@ void glx_displaylist_update(struct glx_displaylist* x, int size, int type, void*
 
 void glx_displaylist_draw(struct glx_displaylist* x, int type) {
 	#ifndef OPENGL_ES
-	if(!glx_version) {
+	if(!glx_version || settings.force_displaylist) {
 		glCallList(x->legacy);
 	} else {
 	#endif

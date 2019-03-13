@@ -106,29 +106,45 @@ void read_PacketChatMessage(void* data, int len) {
 	struct PacketChatMessage* p = (struct PacketChatMessage*)data;
 	char n[32] = {0};
 	char m[256];
-	if(p->chat_type!=CHAT_SYSTEM) {
-		if(p->player_id<PLAYERS_MAX && players[p->player_id].connected) {
-			switch(players[p->player_id].team) {
-				case TEAM_1:
-					sprintf(n,"%s (%s)",players[p->player_id].name,gamestate.team_1.name);
-					break;
-				case TEAM_2:
-					sprintf(n,"%s (%s)",players[p->player_id].name,gamestate.team_2.name);
-					break;
-				case TEAM_SPECTATOR:
-					sprintf(n,"%s (Spectator)",players[p->player_id].name);
-					break;
+	switch(p->chat_type) {
+		case CHAT_ERROR:
+			sound_create(NULL,SOUND_LOCAL,&sound_beep2,0.0F,0.0F,0.0F);
+		case CHAT_BIG:
+			chat_showpopup(p->message,5.0F,rgb(255,0,0));
+			return;
+		case CHAT_INFO:
+			chat_showpopup(p->message,5.0F,rgb(255,255,255));
+			return;
+		case CHAT_WARNING:
+			sound_create(NULL,SOUND_LOCAL,&sound_beep1,0.0F,0.0F,0.0F);
+			chat_showpopup(p->message,5.0F,rgb(255,255,0));
+			return;
+		case CHAT_SYSTEM:
+			if(p->player_id==255) {
+				strncpy(network_custom_reason,p->message,16);
+				return; //dont add message to chat
 			}
-			sprintf(m,"%s: ",n);
-		} else {
-			sprintf(m,": ");
-		}
-	} else {
-		if(p->player_id==255) {
-			strncpy(network_custom_reason,p->message,16);
-			return; //dont add message to chat
-		}
-		m[0] = 0;
+			m[0] = 0;
+			break;
+		case CHAT_ALL:
+		case CHAT_TEAM:
+			if(p->player_id<PLAYERS_MAX && players[p->player_id].connected) {
+				switch(players[p->player_id].team) {
+					case TEAM_1:
+						sprintf(n,"%s (%s)",players[p->player_id].name,gamestate.team_1.name);
+						break;
+					case TEAM_2:
+						sprintf(n,"%s (%s)",players[p->player_id].name,gamestate.team_2.name);
+						break;
+					case TEAM_SPECTATOR:
+						sprintf(n,"%s (Spectator)",players[p->player_id].name);
+						break;
+				}
+				sprintf(m,"%s: ",n);
+			} else {
+				sprintf(m,": ");
+			}
+			break;
 	}
 
 	size_t m_remaining = sizeof(m) - 1 - strlen(m);
@@ -733,7 +749,7 @@ void read_PacketIntelCapture(void* data, int len) {
 					sprintf(capture_str,"%s Team Wins!",gamestate.team_2.name);
 					break;
 			}
-			chat_showpopup(capture_str,5.0F);
+			chat_showpopup(capture_str,5.0F,rgb(255,0,0));
 		}
 	}
 }
@@ -805,7 +821,7 @@ void read_PacketTerritoryCapture(void* data, int len) {
 			chat_add(0,0x0000FF,capture_str);
 			if(p->winning) {
 				sprintf(capture_str,"%s Team Wins!",team_n);
-				chat_showpopup(capture_str,5.0F);
+				chat_showpopup(capture_str,5.0F,rgb(255,0,0));
 			}
 		}
 	}
@@ -946,7 +962,7 @@ int network_connect_sub(char* ip, int port, int version) {
 		}
 		return 1;
 	}
-	chat_showpopup("No response",3.0F);
+	chat_showpopup("No response",3.0F,rgb(255,0,0));
 	enet_peer_reset(peer);
 	return 0;
 }
@@ -1026,7 +1042,7 @@ int network_update() {
 				}
 				case ENET_EVENT_TYPE_DISCONNECT:
 					hud_change(&hud_serverlist);
-					chat_showpopup(network_reason_disconnect(event.data),10.0F);
+					chat_showpopup(network_reason_disconnect(event.data),10.0F,rgb(255,0,0));
 					log_error("server disconnected! reason: %s",network_reason_disconnect(event.data));
 					event.peer->data = NULL;
 					network_connected = 0;

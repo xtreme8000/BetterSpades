@@ -292,6 +292,8 @@ void weapon_shoot() {
        orient.z = -players[local_player_id].orientation.y;
        network_send(PACKET_ORIENTATIONDATA_ID,&orient,sizeof(orient));
 
+		if(hit.y==0 && hit.type==CAMERA_HITTYPE_BLOCK)
+			hit.type = CAMERA_HITTYPE_NONE;
         switch(hit.type) {
             case CAMERA_HITTYPE_PLAYER:
             {
@@ -307,7 +309,7 @@ void weapon_shoot() {
                 break;
             }
             case CAMERA_HITTYPE_BLOCK:
-                if(map_damage(hit.x,hit.y,hit.z,weapon_block_damage(players[local_player_id].weapon))==100) {
+                if(map_damage(hit.x,hit.y,hit.z,weapon_block_damage(players[local_player_id].weapon))==100 && hit.y>1) {
                     struct PacketBlockAction blk;
                     blk.action_type = ACTION_DESTROY;
                     blk.player_id = local_player_id;

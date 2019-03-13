@@ -246,9 +246,9 @@ void player_update(float dt) {
     for(int k=0;k<PLAYERS_MAX;k++) {
         //smooth out player orientation
         if(players[k].connected && k!=local_player_id) {
-            players[k].orientation_smooth.x = players[k].orientation_smooth.x*pow(0.7F,dt*60.0F)+players[k].orientation.x*pow(0.3F,dt*60.0F);
-            players[k].orientation_smooth.y = players[k].orientation_smooth.y*pow(0.7F,dt*60.0F)+players[k].orientation.y*pow(0.3F,dt*60.0F);
-            players[k].orientation_smooth.z = players[k].orientation_smooth.z*pow(0.7F,dt*60.0F)+players[k].orientation.z*pow(0.3F,dt*60.0F);
+            players[k].orientation_smooth.x = players[k].orientation_smooth.x*pow(0.9F,dt*60.0F)+players[k].orientation.x*pow(0.1F,dt*60.0F);
+            players[k].orientation_smooth.y = players[k].orientation_smooth.y*pow(0.9F,dt*60.0F)+players[k].orientation.y*pow(0.1F,dt*60.0F);
+            players[k].orientation_smooth.z = players[k].orientation_smooth.z*pow(0.9F,dt*60.0F)+players[k].orientation.z*pow(0.1F,dt*60.0F);
         }
 
         if(!players[k].input.buttons.lmb && !players[k].input.buttons.rmb) {
@@ -265,10 +265,12 @@ void player_update(float dt) {
             struct Camera_HitType hit;
             if(players[k].input.buttons.lmb && window_time()-players[k].spade_use_timer>0.2F) {
                 camera_hit_fromplayer(&hit,k,4.0F);
+				if(hit.y==0 && hit.type==CAMERA_HITTYPE_BLOCK)
+					hit.type = CAMERA_HITTYPE_NONE;
                 switch(hit.type) {
                     case CAMERA_HITTYPE_BLOCK:
                         sound_create(NULL,SOUND_WORLD,&sound_hitground,hit.x+0.5F,hit.y+0.5F,hit.z+0.5F);
-                        if(k==local_player_id && map_damage(hit.x,hit.y,hit.z,50)==100) {
+                        if(k==local_player_id && map_damage(hit.x,hit.y,hit.z,50)==100 && hit.y>1) {
                             struct PacketBlockAction blk;
                             blk.action_type = ACTION_DESTROY;
                             blk.player_id = local_player_id;
@@ -303,7 +305,7 @@ void player_update(float dt) {
             if(players[k].input.buttons.rmb && window_time()-players[k].spade_use_timer>1.0F) {
                 if(players[k].spade_used) {
                     camera_hit_fromplayer(&hit,k,4.0F);
-                    if(hit.type==CAMERA_HITTYPE_BLOCK) {
+                    if(hit.type==CAMERA_HITTYPE_BLOCK && hit.y>1) {
                         sound_create(NULL,SOUND_WORLD,&sound_hitground,hit.x+0.5F,hit.y+0.5F,hit.z+0.5F);
                         if(k==local_player_id) {
                             struct PacketBlockAction blk;
