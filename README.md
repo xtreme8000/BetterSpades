@@ -4,6 +4,7 @@
 [![DonateBTC](https://img.shields.io/badge/bitcoin-donate-yellow.svg)](https://github.com/xtreme8000/BetterSpades#donate)
 
 [![Google Play](/docs/android.png)](https://play.google.com/store/apps/details?id=party.aos.betterspades)
+![GPL v3](https://www.gnu.org/graphics/gplv3-127x51.png)
 
 ## ![](docs/icon_small.png) BetterSpades
 
@@ -134,11 +135,3 @@ The development headers for OpenAL and OpenGL don't have to be installed since t
 | <img src="/docs/pic01.png" width="250px"><br />*quite old* | <img src="/docs/pic02.png" width="250px"><br />*quite old* | <img src="/docs/pic03.png" width="250px"> |
 | :-: | :-: | :-: |
 | <img src="/docs/pic04.png" width="250px"><br />*grenade fun* | <img src="/docs/pic05.png" width="250px"><br />*falling block animation* | <img src="/docs/pic06.png" width="250px"><br />*sniping on normandie* |
-
-## Donate
-
->*Donations are greatly appreciated* :+1:
->
-><img src="https://bitaps.com/static/img/bitcoin.svg" height="30px"> `1AeSfdVmbEX6VCqxCgk9WkzSA8XJkKr4FM`
-
-![GPL v3](https://www.gnu.org/graphics/gplv3-127x51.png)
