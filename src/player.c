@@ -883,7 +883,7 @@ int player_move(struct Player* p, float fsynctics, int id) {
     if(!p->alive) {
         p->physics.velocity.y -= fsynctics;
         AABB dead_bb = {0};
-        aabb_set_size(&dead_bb,1.0F,0.15F,1.0F);
+        aabb_set_size(&dead_bb,0.7F,0.15F,0.7F);
         aabb_set_center(&dead_bb,p->pos.x+p->physics.velocity.x*fsynctics*32.0F,p->pos.y+p->physics.velocity.y*fsynctics*32.0F,p->pos.z+p->physics.velocity.z*fsynctics*32.0F);
         if(!aabb_intersection_terrain(&dead_bb,0)) {
             p->pos.x += p->physics.velocity.x*fsynctics*32.0F;
@@ -983,11 +983,8 @@ int player_move(struct Player* p, float fsynctics, int id) {
     player_coordsystem_adjust2(p);
 
     if(p->input.keys.up || p->input.keys.down || p->input.keys.left || p->input.keys.right) {
-
-
         if(window_time()-p->sound.feet_started>(p->input.keys.sprint?(0.5F/1.3F):0.5F)
-           && sqrt(pow(p->physics.velocity.x,2.0F)+pow(p->physics.velocity.z,2.0F))>0.125F
-           && !p->physics.airborne) {
+           && (!p->input.keys.crouch && !p->input.keys.sneak) && !p->physics.airborne) {
             struct Sound_wav* footstep[8] = {&sound_footstep1,&sound_footstep2,&sound_footstep3,&sound_footstep4,
                                              &sound_wade1,&sound_wade2,&sound_wade3,&sound_wade4};
             sound_create(NULL,local?SOUND_LOCAL:SOUND_WORLD,footstep[(rand()%4)+(p->physics.wade?4:0)],p->pos.x,p->pos.y,p->pos.z)->stick_to_player = id;
