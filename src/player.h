@@ -76,7 +76,7 @@ extern struct Player {
 	struct Position gun_pos;
 	struct Position casing_dir;
 	float gun_shoot_timer;
-	int ammo;
+	int ammo, ammo_reserved;
 	float spade_use_timer;
 	unsigned char spade_used, spade_use_type;
 	unsigned int score;

@@ -326,7 +326,6 @@ void player_update(float dt) {
             }
         }
         if(players[k].connected && k!=local_player_id) {
-            player_move(&players[k],dt,k);
             if(camera_CubeInFrustum(players[k].pos.x,players[k].pos.y,players[k].pos.z,1.0F,2.0F)
 			&& distance2D(players[k].pos.x,players[k].pos.z,camera_x,camera_z)<=pow(settings.render_distance+2.0F,2.0F)) {
                 int intersections = player_render(&players[k],k,&ray,1);
@@ -351,6 +350,7 @@ void player_update(float dt) {
                     }
                 }
             }
+			player_move(&players[k],dt,k);
 
             if(players[k].alive && players[k].held_item==TOOL_GUN && players[k].input.buttons.lmb) {
                 if(window_time()-players[k].gun_shoot_timer>weapon_delay(players[k].weapon) && players[k].ammo>0) {
@@ -412,7 +412,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 	if(render)
 		kv6_calclight(p->pos.x,p->pos.y,p->pos.z);
 
-    if(camera_mode==CAMERAMODE_SPECTATOR && p->team!=TEAM_SPECTATOR && render) {
+    if(camera_mode==CAMERAMODE_SPECTATOR && p->team!=TEAM_SPECTATOR && render && !cameracontroller_bodyview_mode) {
         int old_state = glx_fog;
         if(old_state)
             glx_disable_sphericalfog();
@@ -459,6 +459,10 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 			matrix_translate(p->pos.x,p->pos.y+0.25F,p->pos.z);
 			matrix_pointAt(ox,0.0F,oz);
 			matrix_rotate(90.0F,0.0F,1.0F,0.0F);
+			if(p->physics.velocity.y<0.05F && p->pos.y<1.5F) {
+				matrix_translate(0.0F,(sin(window_time()*1.5F)-1.0F)*0.15F,0.0F);
+				matrix_rotate(sin(window_time()*1.5F)*5.0F,1.0F,0.0F,0.0F);
+			}
 			matrix_upload();
 			kv6_render(&model_playerdead,p->team);
 			kv6_boundingbox(&model_playerdead,&p->bb_2d);
@@ -487,7 +491,10 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 
     int intersections = 0;
 
-    if(id!=local_player_id || !p->alive || camera_mode!=CAMERAMODE_FPS) {
+	int render_body = (id!=local_player_id || !p->alive || camera_mode!=CAMERAMODE_FPS) && !((camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR) && cameracontroller_bodyview_mode && cameracontroller_bodyview_player==id);
+	int render_fpv = (id==local_player_id && camera_mode==CAMERAMODE_FPS) || ((camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR) && cameracontroller_bodyview_mode && cameracontroller_bodyview_player==id);
+
+    if(render_body) {
         matrix_push();
         matrix_translate(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
 		float head_scale = sqrt(pow(p->orientation.x,2.0F)+pow(p->orientation.y,2.0F)+pow(p->orientation.z,2.0F));
@@ -580,14 +587,14 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 
     matrix_push();
     matrix_translate(p->physics.eye.x,p->physics.eye.y+height,p->physics.eye.z);
-    if(!(id==local_player_id && camera_mode==CAMERAMODE_FPS))
+    if(!render_fpv)
         matrix_translate(0.0F,p->input.keys.crouch*0.1F-0.1F*2,0.0F);
     matrix_pointAt(ox,oy,oz);
     matrix_rotate(90.0F,0.0F,1.0F,0.0F);
-    if(id==local_player_id && camera_mode==CAMERAMODE_FPS)
+    if(render_fpv)
         matrix_translate(0.0F,-2*0.1F,-2*0.1F);
 
-    if(id==local_player_id && p->alive) {
+    if(render_fpv && p->alive) {
         float speed = sqrt(pow(p->physics.velocity.x,2)+pow(p->physics.velocity.z,2))/0.25F;
         float* f = player_tool_translate_func(p);
         matrix_translate(f[0],f[1],0.1F*player_swing_func(time/1000.0F)*speed+f[2]);
@@ -596,15 +603,15 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
     if(p->input.keys.sprint && !p->input.keys.crouch)
         matrix_rotate(45.0F,1.0F,0.0F,0.0F);
 
-    if(id==local_player_id && window_time()-p->item_showup<0.5F)
+    if(render_fpv && window_time()-p->item_showup<0.5F)
         matrix_rotate(45.0F-(window_time()-p->item_showup)*90.0F,1.0F,0.0F,0.0F);
 
-    if(!(p->held_item==TOOL_SPADE && id==local_player_id && camera_mode==CAMERAMODE_FPS)) {
+    if(!(p->held_item==TOOL_SPADE && render_fpv && camera_mode==CAMERAMODE_FPS)) {
         float* angles = player_tool_func(p);
         matrix_rotate(angles[0],1.0F,0.0F,0.0F);
         matrix_rotate(angles[1],0.0F,1.0F,0.0F);
     }
-    if(id!=local_player_id || settings.player_arms || camera_mode!=CAMERAMODE_FPS) {
+    if(render_body || settings.player_arms) {
 		if(render) {
 			matrix_upload();
             kv6_render(&model_playerarms,p->team);
@@ -617,7 +624,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 
 	if(render) {
 		matrix_translate(-3.5F*0.1F+0.01F,0.0F,10*0.1F);
-		if(p->held_item==TOOL_SPADE && id==local_player_id && window_time()-p->item_showup>=0.5F && camera_mode==CAMERAMODE_FPS) {
+		if(p->held_item==TOOL_SPADE && render_fpv && window_time()-p->item_showup>=0.5F) {
 			float* angles = player_tool_func(p);
 			matrix_translate(0.0F,(model_spade.zpiv-model_spade.zsiz)*0.05F,0.0F);
 			matrix_rotate(angles[0],1.0F,0.0F,0.0F);
@@ -639,7 +646,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 			case TOOL_GUN:
 				//matrix_translate(3.0F*0.1F-0.01F+0.025F,0.25F,-0.0625F);
 				//matrix_upload();
-				if((!(camera_mode==CAMERAMODE_FPS && players[local_player_id].input.buttons.rmb) && id==local_player_id) || id!=local_player_id) {
+				if(!(render_fpv && p->input.buttons.rmb)) {
 					switch(p->weapon) {
 						case WEAPON_RIFLE:
 							kv6_render(&model_semi,p->team);
@@ -984,7 +991,8 @@ int player_move(struct Player* p, float fsynctics, int id) {
 
     if(p->input.keys.up || p->input.keys.down || p->input.keys.left || p->input.keys.right) {
         if(window_time()-p->sound.feet_started>(p->input.keys.sprint?(0.5F/1.3F):0.5F)
-           && (!p->input.keys.crouch && !p->input.keys.sneak) && !p->physics.airborne) {
+           && (!p->input.keys.crouch && !p->input.keys.sneak) && !p->physics.airborne
+           && pow(p->physics.velocity.x,2.0F)+pow(p->physics.velocity.z,2.0F)>pow(0.125F,2.0F)) {
             struct Sound_wav* footstep[8] = {&sound_footstep1,&sound_footstep2,&sound_footstep3,&sound_footstep4,
                                              &sound_wade1,&sound_wade2,&sound_wade3,&sound_wade4};
             sound_create(NULL,local?SOUND_LOCAL:SOUND_WORLD,footstep[(rand()%4)+(p->physics.wade?4:0)],p->pos.x,p->pos.y,p->pos.z)->stick_to_player = id;

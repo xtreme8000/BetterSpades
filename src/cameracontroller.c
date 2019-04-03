@@ -19,6 +19,7 @@
 
 #include "common.h"
 
+int cameracontroller_bodyview_mode = 0;
 int cameracontroller_bodyview_player = 0;
 float cameracontroller_bodyview_zoom = 0.0F;
 
@@ -180,13 +181,40 @@ void cameracontroller_spectator(float dt) {
 		camera_movement_z = 0.0F;
 	}
 
-	camera_x += camera_movement_x;
-	camera_y += camera_movement_y;
-	camera_z += camera_movement_z;
-    camera_vx = camera_movement_x;
-    camera_vy = camera_movement_y;
-    camera_vz = camera_movement_z;
-    matrix_lookAt(camera_x,camera_y,camera_z,camera_x+sin(camera_rot_x)*sin(camera_rot_y),camera_y+cos(camera_rot_y),camera_z+cos(camera_rot_x)*sin(camera_rot_y),0.0F,1.0F,0.0F);
+	if(cameracontroller_bodyview_mode) {
+		//check if we cant spectate the player anymore
+		for(int k=0;k<PLAYERS_MAX*2;k++) { //a while(1) loop caused it to get stuck on map change when playing on babel
+			if(player_can_spectate(&players[cameracontroller_bodyview_player]))
+				break;
+			cameracontroller_bodyview_player = (cameracontroller_bodyview_player+1)%PLAYERS_MAX;
+		}
+	}
+
+	if(cameracontroller_bodyview_mode && players[cameracontroller_bodyview_player].alive) {
+		struct Player* p = &players[cameracontroller_bodyview_player];
+		camera_x = p->physics.eye.x;
+		camera_y = p->physics.eye.y+player_height(p);
+		camera_z = p->physics.eye.z;
+
+		camera_vx = p->physics.velocity.x;
+		camera_vy = p->physics.velocity.y;
+		camera_vz = p->physics.velocity.z;
+
+		float l = sqrt(distance3D(p->orientation_smooth.x,p->orientation_smooth.y,p->orientation_smooth.z,0,0,0));
+		float ox = p->orientation_smooth.x/l;
+		float oy = p->orientation_smooth.y/l;
+		float oz = p->orientation_smooth.z/l;
+
+		matrix_lookAt(camera_x,camera_y,camera_z,camera_x+ox,camera_y+oy,camera_z+oz,0.0F,1.0F,0.0F);
+	} else {
+		camera_x += camera_movement_x;
+		camera_y += camera_movement_y;
+		camera_z += camera_movement_z;
+	    camera_vx = camera_movement_x;
+	    camera_vy = camera_movement_y;
+	    camera_vz = camera_movement_z;
+	    matrix_lookAt(camera_x,camera_y,camera_z,camera_x+sin(camera_rot_x)*sin(camera_rot_y),camera_y+cos(camera_rot_y),camera_z+cos(camera_rot_x)*sin(camera_rot_y),0.0F,1.0F,0.0F);
+	}
 }
 
 void cameracontroller_bodyview(float dt) {
@@ -237,7 +265,7 @@ void cameracontroller_bodyview(float dt) {
     camera_vy = players[cameracontroller_bodyview_player].physics.velocity.y;
     camera_vz = players[cameracontroller_bodyview_player].physics.velocity.z;
 
-	/*if(players[cameracontroller_bodyview_player].alive) {
+	if(cameracontroller_bodyview_mode && players[cameracontroller_bodyview_player].alive) {
 		struct Player* p = &players[cameracontroller_bodyview_player];
 		camera_x = p->physics.eye.x;
 		camera_y = p->physics.eye.y+player_height(p);
@@ -253,7 +281,7 @@ void cameracontroller_bodyview(float dt) {
 		float oz = p->orientation_smooth.z/l;
 
 		matrix_lookAt(camera_x,camera_y,camera_z,camera_x+ox,camera_y+oy,camera_z+oz,0.0F,1.0F,0.0F);
-	} else {*/
+	} else {
 		matrix_lookAt(players[cameracontroller_bodyview_player].pos.x-sin(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom,
 					  players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*cameracontroller_bodyview_zoom+player_height2(&players[cameracontroller_bodyview_player]),
 					  players[cameracontroller_bodyview_player].pos.z-cos(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom,
@@ -261,7 +289,7 @@ void cameracontroller_bodyview(float dt) {
 					  players[cameracontroller_bodyview_player].pos.y+player_height2(&players[cameracontroller_bodyview_player]),
 					  players[cameracontroller_bodyview_player].pos.z,
 					  0.0F,1.0F,0.0F);
-	//}
+	}
 }
 
 void cameracontroller_selection(float dt) {

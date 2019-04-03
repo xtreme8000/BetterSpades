@@ -406,50 +406,13 @@ struct PacketProgressBar {
 	float progress;
 };
 
-#define PACKET_ENTITYCREATE_ID	0xE0
-struct PacketEntityCreate {
-	unsigned int entity_id;
-	float x,y,z;
-	float scale;
-	unsigned char r,g,b;
-	unsigned int kv6_id;
+#define PACKET_EXTINFO_ID 60
+struct PacketExtInfo {
+	unsigned char length;
+	struct {
+		unsigned char id;
+		unsigned char version;
+	} entries[256];
 };
-
-#define PACKET_ENTITYDESTROY_ID 0xE1
-struct PacketEntityDestroy {
-	unsigned int entity_id;
-};
-
-#define PACKET_ENTITYMOVE_ID 0xE2
-struct PacketEntityMove {
-	unsigned int entity_id;
-	float x,y,z;
-};
-
-#define PACKET_ENTITYVELOCITY_ID 0xE3
-struct PacketEntityVelocity {
-	unsigned int entity_id;
-	float x,y,z;
-};
-
-#define PACKET_ENTITYROTATE_ID 0xE4
-struct PacketEntityRotate {
-	unsigned int entity_id;
-	unsigned char absolute;
-	char x_rot, y_rot;
-};
-
-#define PACKET_ENTITYTEAM_ID 0xE5
-struct PacketEntityTeam {
-	unsigned int entity_id;
-	unsigned char r,g,b;
-};
-
-#define PACKET_KV6LOAD_ID 0xE6
-struct PacketKv6Load {
-	unsigned int kv6_id;
-	unsigned int data_size;
-};
-
 
 #pragma pack(pop)

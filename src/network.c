@@ -372,6 +372,7 @@ void read_PacketExistingPlayer(void* data, int len) {
 		players[p->player_id].block.green = p->green;
 		players[p->player_id].block.blue = p->blue;
 		players[p->player_id].ammo = weapon_ammo(p->weapon);
+		players[p->player_id].ammo_reserved = weapon_ammo_reserved(p->weapon);
 		strcpy(players[p->player_id].name,p->name);
 	}
 }
@@ -399,6 +400,7 @@ void read_PacketCreatePlayer(void* data, int len) {
 		players[p->player_id].block.green = 111;
 		players[p->player_id].block.blue = 111;
 		players[p->player_id].ammo = weapon_ammo(p->weapon);
+		players[p->player_id].ammo_reserved = weapon_ammo_reserved(p->weapon);
 		if(p->player_id==local_player_id) {
 			if(p->team==TEAM_SPECTATOR) {
 				camera_x = p->x;
@@ -683,7 +685,9 @@ void read_PacketWeaponReload(void* data, int len) {
 		sound_create(NULL,SOUND_WORLD,weapon_sound_reload(players[p->player_id].weapon),
 					 players[p->player_id].pos.x,players[p->player_id].pos.y,players[p->player_id].pos.z
 				 )->stick_to_player = p->player_id;
-		players[p->player_id].ammo = p->ammo;
+		//dont use values from packet which somehow are never correct
+		players[p->player_id].ammo = weapon_ammo(players[p->player_id].weapon);
+		players[p->player_id].ammo_reserved = weapon_ammo_reserved(players[p->player_id].weapon);
 	}
 }
 
@@ -865,34 +869,14 @@ void read_PacketVersionGet(void* data, int len) {
 	network_send(PACKET_VERSIONSEND_ID,&ver,sizeof(ver)-sizeof(ver.operatingsystem)+strlen(os));
 }
 
-/*struct list network_list_kv6s;
-struct list network_list_entities;
-
-struct network_kv6 {
-	int id;
-	int size;
-	void* data;
-	kv6_t object;
-};
-
-struct network_entity {
-	int id;
-	float x,y,z;
-	unsigned char r,g,b;
-	float scale;
-	int kv6_id;
-};
-
-void read_PacketKv6Load(void* data, int len) {
-	struct PacketKv6Load* p = (struct PacketKv6Load*)data;
-
+void read_PacketExtInfo(void* data, int len) {
+	struct PacketExtInfo* p = (struct PacketExtInfo*)data;
+	if(len>=p->length*sizeof(p->entries[0])+1) {
+		log_info("Server supports the following extensions:");
+		for(int k=0;k<p->length;k++)
+			log_info("Extension 0x%02X of version %i",p->entries[k].id,p->entries[k].version);
+	}
 }
-
-void read_PacketEntityCreate(void* data, int len) {
-	struct PacketEntityCreate* p = (struct PacketEntityCreate*)data;
-	struct network_entity e;
-
-}*/
 
 void network_updateColor() {
 	struct PacketSetColor c;
@@ -1094,7 +1078,7 @@ int network_update() {
 				players[local_player_id].orientation.x,players[local_player_id].orientation.y,players[local_player_id].orientation.z)>0.5F/180.0F*PI) {
 				network_orient_update = window_time();
 				memcpy(&network_orient_last,&players[local_player_id].orientation,sizeof(struct Orientation));
-				struct PacketPositionData orient;
+				struct PacketOrientationData orient;
 				orient.x = players[local_player_id].orientation.x;
 				orient.y = players[local_player_id].orientation.z;
 				orient.z = -players[local_player_id].orientation.y;
@@ -1147,7 +1131,5 @@ void network_init() {
 	packets[PACKET_CHANGEWEAPON_ID]		= read_PacketChangeWeapon;
 	packets[PACKET_HANDSHAKEINIT_ID]	= read_PacketHandshakeInit;
 	packets[PACKET_VERSIONGET_ID]		= read_PacketVersionGet;
-
-	/*packets[PACKET_KV6LOAD_ID]			= read_PacketKv6Load;
-	packets[PACKET_ENTITYCREATE_ID]		= read_PacketEntityCreate;*/
+	packets[PACKET_EXTINFO_ID]			= read_PacketExtInfo;
 }

@@ -453,12 +453,15 @@ static void hud_ingame_render(float scalex, float scalef) {
             glColor3f(1.0F,1.0F,1.0F);
         }
 
-        if(camera_mode==CAMERAMODE_FPS) {
+		int is_local = (camera_mode==CAMERAMODE_FPS) || (cameracontroller_bodyview_player==local_player_id);
+		int local_id = (camera_mode==CAMERAMODE_FPS)?local_player_id:cameracontroller_bodyview_player;
+
+        if(camera_mode==CAMERAMODE_FPS || ((camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR) && cameracontroller_bodyview_mode)) {
             glColor3f(1.0F,1.0F,1.0F);
 
-            if(players[local_player_id].held_item==TOOL_GUN && players[local_player_id].input.buttons.rmb) {
+            if(players[local_id].held_item==TOOL_GUN && players[local_id].input.buttons.rmb) {
                 struct texture* zoom;
-                switch(players[local_player_id].weapon) {
+                switch(players[local_id].weapon) {
                     case WEAPON_RIFLE:
                         zoom = &texture_zoom_semi;
                         break;
@@ -469,7 +472,7 @@ static void hud_ingame_render(float scalex, float scalef) {
                         zoom = &texture_zoom_shotgun;
                         break;
                 }
-                float zoom_factor = max(0.25F*(1.0F-((window_time()-weapon_last_shot)/weapon_delay(players[local_player_id].weapon)))+1.0F,1.0F);
+                float zoom_factor = max(0.25F*(1.0F-((window_time()-weapon_last_shot)/weapon_delay(players[local_id].weapon)))+1.0F,1.0F);
                 texture_draw(zoom,(settings.window_width-settings.window_height*4.0F/3.0F*zoom_factor)/2.0F,settings.window_height*(zoom_factor*0.5F+0.5F),settings.window_height*4.0F/3.0F*zoom_factor,settings.window_height*zoom_factor);
             } else {
                 texture_draw(&texture_target,(settings.window_width-16)/2.0F,(settings.window_height+16)/2.0F,16,16);
@@ -480,13 +483,12 @@ static void hud_ingame_render(float scalex, float scalef) {
                 texture_draw_rotated(&texture_indicator,settings.window_width/2.0F,settings.window_height/2.0F,200,200,ang);
             }
 
-            if(local_player_health<=30) {
+            if(local_player_health<=30 && is_local)
                 glColor3f(1,0,0);
-            } else {
+			else
                 glColor3f(1,1,1);
-            }
             char hp[4];
-            sprintf(hp,"%i",local_player_health);
+            sprintf(hp,"%i",is_local?local_player_health:100);
             font_render(settings.window_width/2.0F-font_length(53.0F*scalef,hp),53.0F*scalef,53.0F*scalef,hp);
             texture_draw(&texture_health,settings.window_width/2.0F,44.0F*scalef,32.0F*scalef,32.0F*scalef);
 
@@ -495,7 +497,7 @@ static void hud_ingame_render(float scalex, float scalef) {
             struct texture* item_mini;
             int off = 0;
             glColor3f(1.0F,1.0F,0.0F);
-            switch(players[local_player_id].held_item) {
+            switch(players[local_id].held_item) {
                 default:
                 case TOOL_BLOCK:
                     off = 64*scalef;
@@ -508,8 +510,11 @@ static void hud_ingame_render(float scalex, float scalef) {
                     sprintf(item_mini_str,"%i",local_player_grenades);
                     break;
                 case TOOL_GUN:
-                    sprintf(item_mini_str,"%i-%i",local_player_ammo,local_player_ammo_reserved);
-                    switch(players[local_player_id].weapon) {
+				{
+					int ammo = is_local?local_player_ammo:players[local_id].ammo;
+					int ammo_reserve = is_local?local_player_ammo_reserved:players[local_id].ammo_reserved;
+                    sprintf(item_mini_str,"%i-%i",ammo,ammo_reserve);
+                    switch(players[local_id].weapon) {
                         case WEAPON_RIFLE:
                             item_mini = &texture_ammo_semi;
                             break;
@@ -520,20 +525,20 @@ static void hud_ingame_render(float scalex, float scalef) {
                             item_mini = &texture_ammo_shotgun;
                             break;
                     }
-                    if(local_player_ammo==0) {
+                    if(ammo==0)
                         glColor3f(1.0F,0.0F,0.0F);
-                    }
                     break;
+				}
             }
 
             texture_draw(item_mini,settings.window_width-44.0F*scalef-off,44.0F*scalef,32.0F*scalef,32.0F*scalef);
             font_render(settings.window_width-font_length(53.0F*scalef,item_mini_str)-44.0F*scalef-off,53.0F*scalef,53.0F*scalef,item_mini_str);
             glColor3f(1.0F,1.0F,1.0F);
 
-            if(players[local_player_id].held_item==TOOL_BLOCK) {
+            if(players[local_id].held_item==TOOL_BLOCK) {
                 for(int y=0;y<8;y++) {
                     for(int x=0;x<8;x++) {
-                        if(texture_block_color(x,y)==players[local_player_id].block.packed) {
+                        if(texture_block_color(x,y)==players[local_id].block.packed) {
                             unsigned char g = (((int)(window_time()*4))&1)*0xFF;
                             glColor3ub(g,g,g);
                             texture_draw_empty(settings.window_width+(x*8-65)*scalef,(65-y*8)*scalef,8*scalef,8*scalef);
@@ -985,7 +990,9 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 	}
 	if(button==WINDOW_MOUSE_RMB && action==WINDOW_PRESS) {
 		players[local_player_id].input.buttons.rmb_start = window_time();
-		if(camera_mode==CAMERAMODE_BODYVIEW) {
+		if(camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR) {
+			if(camera_mode==CAMERAMODE_SPECTATOR)
+				cameracontroller_bodyview_mode = 1;
 			do {
 				cameracontroller_bodyview_player = (cameracontroller_bodyview_player+1)%PLAYERS_MAX;
 			} while(!player_can_spectate(&players[cameracontroller_bodyview_player]));
@@ -1031,7 +1038,9 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 			}
 		}
 
-		if(camera_mode==CAMERAMODE_BODYVIEW) {
+		if(camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR) {
+			if(camera_mode==CAMERAMODE_SPECTATOR)
+				cameracontroller_bodyview_mode = 1;
 			do {
 				cameracontroller_bodyview_player = (cameracontroller_bodyview_player-1)%PLAYERS_MAX;
 				if(cameracontroller_bodyview_player<0)
@@ -1135,7 +1144,8 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 					players[local_player_id].pos.z = 256.0F;
 				}
 				if(key==WINDOW_KEY_CROUCH) {
-					particle_create(0xFF00FF,players[local_player_id].pos.x,players[local_player_id].pos.y,players[local_player_id].pos.z,2.0F,1.0F,1024,0.1F,0.25F);
+					//particle_create(0xFF00FF,players[local_player_id].pos.x,players[local_player_id].pos.y,players[local_player_id].pos.z,2.0F,1.0F,1024,0.1F,0.25F);
+					players[local_player_id].alive = !players[local_player_id].alive;
 				}
 			}
 
@@ -1227,6 +1237,10 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 
 			if(key==WINDOW_KEY_RELOAD && camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN) {
 				weapon_reload();
+			}
+
+			if(key==WINDOW_KEY_SNEAK && (camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR)) {
+				cameracontroller_bodyview_mode = !cameracontroller_bodyview_mode;
 			}
 
 			if(screen_current==SCREEN_NONE && camera_mode==CAMERAMODE_FPS) {
@@ -1845,6 +1859,14 @@ static void hud_settings_init() {
     chat[0][0][0] = 0;
 }
 
+static int is_inside_centered(double mx, double my, int x, int y, int w, int h) {
+	return mx>=x-w/2 && mx<x+w/2 && my>=y-h/2 && my<y+h/2;
+}
+
+static int is_inside(double mx, double my, int x, int y, int w, int h) {
+	return mx>=x && mx<x+w && my>=y && my<y+h;
+}
+
 static void hud_settings_render(float scalex, float scaley) {
 	glColor3f(0.5F,0.5F,0.5F);
 	float t = window_time()*0.03125F;
@@ -1864,19 +1886,25 @@ static void hud_settings_render(float scalex, float scaley) {
 
 	for(int k=0;k<list_size(&config_settings);k++) {
 		struct config_setting* a = list_get(&config_settings,k);
+
+		float row_offset = (k+1)/2;
+		float col_offset = 0.0F;
+		if(k>0)
+			col_offset = ((k+1)&1)?314*scaley:0;
+
 		glColor3f(1.0F,1.0F,1.0F);
-		font_render((settings.window_width-600*scaley)/2.0F,(460-40*k)*scaley,16*scaley,a->name);
+		font_render((settings.window_width-600*scaley)/2.0F+col_offset,(460-40*row_offset)*scaley,16*scaley,a->name);
 
 		char tmp[32];
 		switch(a->type) {
 			case CONFIG_TYPE_STRING:
 				glColor3f(1.0F,1.0F,1.0F);
-				texture_draw_sector(&texture_ui_input,(settings.window_width-600*scaley)/2.0F+174*scaley,(466-40*k)*scaley,8*scaley,32*scaley,0.0F,0.0F,0.25F,1.0F);
-				texture_draw_sector(&texture_ui_input,(settings.window_width-600*scaley)/2.0F+182*scaley,(466-40*k)*scaley,200*scaley,32*scaley,0.25F,0.0F,0.5F,1.0F);
-				texture_draw_sector(&texture_ui_input,settings.window_width/2.0F-300*scaley+382*scaley,(466-40*k)*scaley,8*scaley,32*scaley,0.75F,0.0F,0.25F,1.0F);
+				texture_draw_sector(&texture_ui_input,(settings.window_width-600*scaley)/2.0F+154*scaley+col_offset,(466-40*row_offset)*scaley,8*scaley,32*scaley,0.0F,0.0F,0.25F,1.0F);
+				texture_draw_sector(&texture_ui_input,(settings.window_width-600*scaley)/2.0F+162*scaley+col_offset,(466-40*row_offset)*scaley,200*scaley,32*scaley,0.25F,0.0F,0.5F,1.0F);
+				texture_draw_sector(&texture_ui_input,settings.window_width/2.0F-300*scaley+362*scaley+col_offset,(466-40*row_offset)*scaley,8*scaley,32*scaley,0.75F,0.0F,0.25F,1.0F);
 				if(hud_settings_edit==a)
 					glColor3f(1.0F,0.0F,0.0F);
-				font_render((settings.window_width-600*scaley)/2.0F+182*scaley,(460-40*k)*scaley,20*scaley,(hud_settings_edit==a)?chat[0][0]:a->value);
+				font_render((settings.window_width-600*scaley)/2.0F+162*scaley+col_offset,(460-40*row_offset)*scaley,20*scaley,(hud_settings_edit==a)?chat[0][0]:a->value);
 				break;
 			case CONFIG_TYPE_INT:
 				glColor3f(1.0F,1.0F,1.0F);
@@ -1886,37 +1914,49 @@ static void hud_settings_render(float scalex, float scaley) {
 					sprintf(tmp,"%i",*(int*)a->value);
 				if(a->max==1) {
 					texture_draw_rotated(*(int*)a->value?&texture_ui_box_check:&texture_ui_box_empty,
-						(settings.window_width-600*scaley)/2.0F+240*scaley,(450-40*k)*scaley,32*scaley,32*scaley,0.0F);
+						(settings.window_width-600*scaley)/2.0F+220*scaley+col_offset,(450-40*row_offset)*scaley,32*scaley,32*scaley,0.0F);
 				} else {
-					texture_draw_rotated(&texture_ui_arrow,(settings.window_width-600*scaley)/2.0F+290*scaley,(450-40*k)*scaley,32*scaley,32*scaley,0.0F);
-					texture_draw_rotated(&texture_ui_arrow,(settings.window_width-600*scaley)/2.0F+190*scaley,(450-40*k)*scaley,32*scaley,32*scaley,PI);
+					texture_draw_rotated(&texture_ui_arrow,(settings.window_width-600*scaley)/2.0F+270*scaley+col_offset,(450-40*row_offset)*scaley,32*scaley,32*scaley,0.0F);
+					texture_draw_rotated(&texture_ui_arrow,(settings.window_width-600*scaley)/2.0F+170*scaley+col_offset,(450-40*row_offset)*scaley,32*scaley,32*scaley,PI);
 					if(hud_settings_edit==a)
 						glColor3f(1.0F,0.0F,0.0F);
-					font_centered((settings.window_width-600*scaley)/2.0F+240*scaley,(460-40*k)*scaley,20*scaley,tmp);
+					font_centered((settings.window_width-600*scaley)/2.0F+220*scaley+col_offset,(460-40*row_offset)*scaley,20*scaley,tmp);
 				}
 				break;
 			case CONFIG_TYPE_FLOAT:
 				glColor3f(1.0F,1.0F,1.0F);
-				texture_draw_rotated(&texture_ui_arrow,(settings.window_width-600*scaley)/2.0F+290*scaley,(450-40*k)*scaley,32*scaley,32*scaley,0.0F);
-				texture_draw_rotated(&texture_ui_arrow,(settings.window_width-600*scaley)/2.0F+190*scaley,(450-40*k)*scaley,32*scaley,32*scaley,PI);
+				texture_draw_rotated(&texture_ui_arrow,(settings.window_width-600*scaley)/2.0F+270*scaley+col_offset,(450-40*row_offset)*scaley,32*scaley,32*scaley,0.0F);
+				texture_draw_rotated(&texture_ui_arrow,(settings.window_width-600*scaley)/2.0F+170*scaley+col_offset,(450-40*row_offset)*scaley,32*scaley,32*scaley,PI);
 				if(hud_settings_edit==a) {
 					glColor3f(1.0F,0.0F,0.0F);
 					strcpy(tmp,chat[0][0]);
 				} else {
 					sprintf(tmp,"%0.2f",*(float*)a->value);
 				}
-				font_centered((settings.window_width-600*scaley)/2.0F+240*scaley,(460-40*k)*scaley,20*scaley,tmp);
+				font_centered((settings.window_width-600*scaley)/2.0F+220*scaley+col_offset,(460-40*row_offset)*scaley,20*scaley,tmp);
 				break;
 		}
 	}
-}
 
-static int is_inside_centered(double mx, double my, int x, int y, int w, int h) {
-	return mx>=x-w/2 && mx<x+w/2 && my>=y-h/2 && my<y+h/2;
-}
+	//now find the correct help str and draw it above everything else
+	double x,y;
+	window_mouseloc(&x,&y);
+	for(int k=0;k<list_size(&config_settings);k++) {
+		struct config_setting* a = list_get(&config_settings,k);
 
-static int is_inside(double mx, double my, int x, int y, int w, int h) {
-	return mx>=x && mx<x+w && my>=y && my<y+h;
+		float row_offset = (k+1)/2;
+		float col_offset = 0.0F;
+		if(k>0)
+			col_offset = ((k+1)&1)?314*scaley:0;
+
+		if(*a->help && is_inside(x,settings.window_height-y,(settings.window_width-600*scaley)/2.0F+col_offset,(435-40*row_offset)*scaley,300*scaley,32*scaley)) {
+			glColor3f(1.0F,1.0F,1.0F);
+			texture_draw_empty(x+5*scaley,settings.window_height-y+5*scaley,font_length(16*scaley,a->help)+10*scaley,26*scaley);
+			glColor3f(0.0F,0.0F,0.0F);
+			font_render(x+10*scaley,settings.window_height-y,16*scaley,a->help);
+			break;
+		}
+	}
 }
 
 static int is_int(const char* x) {
@@ -2006,9 +2046,15 @@ static void hud_settings_mouseclick(int button, int action, int mods) {
 
 		for(int k=0;k<list_size(&config_settings);k++) {
 			struct config_setting* a = list_get(&config_settings,k);
+
+			float row_offset = (k+1)/2;
+			float col_offset = 0.0F;
+			if(k>0)
+				col_offset = ((k+1)&1)?314*scaley:0;
+
 			if(is_inside_centered(x,y,
-				(settings.window_width-600*scaley)/2.0F+240*scaley,
-				(450-40*k)*scaley,68*scaley,32*scaley)
+				(settings.window_width-600*scaley)/2.0F+220*scaley+col_offset,
+				(450-40*row_offset)*scaley,68*scaley,32*scaley)
 			&& !(a->type==CONFIG_TYPE_INT && a->max==1)) {
 					hud_settings_edit = a;
 					switch(a->type) {
@@ -2027,14 +2073,14 @@ static void hud_settings_mouseclick(int button, int action, int mods) {
 				case CONFIG_TYPE_INT:
 					if(a->max==1) {
 						if(is_inside_centered(x,y,
-							(settings.window_width-600*scaley)/2.0F+240*scaley,
-							(450-40*k)*scaley,32*scaley,32*scaley)) { //checkbox pressed
+							(settings.window_width-600*scaley)/2.0F+220*scaley+col_offset,
+							(450-40*row_offset)*scaley,32*scaley,32*scaley)) { //checkbox pressed
 							*(int*)a->value = !*(int*)a->value;
 						}
 					} else {
 						if(is_inside_centered(x,y,
-							(settings.window_width-600*scaley)/2.0F+290*scaley,
-							(450-40*k)*scaley,32*scaley,32*scaley)) { //right arrow pressed
+							(settings.window_width-600*scaley)/2.0F+270*scaley+col_offset,
+							(450-40*row_offset)*scaley,32*scaley,32*scaley)) { //right arrow pressed
 							int next = a->defaults_length?(*(int*)a->value):((*(int*)a->value)+1);
 							int diff = INT_MAX;
 							for(int l=0;l<a->defaults_length;l++) {
@@ -2046,8 +2092,8 @@ static void hud_settings_mouseclick(int button, int action, int mods) {
 							*(int*)a->value = min(next,a->max);
 						}
 						if(is_inside_centered(x,y,
-							(settings.window_width-600*scaley)/2.0F+190*scaley,
-							(450-40*k)*scaley,32*scaley,32*scaley)) { //left arrow pressed
+							(settings.window_width-600*scaley)/2.0F+170*scaley+col_offset,
+							(450-40*row_offset)*scaley,32*scaley,32*scaley)) { //left arrow pressed
 							int next = a->defaults_length?(*(int*)a->value):((*(int*)a->value)-1);
 							int diff = INT_MAX;
 							for(int l=0;l<a->defaults_length;l++) {
@@ -2062,13 +2108,13 @@ static void hud_settings_mouseclick(int button, int action, int mods) {
 					break;
 				case CONFIG_TYPE_FLOAT:
 					if(is_inside_centered(x,y,
-						(settings.window_width-600*scaley)/2.0F+290*scaley,
-						(450-40*k)*scaley,32*scaley,32*scaley)) { //right arrow pressed
+						(settings.window_width-600*scaley)/2.0F+270*scaley+col_offset,
+						(450-40*row_offset)*scaley,32*scaley,32*scaley)) { //right arrow pressed
 						*(float*)a->value = min((*(float*)a->value)+0.1F,a->max);
 					}
 					if(is_inside_centered(x,y,
-						(settings.window_width-600*scaley)/2.0F+190*scaley,
-						(450-40*k)*scaley,32*scaley,32*scaley)) { //left arrow pressed
+						(settings.window_width-600*scaley)/2.0F+170*scaley+col_offset,
+						(450-40*row_offset)*scaley,32*scaley,32*scaley)) { //left arrow pressed
 						*(float*)a->value = max((*(float*)a->value)-0.1F,0);
 					}
 					break;

@@ -192,6 +192,19 @@ int weapon_ammo(int gun) {
 	}
 }
 
+int weapon_ammo_reserved(int gun) {
+	switch(gun) {
+		case WEAPON_RIFLE:
+			return 50;
+		case WEAPON_SMG:
+			return 120;
+		case WEAPON_SHOTGUN:
+			return 48;
+		default:
+			return 0;
+	}
+}
+
 struct kv6_t* weapon_casing(int gun) {
 	switch(gun) {
 		case WEAPON_RIFLE:
@@ -208,18 +221,8 @@ struct kv6_t* weapon_casing(int gun) {
 void weapon_set() {
 	//players[local_player_id].weapon = WEAPON_SHOTGUN;
 	local_player_ammo = weapon_ammo(players[local_player_id].weapon);
+	local_player_ammo_reserved = weapon_ammo_reserved(players[local_player_id].weapon);
 	weapon_reload_inprogress = 0;
-	switch(players[local_player_id].weapon) {
-		case WEAPON_RIFLE:
-			local_player_ammo_reserved = 50;
-			return;
-		case WEAPON_SMG:
-			local_player_ammo_reserved = 120;
-			return;
-		case WEAPON_SHOTGUN:
-			local_player_ammo_reserved = 48;
-			return;
-	}
 }
 
 void weapon_reload() {
@@ -286,7 +289,7 @@ void weapon_shoot() {
            network_buttons_last = players[local_player_id].input.buttons.packed;
        }
 
-       struct PacketPositionData orient;
+       struct PacketOrientationData orient;
        orient.x = players[local_player_id].orientation.x;
        orient.y = players[local_player_id].orientation.z;
        orient.z = -players[local_player_id].orientation.y;
