@@ -63,6 +63,7 @@ void config_save() {
 	config_seti("show_fps",settings.show_fps);
 	config_seti("voxlap_models",settings.voxlap_models);
 	config_seti("force_displaylist",settings.force_displaylist);
+	config_seti("inverty",settings.invert_y);
 
 	for(int k=0;k<list_size(&config_keys);k++) {
 		struct config_key_pair* e = list_get(&config_keys,k);
@@ -133,6 +134,9 @@ static int config_read_key(void* user, const char* section, const char* name, co
 		}
 		if(!strcmp(name,"force_displaylist")) {
 			settings.force_displaylist = atoi(value);
+		}
+		if(!strcmp(name,"inverty")) {
+			settings.invert_y = atoi(value);
 		}
     }
     if(!strcmp(section,"controls")) {
@@ -388,6 +392,13 @@ void config_reload() {
 		.max=1,
 		.name="Show fps",
 		.help="show your current fps and ping"
+	});
+	list_add(&config_settings,&(struct config_setting){
+		.value=&settings_tmp.invert_y,
+		.type=CONFIG_TYPE_INT,
+		.max=1,
+		.name="Invert y",
+		.help="Invert vertical mouse movement"
 	});
 	list_add(&config_settings,&(struct config_setting){
 		.value=&settings_tmp.show_news,

@@ -580,6 +580,7 @@ int main(int argc, char** argv) {
 	settings.volume = 10;
 	settings.voxlap_models = 0;
 	settings.force_displaylist = 0;
+	settings.invert_y = 0;
 	strcpy(settings.name,"DEV_CLIENT");
 
 	if(!file_dir_exists("logs"))

@@ -933,6 +933,9 @@ static void hud_ingame_mouselocation(double x, double y) {
 		s = 0.5F;
 	}
 
+	if(settings.invert_y)
+		dy *= -1.0F;
+
 	camera_rot_x -= dx*settings.mouse_sensitivity/5.0F*MOUSE_SENSITIVITY*s;
 	camera_rot_y += dy*settings.mouse_sensitivity/5.0F*MOUSE_SENSITIVITY*s;
 

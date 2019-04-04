@@ -43,6 +43,7 @@ extern struct RENDER_OPTIONS {
 	int volume;
 	int voxlap_models;
 	int force_displaylist;
+	int invert_y;
 } settings, settings_tmp;
 
 extern struct list config_keys;
