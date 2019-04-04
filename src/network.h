@@ -75,8 +75,8 @@ extern unsigned char network_keys_last;
 extern unsigned char network_buttons_last;
 extern unsigned char network_tool_last;
 
-#define VERSION_075	3
-#define VERSION_076	4
+#define VERSION_075		3
+#define VERSION_076		4
 
 extern void* compressed_chunk_data;
 extern int compressed_chunk_data_size;
@@ -409,10 +409,16 @@ struct PacketProgressBar {
 #define PACKET_EXTINFO_ID 60
 struct PacketExtInfo {
 	unsigned char length;
-	struct {
+	struct PacketExtInfoEntry {
 		unsigned char id;
 		unsigned char version;
 	} entries[256];
+};
+
+enum Extension {
+	EXT_256PLAYERS		= 0xC0,
+	EXT_MESSAGES		= 0xC1,
+	EXT_KICKREASON		= 0xC2,
 };
 
 #pragma pack(pop)

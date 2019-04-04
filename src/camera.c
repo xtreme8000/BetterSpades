@@ -31,12 +31,13 @@ float camera_height = 0.8F;
 float camera_eye_height = 0.0F;
 float camera_movement_x = 0.0F, camera_movement_y = 0.0F, camera_movement_z = 0.0F;
 float camera_speed = 32.0F;
-long camera_last_key = 0;
 
 float camera_fov_scaled() {
-	if(camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN && players[local_player_id].input.buttons.rmb && !players[local_player_id].input.keys.sprint) {
+	int render_fpv = (camera_mode==CAMERAMODE_FPS) || ((camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR) && cameracontroller_bodyview_mode);
+	int local_id = (camera_mode==CAMERAMODE_FPS)?local_player_id:cameracontroller_bodyview_player;
+
+	if(render_fpv && players[local_id].held_item==TOOL_GUN && players[local_id].input.buttons.rmb && !players[local_id].input.keys.sprint)
 		return camera_fov*atan(tan((camera_fov/180.0F*PI)/2)/2.0F)*2.0F;
-	}
 	return camera_fov;
 }
 

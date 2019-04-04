@@ -871,10 +871,20 @@ void read_PacketVersionGet(void* data, int len) {
 
 void read_PacketExtInfo(void* data, int len) {
 	struct PacketExtInfo* p = (struct PacketExtInfo*)data;
-	if(len>=p->length*sizeof(p->entries[0])+1) {
+	if(len>=p->length*sizeof(struct PacketExtInfoEntry)+1) {
 		log_info("Server supports the following extensions:");
-		for(int k=0;k<p->length;k++)
+		for(int k=0;k<p->length;k++) {
 			log_info("Extension 0x%02X of version %i",p->entries[k].id,p->entries[k].version);
+			if(p->entries[k].id>=192)
+				log_info("(which is packetless)");
+		}
+
+		struct PacketExtInfo reply;
+		reply.length = 3;
+		reply.entries[0] = (struct PacketExtInfoEntry) {.id = EXT_256PLAYERS, .version = 1 };
+		reply.entries[1] = (struct PacketExtInfoEntry) {.id = EXT_MESSAGES, .version = 1 };
+		reply.entries[2] = (struct PacketExtInfoEntry) {.id = EXT_KICKREASON, .version = 1 };
+		network_send(PACKET_EXTINFO_ID,&reply,reply.length*sizeof(struct PacketExtInfoEntry)+1);
 	}
 }
 

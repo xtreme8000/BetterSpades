@@ -26,6 +26,14 @@ struct hud hud_mapload;
 struct hud* hud_active;
 struct window_instance* hud_window;
 
+static int is_inside_centered(double mx, double my, int x, int y, int w, int h) {
+	return mx>=x-w/2 && mx<x+w/2 && my>=y-h/2 && my<y+h/2;
+}
+
+static int is_inside(double mx, double my, int x, int y, int w, int h) {
+	return mx>=x && mx<x+w && my>=y && my<y+h;
+}
+
 void hud_init() {
     hud_change(&hud_serverlist);
 }
@@ -993,9 +1001,11 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 		if(camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR) {
 			if(camera_mode==CAMERAMODE_SPECTATOR)
 				cameracontroller_bodyview_mode = 1;
-			do {
+			for(int k=0;k<PLAYERS_MAX*2;k++) {
+				if(player_can_spectate(&players[cameracontroller_bodyview_player]))
+					break;
 				cameracontroller_bodyview_player = (cameracontroller_bodyview_player+1)%PLAYERS_MAX;
-			} while(!player_can_spectate(&players[cameracontroller_bodyview_player]));
+			}
 			cameracontroller_bodyview_zoom = 0.0F;
 		}
 	}
@@ -1041,11 +1051,13 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 		if(camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR) {
 			if(camera_mode==CAMERAMODE_SPECTATOR)
 				cameracontroller_bodyview_mode = 1;
-			do {
+			for(int k=0;k<PLAYERS_MAX*2;k++) {
+				if(player_can_spectate(&players[cameracontroller_bodyview_player]))
+					break;
 				cameracontroller_bodyview_player = (cameracontroller_bodyview_player-1)%PLAYERS_MAX;
 				if(cameracontroller_bodyview_player<0)
 					cameracontroller_bodyview_player = PLAYERS_MAX-1;
-			} while(!player_can_spectate(&players[cameracontroller_bodyview_player]));
+			}
 			cameracontroller_bodyview_zoom = 0.0F;
 		}
 	}
@@ -1535,6 +1547,15 @@ static void hud_serverlist_pingcomplete() {
 	pthread_mutex_unlock(&serverlist_lock);
 }
 
+static int render_tooltip(char* str, float x, float y, float scaley) {
+	if(*str) {
+		glColor3f(1.0F,1.0F,1.0F);
+		texture_draw_empty(x+5*scaley,settings.window_height-y+5*scaley,font_length(16*scaley,str)+10*scaley,26*scaley);
+		glColor3f(0.0F,0.0F,0.0F);
+		font_render(x+10*scaley,settings.window_height-y,16*scaley,str);
+	}
+}
+
 static void hud_serverlist_render(float scalex, float scaley) {
     glColor3f(0.5F,0.5F,0.5F);
     float t = window_time()*0.03125F;
@@ -1563,7 +1584,8 @@ static void hud_serverlist_render(float scalex, float scaley) {
     texture_draw_sector(&texture_ui_input,settings.window_width/2.0F-300*scaley+8*scaley,485*scaley,(400-32)*scaley,32*scaley,0.25F,0.0F,0.5F,1.0F);
     texture_draw_sector(&texture_ui_input,settings.window_width/2.0F-300*scaley+(400-32+8)*scaley,485*scaley,8*scaley,32*scaley,0.75F,0.0F,0.25F,1.0F);
 
-    texture_draw(&texture_ui_join,settings.window_width/2.0F+105*scaley,485*scaley,32*scaley,32*scaley);
+	texture_draw(&texture_ui_join,settings.window_width/2.0F+90*scaley,485*scaley,32*scaley,32*scaley);
+	texture_draw(&texture_ui_reload,settings.window_width/2.0F+130*scaley,485*scaley,32*scaley,32*scaley);
 
     int a = strlen(chat[0][0]);
     chat[0][0][a] = '_';
@@ -1576,9 +1598,6 @@ static void hud_serverlist_render(float scalex, float scaley) {
     font_render((settings.window_width-600*scaley)/2.0F+335*scaley,450*scaley,18*scaley,"Map");
     font_render((settings.window_width-600*scaley)/2.0F+490*scaley,450*scaley,18*scaley,"Mode");
     font_render((settings.window_width-600*scaley)/2.0F+560*scaley,450*scaley,18*scaley,"Ping");
-
-    //texture_draw(&texture_ui_reload,(settings.window_width-600*scaley)/2.0F+375*scaley,500*scaley,32*scaley,32*scaley);
-    //texture_draw(&texture_ui_join,(settings.window_width-600*scaley)/2.0F+327*scaley,500*scaley,32*scaley,32*scaley);
 
     if(serverlist_scroll>0)
         serverlist_scroll = 0;
@@ -1743,6 +1762,14 @@ static void hud_serverlist_render(float scalex, float scaley) {
         }
     }
 
+	double x,y;
+	window_mouseloc(&x,&y);
+	if(is_inside(x,settings.window_height-y,settings.window_width/2.0F+90*scaley,(485-32)*scaley,32*scaley,32*scaley))
+		render_tooltip("Join address",x,y,scaley);
+
+	if(is_inside(x,settings.window_height-y,settings.window_width/2.0F+130*scaley,(485-32)*scaley,32*scaley,32*scaley))
+		render_tooltip("Refresh",x,y,scaley);
+
 	if(render_status_icon) {
 		glColor3f(1.0F,1.0F,1.0F);
 		texture_draw_rotated(serverlist_con_established?&texture_ui_wait:&texture_ui_alert,settings.window_width/2.0F,settings.window_height/2.0F,48*scaley,48*scaley,serverlist_con_established?-window_time()*5.0F:0.0F);
@@ -1806,6 +1833,15 @@ static void hud_serverlist_mouseclick(int button, int action, int mods) {
 		&& y>=settings.window_height-(450*scaley-(430-50)*scaley*progress)) {
 			hud_serverlist_drag = 1;
 		}
+
+
+		//texture_draw(&texture_ui_join,settings.window_width/2.0F+90*scaley,485*scaley,32*scaley,32*scaley);
+		if(is_inside(x,settings.window_height-y,settings.window_width/2.0F+90*scaley,(485-32)*scaley,32*scaley,32*scaley)
+		&& strlen(chat[0][0])>0)
+			server_c(chat[0][0]);
+
+		if(is_inside(x,settings.window_height-y,settings.window_width/2.0F+130*scaley,(485-32)*scaley,32*scaley,32*scaley))
+			hud_change(&hud_serverlist);
 	}
 
 	if(hud_serverlist_drag && action==WINDOW_RELEASE)
@@ -1816,6 +1852,7 @@ void hud_serverlist_mouselocation(double x, double y) {
 	if(hud_serverlist_drag) {
 		float scaley = settings.window_height/600.0F;
 		serverlist_scroll = -((y-160*scaley)*(20*server_count*scaley-380*scaley))/(380*scaley);
+		return;
 	}
 }
 
@@ -1857,14 +1894,6 @@ static void hud_settings_init() {
 	memcpy(&settings_tmp,&settings,sizeof(struct RENDER_OPTIONS));
 	chat_input_mode = CHAT_ALL_INPUT;
     chat[0][0][0] = 0;
-}
-
-static int is_inside_centered(double mx, double my, int x, int y, int w, int h) {
-	return mx>=x-w/2 && mx<x+w/2 && my>=y-h/2 && my<y+h/2;
-}
-
-static int is_inside(double mx, double my, int x, int y, int w, int h) {
-	return mx>=x && mx<x+w && my>=y && my<y+h;
 }
 
 static void hud_settings_render(float scalex, float scaley) {
@@ -1949,11 +1978,8 @@ static void hud_settings_render(float scalex, float scaley) {
 		if(k>0)
 			col_offset = ((k+1)&1)?314*scaley:0;
 
-		if(*a->help && is_inside(x,settings.window_height-y,(settings.window_width-600*scaley)/2.0F+col_offset,(435-40*row_offset)*scaley,300*scaley,32*scaley)) {
-			glColor3f(1.0F,1.0F,1.0F);
-			texture_draw_empty(x+5*scaley,settings.window_height-y+5*scaley,font_length(16*scaley,a->help)+10*scaley,26*scaley);
-			glColor3f(0.0F,0.0F,0.0F);
-			font_render(x+10*scaley,settings.window_height-y,16*scaley,a->help);
+		if(is_inside(x,settings.window_height-y,(settings.window_width-600*scaley)/2.0F+col_offset,(435-40*row_offset)*scaley,300*scaley,32*scaley)) {
+			render_tooltip(a->help,x,y,scaley);
 			break;
 		}
 	}
