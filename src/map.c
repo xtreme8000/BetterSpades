@@ -32,8 +32,8 @@ unsigned char* map_minimap;
 
 struct DamagedVoxel map_damaged_voxels[8] = {0};
 
-int map_object_visible(float* loc) {
-	return !(loc[0]<=0.0F && loc[1]<=0.0F);
+int map_object_visible(float x, float y, float z) {
+	return !(x<=0.0F && z<=0.0F);
 }
 
 int map_damage(int x, int y, int z, int damage) {

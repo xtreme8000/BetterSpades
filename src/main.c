@@ -94,54 +94,60 @@ void drawScene(float dt) {
 	matrix_upload();
 
 	if(gamestate.gamemode_type==GAMEMODE_CTF) {
-		if(!gamestate.gamemode.ctf.team_1_intel /*&& map_object_visible((float*)&gamestate.gamemode.ctf.team_1_intel_location.dropped)*/) {
-			matrix_push();
-			matrix_translate(gamestate.gamemode.ctf.team_1_intel_location.dropped.x,
-						 63.0F-gamestate.gamemode.ctf.team_1_intel_location.dropped.z+1.0F,
-						 gamestate.gamemode.ctf.team_1_intel_location.dropped.y);
-			kv6_calclight(gamestate.gamemode.ctf.team_1_intel_location.dropped.x,
-						 63.0F-gamestate.gamemode.ctf.team_1_intel_location.dropped.z+1.0F,
-						 gamestate.gamemode.ctf.team_1_intel_location.dropped.y);
-			matrix_upload();
-			kv6_render(&model_intel,TEAM_1);
-			matrix_pop();
+		if(!gamestate.gamemode.ctf.team_1_intel) {
+			float x = gamestate.gamemode.ctf.team_1_intel_location.dropped.x;
+			float y = 63.0F-gamestate.gamemode.ctf.team_1_intel_location.dropped.z+1.0F;
+			float z = gamestate.gamemode.ctf.team_1_intel_location.dropped.y;
+			if(map_object_visible(x,y,z)) {
+				matrix_push();
+				matrix_translate(x,y,z);
+				kv6_calclight(x,y,z);
+				matrix_upload();
+				kv6_render(&model_intel,TEAM_1);
+				matrix_pop();
+			}
 		}
-		if(!gamestate.gamemode.ctf.team_2_intel /*&& map_object_visible((float*)&gamestate.gamemode.ctf.team_2_intel_location.dropped)*/) {
-			matrix_push();
-			matrix_translate(gamestate.gamemode.ctf.team_2_intel_location.dropped.x,
-						 63.0F-gamestate.gamemode.ctf.team_2_intel_location.dropped.z+1.0F,
-						 gamestate.gamemode.ctf.team_2_intel_location.dropped.y);
-			kv6_calclight(gamestate.gamemode.ctf.team_2_intel_location.dropped.x,
- 						 63.0F-gamestate.gamemode.ctf.team_2_intel_location.dropped.z+1.0F,
- 						 gamestate.gamemode.ctf.team_2_intel_location.dropped.y);
-			matrix_upload();
-			kv6_render(&model_intel,TEAM_2);
-			matrix_pop();
+		if(!gamestate.gamemode.ctf.team_2_intel) {
+			float x = gamestate.gamemode.ctf.team_2_intel_location.dropped.x;
+			float y = 63.0F-gamestate.gamemode.ctf.team_2_intel_location.dropped.z+1.0F;
+			float z = gamestate.gamemode.ctf.team_2_intel_location.dropped.y;
+			if(map_object_visible(x,y,z)) {
+				matrix_push();
+				matrix_translate(x,y,z);
+				kv6_calclight(x,y,z);
+				matrix_upload();
+				kv6_render(&model_intel,TEAM_2);
+				matrix_pop();
+			}
 		}
-        if(1/*map_object_visible((float*)&gamestate.gamemode.ctf.team_1_base)*/) {
-    		matrix_push();
-    		matrix_translate(gamestate.gamemode.ctf.team_1_base.x,
-    					 63.0F-gamestate.gamemode.ctf.team_1_base.z+1.0F,
-    					 gamestate.gamemode.ctf.team_1_base.y);
+		if(map_object_visible(gamestate.gamemode.ctf.team_1_base.x,
+						 63.0F-gamestate.gamemode.ctf.team_1_base.z+1.0F,
+						 gamestate.gamemode.ctf.team_1_base.y)) {
+			matrix_push();
+			matrix_translate(gamestate.gamemode.ctf.team_1_base.x,
+							 63.0F-gamestate.gamemode.ctf.team_1_base.z+1.0F,
+							 gamestate.gamemode.ctf.team_1_base.y);
 			kv6_calclight(gamestate.gamemode.ctf.team_1_base.x,
-     					 63.0F-gamestate.gamemode.ctf.team_1_base.z+1.0F,
-     					 gamestate.gamemode.ctf.team_1_base.y);
-    		matrix_upload();
-    		kv6_render(&model_tent,TEAM_1);
-    		matrix_pop();
-        }
-        if(1/*map_object_visible((float*)&gamestate.gamemode.ctf.team_2_base)*/) {
-    		matrix_push();
-    		matrix_translate(gamestate.gamemode.ctf.team_2_base.x,
-    					 63.0F-gamestate.gamemode.ctf.team_2_base.z+1.0F,
-    					 gamestate.gamemode.ctf.team_2_base.y);
+							 63.0F-gamestate.gamemode.ctf.team_1_base.z+1.0F,
+							 gamestate.gamemode.ctf.team_1_base.y);
+			matrix_upload();
+			kv6_render(&model_tent,TEAM_1);
+			matrix_pop();
+		}
+		if(map_object_visible(gamestate.gamemode.ctf.team_2_base.x,
+						 63.0F-gamestate.gamemode.ctf.team_2_base.z+1.0F,
+						 gamestate.gamemode.ctf.team_2_base.y)) {
+			matrix_push();
+			matrix_translate(gamestate.gamemode.ctf.team_2_base.x,
+					 63.0F-gamestate.gamemode.ctf.team_2_base.z+1.0F,
+					 gamestate.gamemode.ctf.team_2_base.y);
 			kv6_calclight(gamestate.gamemode.ctf.team_2_base.x,
-     					 63.0F-gamestate.gamemode.ctf.team_2_base.z+1.0F,
-     					 gamestate.gamemode.ctf.team_2_base.y);
-    		matrix_upload();
-    		kv6_render(&model_tent,TEAM_2);
-    		matrix_pop();
-        }
+						 63.0F-gamestate.gamemode.ctf.team_2_base.z+1.0F,
+						 gamestate.gamemode.ctf.team_2_base.y);
+			matrix_upload();
+			kv6_render(&model_tent,TEAM_2);
+			matrix_pop();
+		}
 	}
 	if(gamestate.gamemode_type==GAMEMODE_TC) {
 		for(int k=0;k<gamestate.gamemode.tc.territory_count;k++) {

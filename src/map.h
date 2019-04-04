@@ -37,7 +37,7 @@ struct Point {
 	int x,y,z;
 };
 
-int map_object_visible(float* loc);
+int map_object_visible(float x, float y, float z);
 int map_damage(int x, int y, int z, int damage);
 int map_damage_get(int x, int y, int z);
 void map_damaged_voxels_render();
