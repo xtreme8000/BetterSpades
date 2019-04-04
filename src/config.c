@@ -311,7 +311,7 @@ void config_reload() {
 		.type=CONFIG_TYPE_STRING,
 		.max=sizeof(settings.name)-1,
 		.name="Name",
-		.help="ingame player name"
+		.help="Ingame player name"
 	});
 	list_add(&config_settings,&(struct config_setting){
 		.value=&settings_tmp.mouse_sensitivity,
@@ -331,7 +331,8 @@ void config_reload() {
 		.max=INT_MAX,
 		.name="Game width",
 		.defaults=640,800,854,1024,1280,1920,
-		.defaults_length=6
+		.defaults_length=6,
+		.help="Default: 800"
 	});
 	list_add(&config_settings,&(struct config_setting){
 		.value=&settings_tmp.window_height,
@@ -339,14 +340,15 @@ void config_reload() {
 		.max=INT_MAX,
 		.name="Game height",
 		.defaults=480,600,720,768,1024,1080,
-		.defaults_length=6
+		.defaults_length=6,
+		.help="Default: 600"
 	});
 	list_add(&config_settings,&(struct config_setting){
 		.value=&settings_tmp.vsync,
 		.type=CONFIG_TYPE_INT,
 		.max=INT_MAX,
 		.name="V-Sync",
-		.help="limits your game's fps",
+		.help="Limits your game's fps",
 		.defaults=0,1,60,120,240,
 		.defaults_length=5
 	});
@@ -361,7 +363,7 @@ void config_reload() {
 		.type=CONFIG_TYPE_INT,
 		.max=16,
 		.name="Multisamples",
-		.help="smooth out block edges",
+		.help="Smooth out block edges",
 		.defaults=0,1,2,4,8,16,
 		.defaults_length=6
 	});
@@ -376,7 +378,7 @@ void config_reload() {
 		.value=&settings_tmp.greedy_meshing,
 		.type=CONFIG_TYPE_INT,
 		.max=1,
-		.help="join similar mesh faces",
+		.help="Join similar mesh faces",
 		.name="Greedy meshing"
 	});
 	list_add(&config_settings,&(struct config_setting){
@@ -391,7 +393,7 @@ void config_reload() {
 		.type=CONFIG_TYPE_INT,
 		.max=1,
 		.name="Show fps",
-		.help="show your current fps and ping"
+		.help="Show current fps and ping ingame"
 	});
 	list_add(&config_settings,&(struct config_setting){
 		.value=&settings_tmp.invert_y,
@@ -405,6 +407,6 @@ void config_reload() {
 		.type=CONFIG_TYPE_INT,
 		.max=1,
 		.name="Show news",
-		.help="opens the bns news on exit"
+		.help="Open the bns news on exit"
 	});
 }

@@ -1005,9 +1005,9 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 			if(camera_mode==CAMERAMODE_SPECTATOR)
 				cameracontroller_bodyview_mode = 1;
 			for(int k=0;k<PLAYERS_MAX*2;k++) {
+				cameracontroller_bodyview_player = (cameracontroller_bodyview_player+1)%PLAYERS_MAX;
 				if(player_can_spectate(&players[cameracontroller_bodyview_player]))
 					break;
-				cameracontroller_bodyview_player = (cameracontroller_bodyview_player+1)%PLAYERS_MAX;
 			}
 			cameracontroller_bodyview_zoom = 0.0F;
 		}
@@ -1055,11 +1055,11 @@ static void hud_ingame_mouseclick(int button, int action, int mods) {
 			if(camera_mode==CAMERAMODE_SPECTATOR)
 				cameracontroller_bodyview_mode = 1;
 			for(int k=0;k<PLAYERS_MAX*2;k++) {
-				if(player_can_spectate(&players[cameracontroller_bodyview_player]))
-					break;
 				cameracontroller_bodyview_player = (cameracontroller_bodyview_player-1)%PLAYERS_MAX;
 				if(cameracontroller_bodyview_player<0)
 					cameracontroller_bodyview_player = PLAYERS_MAX-1;
+				if(player_can_spectate(&players[cameracontroller_bodyview_player]))
+					break;
 			}
 			cameracontroller_bodyview_zoom = 0.0F;
 		}
@@ -1661,6 +1661,15 @@ static void hud_serverlist_render(float scalex, float scaley) {
 		pthread_mutex_unlock(&serverlist_lock);
     }
     serverlist_hover = tmp;
+
+	if(serverlist_hover>=0) {
+		pthread_mutex_lock(&serverlist_lock);
+		if(serverlist[serverlist_hover].current>=serverlist[serverlist_hover].max)
+			render_tooltip("Server full!",xpos,settings.window_height-ypos,scaley);
+		if(serverlist[serverlist_hover].current==0)
+			render_tooltip("Server empty!",xpos,settings.window_height-ypos,scaley);
+		pthread_mutex_unlock(&serverlist_lock);
+	}
 
     glDisable(GL_SCISSOR_TEST);
 
