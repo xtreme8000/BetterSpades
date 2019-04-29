@@ -78,7 +78,7 @@ This means:
 | source                        | &rightarrow; | destination                                                                              |
 | ----------------------------- | ------------ | ---------------------------------------------------------------------------------------- |
 | `dr_wav.h`                    | &rightarrow; | `src/dr_wav.c` <br /> Make sure to add `#define DR_WAV_IMPLEMENTATION` on the first line |
-| `lodepng.h` and `lodepng.cpp` | &rightarrow; | `src/lodepng/lodepng.h` and `src/lodepng/lodepng.c`                                      |
+| `lodepng.h` and `lodepng.c` | &rightarrow; | `src/lodepng/lodepng.h` and `src/lodepng/lodepng.c`                                      |
 | `libdeflate.h`                | &rightarrow; | `src/libdeflate.h`                                                                       |
 | `ini.c` and `ini.h`           | &rightarrow; | `src/ini.c` and `src/ini.h`                                                              |
 | `parson.c` and `parson.h`     | &rightarrow; | `src/parson.c` and `src/parson.h`                                                        |
