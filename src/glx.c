@@ -209,19 +209,42 @@ void glx_displaylist_draw(struct glx_displaylist* x, int type) {
 
 void glx_enable_sphericalfog() {
 	#ifndef OPENGL_ES
-	glEnable(GL_TEXTURE_2D);
-	glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_DECAL);
-	glBindTexture(GL_TEXTURE_2D,texture_gradient.texture_id);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-	glTexGeni(GL_T,GL_TEXTURE_GEN_MODE,GL_EYE_LINEAR);
-	glTexGeni(GL_S,GL_TEXTURE_GEN_MODE,GL_EYE_LINEAR);
-	float t_plane[4] = {1.0F/settings.render_distance/2.0F,0.0F,0.0F,-camera_x/settings.render_distance/2.0F+0.5F};
-	float s_plane[4] = {0.0F,0.0F,1.0F/settings.render_distance/2.0F,-camera_z/settings.render_distance/2.0F+0.5F};
-	glTexGenfv(GL_T,GL_EYE_PLANE,t_plane);
-	glTexGenfv(GL_S,GL_EYE_PLANE,s_plane);
-	glEnable(GL_TEXTURE_GEN_T);
-	glEnable(GL_TEXTURE_GEN_S);
+	if(!settings.smooth_fog) {
+		glEnable(GL_TEXTURE_2D);
+		glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_DECAL);
+		glBindTexture(GL_TEXTURE_2D,texture_gradient.texture_id);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+		glTexGeni(GL_T,GL_TEXTURE_GEN_MODE,GL_EYE_LINEAR);
+		glTexGeni(GL_S,GL_TEXTURE_GEN_MODE,GL_EYE_LINEAR);
+		float t_plane[4] = {1.0F/settings.render_distance/2.0F,0.0F,0.0F,-camera_x/settings.render_distance/2.0F+0.5F};
+		float s_plane[4] = {0.0F,0.0F,1.0F/settings.render_distance/2.0F,-camera_z/settings.render_distance/2.0F+0.5F};
+		glTexGenfv(GL_T,GL_EYE_PLANE,t_plane);
+		glTexGenfv(GL_S,GL_EYE_PLANE,s_plane);
+		glEnable(GL_TEXTURE_GEN_T);
+		glEnable(GL_TEXTURE_GEN_S);
+	} else {
+		matrix_select(matrix_model);
+		matrix_push();
+		matrix_identity();
+		matrix_upload();
+		matrix_pop();
+
+		glEnable(GL_LIGHTING);
+		glEnable(GL_LIGHT1);
+		glEnable(GL_COLOR_MATERIAL);
+		glColorMaterial(GL_FRONT,GL_DIFFUSE);
+		glLightModelfv(GL_LIGHT_MODEL_AMBIENT,(float[]){fog_color[0],fog_color[1],fog_color[2],1.0F});
+
+		glLightfv(GL_LIGHT1,GL_POSITION,(float[]){camera_x,(settings.render_distance*map_size_y)/16.0F,camera_z,1.0F});
+		float dir[3] = {0.0F,-1.0F,0.0F};
+		glLightfv(GL_LIGHT1,GL_SPOT_DIRECTION,(float[]){0.0F,-1.0F,0.0F});
+		glLightfv(GL_LIGHT1,GL_DIFFUSE,(float[]){1.0F,1.0F,1.0F,1.0F});
+		glLightfv(GL_LIGHT1,GL_AMBIENT,(float[]){-fog_color[0],-fog_color[1],-fog_color[2],1.0F});
+		glLightf(GL_LIGHT1,GL_SPOT_CUTOFF,tan(16.0F/map_size_y)/PI*180.0F);
+		glLightf(GL_LIGHT1,GL_SPOT_EXPONENT,128.0F);
+		glNormal3f(0.0F,1.0F,0.0F);
+	}
 	#else
 	matrix_select(matrix_model);
 	matrix_push();
@@ -253,11 +276,19 @@ void glx_enable_sphericalfog() {
 
 void glx_disable_sphericalfog() {
 	#ifndef OPENGL_ES
-	glDisable(GL_TEXTURE_GEN_T);
-	glDisable(GL_TEXTURE_GEN_S);
-	glBindTexture(GL_TEXTURE_2D,0);
-	glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
-	glDisable(GL_TEXTURE_2D);
+	if(!settings.smooth_fog) {
+		glDisable(GL_TEXTURE_GEN_T);
+		glDisable(GL_TEXTURE_GEN_S);
+		glBindTexture(GL_TEXTURE_2D,0);
+		glTexEnvi(GL_TEXTURE_ENV,GL_TEXTURE_ENV_MODE,GL_MODULATE);
+		glDisable(GL_TEXTURE_2D);
+	} else {
+		glDisable(GL_COLOR_MATERIAL);
+		glDisable(GL_LIGHT1);
+		glDisable(GL_LIGHTING);
+		float a[4] = {0.2F,0.2F,0.2F,1.0F};
+		glLightModelfv(GL_LIGHT_MODEL_AMBIENT,a);
+	}
 	#else
 	glDisable(GL_COLOR_MATERIAL);
 	glDisable(GL_LIGHT1);

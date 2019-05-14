@@ -84,6 +84,13 @@ void drawScene(float dt) {
 	matrix_upload();
 	chunk_draw_visible();
 
+	if(settings.smooth_fog) {
+		glFogi(GL_FOG_MODE,GL_EXP2);
+		glFogf(GL_FOG_DENSITY,0.015F);
+		glFogfv(GL_FOG_COLOR,fog_color);
+		glEnable(GL_FOG);
+	}
+
 	glShadeModel(GL_FLAT);
 	kv6_calclight(-1,-1,-1);
 	matrix_upload();
@@ -229,6 +236,10 @@ void display(float dt) {
 			grenade_update(dt);
 			tracer_update(dt);
 
+			int render_fpv = (camera_mode==CAMERAMODE_FPS) || ((camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR) && cameracontroller_bodyview_mode);
+			int is_local = (camera_mode==CAMERAMODE_FPS) || (cameracontroller_bodyview_player==local_player_id);
+			int local_id = (camera_mode==CAMERAMODE_FPS)?local_player_id:cameracontroller_bodyview_player;
+
 			if(players[local_player_id].items_show && window_time()-players[local_player_id].items_show_start>=0.5F) {
 				players[local_player_id].items_show = 0;
 			}
@@ -273,10 +284,14 @@ void display(float dt) {
 			}
 
 			int* pos = NULL;
-			switch(players[local_player_id].held_item) {
+			switch(players[local_id].held_item) {
 				case TOOL_BLOCK:
-					if(!players[local_player_id].input.keys.sprint && camera_mode==CAMERAMODE_FPS)
-						pos = camera_terrain_pick(0);
+					if(!players[local_id].input.keys.sprint && render_fpv) {
+						if(is_local)
+							pos = camera_terrain_pick(0);
+						else
+							pos = camera_terrain_pickEx(0,camera_x,camera_y,camera_z,players[local_id].orientation_smooth.x,players[local_id].orientation_smooth.y,players[local_id].orientation_smooth.z);
+					}
 					break;
 				default:
 					pos = NULL;
@@ -289,7 +304,7 @@ void display(float dt) {
 				glDepthMask(GL_FALSE);
 				struct Point cubes[64];
 				int amount = 0;
-				if(local_player_drag_active && players[local_player_id].input.buttons.rmb && players[local_player_id].held_item==TOOL_BLOCK) {
+				if(is_local && local_player_drag_active && players[local_player_id].input.buttons.rmb && players[local_player_id].held_item==TOOL_BLOCK) {
 					amount = map_cube_line(local_player_drag_x,local_player_drag_z,63-local_player_drag_y,pos[0],pos[2],63-pos[1],cubes);
 				} else {
 					amount = 1;
@@ -301,7 +316,7 @@ void display(float dt) {
 					int tmp = cubes[amount-1].y;
 					cubes[amount-1].y = 63-cubes[amount-1].z;
 					cubes[amount-1].z = tmp;
-					if(amount<=local_player_blocks) {
+					if(amount<=(is_local?local_player_blocks:50)) {
 						glColor3f(1.0F,1.0F,1.0F);
 					}
 
@@ -391,6 +406,8 @@ void display(float dt) {
 			}
 
 			glx_disable_sphericalfog();
+			if(settings.smooth_fog)
+				glDisable(GL_FOG);
 		}
 	}
 
@@ -583,6 +600,7 @@ int main(int argc, char** argv) {
 	settings.voxlap_models = 0;
 	settings.force_displaylist = 0;
 	settings.invert_y = 0;
+	settings.smooth_fog = 0;
 	strcpy(settings.name,"DEV_CLIENT");
 
 	if(!file_dir_exists("logs"))

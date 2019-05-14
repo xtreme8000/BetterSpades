@@ -64,6 +64,7 @@ void config_save() {
 	config_seti("voxlap_models",settings.voxlap_models);
 	config_seti("force_displaylist",settings.force_displaylist);
 	config_seti("inverty",settings.invert_y);
+	config_seti("smooth_fog",settings.smooth_fog);
 
 	for(int k=0;k<list_size(&config_keys);k++) {
 		struct config_key_pair* e = list_get(&config_keys,k);
@@ -137,6 +138,9 @@ static int config_read_key(void* user, const char* section, const char* name, co
 		}
 		if(!strcmp(name,"inverty")) {
 			settings.invert_y = atoi(value);
+		}
+		if(!strcmp(name,"smooth_fog")) {
+			settings.smooth_fog = atoi(value);
 		}
     }
     if(!strcmp(section,"controls")) {
@@ -387,6 +391,13 @@ void config_reload() {
 		.max=1,
 		.help="Enable this on buggy drivers",
 		.name="Force Displaylist"
+	});
+	list_add(&config_settings,&(struct config_setting){
+		.value=&settings_tmp.smooth_fog,
+		.type=CONFIG_TYPE_INT,
+		.max=1,
+		.help="Enable this on buggy drivers",
+		.name="Smooth fog"
 	});
 	list_add(&config_settings,&(struct config_setting){
 		.value=&settings_tmp.show_fps,

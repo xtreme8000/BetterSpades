@@ -270,17 +270,15 @@ static void hud_ingame_render(float scalex, float scalef) {
 		glDisable(GL_DEPTH_TEST);
 		font_select(FONT_SMALLFNT);
 		char dbg_str[32];
-		for(int k=0;k<40;k++) {
-			float in_h = min((float)network_stats[39-k].ingoing/90.0F,160.0F);
-			float out_h = min(in_h+(float)network_stats[39-k].outgoing/90.0F,160.0F);
-			float ping_h = min(out_h+network_stats[39-k].avg_ping/25.0F,160.0F);
 
-			glColor3f(1.0F,0.0F,0.0F);
-			texture_draw_empty(8.0F*scalex+4*k*scalef,(220.0F+ping_h)*scalef,4.0F*scalef,ping_h*scalef);
-			if(!k) {
-				sprintf(dbg_str,"ping: %i",network_stats[1].avg_ping);
-				font_render(8.0F*scalex,202.0F*scalef,8.0F*scalef,dbg_str);
-			}
+		int max = 0;
+		for(int k=0;k<40;k++) {
+			max = max(max,network_stats[k].ingoing+network_stats[k].outgoing);
+		}
+		for(int k=0;k<40;k++) {
+			float in_h = (float)(network_stats[39-k].ingoing)/max*160.0F;
+			float out_h = (float)(network_stats[39-k].ingoing+network_stats[39-k].outgoing)/max*160.0F;
+			float ping_h = min(network_stats[39-k].avg_ping/25.0F,160.0F);
 
 			glColor3f(0.0F,0.0F,1.0F);
 			texture_draw_empty(8.0F*scalex+4*k*scalef,(220.0F+out_h)*scalef,4.0F*scalef,out_h*scalef);
@@ -294,6 +292,13 @@ static void hud_ingame_render(float scalex, float scalef) {
 			if(!k) {
 				sprintf(dbg_str,"in: %i b/s",network_stats[1].ingoing);
 				font_render(8.0F*scalex,212.0F*scalef,8.0F*scalef,dbg_str);
+			}
+
+			glColor3f(1.0F,0.0F,0.0F);
+			texture_draw_empty(8.0F*scalex+4*k*scalef,(220.0F+ping_h)*scalef,4.0F*scalef,ping_h*scalef);
+			if(!k) {
+				sprintf(dbg_str,"ping: %i",network_stats[1].avg_ping);
+				font_render(8.0F*scalex,202.0F*scalef,8.0F*scalef,dbg_str);
 			}
 		}
 		font_select(FONT_FIXEDSYS);
@@ -429,7 +434,10 @@ static void hud_ingame_render(float scalex, float scalef) {
             }
         }
 
-        if(camera_mode==CAMERAMODE_BODYVIEW) {
+		int is_local = (camera_mode==CAMERAMODE_FPS) || (cameracontroller_bodyview_player==local_player_id);
+		int local_id = (camera_mode==CAMERAMODE_FPS)?local_player_id:cameracontroller_bodyview_player;
+
+        if(camera_mode==CAMERAMODE_BODYVIEW || (camera_mode==CAMERAMODE_SPECTATOR && cameracontroller_bodyview_mode)) {
             if(cameracontroller_bodyview_player!=local_player_id) {
                 font_select(FONT_SMALLFNT);
                 switch(players[cameracontroller_bodyview_player].team) {
@@ -450,7 +458,7 @@ static void hud_ingame_render(float scalex, float scalef) {
                 int cnt = local_player_respawn_time-(int)(window_time()-local_player_death_time);
                 char coin[16];
                 sprintf(coin,"INSERT COIN:%i",cnt);
-                font_centered(settings.window_width/2.0F,53.0F*scalef,53.0F*scalef,coin);
+                font_centered(settings.window_width/2.0F,53.0F*scalef*(cameracontroller_bodyview_mode?2.0F:1.0F),53.0F*scalef,coin);
                 if(local_player_respawn_cnt_last!=cnt) {
                     if(cnt<4) {
                         sound_create(NULL,SOUND_LOCAL,(cnt==1)?&sound_beep1:&sound_beep2,0.0F,0.0F,0.0F);
@@ -461,13 +469,10 @@ static void hud_ingame_render(float scalex, float scalef) {
             glColor3f(1.0F,1.0F,1.0F);
         }
 
-		int is_local = (camera_mode==CAMERAMODE_FPS) || (cameracontroller_bodyview_player==local_player_id);
-		int local_id = (camera_mode==CAMERAMODE_FPS)?local_player_id:cameracontroller_bodyview_player;
+		if(camera_mode==CAMERAMODE_FPS || ((camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR) && cameracontroller_bodyview_mode)) {
+			glColor3f(1.0F,1.0F,1.0F);
 
-        if(camera_mode==CAMERAMODE_FPS || ((camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR) && cameracontroller_bodyview_mode)) {
-            glColor3f(1.0F,1.0F,1.0F);
-
-            if(players[local_id].held_item==TOOL_GUN && players[local_id].input.buttons.rmb) {
+            if(players[local_id].held_item==TOOL_GUN && players[local_id].input.buttons.rmb && players[local_id].alive) {
                 struct texture* zoom;
                 switch(players[local_id].weapon) {
                     case WEAPON_RIFLE:
@@ -480,23 +485,25 @@ static void hud_ingame_render(float scalex, float scalef) {
                         zoom = &texture_zoom_shotgun;
                         break;
                 }
-                float zoom_factor = max(0.25F*(1.0F-((window_time()-weapon_last_shot)/weapon_delay(players[local_id].weapon)))+1.0F,1.0F);
+				float last_shot = is_local?weapon_last_shot:players[local_id].gun_shoot_timer;
+                float zoom_factor = max(0.25F*(1.0F-((window_time()-last_shot)/weapon_delay(players[local_id].weapon)))+1.0F,1.0F);
                 texture_draw(zoom,(settings.window_width-settings.window_height*4.0F/3.0F*zoom_factor)/2.0F,settings.window_height*(zoom_factor*0.5F+0.5F),settings.window_height*4.0F/3.0F*zoom_factor,settings.window_height*zoom_factor);
             } else {
                 texture_draw(&texture_target,(settings.window_width-16)/2.0F,(settings.window_height+16)/2.0F,16,16);
             }
 
-            if(window_time()-local_player_last_damage_timer<=0.5F) {
+            if(window_time()-local_player_last_damage_timer<=0.5F && is_local) {
                 float ang = atan2(players[local_player_id].orientation.z,players[local_player_id].orientation.x)-atan2(camera_z-local_player_last_damage_z,camera_x-local_player_last_damage_x)+PI;
                 texture_draw_rotated(&texture_indicator,settings.window_width/2.0F,settings.window_height/2.0F,200,200,ang);
             }
 
-            if(local_player_health<=30 && is_local)
+			int health = is_local?(players[local_id].alive?local_player_health:0):(players[local_id].alive?100:0);
+            if(health<=30)
                 glColor3f(1,0,0);
 			else
                 glColor3f(1,1,1);
             char hp[4];
-            sprintf(hp,"%i",is_local?local_player_health:100);
+            sprintf(hp,"%i",health);
             font_render(settings.window_width/2.0F-font_length(53.0F*scalef,hp),53.0F*scalef,53.0F*scalef,hp);
             texture_draw(&texture_health,settings.window_width/2.0F,44.0F*scalef,32.0F*scalef,32.0F*scalef);
 
@@ -511,11 +518,11 @@ static void hud_ingame_render(float scalex, float scalef) {
                     off = 64*scalef;
                 case TOOL_SPADE:
                     item_mini = &texture_block;
-                    sprintf(item_mini_str,"%i",local_player_blocks);
+                    sprintf(item_mini_str,"%i",is_local?local_player_blocks:50);
                     break;
                 case TOOL_GRENADE:
                     item_mini = &texture_grenade;
-                    sprintf(item_mini_str,"%i",local_player_grenades);
+                    sprintf(item_mini_str,"%i",is_local?local_player_grenades:3);
                     break;
                 case TOOL_GUN:
 				{

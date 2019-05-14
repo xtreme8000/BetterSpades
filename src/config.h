@@ -44,6 +44,7 @@ extern struct RENDER_OPTIONS {
 	int voxlap_models;
 	int force_displaylist;
 	int invert_y;
+	int smooth_fog;
 } settings, settings_tmp;
 
 extern struct list config_keys;

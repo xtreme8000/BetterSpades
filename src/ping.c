@@ -41,6 +41,7 @@ void ping_init() {
 }
 
 void ping_deinit() {
+	pthread_mutex_lock(&ping_lock); //stop the ping thread from running
 	enet_socket_destroy(sock);
 	enet_socket_destroy(lan);
 }
