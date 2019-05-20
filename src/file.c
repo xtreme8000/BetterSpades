@@ -19,6 +19,18 @@
 
 #include "common.h"
 
+void file_url(char* url) {
+	char cmd[strlen(url)+16];
+	#ifdef OS_WINDOWS
+		sprintf(cmd,"start %s",url);
+		system(cmd);
+	#endif
+	#if defined(OS_LINUX) ||  defined(OS_APPLE)
+		sprintf(cmd,"open %s",url);
+		system(cmd);
+	#endif
+}
+
 int file_dir_exists(const char* path) {
 	DIR* d = opendir(path);
 	if(d) {

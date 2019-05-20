@@ -110,6 +110,7 @@
 
 #define MOUSE_SENSITIVITY				0.002F
 
+#include "utils.h"
 #include "ping.h"
 #include "glx.h"
 #include "list.h"

@@ -56,6 +56,7 @@ struct texture texture_ui_input;
 struct texture texture_ui_box_empty;
 struct texture texture_ui_box_check;
 struct texture texture_ui_arrow;
+struct texture texture_ui_arrow2;
 struct texture texture_ui_flags;
 struct texture texture_ui_alert;
 
@@ -130,10 +131,9 @@ int texture_create(struct texture* t, char* filename) {
     glBindTexture(GL_TEXTURE_2D,0);
 }
 
-int texture_create_buffer(struct texture* t, int width, int height, unsigned char* buff) {
-    if(t->pixels==NULL) {
-        glGenTextures(1,&t->texture_id);
-    }
+int texture_create_buffer(struct texture* t, int width, int height, unsigned char* buff, int new) {
+	if(new)
+		glGenTextures(1,&t->texture_id);
     t->width = width;
     t->height = height;
     t->pixels = buff;
@@ -146,6 +146,12 @@ int texture_create_buffer(struct texture* t, int width, int height, unsigned cha
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
     glBindTexture(GL_TEXTURE_2D,0);
+}
+
+void texture_delete(struct texture* t) {
+	if(t->pixels)
+		free(t->pixels);
+	glDeleteTextures(1,&t->texture_id);
 }
 
 void texture_draw_sector(struct texture* t, float x, float y, float w, float h, float u, float v, float us, float vs) {
@@ -260,6 +266,8 @@ void texture_draw_empty_rotated(float x, float y, float w, float h, float angle)
 }
 
 void texture_resize_pow2(struct texture* t, int min_size) {
+	if(!t->pixels)
+		return;
     int max_size = 0;
     glGetIntegerv(GL_MAX_TEXTURE_SIZE,&max_size);
     max_size = max(max_size,min_size);
@@ -370,6 +378,7 @@ void texture_init() {
 	texture_create(&texture_ui_box_empty,"png/ui/box_empty.png");
 	texture_create(&texture_ui_box_check,"png/ui/box_check.png");
 	texture_create(&texture_ui_arrow,"png/ui/arrow.png");
+	texture_create(&texture_ui_arrow2,"png/ui/arrow2.png");
 	texture_create(&texture_ui_flags,"png/ui/flags.png");
 	texture_filter(&texture_ui_flags,TEXTURE_FILTER_LINEAR);
 	texture_create(&texture_ui_alert,"png/ui/alert.png");
@@ -388,12 +397,12 @@ void texture_init() {
             }
         }
     }
-    texture_create_buffer(&texture_color_selection,64,64,(unsigned char*)pixels);
+    texture_create_buffer(&texture_color_selection,64,64,(unsigned char*)pixels,1);
 
-    texture_create_buffer(&texture_minimap,map_size_x,map_size_z,map_minimap);
+    texture_create_buffer(&texture_minimap,map_size_x,map_size_z,map_minimap,1);
 
     unsigned int* gradient = malloc(512*512*sizeof(unsigned int));
     CHECK_ALLOCATION_ERROR(gradient)
     texture_gradient_fog(gradient);
-    texture_create_buffer(&texture_gradient,512,512,(unsigned char*)gradient);
+    texture_create_buffer(&texture_gradient,512,512,(unsigned char*)gradient,1);
 }

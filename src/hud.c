@@ -1483,15 +1483,29 @@ struct hud hud_ingame = {
 
 static http_t* request_serverlist = NULL;
 static http_t* request_version = NULL;
+static http_t* request_news = NULL;
 static int server_count = 0;
 static int player_count = 0;
 static struct serverlist_entry* serverlist;
 static float serverlist_scroll;
+static float serverlist_news_scroll;
 static int serverlist_hover;
 static int serverlist_is_outdated;
 static int serverlist_con_established;
 static pthread_mutex_t serverlist_lock;
 static int hud_serverlist_drag = 0;
+
+static struct serverlist_news_entry {
+	struct texture image;
+	char caption[33];
+	char url[129];
+	float tile_size;
+	int color;
+	struct serverlist_news_entry* next;
+} serverlist_news;
+
+static struct serverlist_news_entry* serverlist_news_hover;
+static int serverlist_news_exists = 0;
 
 static void hud_serverlist_init() {
 	ping_stop();
@@ -1503,9 +1517,13 @@ static void hud_serverlist_init() {
 	player_count = 0;
 	server_count = 0;
 	serverlist_scroll = 0.0F;
+	serverlist_news_scroll = 0.0F;
+	serverlist_news_hover = NULL;
 	serverlist_hover = -1;
 	request_serverlist = http_get("http://services.buildandshoot.com/serverlist.json",NULL);
 	request_version = http_get("http://aos.party/bs/version/",NULL);
+	if(!serverlist_news_exists)
+		request_news = http_get("http://aos.party/bs/news/",NULL);
 
 	chat_input_mode = CHAT_ALL_INPUT;
 	chat[0][0][0] = 0;
@@ -1566,6 +1584,22 @@ static int render_tooltip(char* str, float x, float y, float scaley) {
 	}
 }
 
+static float hud_serverlist_news_height(float scaley) {
+	return serverlist_news_exists?150*scaley:0.0F;
+}
+
+static float hud_serverlist_news_width() {
+	float width = 0.0F;
+	if(serverlist_news_exists) {
+		struct serverlist_news_entry* current = &serverlist_news;
+		while(current) {
+			width += current->tile_size*128+10;
+			current = current->next;
+		}
+	}
+	return width;
+}
+
 static void hud_serverlist_render(float scalex, float scaley) {
     glColor3f(0.5F,0.5F,0.5F);
     float t = window_time()*0.03125F;
@@ -1611,18 +1645,65 @@ static void hud_serverlist_render(float scalex, float scaley) {
 
     if(serverlist_scroll>0)
         serverlist_scroll = 0;
-    if(serverlist_scroll<-(server_count*20-430+50)*scaley)
-        serverlist_scroll = -(server_count*20-430+50)*scaley;
+    if(serverlist_scroll<-(server_count*20-430+50)*scaley-hud_serverlist_news_height(scaley))
+        serverlist_scroll = -(server_count*20-430+50)*scaley-hud_serverlist_news_height(scaley);
 
-    float progress = serverlist_scroll/(-(server_count*20-430+50)*scaley);
+    float progress = serverlist_scroll/(-(server_count*20-430+50)*scaley-hud_serverlist_news_height(scaley));
     texture_draw_empty((settings.window_width-600*scaley)/2.0F-20*scaley,450*scaley-(430-50)*scaley*progress,10*scaley,20*scaley);
 
     glEnable(GL_SCISSOR_TEST);
     glScissor((settings.window_width-600*scaley)/2.0F,50*scaley,600*scaley,(430-50)*scaley);
 
-    double xpos,ypos;
-    window_mouseloc(&xpos,&ypos);
-    ypos = settings.window_height-ypos;
+	double xpos,ypos;
+	window_mouseloc(&xpos,&ypos);
+	ypos = settings.window_height-ypos;
+
+	if(serverlist_news_exists) {
+		struct serverlist_news_entry* current = &serverlist_news;
+		float news_offset = (settings.window_width-600*scaley)/2.0F+serverlist_news_scroll*scaley;
+		serverlist_news_hover = NULL;
+		while(current) {
+			float width = current->tile_size*128*scaley;
+			glColor3f(1.0F,1.0F,1.0F);
+			texture_draw(&current->image,news_offset,420*scaley-serverlist_scroll,width,128*scaley);
+
+			int lines = 1;
+			for(int k=0;k<strlen(current->caption);k++)
+				if(current->caption[k]=='\n')
+					lines++;
+
+			glColor4f(0.0F,0.0F,0.0F,0.5F);
+			glEnable(GL_BLEND);
+			texture_draw_empty(news_offset,420*scaley-serverlist_scroll-(128-6-18*lines)*scaley,width,(18*lines+6)*scaley);
+			glDisable(GL_BLEND);
+
+			char* line = strtok(current->caption,"\n");
+			for(int k=0;line;k++) {
+				if(k==0)
+					glColor3ub(red(current->color),green(current->color),blue(current->color));
+				else
+					glColor3f(1.0F,1.0F,1.0F);
+				font_render(news_offset+8*scaley,420*scaley-serverlist_scroll-(128-18*(lines-k)-4)*scaley,18*scaley,line);
+				char* line_old = line;
+				line = strtok(NULL,"\n");
+				//repair string after usage of strtok
+				if(line)
+					line_old[strlen(line_old)] = '\n';
+			}
+
+			if(is_inside(xpos,ypos,news_offset,420*scaley-serverlist_scroll-128*scaley,width,128*scaley))
+				serverlist_news_hover = current;
+
+			news_offset += width+10*scaley;
+			current = current->next;
+		}
+
+		glColor3f(1.0F,1.0F,1.0F);
+		texture_draw_rotated(&texture_ui_arrow2,(settings.window_width-600*scaley)/2.0F+16*scaley,420*scaley-serverlist_scroll-64*scaley,32*scaley,32*scaley,0.0F);
+		texture_draw_rotated(&texture_ui_arrow2,(settings.window_width-600*scaley)/2.0F+(600-32)*scaley,420*scaley-serverlist_scroll-64*scaley,32*scaley,32*scaley,PI);
+	}
+
+	serverlist_scroll += hud_serverlist_news_height(scaley);
 
     int tmp = -1;
     for(int k=0;k<server_count;k++) {
@@ -1669,6 +1750,8 @@ static void hud_serverlist_render(float scalex, float scaley) {
     }
     serverlist_hover = tmp;
 
+	serverlist_scroll -= hud_serverlist_news_height(scaley);
+
 	if(serverlist_hover>=0) {
 		pthread_mutex_lock(&serverlist_lock);
 		if(serverlist[serverlist_hover].current>=serverlist[serverlist_hover].max)
@@ -1705,6 +1788,50 @@ static void hud_serverlist_render(float scalex, float scaley) {
         font_centered(settings.window_width/2.0F,(settings.window_height-100*scaley)/2.0F+80*scaley,22*scaley,"Disconnected from server");
         font_centered(settings.window_width/2.0F,(settings.window_height-100*scaley)/2.0F+(80-40)*scaley,22*scaley,reason_str);
     }
+
+	if(request_news) {
+		switch(http_process(request_news)) {
+			case HTTP_STATUS_COMPLETED:
+			{
+				JSON_Value* js = json_parse_string(request_news->response_data);
+				JSON_Array* news = json_value_get_array(js);
+				int news_entries = json_array_get_count(news);
+
+				struct serverlist_news_entry* current = &serverlist_news;
+				memset(current,0,sizeof(struct serverlist_news_entry));
+
+				for(int k=0;k<news_entries;k++) {
+					JSON_Object* s = json_array_get_object(news,k);
+					if(json_object_get_string(s,"caption"))
+						strncpy(current->caption,json_object_get_string(s,"caption"),sizeof(current->caption)-1);
+					if(json_object_get_string(s,"url"))
+						strncpy(current->url,json_object_get_string(s,"url"),sizeof(current->url)-1);
+					current->tile_size = json_object_get_number(s,"tilesize");
+					current->color = json_object_get_number(s,"color");
+					if(json_object_get_string(s,"image")) {
+						char* img = (char*)json_object_get_string(s,"image");
+						int size = base64_decode(img,strlen(img));
+						unsigned char* buffer;
+						int width, height;
+						lodepng_decode32(&buffer,&width,&height,img,size);
+						texture_create_buffer(&current->image,width,height,buffer,1);
+					}
+					current->next = (k<news_entries-1)?malloc(sizeof(struct serverlist_news_entry)):NULL;
+					current = current->next;
+				}
+
+				json_value_free(js);
+				http_release(request_news);
+				serverlist_news_exists = 1;
+				request_news = NULL;
+				break;
+			}
+			case HTTP_STATUS_FAILED:
+				http_release(request_news);
+				request_news = NULL;
+				break;
+		}
+	}
 
     if(request_version) {
         switch(http_process(request_version)) {
@@ -1797,8 +1924,17 @@ static void hud_serverlist_render(float scalex, float scaley) {
 }
 
 static void hud_serverlist_scroll(double yoffset) {
-	if(!hud_serverlist_drag)
-		serverlist_scroll += yoffset*20.0F;
+	if(!hud_serverlist_drag) {
+		double x,y;
+		window_mouseloc(&x,&y);
+		float scaley = settings.window_height/600.0F;
+
+		if(serverlist_news_exists && is_inside(x,settings.window_height-y,(settings.window_width-600*scaley)/2.0F,420*scaley-serverlist_scroll-128*scaley,600*scaley,128*scaley)) {
+			serverlist_news_scroll = max(min(serverlist_news_scroll+yoffset*10.0F,0.0F),-hud_serverlist_news_width()+600);
+		} else {
+			serverlist_scroll += yoffset*20.0F;
+		}
+	}
 }
 
 static void server_c(char* s) {
@@ -1845,7 +1981,7 @@ static void hud_serverlist_mouseclick(int button, int action, int mods) {
         }
 
 		//inside progress bar thingy
-		float progress = serverlist_scroll/(-(server_count*20-430+50)*scaley);
+		float progress = serverlist_scroll/(-(server_count*20-430+50)*scaley-hud_serverlist_news_height(scaley));
 		if(x>=(settings.window_width-600*scaley)/2.0F-20*scaley
 		&& x<=(settings.window_width-600*scaley)/2.0F-20*scaley+10*scaley
 		&& y<=settings.window_height-(450*scaley-(430-50)*scaley*progress-20*scaley)
@@ -1861,6 +1997,38 @@ static void hud_serverlist_mouseclick(int button, int action, int mods) {
 
 		if(is_inside(x,settings.window_height-y,settings.window_width/2.0F+130*scaley,(485-32)*scaley,32*scaley,32*scaley))
 			hud_change(&hud_serverlist);
+
+		if(serverlist_news_exists) {
+			float news_offset = 0.0F;
+			float prev_loc = 0.0F, next_loc = 0.0F;
+			struct serverlist_news_entry* current = &serverlist_news;
+			while(current) {
+				if(-serverlist_news_scroll>=news_offset && -serverlist_news_scroll<news_offset+current->tile_size*128+10) {
+					next_loc = news_offset+current->tile_size*128+10;
+					break;
+				}
+
+				prev_loc = news_offset;
+				news_offset += current->tile_size*128+10;
+				current = current->next;
+			}
+
+			if(is_inside_centered(x,settings.window_height-y,(settings.window_width-600*scaley)/2.0F+16*scaley,420*scaley-serverlist_scroll-64*scaley,32*scaley,32*scaley)
+			&& serverlist_news_scroll<=0.0F) {
+				serverlist_news_scroll = -prev_loc;
+			}
+			if(is_inside_centered(x,settings.window_height-y,(settings.window_width-600*scaley)/2.0F+(600-32)*scaley,420*scaley-serverlist_scroll-64*scaley,32*scaley,32*scaley)
+			&& current->next) {
+				serverlist_news_scroll = max(-next_loc,-hud_serverlist_news_width()+600);
+			}
+
+			if(serverlist_news_hover) {
+				if(!strncmp("aos://",serverlist_news_hover->url,6))
+					server_c(serverlist_news_hover->url);
+				else
+					file_url(serverlist_news_hover->url);
+			}
+		}
 	}
 
 	if(hud_serverlist_drag && action==WINDOW_RELEASE)
@@ -1870,7 +2038,7 @@ static void hud_serverlist_mouseclick(int button, int action, int mods) {
 void hud_serverlist_mouselocation(double x, double y) {
 	if(hud_serverlist_drag) {
 		float scaley = settings.window_height/600.0F;
-		serverlist_scroll = -((y-160*scaley)*(20*server_count*scaley-380*scaley))/(380*scaley);
+		serverlist_scroll = -((y-160*scaley)*(20*server_count*scaley-380*scaley+hud_serverlist_news_height(scaley)))/(380*scaley);
 		return;
 	}
 }

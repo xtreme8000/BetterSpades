@@ -293,7 +293,7 @@ void read_PacketStateData(void* data, int len) {
 	fog_color[2] = p->fog_blue/255.0F;
 
 	texture_gradient_fog((unsigned int*)texture_gradient.pixels);
-    texture_create_buffer(&texture_gradient,512,512,texture_gradient.pixels);
+    texture_create_buffer(&texture_gradient,512,512,texture_gradient.pixels,0);
 
 	local_player_id = p->player_id;
 	local_player_health = 100;
@@ -353,7 +353,7 @@ void read_PacketFogColor(void* data, int len) {
 	fog_color[1] = p->green/255.0F;
 	fog_color[2] = p->blue/255.0F;
 	texture_gradient_fog((unsigned int*)texture_gradient.pixels);
-    texture_create_buffer(&texture_gradient,512,512,texture_gradient.pixels);
+    texture_create_buffer(&texture_gradient,512,512,texture_gradient.pixels,0);
 }
 
 void read_PacketExistingPlayer(void* data, int len) {
