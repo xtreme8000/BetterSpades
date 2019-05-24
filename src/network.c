@@ -327,12 +327,14 @@ void read_PacketStateData(void* data, int len) {
 			}
 			if(r==LIBDEFLATE_SUCCESS) {
 				map_vxl_load(decompressed,map_colors);
-				char filename[128];
-				sprintf(filename,"cache/%08X.vxl",libdeflate_crc32(0,decompressed,decompressed_size));
-				log_info("%s",filename);
-				FILE* f = fopen(filename,"wb");
-				fwrite(decompressed,1,decompressed_size,f);
-				fclose(f);
+				#ifndef USE_TOUCH
+					char filename[128];
+					sprintf(filename,"cache/%08X.vxl",libdeflate_crc32(0,decompressed,decompressed_size));
+					log_info("%s",filename);
+					FILE* f = fopen(filename,"wb");
+					fwrite(decompressed,1,decompressed_size,f);
+					fclose(f);
+				#endif
 				chunk_rebuild_all();
 				break;
 			}
@@ -863,7 +865,11 @@ void read_PacketVersionGet(void* data, int len) {
 			char* os = "BetterSpades (Apple)";
 		#endif
 	#else
-		char* os = "BetterSpades (Mobile)";
+		#ifdef USE_TOUCH
+			char* os = "BetterSpades (Android)";
+		#else
+			char* os = "BetterSpades (Embedded)";
+		#endif
 	#endif
 	strcpy(ver.operatingsystem,os);
 	network_send(PACKET_VERSIONSEND_ID,&ver,sizeof(ver)-sizeof(ver.operatingsystem)+strlen(os));

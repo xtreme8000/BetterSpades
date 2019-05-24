@@ -553,8 +553,11 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
 }
 
 void mouse_click(struct window_instance* window, int button, int action, int mods) {
-	if(hud_active->input_mouseclick)
-		hud_active->input_mouseclick(button,action,mods);
+	if(hud_active->input_mouseclick) {
+		double x,y;
+		window_mouseloc(&x,&y);
+		hud_active->input_mouseclick(x,y,button,action,mods);
+	}
 }
 
 void mouse(struct window_instance* window, double x, double y) {
@@ -603,12 +606,16 @@ int main(int argc, char** argv) {
 	settings.smooth_fog = 0;
 	strcpy(settings.name,"DEV_CLIENT");
 
-	if(!file_dir_exists("logs"))
-		file_dir_create("logs");
-	if(!file_dir_exists("cache"))
-		file_dir_create("cache");
-	if(!file_dir_exists("screenshots"))
-		file_dir_create("screenshots");
+	#ifdef USE_TOUCH
+		mkdir("/sdcard/BetterSpades");
+	#else
+		if(!file_dir_exists("logs"))
+			file_dir_create("logs");
+		if(!file_dir_exists("cache"))
+			file_dir_create("cache");
+		if(!file_dir_exists("screenshots"))
+			file_dir_create("screenshots");
+	#endif
 
 	log_set_level(LOG_INFO);
 

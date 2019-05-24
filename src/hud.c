@@ -47,12 +47,16 @@ void hud_change(struct hud* new) {
 
 /*          HUD_INGAME START           */
 
+static float hud_ingame_touch_x = 0.0F;
+static float hud_ingame_touch_y = 0.0F;
+
 int screen_current = SCREEN_NONE;
 int show_exit = 0;
 static void hud_ingame_init() {
-    chat_input_mode = CHAT_NO_INPUT;
-    show_exit = 0;
-    window_mousemode(WINDOW_CURSOR_DISABLED);
+	window_textinput(0);
+	chat_input_mode = CHAT_NO_INPUT;
+	show_exit = 0;
+	window_mousemode(WINDOW_CURSOR_DISABLED);
 }
 
 struct player_table {
@@ -252,8 +256,131 @@ static void hud_ingame_render3D() {
 	}
 }
 
+static void hud_ingame_keyboard(int key, int action, int mods, int internal);
+
+static int hud_ingame_onscreencontrol(int index, char* str, int activate) {
+	if(chat_input_mode==CHAT_NO_INPUT) {
+		if(show_exit) {
+			switch(index) {
+				case 0:
+					if(str)
+						strcpy(str,"Yes");
+					if(activate==0)
+						hud_ingame_keyboard(WINDOW_KEY_YES,WINDOW_RELEASE,0,0);
+					if(activate==1)
+						hud_ingame_keyboard(WINDOW_KEY_YES,WINDOW_PRESS,0,0);
+					return 1;
+				case 1:
+					if(str)
+						strcpy(str,"No");
+					if(activate==0)
+						hud_ingame_keyboard(WINDOW_KEY_NO,WINDOW_RELEASE,0,0);
+					if(activate==1)
+						hud_ingame_keyboard(WINDOW_KEY_NO,WINDOW_PRESS,0,0);
+					return 1;
+			}
+		} else {
+			if(!network_connected || (network_connected && network_logged_in)) {
+				switch(index) {
+					case 0:
+						if(str)
+							strcpy(str,"G-Chat");
+						if(activate==0)
+							hud_ingame_keyboard(WINDOW_KEY_CHAT,WINDOW_RELEASE,0,0);
+						if(activate==1)
+							hud_ingame_keyboard(WINDOW_KEY_CHAT,WINDOW_PRESS,0,0);
+						return 1;
+					case 1:
+						if(str)
+							strcpy(str,"T-Chat");
+						if(activate==0)
+							hud_ingame_keyboard(WINDOW_KEY_YES,WINDOW_RELEASE,0,0);
+						if(activate==1)
+							hud_ingame_keyboard(WINDOW_KEY_YES,WINDOW_PRESS,0,0);
+						return 1;
+					case 2:
+						if(str)
+							strcpy(str,"Score");
+						if(activate==0)
+							keys(hud_window,WINDOW_KEY_TAB,0,WINDOW_RELEASE,0);
+						if(activate==1)
+							keys(hud_window,WINDOW_KEY_TAB,0,WINDOW_PRESS,0);
+						return 1;
+					case 3:
+						if(str)
+							strcpy(str,"Team");
+						if(activate==0)
+							hud_ingame_keyboard(WINDOW_KEY_CHANGETEAM,WINDOW_RELEASE,0,0);
+						if(activate==1)
+							hud_ingame_keyboard(WINDOW_KEY_CHANGETEAM,WINDOW_PRESS,0,0);
+						return 1;
+					case 4:
+						if(str)
+							strcpy(str,"Weapon");
+						if(activate==0)
+							hud_ingame_keyboard(WINDOW_KEY_CHANGEWEAPON,WINDOW_RELEASE,0,0);
+						if(activate==1)
+							hud_ingame_keyboard(WINDOW_KEY_CHANGEWEAPON,WINDOW_PRESS,0,0);
+						return 1;
+					case 5:
+						if(str)
+							strcpy(str,"Network");
+						if(activate==0)
+							keys(hud_window,WINDOW_KEY_NETWORKSTATS,0,WINDOW_RELEASE,0);
+						if(activate==1)
+							keys(hud_window,WINDOW_KEY_NETWORKSTATS,0,WINDOW_PRESS,0);
+						return 1;
+					case 6:
+						if(str)
+							strcpy(str,"Tool");
+						if(activate==1)
+							mouse_scroll(hud_window,0,-1);
+						return 1;
+					case 64:
+						if(str)
+							strcpy(str,"LMB");
+						if(activate==0)
+							mouse_click(hud_window,WINDOW_MOUSE_LMB,WINDOW_RELEASE,0);
+						if(activate==1)
+							mouse_click(hud_window,WINDOW_MOUSE_LMB,WINDOW_PRESS,0);
+						return 1;
+					case 65:
+						if(str)
+							strcpy(str,"RMB");
+						if(activate==0)
+							mouse_click(hud_window,WINDOW_MOUSE_RMB,WINDOW_RELEASE,0);
+						if(activate==1)
+							mouse_click(hud_window,WINDOW_MOUSE_RMB,WINDOW_PRESS,0);
+						return 1;
+				}
+			}
+		}
+	} else {
+		switch(index) {
+			case 0:
+				if(str)
+					strcpy(str,"Send");
+				if(activate==0)
+					hud_ingame_keyboard(WINDOW_KEY_ENTER,WINDOW_RELEASE,0,0);
+				if(activate==1)
+					hud_ingame_keyboard(WINDOW_KEY_ENTER,WINDOW_PRESS,0,0);
+				return 1;
+			case 1:
+				if(str)
+					strcpy(str,"Close");
+				if(activate==0)
+					hud_ingame_keyboard(WINDOW_KEY_ESCAPE,WINDOW_RELEASE,0,0);
+				if(activate==1)
+					hud_ingame_keyboard(WINDOW_KEY_ESCAPE,WINDOW_PRESS,0,0);
+				return 1;
+		}
+	}
+	return 0;
+}
+
 static void hud_ingame_render(float scalex, float scalef) {
-    hud_active->render_localplayer = players[local_player_id].team!=TEAM_SPECTATOR && (screen_current==SCREEN_NONE || camera_mode!=CAMERAMODE_FPS);
+	//window_mousemode(camera_mode==CAMERAMODE_SELECTION?WINDOW_CURSOR_ENABLED:WINDOW_CURSOR_DISABLED);
+	hud_active->render_localplayer = players[local_player_id].team!=TEAM_SPECTATOR && (screen_current==SCREEN_NONE || camera_mode!=CAMERAMODE_FPS);
 
 	if(window_key_down(WINDOW_KEY_NETWORKSTATS)) {
 		if(network_map_transfer)
@@ -897,6 +1024,31 @@ static void hud_ingame_render(float scalex, float scalef) {
         sprintf(debug_str,"FPS: %i",(int)fps);
         font_render(11.0F*scalef,settings.window_height*0.33F-20.0F*scalef,20.0F*scalef,debug_str);
     }
+
+	#ifdef USE_TOUCH
+		glColor3f(1.0F,1.0F,1.0F);
+		if(camera_mode==CAMERAMODE_FPS || camera_mode==CAMERAMODE_SPECTATOR) {
+			texture_draw_rotated(&texture_ui_joystick,settings.window_height*0.3F,settings.window_height*0.3F,settings.window_height*0.4F,settings.window_height*0.4F,0.0F);
+			texture_draw_rotated(&texture_ui_knob,settings.window_height*0.3F,settings.window_height*0.3F,settings.window_height*0.075F,settings.window_height*0.075F,0.0F);
+			texture_draw_rotated(&texture_ui_knob,hud_ingame_touch_x+settings.window_height*0.3F,hud_ingame_touch_y+settings.window_height*0.3F,settings.window_height*0.1F,settings.window_height*0.1F,0.0F);
+		}
+
+		int k = 0;
+		char str[128];
+		while(hud_ingame_onscreencontrol(k,str,-1)) {
+			texture_draw_rotated(&texture_ui_input,settings.window_height*(0.2F+0.175F*k),settings.window_height*0.96F,settings.window_height*0.15F,settings.window_height*0.1F,0.0F);
+			font_centered(settings.window_height*(0.2F+0.175F*k),settings.window_height*0.98F,settings.window_height*0.04F,str);
+			k++;
+		}
+		if(hud_ingame_onscreencontrol(64,str,-1)) {
+			texture_draw_rotated(&texture_ui_input,settings.window_width-settings.window_height*0.075F,settings.window_height*0.6F,settings.window_height*0.15F,settings.window_height*0.1F,0.0F);
+			font_centered(settings.window_width-settings.window_height*0.075F,settings.window_height*0.62F,settings.window_height*0.04F,str);
+		}
+		if(hud_ingame_onscreencontrol(65,str,-1)) {
+			texture_draw_rotated(&texture_ui_input,settings.window_width-settings.window_height*0.075F,settings.window_height*0.45F,settings.window_height*0.15F,settings.window_height*0.1F,0.0F);
+			font_centered(settings.window_width-settings.window_height*0.075F,settings.window_height*0.47F,settings.window_height*0.04F,str);
+		}
+	#endif
 }
 
 static void hud_ingame_scroll(double yoffset) {
@@ -930,8 +1082,8 @@ static void hud_ingame_mouselocation(double x, double y) {
 		last_y = y;
 		return;
 	}
-    int dx = x-last_x;
-    int dy = y-last_y;
+	float dx = x-last_x;
+	float dy = y-last_y;
 	last_x = x;
 	last_y = y;
 
@@ -943,13 +1095,13 @@ static void hud_ingame_mouselocation(double x, double y) {
 	if(settings.invert_y)
 		dy *= -1.0F;
 
-	camera_rot_x -= dx*settings.mouse_sensitivity/5.0F*MOUSE_SENSITIVITY*s;
-	camera_rot_y += dy*settings.mouse_sensitivity/5.0F*MOUSE_SENSITIVITY*s;
+	camera_rot_x -= dx*settings.mouse_sensitivity/5.0F*(float)MOUSE_SENSITIVITY*s;
+	camera_rot_y += dy*settings.mouse_sensitivity/5.0F*(float)MOUSE_SENSITIVITY*s;
 
 	camera_overflow_adjust();
 }
 
-static void hud_ingame_mouseclick(int button, int action, int mods) {
+static void hud_ingame_mouseclick(double x, double y, int button, int action, int mods) {
     if(button==WINDOW_MOUSE_LMB) {
 		button_map[0] = (action==WINDOW_PRESS);
 	}
@@ -1194,11 +1346,13 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
             }
 
 			if(key==WINDOW_KEY_COMMAND) {
+				window_textinput(1);
 				chat_input_mode = CHAT_ALL_INPUT;
 				strcpy(chat[0][0],"/");
 			}
 
 			if(key==WINDOW_KEY_CHAT) {
+				window_textinput(1);
 				chat_input_mode = CHAT_ALL_INPUT;
 				chat[0][0][0] = 0;
 			}
@@ -1212,6 +1366,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				if(show_exit) {
 					hud_change(&hud_serverlist);
 				} else {
+					window_textinput(1);
 					chat_input_mode = CHAT_TEAM_INPUT;
 					chat[0][0][0] = 0;
 				}
@@ -1455,6 +1610,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 					strcpy(msg.message,chat[0][0]);
 					network_send(PACKET_CHATMESSAGE_ID,&msg,sizeof(msg)-sizeof(msg.message)+strlen(chat[0][0])+1);
 				}
+				window_textinput(0);
 				chat_input_mode = CHAT_NO_INPUT;
 			}
 			if(key==WINDOW_KEY_BACKSPACE) {
@@ -1467,6 +1623,114 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 	}
 }
 
+static void hud_ingame_touch(void* finger, int action, float x, float y, float dx, float dy) {
+	window_setmouseloc(x,y);
+	struct window_finger* f = (struct window_finger*)finger;
+
+	if(action!=TOUCH_MOVE) {
+		int k = 0;
+		while(hud_ingame_onscreencontrol(k,NULL,-1)) {
+			if(is_inside_centered(f->start.x,settings.window_height-f->start.y,
+				settings.window_height*(0.2F+0.175F*k),
+				settings.window_height*0.96F,
+				settings.window_height*0.15F,
+				settings.window_height*0.1F)) {
+				hud_ingame_onscreencontrol(k,NULL,(action==TOUCH_DOWN)?1:0);
+				return;
+			}
+			k++;
+		}
+		if(is_inside_centered(f->start.x,settings.window_height-f->start.y,
+			settings.window_width-settings.window_height*0.075F,
+			settings.window_height*0.6F,
+			settings.window_height*0.15F,
+			settings.window_height*0.1F)) {
+			hud_ingame_onscreencontrol(64,NULL,(action==TOUCH_DOWN)?1:0);
+			return;
+		}
+		if(is_inside_centered(f->start.x,settings.window_height-f->start.y,
+			settings.window_width-settings.window_height*0.075F,
+			settings.window_height*0.45F,
+			settings.window_height*0.15F,
+			settings.window_height*0.1F)) {
+			hud_ingame_onscreencontrol(65,NULL,(action==TOUCH_DOWN)?1:0);
+			return;
+		}
+	}
+
+	if(screen_current==SCREEN_TEAM_SELECT && action==TOUCH_UP) {
+		if(x<settings.window_width/3)
+			hud_ingame_keyboard(WINDOW_KEY_TOOL1,WINDOW_PRESS,0,0);
+		if(x>settings.window_width/3*2)
+			hud_ingame_keyboard(WINDOW_KEY_TOOL2,WINDOW_PRESS,0,0);
+		if(x>settings.window_width/3 && x<settings.window_width/3*2)
+			hud_ingame_keyboard(WINDOW_KEY_TOOL3,WINDOW_PRESS,0,0);
+		return;
+	}
+	if(screen_current==SCREEN_GUN_SELECT && action==TOUCH_UP) {
+		if(x<settings.window_width/3)
+			hud_ingame_keyboard(WINDOW_KEY_TOOL1,WINDOW_PRESS,0,0);
+		if(x>settings.window_width/3*2)
+			hud_ingame_keyboard(WINDOW_KEY_TOOL3,WINDOW_PRESS,0,0);
+		if(x>settings.window_width/3 && x<settings.window_width/3*2)
+			hud_ingame_keyboard(WINDOW_KEY_TOOL2,WINDOW_PRESS,0,0);
+		return;
+	}
+	if(screen_current==SCREEN_NONE) {
+		if(action==TOUCH_DOWN && x>settings.window_width-settings.window_height*0.25F && y<settings.window_height*0.25F) {
+			window_pressed_keys[WINDOW_KEY_MAP] = !window_pressed_keys[WINDOW_KEY_MAP];
+			return;
+		}
+		if((camera_mode==CAMERAMODE_FPS || camera_mode==CAMERAMODE_SPECTATOR)
+		&& distance2D(f->start.x,f->start.y,settings.window_height*0.3F,settings.window_height*0.7F)<pow(settings.window_height*0.15F,2)) {
+			float mx = max(min(x-settings.window_height*0.3F,settings.window_height*0.2F),-settings.window_height*0.2F);
+			float my = max(min(y-settings.window_height*0.7F,settings.window_height*0.2F),-settings.window_height*0.2F);
+			hud_ingame_touch_x = mx;
+			hud_ingame_touch_y = -my;
+			if(absf(mx)>settings.window_height*0.045F) {
+				window_pressed_keys[WINDOW_KEY_LEFT] = mx<0;
+				window_pressed_keys[WINDOW_KEY_RIGHT] = mx>0;
+			} else {
+				window_pressed_keys[WINDOW_KEY_LEFT] = 0;
+				window_pressed_keys[WINDOW_KEY_RIGHT] = 0;
+			}
+			if(absf(my)>settings.window_height*0.045F) {
+				window_pressed_keys[WINDOW_KEY_UP] = my<0;
+				window_pressed_keys[WINDOW_KEY_DOWN] = my>0;
+			} else {
+				window_pressed_keys[WINDOW_KEY_UP] = 0;
+				window_pressed_keys[WINDOW_KEY_DOWN] = 0;
+			}
+			//window_pressed_keys[WINDOW_KEY_CROUCH] = (window_time()-f->down_time)>0.25F && absf(mx)<settings.window_height*0.06F && absf(my)<settings.window_height*0.06F;
+			window_pressed_keys[WINDOW_KEY_SPRINT] = absf(mx)>settings.window_height*0.19F || absf(my)>settings.window_height*0.19F;
+			if(action==TOUCH_UP) {
+				window_pressed_keys[WINDOW_KEY_LEFT] = 0;
+				window_pressed_keys[WINDOW_KEY_RIGHT] = 0;
+				window_pressed_keys[WINDOW_KEY_UP] = 0;
+				window_pressed_keys[WINDOW_KEY_DOWN] = 0;
+				window_pressed_keys[WINDOW_KEY_SPRINT] = 0;
+				//window_pressed_keys[WINDOW_KEY_CROUCH] = 0;
+				hud_ingame_touch_x = 0;
+				hud_ingame_touch_y = 0;
+			}
+			return;
+		}
+		if(camera_mode==CAMERAMODE_BODYVIEW && action==TOUCH_UP) {
+			if(x<settings.window_width/2)
+				hud_ingame_mouseclick(0,0,WINDOW_MOUSE_LMB,WINDOW_PRESS,0);
+			if(x>settings.window_width/2)
+				hud_ingame_mouseclick(0,0,WINDOW_MOUSE_RMB,WINDOW_PRESS,0);
+			return;
+		}
+		if(1) {
+			camera_rot_x -= dx*0.002F;
+			camera_rot_y += dy*0.002F;
+			camera_overflow_adjust();
+			return;
+		}
+	}
+}
+
 struct hud hud_ingame = {
     hud_ingame_init,
     hud_ingame_render3D,
@@ -1475,6 +1739,7 @@ struct hud hud_ingame = {
     hud_ingame_mouselocation,
     hud_ingame_mouseclick,
     hud_ingame_scroll,
+	hud_ingame_touch,
     1,
     0
 };
@@ -1531,6 +1796,7 @@ static void hud_serverlist_init() {
 	serverlist_con_established = request_serverlist!=NULL;
 
 	pthread_mutex_init(&serverlist_lock,NULL);
+	window_textinput(1);
 }
 
 static int hud_serverlist_sort(const void* a, const void* b) {
@@ -1951,9 +2217,7 @@ static void server_c(char* s) {
 	}
 }
 
-static void hud_serverlist_mouseclick(int button, int action, int mods) {
-	double x,y;
-	window_mouseloc(&x,&y);
+static void hud_serverlist_mouseclick(double x, double y, int button, int action, int mods) {
 	float scaley = settings.window_height/600.0F;
 
     if(action==WINDOW_PRESS) {
@@ -2043,6 +2307,21 @@ void hud_serverlist_mouselocation(double x, double y) {
 	}
 }
 
+static void hud_serverlist_touch(void* finger, int action, float x, float y, float dx, float dy) {
+	window_setmouseloc(x,y);
+	switch(action) {
+		case TOUCH_DOWN:
+			hud_serverlist_mouseclick(x,y,WINDOW_MOUSE_LMB,WINDOW_PRESS,0);
+			break;
+		case TOUCH_MOVE:
+			hud_serverlist_mouselocation(x,y);
+			break;
+		case TOUCH_UP:
+			hud_serverlist_mouseclick(x,y,WINDOW_MOUSE_LMB,WINDOW_RELEASE,0);
+			break;
+	}
+}
+
 static void hud_serverlist_keyboard(int key, int action, int mods, int internal) {
 	if(action!=WINDOW_RELEASE) {
 		if(!hud_serverlist_drag) {
@@ -2069,6 +2348,7 @@ struct hud hud_serverlist = {
     hud_serverlist_mouselocation,
     hud_serverlist_mouseclick,
     hud_serverlist_scroll,
+	hud_serverlist_touch,
     0,
     0
 };
@@ -2209,7 +2489,7 @@ static void hud_settings_keyboard(int key, int action, int mods, int internal) {
 	}
 }
 
-static void hud_settings_mouseclick(int button, int action, int mods) {
+static void hud_settings_mouseclick(double x, double y, int button, int action, int mods) {
     if(action==WINDOW_PRESS) {
 		if(hud_settings_edit) {
 			if(strlen(chat[0][0])) {
@@ -2227,11 +2507,10 @@ static void hud_settings_mouseclick(int button, int action, int mods) {
 						break;
 				}
 			}
+			window_textinput(0);
 			hud_settings_edit = NULL;
 		}
 
-        double x,y;
-        window_mouseloc(&x,&y);
         float scaley = settings.window_height/600.0F;
 
         if(x>=(settings.window_width-600*scaley)/2.0F+320*scaley-font_length(20*scaley,"Server list")/2
@@ -2281,6 +2560,7 @@ static void hud_settings_mouseclick(int button, int action, int mods) {
 							strcpy(chat[0][0],a->value);
 							break;
 					}
+					window_textinput(1);
 			}
 			switch(a->type) {
 				case CONFIG_TYPE_INT:
@@ -2333,7 +2613,19 @@ static void hud_settings_mouseclick(int button, int action, int mods) {
 					break;
 			}
 		}
-    }
+	}
+}
+
+static void hud_settings_touch(void* finger, int action, float x, float y, float dx, float dy) {
+	window_setmouseloc(x,y);
+	switch(action) {
+		case TOUCH_DOWN:
+			hud_settings_mouseclick(x,y,WINDOW_MOUSE_LMB,WINDOW_PRESS,0);
+			break;
+		case TOUCH_UP:
+			hud_settings_mouseclick(x,y,WINDOW_MOUSE_LMB,WINDOW_RELEASE,0);
+			break;
+	}
 }
 
 struct hud hud_settings = {
@@ -2344,6 +2636,7 @@ struct hud hud_settings = {
 	(void*)NULL,
 	hud_settings_mouseclick,
 	(void*)NULL,
+	hud_settings_touch,
 	0,
 	0
 };
@@ -2394,13 +2687,11 @@ static void hud_controls_render(float scalex, float scaley) {
 	}
 }
 
-static void hud_controls_mouseclick(int button, int action, int mods) {
+static void hud_controls_mouseclick(double x, double y, int button, int action, int mods) {
 	if(action==WINDOW_PRESS) {
 		if(hud_controls_edit)
 			hud_controls_edit = NULL;
 
-		double x,y;
-		window_mouseloc(&x,&y);
 		float scaley = settings.window_height/600.0F;
 
 		if(x>=(settings.window_width-600*scaley)/2.0F+225*scaley-font_length(20*scaley,"Server list")/2
@@ -2437,7 +2728,19 @@ static void hud_controls_mouseclick(int button, int action, int mods) {
 				}
 			}
 		}
-    }
+	}
+}
+
+static void hud_controls_touch(void* finger, int action, float x, float y, float dx, float dy) {
+	window_setmouseloc(x,y);
+	switch(action) {
+		case TOUCH_DOWN:
+			hud_controls_mouseclick(x,y,WINDOW_MOUSE_LMB,WINDOW_PRESS,0);
+			break;
+		case TOUCH_UP:
+			hud_controls_mouseclick(x,y,WINDOW_MOUSE_LMB,WINDOW_RELEASE,0);
+			break;
+	}
 }
 
 static void hud_controls_keyboard(int key, int action, int mods, int internal) {
@@ -2456,6 +2759,7 @@ struct hud hud_controls = {
 	(void*)NULL,
 	hud_controls_mouseclick,
 	(void*)NULL,
+	hud_controls_touch,
 	0,
 	0
 };

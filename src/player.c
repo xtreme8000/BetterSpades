@@ -681,7 +681,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 
 	matrix_pop();
 
-	if(render && 0) {
+	/*if(render && 0) {
 		matrix_select(matrix_model);
 		matrix_identity();
 		matrix_select(matrix_view);
@@ -715,9 +715,9 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 		matrix_select(matrix_model);
 
 		matrix_upload_p();
-	}
+	}*/
 
-    return intersections;
+	return intersections;
 }
 
 int player_clipbox(float x, float y, float z) {

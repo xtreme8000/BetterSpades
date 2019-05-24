@@ -59,6 +59,8 @@ struct texture texture_ui_arrow;
 struct texture texture_ui_arrow2;
 struct texture texture_ui_flags;
 struct texture texture_ui_alert;
+struct texture texture_ui_joystick;
+struct texture texture_ui_knob;
 
 static char* texture_flags[251] = {
 									"AD","AE","AF","AG","AI","AL","AM","AN","AO","AQ","AR","AS","AT","AU",
@@ -113,7 +115,11 @@ void texture_filter(struct texture* t, int filter) {
 }
 
 int texture_create(struct texture* t, char* filename) {
-    int error = lodepng_decode32_file(&t->pixels,&t->width,&t->height,filename);
+	int sz = file_size(filename);
+	void* data = file_load(filename);
+	int error = lodepng_decode32(&t->pixels,&t->width,&t->height,data,sz);
+	free(data);
+
     if(error) {
         log_warn("Could not load texture (%u): %s",error,lodepng_error_text(error));
         return 0;
@@ -212,57 +218,57 @@ void texture_draw_rotated(struct texture* t, float x, float y, float w, float h,
 }
 
 void texture_draw_empty(float x, float y, float w, float h) {
-    float vertices[12] = {
-        x,y,
-        x,y-h,
-        x+w,y-h,
-        x,y,
-        x+w,y-h,
-        x+w,y
-    };
-    float texcoords[12] = {
-        0.0F,0.0F,
-        0.0F,1.0F,
-        1.0F,1.0F,
-        0.0F,0.0F,
-        1.0F,1.0F,
-        1.0F,0.0F
-    };
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glTexCoordPointer(2,GL_FLOAT,0,texcoords);
-    glVertexPointer(2,GL_FLOAT,0,vertices);
-    glDrawArrays(GL_TRIANGLES,0,6);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_VERTEX_ARRAY);
+	float vertices[12] = {
+		x,y,
+		x,y-h,
+		x+w,y-h,
+		x,y,
+		x+w,y-h,
+		x+w,y
+	};
+	float texcoords[12] = {
+		0.0F,0.0F,
+		0.0F,1.0F,
+		1.0F,1.0F,
+		0.0F,0.0F,
+		1.0F,1.0F,
+		1.0F,0.0F
+	};
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glTexCoordPointer(2,GL_FLOAT,0,texcoords);
+	glVertexPointer(2,GL_FLOAT,0,vertices);
+	glDrawArrays(GL_TRIANGLES,0,6);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 #define texture_emit_rotated(tx,ty,x,y,a) cos(a)*x-sin(a)*y+tx,sin(a)*x+cos(a)*y+ty
 
 void texture_draw_empty_rotated(float x, float y, float w, float h, float angle) {
-    float vertices[12] = {
-        texture_emit_rotated(x,y,-w/2,h/2,angle),
-        texture_emit_rotated(x,y,-w/2,-h/2,angle),
-        texture_emit_rotated(x,y,w/2,-h/2,angle),
-        texture_emit_rotated(x,y,-w/2,h/2,angle),
-        texture_emit_rotated(x,y,w/2,-h/2,angle),
-        texture_emit_rotated(x,y,w/2,h/2,angle)
-    };
-    float texcoords[12] = {
-        0.0F,0.0F,
-        0.0F,1.0F,
-        1.0F,1.0F,
-        0.0F,0.0F,
-        1.0F,1.0F,
-        1.0F,0.0F
-    };
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glTexCoordPointer(2,GL_FLOAT,0,texcoords);
-    glVertexPointer(2,GL_FLOAT,0,vertices);
-    glDrawArrays(GL_TRIANGLES,0,6);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_VERTEX_ARRAY);
+	float vertices[12] = {
+		texture_emit_rotated(x,y,-w/2,h/2,angle),
+		texture_emit_rotated(x,y,-w/2,-h/2,angle),
+		texture_emit_rotated(x,y,w/2,-h/2,angle),
+		texture_emit_rotated(x,y,-w/2,h/2,angle),
+		texture_emit_rotated(x,y,w/2,-h/2,angle),
+		texture_emit_rotated(x,y,w/2,h/2,angle)
+	};
+	float texcoords[12] = {
+		0.0F,0.0F,
+		0.0F,1.0F,
+		1.0F,1.0F,
+		0.0F,0.0F,
+		1.0F,1.0F,
+		1.0F,0.0F
+	};
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glTexCoordPointer(2,GL_FLOAT,0,texcoords);
+	glVertexPointer(2,GL_FLOAT,0,vertices);
+	glDrawArrays(GL_TRIANGLES,0,6);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 void texture_resize_pow2(struct texture* t, int min_size) {

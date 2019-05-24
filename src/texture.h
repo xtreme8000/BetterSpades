@@ -61,6 +61,8 @@ extern struct texture texture_ui_arrow;
 extern struct texture texture_ui_arrow2;
 extern struct texture texture_ui_flags;
 extern struct texture texture_ui_alert;
+extern struct texture texture_ui_joystick;
+extern struct texture texture_ui_knob;
 
 #define TEXTURE_FILTER_NEAREST  0
 #define TEXTURE_FILTER_LINEAR   1

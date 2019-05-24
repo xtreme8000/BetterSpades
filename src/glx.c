@@ -263,13 +263,18 @@ void glx_enable_sphericalfog() {
 	glLightfv(GL_LIGHT1,GL_POSITION,lpos);
 	float dir[3] = {0.0F,-1.0F,0.0F};
 	glLightfv(GL_LIGHT1,GL_SPOT_DIRECTION,dir);
-	float dif[4] = {1.0F,1.0F,1.0F,1.0F};
+	float dif[4] = {0.0F,0.0F,0.0F,1.0F};
 	glLightfv(GL_LIGHT1,GL_DIFFUSE,dif);
-	glLightfv(GL_LIGHT1,GL_AMBIENT,amb);
+	float amb2[4] = {1.0F,1.0F,1.0F,1.0F};
+	glLightfv(GL_LIGHT1,GL_AMBIENT,amb2);
 	glLightf(GL_LIGHT1,GL_SPOT_CUTOFF,tan(16.0F/map_size_y)/PI*180.0F);
 	glLightf(GL_LIGHT1,GL_SPOT_EXPONENT,128.0F);
 	glNormal3f(0.0F,1.0F,0.0F);
-	fog_color[0] = fog_color[1] = fog_color[2] = 0;
+	glEnable(GL_FOG);
+	glFogf(GL_FOG_MODE,GL_LINEAR);
+	glFogf(GL_FOG_START,0.0F);
+	glFogf(GL_FOG_END,settings.render_distance);
+	glFogfv(GL_FOG_COLOR,fog_color);
 	#endif
 	glx_fog = 1;
 }
@@ -290,6 +295,7 @@ void glx_disable_sphericalfog() {
 		glLightModelfv(GL_LIGHT_MODEL_AMBIENT,a);
 	}
 	#else
+	glDisable(GL_FOG);
 	glDisable(GL_COLOR_MATERIAL);
 	glDisable(GL_LIGHT1);
 	glDisable(GL_LIGHTING);

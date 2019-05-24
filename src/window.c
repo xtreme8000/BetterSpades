@@ -21,6 +21,10 @@
 
 #ifdef USE_GLFW
 
+void window_textinput(int allow) {}
+
+void window_setmouseloc(double x, double y) {}
+
 static void window_impl_mouseclick(GLFWwindow* window, int button, int action, int mods) {
 	int b = 0;
 	switch(button) {
@@ -193,6 +197,13 @@ int window_closed() {
 
 #ifdef USE_SDL
 
+void window_textinput(int allow) {
+	if(allow && !SDL_IsTextInputActive())
+		SDL_StartTextInput();
+	if(!allow && SDL_IsTextInputActive())
+		SDL_StopTextInput();
+}
+
 void window_fromsettings() {
 
 }
@@ -212,6 +223,8 @@ const char* window_clipboard() {
 }
 
 int window_key_translate(int key, int dir) {
+	if(key==SDLK_AC_BACK && !dir)
+		return WINDOW_KEY_ESCAPE;
 	return config_key_translate(key,dir);
 }
 
@@ -225,20 +238,36 @@ void window_mousemode(int mode) {
 		SDL_SetRelativeMouseMode(mode==WINDOW_CURSOR_ENABLED?0:1);
 }
 
+static double mx = -1, my = -1;
+
+void window_setmouseloc(double x, double y) {
+	mx = x;
+	my = y;
+}
+
 void window_mouseloc(double* x, double* y) {
-	int xi,yi;
-	SDL_GetMouseState(&xi,&yi);
-	*x = xi;
-	*y = yi;
+	if(mx<0 && my<0) {
+		int xi,yi;
+		SDL_GetMouseState(&xi,&yi);
+		*x = xi;
+		*y = yi;
+	} else {
+		*x = mx;
+		*y = my;
+	}
 }
 
 void window_swapping(int value) {
 	SDL_GL_SetSwapInterval(value);
 }
 
+static struct window_finger fingers[8];
+
 void window_init() {
 	static struct window_instance i;
 	hud_window = &i;
+
+	SDL_SetHintWithPriority(SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH,"1",SDL_HINT_OVERRIDE);
 
 	SDL_Init(SDL_INIT_VIDEO|SDL_INIT_EVENTS|SDL_INIT_TIMER);
 
@@ -251,7 +280,10 @@ void window_init() {
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,8);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,16);
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,1);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,SDL_GL_CONTEXT_PROFILE_ES);
 	SDL_GLContext* ctx = SDL_GL_CreateContext(hud_window->impl);
+
+	memset(fingers,0,sizeof(fingers));
 }
 
 void window_deinit() {
@@ -344,6 +376,61 @@ void window_update() {
 			case SDL_TEXTINPUT:
 				text_input(hud_window,event.text.text[0]);
 				break;
+			case SDL_FINGERDOWN:
+				if(hud_active->input_touch) {
+					struct window_finger* f;
+					for(int k=0;k<8;k++) {
+						if(!fingers[k].full) {
+							fingers[k].finger = event.tfinger.fingerId;
+							fingers[k].start.x = event.tfinger.x*settings.window_width;
+							fingers[k].start.y = event.tfinger.y*settings.window_height;
+							fingers[k].down_time = window_time();
+							fingers[k].full = 1;
+							f = &fingers[k];
+							break;
+						}
+					}
+
+					hud_active->input_touch(f,TOUCH_DOWN,
+											event.tfinger.x*settings.window_width,
+											event.tfinger.y*settings.window_height,
+											event.tfinger.dx*settings.window_width,
+											event.tfinger.dy*settings.window_height);
+				}
+				break;
+			case SDL_FINGERUP:
+				if(hud_active->input_touch) {
+					struct window_finger* f;
+					for(int k=0;k<8;k++) {
+						if(fingers[k].full && fingers[k].finger==event.tfinger.fingerId) {
+							fingers[k].full = 0;
+							f = &fingers[k];
+							break;
+						}
+					}
+					hud_active->input_touch(f,TOUCH_UP,
+											event.tfinger.x*settings.window_width,
+											event.tfinger.y*settings.window_height,
+											event.tfinger.dx*settings.window_width,
+											event.tfinger.dy*settings.window_height);
+				}
+				break;
+			case SDL_FINGERMOTION:
+				if(hud_active->input_touch) {
+					struct window_finger* f;
+					for(int k=0;k<8;k++) {
+						if(fingers[k].full && fingers[k].finger==event.tfinger.fingerId) {
+							f = &fingers[k];
+							break;
+						}
+					}
+					hud_active->input_touch(f,TOUCH_MOVE,
+											event.tfinger.x*settings.window_width,
+											event.tfinger.y*settings.window_height,
+											event.tfinger.dx*settings.window_width,
+											event.tfinger.dy*settings.window_height);
+				}
+				break;
 		}
 	}
 }
@@ -356,7 +443,11 @@ int window_closed() {
 
 int window_cpucores() {
 	#ifdef OS_LINUX
-		return get_nprocs();
+		#ifdef USE_TOUCH
+			return sysconf(_SC_NPROCESSORS_CONF);
+		#else
+			return get_nprocs();
+		#endif
 	#endif
 	#ifdef OS_WINDOWS
 		SYSTEM_INFO info;

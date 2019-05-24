@@ -25,67 +25,75 @@ struct list config_settings;
 
 struct list config_file;
 
-static void config_sets(const char* name, const char* value) {
+static void config_sets(const char* section, const char* name, const char* value) {
 	for(int k=0;k<list_size(&config_file);k++) {
 		struct config_file_entry* e = list_get(&config_file,k);
 		if(strcmp(e->name,name)==0) {
 			strncpy(e->value,value,sizeof(e->value)-1);
-			break;
+			return;
 		}
 	}
+	struct config_file_entry e;
+	strncpy(e.section,section,sizeof(e.section)-1);
+	strncpy(e.name,name,sizeof(e.name)-1);
+	strncpy(e.value,value,sizeof(e.value)-1);
+	list_add(&config_file,&e);
 }
 
-static void config_seti(const char* name, int value) {
+static void config_seti(const char* section, const char* name, int value) {
 	char tmp[32];
 	sprintf(tmp,"%i",value);
-	config_sets(name,tmp);
+	config_sets(section,name,tmp);
 }
 
-static void config_setf(const char* name, float value) {
+static void config_setf(const char* section, const char* name, float value) {
 	char tmp[32];
 	sprintf(tmp,"%0.6f",value);
-	config_sets(name,tmp);
+	config_sets(section,name,tmp);
 }
 
 void config_save() {
 	kv6_rebuild_complete();
 
-	config_sets("name",settings.name);
-	config_seti("xres",settings.window_width);
-	config_seti("yres",settings.window_height);
-	config_seti("windowed",!settings.fullscreen);
-	config_seti("multisamples",settings.multisamples);
-	config_seti("greedy_meshing",settings.greedy_meshing);
-	config_seti("vsync",settings.vsync);
-	config_setf("mouse_sensitivity",settings.mouse_sensitivity);
-	config_seti("show_news",settings.show_news);
-	config_seti("vol",settings.volume);
-	config_seti("show_fps",settings.show_fps);
-	config_seti("voxlap_models",settings.voxlap_models);
-	config_seti("force_displaylist",settings.force_displaylist);
-	config_seti("inverty",settings.invert_y);
-	config_seti("smooth_fog",settings.smooth_fog);
+	config_sets("client","name",settings.name);
+	config_seti("client","xres",settings.window_width);
+	config_seti("client","yres",settings.window_height);
+	config_seti("client","windowed",!settings.fullscreen);
+	config_seti("client","multisamples",settings.multisamples);
+	config_seti("client","greedy_meshing",settings.greedy_meshing);
+	config_seti("client","vsync",settings.vsync);
+	config_setf("client","mouse_sensitivity",settings.mouse_sensitivity);
+	config_seti("client","show_news",settings.show_news);
+	config_seti("client","vol",settings.volume);
+	config_seti("client","show_fps",settings.show_fps);
+	config_seti("client","voxlap_models",settings.voxlap_models);
+	config_seti("client","force_displaylist",settings.force_displaylist);
+	config_seti("client","inverty",settings.invert_y);
+	config_seti("client","smooth_fog",settings.smooth_fog);
 
 	for(int k=0;k<list_size(&config_keys);k++) {
 		struct config_key_pair* e = list_get(&config_keys,k);
-		config_seti(e->name,e->def);
+		if(strlen(e->name)>0)
+			config_seti("controls",e->name,e->def);
 	}
 
 
-	FILE* f = fopen("config.ini","w");
-	char last_section[32] = {0};
-	for(int k=0;k<list_size(&config_file);k++) {
-		struct config_file_entry* e = list_get(&config_file,k);
-		if(strcmp(e->section,last_section)!=0) {
-			fprintf(f,"\r\n[%s]\r\n",e->section);
-			strcpy(last_section,e->section);
-		}
-		fprintf(f,"%s",e->name);
-		for(int l=0;l<31-strlen(e->name);l++)
-			fprintf(f," ");
-		fprintf(f,"= %s\r\n",e->value);
-	}
-	fclose(f);
+	void* f = file_open("config.ini","w");
+	if(f) {
+		char last_section[32] = {0};
+		for(int k=0;k<list_size(&config_file);k++) {
+			struct config_file_entry* e = list_get(&config_file,k);
+			if(strcmp(e->section,last_section)!=0) {
+				file_printf(f,"\r\n[%s]\r\n",e->section);
+				strcpy(last_section,e->section);
+			}
+			file_printf(f,"%s",e->name);
+			for(int l=0;l<31-strlen(e->name);l++)
+				file_printf(f," ");
+			file_printf(f,"= %s\r\n",e->value);
+	 	}
+		file_close(f);
+	 }
 }
 
 static int config_read_key(void* user, const char* section, const char* name, const char* value) {
@@ -303,7 +311,11 @@ void config_reload() {
 	config_register_key(WINDOW_KEY_NETWORKSTATS,GLFW_KEY_F12,"network_stats",1,"Network stats");
 	#endif
 
-	ini_parse("config.ini",config_read_key,NULL);
+	char* s = file_load("config.ini");
+	if(s) {
+		ini_parse_string(s,config_read_key,NULL);
+		free(s);
+	}
 
 	if(!list_created(&config_settings))
 		list_create(&config_settings,sizeof(struct config_setting));

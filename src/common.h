@@ -24,6 +24,12 @@
 #define BETTERSPADES_MAJOR      0
 
 #define USE_GLFW
+#define USE_SOUND
+//#define USE_SDL
+
+//for android define these:
+//#define USE_TOUCH
+//#define USE_ANDROID_FILE
 
 #ifndef OPENGL_ES
 	#define GLEW_STATIC

@@ -652,8 +652,8 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		if(!glx_version)
 		#endif
 		{
-			int params[3] = {0,0,1};
-			glPointParameteriv(GL_POINT_DISTANCE_ATTENUATION,params);
+			float params[3] = {0.0F,0.0F,1.0F};
+			glPointParameterfv(GL_POINT_DISTANCE_ATTENUATION,params);
 			glPointSize(1.414F*near_plane_height*kv6->scale*(len_x+len_y+len_z)/3.0F);
 			glEnable(GL_LIGHTING);
 			glEnable(GL_LIGHT0);
