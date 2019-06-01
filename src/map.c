@@ -93,8 +93,9 @@ static void push_char46(unsigned char* buffer, int* index, int r, int g, int b, 
 void map_damaged_voxels_render() {
 	matrix_identity();
 	matrix_upload();
-	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(0.0F,-100.0F);
+	//glEnable(GL_POLYGON_OFFSET_FILL);
+	//glPolygonOffset(0.0F,-100.0F);
+	glDepthFunc(GL_EQUAL);
 	glEnable(GL_BLEND);
 	for(int k=0;k<8;k++) {
 		if(map_get(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z)==0xFFFFFFFF) {
@@ -163,9 +164,10 @@ void map_damaged_voxels_render() {
 			}
 		}
 	}
+	glDepthFunc(GL_LEQUAL);
 	glDisable(GL_BLEND);
-	glPolygonOffset(0.0F,0.0F);
-	glDisable(GL_POLYGON_OFFSET_FILL);
+	//glPolygonOffset(0.0F,0.0F);
+	//glDisable(GL_POLYGON_OFFSET_FILL);
 }
 
 struct voxel {
@@ -180,7 +182,7 @@ static char stack_contains(struct voxel* stack2, int len, int x, int y, int z) {
 	return 0;
 }
 
-static struct {
+static struct map_collapsing {
 	struct voxel* voxels;
 	unsigned int* voxels_color;
 	int voxel_count;
@@ -355,7 +357,20 @@ static void map_update_physics_sub(int x, int y, int z) {
 	}
 }
 
+int map_collapsing_cmp(const void* a, const void *b) {
+	struct map_collapsing* A = (struct map_collapsing*)a;
+	struct map_collapsing* B = (struct map_collapsing*)b;
+	if(A->used && !B->used)
+		return -1;
+	if(!A->used && B->used)
+		return 1;
+	return	distance3D(B->p.x,B->p.y,B->p.z,camera_x,camera_y,camera_z)
+			-distance3D(A->p.x,A->p.y,A->p.z,camera_x,camera_y,camera_z);
+}
+
 void map_collapsing_render(float dt) {
+	qsort(map_collapsing_structures,32,sizeof(struct map_collapsing),map_collapsing_cmp);
+
 	glEnable(GL_BLEND);
 	for(int k=0;k<32;k++) {
 		if(map_collapsing_structures[k].used) {
@@ -542,6 +557,9 @@ void map_collapsing_render(float dt) {
 				free(colors);
 				free(vertices);
 			}
+			glColorMask(0,0,0,0);
+			glx_displaylist_draw(&map_collapsing_structures[k].displaylist,GLX_DISPLAYLIST_ENHANCED);
+			glColorMask(1,1,1,1);
 			glx_displaylist_draw(&map_collapsing_structures[k].displaylist,GLX_DISPLAYLIST_ENHANCED);
 
 			if(absf(map_collapsing_structures[k].v.y)<0.1F && hit_floor) {

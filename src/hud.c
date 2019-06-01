@@ -2143,11 +2143,11 @@ static void hud_serverlist_render(float scalex, float scaley) {
                     serverlist[k].max = (int)json_object_get_number(s,"players_max");
 					serverlist[k].ping = -1;
 
-                    strncpy(serverlist[k].name,json_object_get_string(s,"name"),31);
-                    strncpy(serverlist[k].map,json_object_get_string(s,"map"),20);
-                    strncpy(serverlist[k].gamemode,json_object_get_string(s,"game_mode"),7);
-                    strncpy(serverlist[k].identifier,json_object_get_string(s,"identifier"),31);
-					strncpy(serverlist[k].country,json_object_get_string(s,"country"),3);
+                    strncpy(serverlist[k].name,json_object_get_string(s,"name"),sizeof(serverlist[k].name)-1);
+                    strncpy(serverlist[k].map,json_object_get_string(s,"map"),sizeof(serverlist[k].map)-1);
+                    strncpy(serverlist[k].gamemode,json_object_get_string(s,"game_mode"),sizeof(serverlist[k].gamemode)-1);
+                    strncpy(serverlist[k].identifier,json_object_get_string(s,"identifier"),sizeof(serverlist[k].identifier)-1);
+					strncpy(serverlist[k].country,json_object_get_string(s,"country"),sizeof(serverlist[k].country)-1);
 
 					int port;
 					char ip[32];

@@ -117,13 +117,13 @@ void* ping_update(void* data) {
 
 			strcpy(e.country,"LAN");
 			e.ping = ceil((window_time()-ping_start)*1000.0F);
-			sprintf(e.identifier,"aos://%i:%i",from.host,from.port);
+			snprintf(e.identifier,sizeof(e.identifier)-1,"aos://%i:%i",from.host,from.port);
 
 			JSON_Value* js = json_parse_string(tmp);
 			JSON_Object* root = json_value_get_object(js);
-			strcpy(e.name,json_object_get_string(root,"name"));
-			strcpy(e.gamemode,json_object_get_string(root,"game_mode"));
-			strcpy(e.map,json_object_get_string(root,"map"));
+			strncpy(e.name,json_object_get_string(root,"name"),sizeof(e.name)-1);
+			strncpy(e.gamemode,json_object_get_string(root,"game_mode"),sizeof(e.gamemode)-1);
+			strncpy(e.map,json_object_get_string(root,"map"),sizeof(e.map)-1);
 			e.current = json_object_get_number(root,"players_current");
 			e.max = json_object_get_number(root,"players_max");
 			json_value_free(js);
