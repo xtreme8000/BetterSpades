@@ -236,6 +236,8 @@ static int kv6_program = -1;
 void kv6_render(struct kv6_t* kv6, unsigned char team) {
 	if(!kv6)
 		return;
+	if(team==TEAM_SPECTATOR)
+		team = 2;
 	if(!settings.voxlap_models) {
 		if(!kv6->has_display_list) {
 			int size = kv6->voxel_count*6;

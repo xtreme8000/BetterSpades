@@ -1775,6 +1775,7 @@ static int serverlist_news_exists = 0;
 static void hud_serverlist_init() {
 	ping_stop();
 	network_disconnect();
+	window_title(NULL);
 
 	window_mousemode(WINDOW_CURSOR_ENABLED);
 
@@ -2203,17 +2204,19 @@ static void hud_serverlist_scroll(double yoffset) {
 	}
 }
 
-static void server_c(char* s) {
-	if(file_exists(s)) {
-		map_vxl_load(file_load(s),map_colors);
+static void server_c(char* address, char* name) {
+	if(file_exists(address)) {
+		map_vxl_load(file_load(address),map_colors);
 		chunk_rebuild_all();
 		camera_mode = CAMERAMODE_FPS;
 		players[local_player_id].pos.x = map_size_x/2.0F;
 		players[local_player_id].pos.y = map_size_y-1.0F;
 		players[local_player_id].pos.z = map_size_z/2.0F;
+		window_title(address);
 		hud_change(&hud_ingame);
 	} else {
-		hud_change(network_connect_string(s)?&hud_ingame:&hud_serverlist);
+		window_title(name);
+		hud_change(network_connect_string(address)?&hud_ingame:&hud_serverlist);
 	}
 }
 
@@ -2228,7 +2231,7 @@ static void hud_serverlist_mouseclick(double x, double y, int button, int action
         }
         if(serverlist_hover>=0) {
 			pthread_mutex_lock(&serverlist_lock);
-            server_c(serverlist[serverlist_hover].identifier);
+            server_c(serverlist[serverlist_hover].identifier,serverlist[serverlist_hover].name);
 			pthread_mutex_unlock(&serverlist_lock);
         }
 
@@ -2257,7 +2260,7 @@ static void hud_serverlist_mouseclick(double x, double y, int button, int action
 		//texture_draw(&texture_ui_join,settings.window_width/2.0F+90*scaley,485*scaley,32*scaley,32*scaley);
 		if(is_inside(x,settings.window_height-y,settings.window_width/2.0F+90*scaley,(485-32)*scaley,32*scaley,32*scaley)
 		&& strlen(chat[0][0])>0)
-			server_c(chat[0][0]);
+			server_c(chat[0][0],NULL);
 
 		if(is_inside(x,settings.window_height-y,settings.window_width/2.0F+130*scaley,(485-32)*scaley,32*scaley,32*scaley))
 			hud_change(&hud_serverlist);
@@ -2288,7 +2291,7 @@ static void hud_serverlist_mouseclick(double x, double y, int button, int action
 
 			if(serverlist_news_hover) {
 				if(!strncmp("aos://",serverlist_news_hover->url,6))
-					server_c(serverlist_news_hover->url);
+					server_c(serverlist_news_hover->url,serverlist_news_hover->caption);
 				else
 					file_url(serverlist_news_hover->url);
 			}
@@ -2336,7 +2339,7 @@ static void hud_serverlist_keyboard(int key, int action, int mods, int internal)
 				chat[0][0][text_len-1] = 0;
 		}
 		if(key==WINDOW_KEY_ENTER && strlen(chat[0][0])>0)
-			server_c(chat[0][0]);
+			server_c(chat[0][0],NULL);
 	}
 }
 

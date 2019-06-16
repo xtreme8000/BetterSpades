@@ -122,3 +122,4 @@ void window_deinit(void);
 void window_update(void);
 int window_closed(void);
 int window_cpucores();
+void window_title(char* suffix);

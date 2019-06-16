@@ -120,6 +120,16 @@ void window_swapping(int value) {
 	glfwSwapInterval(value);
 }
 
+void window_title(char* suffix) {
+	if(suffix) {
+		char title[128];
+		snprintf(title,sizeof(title)-1,"BetterSpades %s - %s",BETTERSPADES_VERSION,suffix);
+		glfwSetWindowTitle(hud_window->impl,title);
+	} else {
+		glfwSetWindowTitle(hud_window->impl,"BetterSpades "BETTERSPADES_VERSION);
+	}
+}
+
 void window_init() {
 	static struct window_instance i;
 	hud_window = &i;
@@ -280,7 +290,9 @@ void window_init() {
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE,8);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE,16);
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER,1);
+	#ifdef OPENGL_ES
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,SDL_GL_CONTEXT_PROFILE_ES);
+	#endif
 	SDL_GLContext* ctx = SDL_GL_CreateContext(hud_window->impl);
 
 	memset(fingers,0,sizeof(fingers));
@@ -437,6 +449,16 @@ void window_update() {
 
 int window_closed() {
 	return quit;
+}
+
+void window_title(char* suffix) {
+	if(suffix) {
+		char title[128];
+		snprintf(title,sizeof(title)-1,"BetterSpades %s - %s",BETTERSPADES_VERSION,suffix);
+		SDL_SetWindowTitle(hud_window->impl,title);
+	} else {
+		SDL_SetWindowTitle(hud_window->impl,"BetterSpades "BETTERSPADES_VERSION);
+	}
 }
 
 #endif

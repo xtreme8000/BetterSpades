@@ -198,7 +198,7 @@ static void particle_render_single(int k, int* vertex_index, int* color_index) {
 			matrix_pointAt(particles[k].ox,particles[k].oy*max(1.0F-(window_time()-particles[k].fade)/0.5F,0.0F),particles[k].oz);
 			matrix_rotate(90.0F,0.0F,1.0F,0.0F);
 			matrix_upload();
-			kv6_render(casing,TEAM_1);
+			kv6_render(casing,TEAM_SPECTATOR);
 			matrix_pop();
 		}
 	}
