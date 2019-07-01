@@ -70,11 +70,13 @@ You will need to compile the following by yourself, or get hold of precompiled b
 * libdeflate
 * enet
 
-Follow the instructions on their project page, then place produced static libraries in `libs/`.
+Some of these might be already installed on your system.
 
-Some files need to be copied to the `src/` directory.
+Follow the instructions on their project page, then place produced static libraries in `libs/`. Static libraries end with `.lib` on Windows and `.a` on Linux.
 
-This means:
+## Getting a few files
+
+In addition to the static libs, some files need to be copied to the `src/` directory. This can be done by running the shell script called `get_dependencies.sh`, or downloading them manually:
 
 | source                        | &rightarrow; | destination                                                                              |
 | ----------------------------- | ------------ | ---------------------------------------------------------------------------------------- |
