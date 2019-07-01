@@ -72,7 +72,7 @@ You will need to compile the following by yourself, or get hold of precompiled b
 
 Some of these might be already installed on your system.
 
-Follow the instructions on their project page, then place produced static libraries in `libs/`. Static libraries end with `.lib` on Windows and `.a` on Linux.
+Follow the instructions on their project page, then place the produced static libraries in `libs/`. Static libraries end with `.lib` on Windows and `.a` on Linux.
 
 ## Getting a few files
 
