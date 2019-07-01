@@ -45,6 +45,7 @@ extern struct RENDER_OPTIONS {
 	int force_displaylist;
 	int invert_y;
 	int smooth_fog;
+	int scope_mode;
 } settings, settings_tmp;
 
 extern struct list config_keys;
