@@ -616,7 +616,7 @@ static void hud_ingame_render(float scalex, float scalef) {
                 float zoom_factor = max(0.25F*(1.0F-((window_time()-last_shot)/weapon_delay(players[local_id].weapon)))+1.0F,1.0F);
                 texture_draw(zoom,(settings.window_width-settings.window_height*4.0F/3.0F*zoom_factor)/2.0F,settings.window_height*(zoom_factor*0.5F+0.5F),settings.window_height*4.0F/3.0F*zoom_factor,settings.window_height*zoom_factor);
             } else {
-                texture_draw(&texture_target,(settings.window_width-16)/2.0F,(settings.window_height+16)/2.0F,16,16);
+                texture_draw(&texture_target,(settings.window_width-texture_target.width)/2.0F,(settings.window_height+texture_target.height)/2.0F,texture_target.width,texture_target.height);
             }
 
             if(window_time()-local_player_last_damage_timer<=0.5F && is_local) {
