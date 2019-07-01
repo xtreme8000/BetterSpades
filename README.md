@@ -74,7 +74,7 @@ Some of these might be already installed on your system.
 
 Follow the instructions on their project page, then place the produced static libraries in `libs/`. Static libraries end with `.lib` on Windows and `.a` on Linux.
 
-## Getting a few files
+#### Getting a few files
 
 In addition to the static libs, some files need to be copied to the `src/` directory. This can be done by running the shell script called `get_dependencies.sh`, or downloading them manually:
 
