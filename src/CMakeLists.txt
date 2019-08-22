@@ -17,11 +17,12 @@ download_file_if_it_doesnt_exist(ini.c https://raw.githubusercontent.com/benhoyt
 download_file_if_it_doesnt_exist(ini.h https://raw.githubusercontent.com/benhoyt/inih/master/ini.h)
 download_file_if_it_doesnt_exist(lodepng/lodepng.c https://raw.githubusercontent.com/lvandeve/lodepng/master/lodepng.cpp)
 download_file_if_it_doesnt_exist(lodepng/lodepng.h https://raw.githubusercontent.com/lvandeve/lodepng/master/lodepng.h)
-download_file_if_it_doesnt_exist(dr_wav.c https://raw.githubusercontent.com/mackron/dr_libs/master/dr_wav.h)
+download_file_if_it_doesnt_exist(dr_wav.c https://raw.githubusercontent.com/mackron/dr_libs/14707e8ee5aec7620781bcc3b484b8b1607aba50/dr_wav.h)
 download_file_if_it_doesnt_exist(stb_truetype.h https://raw.githubusercontent.com/nothings/stb/master/stb_truetype.h)
 download_file_if_it_doesnt_exist(parson.c https://raw.githubusercontent.com/kgabis/parson/master/parson.c)
 download_file_if_it_doesnt_exist(parson.h https://raw.githubusercontent.com/kgabis/parson/master/parson.h)
 download_file_if_it_doesnt_exist(http.h https://raw.githubusercontent.com/mattiasgustavsson/libs/master/http.h)
+download_file_if_it_doesnt_exist(../resources/bsresources.zip http://aos.party/bsresources.zip)
 
 list(APPEND CLIENT_SOURCES aabb.c)
 list(APPEND CLIENT_SOURCES camera.c)
@@ -56,24 +57,36 @@ list(APPEND CLIENT_SOURCES ${BetterSpades_SOURCE_DIR}/resources/icon.rc)
 add_executable(client ${CLIENT_SOURCES})
 target_compile_definitions(client PRIVATE DR_WAV_IMPLEMENTATION)
 set_target_properties(
-	client PROPERTIES 
+	client PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY ${BetterSpades_SOURCE_DIR}/build/BetterSpades
 	C_STANDARD 99
 )
 
 set(CMAKE_PREFIX_PATH  ${CMAKE_PREFIX_PATH} ${BetterSpades_SOURCE_DIR}/deps)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${BetterSpades_SOURCE_DIR}/cmake/Modules)
+set(OpenGL_GL_PREFERENCE LEGACY)
 find_package(glfw3 REQUIRED)
 find_package(OpenGL REQUIRED)
-find_package(OpenAL CONFIG REQUIRED)
+find_package(OpenAL REQUIRED)
 find_package(enet REQUIRED)
 find_package(deflate REQUIRED)
+find_package(Threads REQUIRED)
 
-target_link_libraries(client glfw OpenGL::GL OpenAL::OpenAL enet::enet deflate::deflate)
+target_link_libraries(client ${CMAKE_THREAD_LIBS_INIT} glfw OpenGL::GL ${OPENAL_LIBRARY} enet::enet deflate::deflate m)
+include_directories(client ${OPENAL_INCLUDE_DIRS})
 
 add_custom_command(
 	TARGET client
 	POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E echo "Copying resources.."
-    COMMAND ${CMAKE_COMMAND} -E copy_directory ${BetterSpades_SOURCE_DIR}/resources ${BetterSpades_SOURCE_DIR}/build/BetterSpades
+	COMMENT "Copying resources..."
+	COMMAND ${CMAKE_COMMAND} -E copy_directory ${BetterSpades_SOURCE_DIR}/resources ${BetterSpades_SOURCE_DIR}/build/BetterSpades
+)
+
+add_custom_command(
+	TARGET client
+	POST_BUILD
+	COMMENT "Extracting additional third-party assets..."
+	DEPENDS ${BetterSpades_SOURCE_DIR}/resources/bsresources.zip
+	WORKING_DIRECTORY ${BetterSpades_SOURCE_DIR}/build/BetterSpades
+	COMMAND ${CMAKE_COMMAND} -E tar xzf ${BetterSpades_SOURCE_DIR}/resources/bsresources.zip
 )

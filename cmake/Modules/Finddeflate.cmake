@@ -18,14 +18,15 @@
 
 find_package(PkgConfig)
 pkg_check_modules(PC_deflate QUIET deflate)
+
 find_path(deflate_INCLUDE_DIR
   NAMES libdeflate.h
-  PATHS ${PC_deflate_INCLUDE_DIRS}
+  PATHS ${PC_deflate_INCLUDE_DIRS} ../../deps
   PATH_SUFFIXES deflate
 )
 find_library(deflate_LIBRARY
   NAMES deflate
-  PATHS ${PC_deflate_LIBRARY_DIRS}
+  PATHS ${PC_deflate_LIBRARY_DIRS} ../../deps
 )
 
 include(FindPackageHandleStandardArgs)

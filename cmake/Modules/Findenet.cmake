@@ -20,13 +20,13 @@ pkg_check_modules(PC_enet QUIET enet)
 
 find_path(enet_INCLUDE_DIR
   NAMES enet/enet.h
-  PATHS ${PC_enet_INCLUDE_DIRS}
+  PATHS ${PC_enet_INCLUDE_DIRS} ../../deps
   PATH_SUFFIXES enet
 )
 
 find_library(enet_LIBRARY
   NAMES enet
-  PATHS ${PC_enet_LIBRARY_DIRS}
+  PATHS ${PC_enet_LIBRARY_DIRS} ../../deps
 )
 
 include(FindPackageHandleStandardArgs)
@@ -39,13 +39,13 @@ find_package_handle_standard_args(enet
 
 if (enet_FOUND)
   add_library(enet::enet STATIC IMPORTED)
-  set_target_properties(enet::enet PROPERTIES 
+  set_target_properties(enet::enet PROPERTIES
     IMPORTED_LOCATION ${enet_LIBRARY}
     INTERFACE_INCLUDE_DIRECTORIES ${enet_INCLUDE_DIR}
   )
   target_include_directories(enet::enet INTERFACE ${enet_INCLUDE_DIR})
   if (WIN32)
-    set_target_properties(enet::enet PROPERTIES 
+    set_target_properties(enet::enet PROPERTIES
       INTERFACE_LINK_LIBRARIES "ws2_32;winmm"
     )
   endif (WIN32)
