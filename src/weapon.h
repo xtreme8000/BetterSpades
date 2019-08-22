@@ -27,10 +27,13 @@ void weapon_shoot(void);
 int weapon_block_damage(int gun);
 float weapon_delay(int gun);
 int weapon_ammo(int gun);
-float weapon_recoil(int gun);
+int weapon_ammo_reserved(int gun);
+struct kv6_t* weapon_casing(int gun);
+float weapon_recoil_anim(int gun);
 struct Sound_wav* weapon_sound(int gun);
 struct Sound_wav* weapon_sound_reload(int gun);
 void weapon_spread(struct Player* p, float* d);
+void weapon_recoil(int gun, double* horiz_recoil, double* vert_recoil);
 
 extern float weapon_reload_start, weapon_last_shot;
 extern unsigned char weapon_reload_inprogress;

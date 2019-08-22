@@ -63,8 +63,11 @@ extern struct kv6_t model_semi_casing;
 extern struct kv6_t model_smg_casing;
 extern struct kv6_t model_shotgun_casing;
 
+void kv6_calclight(int x, int y, int z);
+void kv6_boundingbox(struct kv6_t* kv6, AABB* bb);
 char kv6_intersection(struct kv6_t* kv6, Ray* r);
 void kv6_rebuild_all(void);
+void kv6_rebuild_complete(void);
 void kv6_rebuild(struct kv6_t* kv6);
 void kv6_render(struct kv6_t* kv6, unsigned char team);
 void kv6_load(struct kv6_t* kv6, unsigned char* bytes, float scale);

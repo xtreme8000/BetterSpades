@@ -23,6 +23,7 @@ unsigned int network_ping(void);
 void network_send(int id, void* data, int len);
 void network_updateColor(void);
 void network_disconnect(void);
+int network_identifier_split(char* addr, char* ip_out, int* port_out);
 int network_connect(char* ip, int port);
 int network_connect_string(char* addr);
 int network_update(void);
@@ -62,7 +63,7 @@ void read_PacketProgressBar(void* data, int len);
 void read_PacketHandshakeInit(void* data, int len);
 void read_PacketVersionGet(void* data, int len);
 
-extern void (*packets[35]) (void* data, int len);
+extern void (*packets[256]) (void* data, int len);
 extern int network_connected;
 extern int network_logged_in;
 extern int network_map_transfer;
@@ -74,13 +75,21 @@ extern unsigned char network_keys_last;
 extern unsigned char network_buttons_last;
 extern unsigned char network_tool_last;
 
-#define VERSION_075	3
-#define VERSION_076	4
+#define VERSION_075		3
+#define VERSION_076		4
 
 extern void* compressed_chunk_data;
 extern int compressed_chunk_data_size;
 extern int compressed_chunk_data_offset;
 extern int compressed_chunk_data_estimate;
+
+extern struct network_stat {
+	int outgoing;
+	int ingoing;
+	int avg_ping;
+} network_stats[40];
+
+extern float network_stats_last;
 
 #pragma pack(push,1)
 
@@ -314,9 +323,13 @@ struct PacketChatMessage {
 	unsigned char chat_type;
 	char message[255];
 };
-#define CHAT_ALL	0
-#define CHAT_TEAM	1
-#define CHAT_SYSTEM	2
+#define CHAT_ALL		0
+#define CHAT_TEAM		1
+#define CHAT_SYSTEM		2
+#define CHAT_BIG		3
+#define CHAT_INFO		4
+#define CHAT_WARNING	5
+#define CHAT_ERROR		6
 
 #define PACKET_FOGCOLOR_ID 27
 struct PacketFogColor {
@@ -393,50 +406,19 @@ struct PacketProgressBar {
 	float progress;
 };
 
-#define PACKET_ENTITYCREATE	0xE0
-struct PacketEntityCreate {
-	unsigned int entity_id;
-	float x,y,z;
-	float scale;
-	unsigned char r,g,b;
-	unsigned int kv6_id;
+#define PACKET_EXTINFO_ID 60
+struct PacketExtInfo {
+	unsigned char length;
+	struct PacketExtInfoEntry {
+		unsigned char id;
+		unsigned char version;
+	} entries[256];
 };
 
-#define PACKET_ENTITYDESTROY 0xE1
-struct PacketEntityDestroy {
-	unsigned int entity_id;
+enum Extension {
+	EXT_256PLAYERS		= 0xC0,
+	EXT_MESSAGES		= 0xC1,
+	EXT_KICKREASON		= 0xC2,
 };
-
-#define PACKET_ENTITYMOVE 0xE2
-struct PacketEntityMove {
-	unsigned int entity_id;
-	float x,y,z;
-};
-
-#define PACKET_ENTITYVELOCITY 0xE3
-struct PacketEntityVelocity {
-	unsigned int entity_id;
-	float x,y,z;
-};
-
-#define PACKET_ENTITYROTATE 0xE4
-struct PacketEntityRotate {
-	unsigned int entity_id;
-	unsigned char absolute;
-	char x_rot, y_rot;
-};
-
-#define PACKET_ENTITYTEAM 0xE5
-struct PacketEntityTeam {
-	unsigned int entity_id;
-	unsigned char r,g,b;
-};
-
-#define PACKET_KV6LOAD 0xE6
-struct PacketKv6Load {
-	unsigned int kv6_id;
-	unsigned int data_size;
-};
-
 
 #pragma pack(pop)

@@ -19,77 +19,107 @@
 
 
 struct window_instance {
-    void* impl;
+	void* impl;
 };
 
 enum {
-    WINDOW_PRESS,
-    WINDOW_RELEASE
+	WINDOW_PRESS,
+	WINDOW_RELEASE
+};
+
+enum {
+	TOUCH_DOWN,
+	TOUCH_MOVE,
+	TOUCH_UP
 };
 
 enum window_keys {
-    WINDOW_KEY_UP,
-    WINDOW_KEY_DOWN,
-    WINDOW_KEY_LEFT,
-    WINDOW_KEY_RIGHT,
-    WINDOW_KEY_SNEAK,
-    WINDOW_KEY_CROUCH,
-    WINDOW_KEY_SPRINT,
-    WINDOW_KEY_SPACE,
-    WINDOW_KEY_CURSOR_UP,
-    WINDOW_KEY_CURSOR_DOWN,
-    WINDOW_KEY_CURSOR_LEFT,
-    WINDOW_KEY_CURSOR_RIGHT,
-    WINDOW_KEY_TAB,
-    WINDOW_KEY_ESCAPE,
-    WINDOW_KEY_YES,
-    WINDOW_KEY_NO,
-    WINDOW_KEY_RELOAD,
-    WINDOW_KEY_TOOL1,
-    WINDOW_KEY_TOOL2,
-    WINDOW_KEY_TOOL3,
-    WINDOW_KEY_TOOL4,
-    WINDOW_KEY_PICKCOLOR,
-    WINDOW_KEY_CHAT,
-    WINDOW_KEY_F1,
-    WINDOW_KEY_F2,
-    WINDOW_KEY_F3,
-    WINDOW_KEY_F4,
-    WINDOW_KEY_CHANGETEAM,
-    WINDOW_KEY_CHANGEWEAPON,
-    WINDOW_KEY_ENTER,
-    WINDOW_KEY_BACKSPACE,
-    WINDOW_KEY_MAP,
-    WINDOW_KEY_VOLUME_UP,
-    WINDOW_KEY_VOLUME_DOWN,
-    WINDOW_KEY_V,
-    WINDOW_KEY_FULLSCREEN,
-    WINDOW_KEY_SCREENSHOT,
-    WINDOW_KEY_COMMAND,
-    WINDOW_KEY_HIDEHUD
+	WINDOW_KEY_UNKNOWN,
+	WINDOW_KEY_UP,
+	WINDOW_KEY_DOWN,
+	WINDOW_KEY_LEFT,
+	WINDOW_KEY_RIGHT,
+	WINDOW_KEY_SNEAK,
+	WINDOW_KEY_CROUCH,
+	WINDOW_KEY_SPRINT,
+	WINDOW_KEY_SPACE,
+	WINDOW_KEY_CURSOR_UP,
+	WINDOW_KEY_CURSOR_DOWN,
+	WINDOW_KEY_CURSOR_LEFT,
+	WINDOW_KEY_CURSOR_RIGHT,
+	WINDOW_KEY_TAB,
+	WINDOW_KEY_ESCAPE,
+	WINDOW_KEY_YES,
+	WINDOW_KEY_NO,
+	WINDOW_KEY_RELOAD,
+	WINDOW_KEY_TOOL1,
+	WINDOW_KEY_TOOL2,
+	WINDOW_KEY_TOOL3,
+	WINDOW_KEY_TOOL4,
+	WINDOW_KEY_PICKCOLOR,
+	WINDOW_KEY_CHAT,
+	WINDOW_KEY_F1,
+	WINDOW_KEY_F2,
+	WINDOW_KEY_F3,
+	WINDOW_KEY_F4,
+	WINDOW_KEY_CHANGETEAM,
+	WINDOW_KEY_CHANGEWEAPON,
+	WINDOW_KEY_ENTER,
+	WINDOW_KEY_BACKSPACE,
+	WINDOW_KEY_MAP,
+	WINDOW_KEY_VOLUME_UP,
+	WINDOW_KEY_VOLUME_DOWN,
+	WINDOW_KEY_V,
+	WINDOW_KEY_FULLSCREEN,
+	WINDOW_KEY_SCREENSHOT,
+	WINDOW_KEY_COMMAND,
+	WINDOW_KEY_HIDEHUD,
+	WINDOW_KEY_LASTTOOL,
+	WINDOW_KEY_NETWORKSTATS
 };
 
 enum {
-    WINDOW_CURSOR_DISABLED,
-    WINDOW_CURSOR_ENABLED
+	WINDOW_CURSOR_DISABLED,
+	WINDOW_CURSOR_ENABLED
 };
 
 enum {
-    WINDOW_MOUSE_LMB,
-    WINDOW_MOUSE_MMB,
-    WINDOW_MOUSE_RMB
+	WINDOW_MOUSE_LMB,
+	WINDOW_MOUSE_MMB,
+	WINDOW_MOUSE_RMB
+};
+
+struct window_finger {
+	#ifdef USE_SDL
+	SDL_FingerID finger;
+	#else
+	int finger;
+	#endif
+	float down_time;
+	int full;
+	struct {
+		float x,y;
+	} start;
 };
 
 extern int window_pressed_keys[64];
 
+#define WINDOW_NOMOUSELOC		-1
+
+void window_textinput(int allow);
 float window_time(void);
+char* window_keyname(int keycode);
 const char* window_clipboard(void);
 int window_key_translate(int key, int dir);
 int window_key_down(int key);
 void window_mousemode(int mode);
 void window_mouseloc(double* x, double* y);
+void window_setmouseloc(double x, double y);
 void window_swapping(int value);
 void window_init(void);
+void window_fromsettings(void);
 void window_deinit(void);
 void window_update(void);
 int window_closed(void);
+int window_cpucores();
+void window_title(char* suffix);

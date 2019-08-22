@@ -17,34 +17,35 @@
     along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define BETTERSPADES_VERSION    "v0.1.2"
+#define BETTERSPADES_VERSION    "v0.1.4"
 
-#define BETTERSPADES_PATCH      2
+#define BETTERSPADES_PATCH      4
 #define BETTERSPADES_MINOR      1
 #define BETTERSPADES_MAJOR      0
 
 #define USE_GLFW
+#define USE_SOUND
+//#define USE_SDL
+
+//for android define these:
+//#define USE_TOUCH
+//#define USE_ANDROID_FILE
 
 #ifndef OPENGL_ES
-	#if __APPLE__
-	#include <OpenGL/gl.h>
-	#include <OpenGL/glu.h>
-	#include <OpenGL/glext.h>
-	#else
-	#include <GL/gl.h>
-	#include "GL/glext.h"
-	#endif
+	#define GLEW_STATIC
+	#include <GL/glew.h>
 
 	#include <enet/enet.h>
-	#include "GLFW/glfw3.h"
 #else
-	#include "SDL2/SDL_opengles.h"
+	#ifdef USE_SDL
+		#include "SDL2/SDL_opengles.h"
+	#endif
 	#include "enet/enet.h"
 
 	void glColor3f(float r, float g, float b);
 	void glColor3ub(unsigned char r, unsigned char g, unsigned char b);
 	void glDepthRange(float near, float far);
-	void void glClearDepth(float x);
+	void glClearDepth(float x);
 #endif
 
 #ifdef USE_GLFW
@@ -66,10 +67,13 @@
 #include <unistd.h>
 #include <time.h>
 #include <pthread.h>
+#include <limits.h>
+#include <dirent.h>
 
 #include "lodepng/lodepng.h"
 #include "libdeflate.h"
 #include "ini.h"
+#include "log.h"
 
 #ifdef _WIN32
 #define OS_WINDOWS
@@ -77,6 +81,7 @@
 
 #ifdef __linux__
 #define OS_LINUX
+#include <sys/sysinfo.h>
 #endif
 
 #ifdef __APPLE__
@@ -84,30 +89,35 @@
 #endif
 
 #ifndef min
-#define min(a,b) ((a)<(b)?(a):(b))
+#define min(a,b)						((a)<(b)?(a):(b))
 #endif
 #ifndef max
-#define max(a,b) ((a)>(b)?(a):(b))
+#define max(a,b)						((a)>(b)?(a):(b))
 #endif
 
-#define absf(a) (((a)>0)?(a):-(a))
+#define absf(a)							(((a)>0)?(a):-(a))
 
-#define distance2D(x1,y1,x2,y2) (((x2)-(x1))*((x2)-(x1))+((y2)-(y1))*((y2)-(y1)))
-#define distance3D(x1,y1,z1,x2,y2,z2) (((x2)-(x1))*((x2)-(x1))+((y2)-(y1))*((y2)-(y1))+((z2)-(z1))*((z2)-(z1)))
+#define distance2D(x1,y1,x2,y2)			(((x2)-(x1))*((x2)-(x1))+((y2)-(y1))*((y2)-(y1)))
+#define distance3D(x1,y1,z1,x2,y2,z2)	(((x2)-(x1))*((x2)-(x1))+((y2)-(y1))*((y2)-(y1))+((z2)-(z1))*((z2)-(z1)))
+#define angle3D(x1,y1,z1,x2,y2,z2)		acos((x1)*(x2)+(y1)*(y2)+(z1)*(z2)) //vectors should be normalized
+#define len2D(x,y)						sqrt(pow(x,2)+pow(y,2))
+#define len3D(x,y,z)					sqrt(pow(x,2)+pow(y,2)+pow(z,2))
 
-#define rgb(r,g,b)	(((b)<<16)|((g)<<8)|(r))
-#define red(col)	((col)&0xFF)
-#define green(col)	(((col)>>8)&0xFF)
-#define blue(col)	(((col)>>16)&0xFF)
-#define alpha(col)	(((col)>>24)&0xFF)
+#define rgb(r,g,b)						(((b)<<16)|((g)<<8)|(r))
+#define red(col)						((col)&0xFF)
+#define green(col)						(((col)>>8)&0xFF)
+#define blue(col)						(((col)>>16)&0xFF)
+#define alpha(col)						(((col)>>24)&0xFF)
 
-#define PI			3.1415F
-#define DOUBLEPI	(PI*2.0F)
-#define HALFPI		(PI*0.5F)
-#define EPSILON		0.005F
+#define PI								3.1415F
+#define DOUBLEPI						(PI*2.0F)
+#define HALFPI							(PI*0.5F)
+#define EPSILON							0.005F
 
-#define MOUSE_SENSITIVITY 0.002F
+#define MOUSE_SENSITIVITY				0.002F
 
+#include "utils.h"
+#include "ping.h"
 #include "glx.h"
 #include "list.h"
 #include "window.h"
@@ -158,20 +168,19 @@ extern float chat_timer[2][10];
 extern char chat_popup[256];
 extern float chat_popup_timer;
 extern float chat_popup_duration;
+extern int chat_popup_color;
 void chat_add(int channel, unsigned int color, const char* msg);
-void chat_showpopup(const char* msg, float duration);
+void chat_showpopup(const char* msg, float duration, int color);
 const char* reason_disconnect(int code);
 
 #define SCREEN_NONE			0
 #define SCREEN_TEAM_SELECT	1
 #define SCREEN_GUN_SELECT	2
 
-extern char text_input_first;
-
 extern int ms_seed;
 int ms_rand(void);
 
 #define CHECK_ALLOCATION_ERROR(ret) if (!ret) { \
-printf("Critical error: memory allocation failed (%s:%d)", __func__, __LINE__); \
+log_fatal("Critical error: memory allocation failed (%s:%d)", __func__, __LINE__); \
 exit(1); \
 }

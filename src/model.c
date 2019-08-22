@@ -87,6 +87,22 @@ void kv6_rebuild_all() {
 	kv6_rebuild(&model_tent);
 }
 
+void kv6_rebuild_complete() {
+	kv6_rebuild_all();
+	kv6_rebuild(&model_semi);
+	kv6_rebuild(&model_smg);
+	kv6_rebuild(&model_shotgun);
+	kv6_rebuild(&model_spade);
+	kv6_rebuild(&model_block);
+	kv6_rebuild(&model_grenade);
+	kv6_rebuild(&model_semi_tracer);
+	kv6_rebuild(&model_smg_tracer);
+	kv6_rebuild(&model_shotgun_tracer);
+	kv6_rebuild(&model_semi_casing);
+	kv6_rebuild(&model_smg_casing);
+	kv6_rebuild(&model_shotgun_casing);
+}
+
 void kv6_load(struct kv6_t* kv6, unsigned char* bytes, float scale) {
 	kv6->colorize = 0;
 	kv6->has_display_list = 0;
@@ -155,6 +171,25 @@ void kv6_load(struct kv6_t* kv6, unsigned char* bytes, float scale) {
 	}
 }
 
+void kv6_boundingbox(struct kv6_t* kv6, AABB* bb) {
+	matrix_push();
+	matrix_load(matrix_model);
+	matrix_multiply(matrix_view);
+	matrix_multiply(matrix_projection);
+
+	for(int k=0;k<8;k++) {
+		float v[4] = {(kv6->xsiz*((k&1)>0)-kv6->xpiv)*kv6->scale,(kv6->zsiz*((k&2)>0)-kv6->zpiv)*kv6->scale,(kv6->ysiz*((k&4)>0)-kv6->ypiv)*kv6->scale,1.0F};
+		matrix_vector(v);
+
+		bb->min_x = min(bb->min_x,v[0]);
+		bb->min_y = min(bb->min_y,v[1]);
+		bb->max_x = max(bb->max_x,v[0]);
+		bb->max_y = max(bb->max_y,v[1]);
+	}
+
+	matrix_pop();
+}
+
 char kv6_intersection(struct kv6_t* kv6, Ray* r) {
 	AABB bb;
 
@@ -187,302 +222,465 @@ void kv6_rebuild(struct kv6_t* kv6) {
 	}
 }
 
+void kv6_calclight(int x, int y, int z) {
+	float f = 1.0F;
+	if(x>=0 && y>=0 && z>=0)
+		f = map_sunblock(x,y,z);
+	float lambient[4] = {0.5F*f,0.5F*f,0.5F*f,1.0F};
+	float ldiffuse[4] = {0.5F*f,0.5F*f,0.5F*f,1.0F};
+	glLightfv(GL_LIGHT0,GL_AMBIENT,lambient);
+	glLightfv(GL_LIGHT0,GL_DIFFUSE,ldiffuse);
+}
+
 static int kv6_program = -1;
 void kv6_render(struct kv6_t* kv6, unsigned char team) {
-	if(!kv6->has_display_list) {
-		int size = kv6->voxel_count*6;
+	if(!kv6)
+		return;
+	if(team==TEAM_SPECTATOR)
+		team = 2;
+	if(!settings.voxlap_models) {
+		if(!kv6->has_display_list) {
+			int size = kv6->voxel_count*6;
 
-		#ifdef OPENGL_ES
-		kv6->vertices_final = malloc(size*3*6*sizeof(float));
-		CHECK_ALLOCATION_ERROR(kv6->vertices_final)
-		kv6->colors_final = malloc(size*4*6*sizeof(unsigned char)*2);
-		CHECK_ALLOCATION_ERROR(kv6->colors_final)
-		kv6->normals_final = malloc(size*3*6*sizeof(unsigned char));
-		CHECK_ALLOCATION_ERROR(kv6->normals_final)
-		#else
-		kv6->vertices_final = malloc(size*3*4*sizeof(float));
-		CHECK_ALLOCATION_ERROR(kv6->vertices_final)
-		kv6->colors_final = malloc(size*4*4*sizeof(unsigned char)*2);
-		CHECK_ALLOCATION_ERROR(kv6->colors_final)
-		kv6->normals_final = malloc(size*3*4*sizeof(unsigned char));
-		CHECK_ALLOCATION_ERROR(kv6->normals_final)
-		#endif
+			#ifdef OPENGL_ES
+			kv6->vertices_final = malloc(size*3*6*sizeof(float));
+			CHECK_ALLOCATION_ERROR(kv6->vertices_final)
+			kv6->colors_final = malloc(size*4*6*sizeof(unsigned char)*2);
+			CHECK_ALLOCATION_ERROR(kv6->colors_final)
+			kv6->normals_final = malloc(size*3*6*sizeof(unsigned char));
+			CHECK_ALLOCATION_ERROR(kv6->normals_final)
+			#else
+			kv6->vertices_final = malloc(size*3*4*sizeof(float));
+			CHECK_ALLOCATION_ERROR(kv6->vertices_final)
+			kv6->colors_final = malloc(size*4*4*sizeof(unsigned char)*2);
+			CHECK_ALLOCATION_ERROR(kv6->colors_final)
+			kv6->normals_final = malloc(size*3*4*sizeof(unsigned char));
+			CHECK_ALLOCATION_ERROR(kv6->normals_final)
+			#endif
 
-		if(!kv6->colorize) {
-			glx_displaylist_create(&kv6->display_list[0]);
-			glx_displaylist_create(&kv6->display_list[1]);
-			glx_displaylist_create(&kv6->display_list[2]);
-		}
+			if(!kv6->colorize) {
+				glx_displaylist_create(&kv6->display_list[0]);
+				glx_displaylist_create(&kv6->display_list[1]);
+				glx_displaylist_create(&kv6->display_list[2]);
+			}
 
-		int v,c,n;
-		for(int t=0;t<3;t++) {
-			v = c = n = 0;
-			for(int k=0;k<kv6->voxel_count;k++) {
-				int x = kv6->voxels[k].x;
-				int y = kv6->voxels[k].y;
-				int z = kv6->voxels[k].z;
-				int b = kv6->voxels[k].color & 0xFF;
-				int g = (kv6->voxels[k].color>>8) & 0xFF;
-				int r = (kv6->voxels[k].color>>16) & 0xFF;
-				int a = (kv6->voxels[k].color>>24) & 0xFF;
-				if(r==0 && g==0 && b==0) {
-					switch(t) {
-						case TEAM_1:
-							r = gamestate.team_1.red*0.75F;
-							g = gamestate.team_1.green*0.75F;
-							b = gamestate.team_1.blue*0.75F;
-							break;
-						case TEAM_2:
-							r = gamestate.team_2.red*0.75F;
-							g = gamestate.team_2.green*0.75F;
-							b = gamestate.team_2.blue*0.75F;
-							break;
-						default:
-							r = g = b = 0;
+			int v,c,n;
+			for(int t=0;t<3;t++) {
+				v = c = n = 0;
+				for(int k=0;k<kv6->voxel_count;k++) {
+					int x = kv6->voxels[k].x;
+					int y = kv6->voxels[k].y;
+					int z = kv6->voxels[k].z;
+					int b = kv6->voxels[k].color & 0xFF;
+					int g = (kv6->voxels[k].color>>8) & 0xFF;
+					int r = (kv6->voxels[k].color>>16) & 0xFF;
+					int a = (kv6->voxels[k].color>>24) & 0xFF;
+					if(r==0 && g==0 && b==0) {
+						switch(t) {
+							case TEAM_1:
+								r = gamestate.team_1.red*0.75F;
+								g = gamestate.team_1.green*0.75F;
+								b = gamestate.team_1.blue*0.75F;
+								break;
+							case TEAM_2:
+								r = gamestate.team_2.red*0.75F;
+								g = gamestate.team_2.green*0.75F;
+								b = gamestate.team_2.blue*0.75F;
+								break;
+						}
+					}
+
+					float p[3] = {(x-kv6->xpiv)*kv6->scale,(z-kv6->zpiv)*kv6->scale,(y-kv6->ypiv)*kv6->scale};
+
+					int i = 0;
+					float alpha[12];
+
+					//negative y
+					if(kv6->voxels[k].visfaces&16) {
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2];
+
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+
+						#ifdef OPENGL_ES
+						alpha[i++] = 1.0F;
+
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2];
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						#endif
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2];
+						alpha[i++] = 1.0F;
+					}
+
+					//positive y
+					if(kv6->voxels[k].visfaces&32) {
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2];
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2];
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+
+						#ifdef OPENGL_ES
+						alpha[i++] = 0.6F;
+
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2];
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						#endif
+
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						alpha[i++] = 0.6F;
+					}
+
+					//negative z
+					if(kv6->voxels[k].visfaces&4) {
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2];
+
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2];
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2];
+
+						#ifdef OPENGL_ES
+						alpha[i++] = 0.95F;
+
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2];
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2];
+						#endif
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2];
+						alpha[i++] = 0.95F;
+					}
+
+					//positive z
+					if(kv6->voxels[k].visfaces&8) {
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+
+						#ifdef OPENGL_ES
+						alpha[i++] = 0.9F;
+
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						#endif
+
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						alpha[i++] = 0.9F;
+					}
+
+					//negative x
+					if(kv6->voxels[k].visfaces&1) {
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2];
+
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+
+						#ifdef OPENGL_ES
+						alpha[i++] = 0.85F;
+
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2];
+
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						#endif
+
+						kv6->vertices_final[v++] = p[0];
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2];
+						alpha[i++] = 0.85F;
+					}
+
+					//positive x
+					if(kv6->voxels[k].visfaces&2) {
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2];
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2];
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+
+						#ifdef OPENGL_ES
+						alpha[i++] = 0.8F;
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2];
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1]+kv6->scale;
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						#endif
+
+						kv6->vertices_final[v++] = p[0]+kv6->scale;
+						kv6->vertices_final[v++] = p[1];
+						kv6->vertices_final[v++] = p[2]+kv6->scale;
+						alpha[i++] = 0.8F;
+					}
+
+					#ifdef OPENGL_ES
+					for(int k=0;k<i*3;k++) {
+						kv6->colors_final[c++] = r*alpha[k/3];
+						kv6->colors_final[c++] = g*alpha[k/3];
+						kv6->colors_final[c++] = b*alpha[k/3];
+						kv6->colors_final[c++] = 255;
+					#else
+					for(int k=0;k<i*4;k++) {
+						kv6->colors_final[c++] = r*alpha[k/4];
+						kv6->colors_final[c++] = g*alpha[k/4];
+						kv6->colors_final[c++] = b*alpha[k/4];
+						kv6->colors_final[c++] = 255;
+					#endif
+						kv6->normals_final[n++] = kv6_normals[a][0]*128;
+						kv6->normals_final[n++] = -kv6_normals[a][2]*128;
+						kv6->normals_final[n++] = kv6_normals[a][1]*128;
 					}
 				}
 
-				float p[3] = {(x-kv6->xpiv)*kv6->scale,(z-kv6->zpiv)*kv6->scale,(y-kv6->ypiv)*kv6->scale};
-
-				int i = 0;
-				float alpha[12];
-
-				//negative y
-				if(kv6->voxels[k].visfaces&16) {
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2];
-
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-
-					#ifdef OPENGL_ES
-					alpha[i++] = 1.0F;
-
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2];
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-					#endif
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2];
-					alpha[i++] = 1.0F;
-				}
-
-				//positive y
-				if(kv6->voxels[k].visfaces&32) {
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2];
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2];
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-
-					#ifdef OPENGL_ES
-					alpha[i++] = 0.6F;
-
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2];
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-					#endif
-
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-					alpha[i++] = 0.6F;
-				}
-
-				//negative z
-				if(kv6->voxels[k].visfaces&4) {
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2];
-
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2];
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2];
-
-					#ifdef OPENGL_ES
-					alpha[i++] = 0.95F;
-
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2];
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2];
-					#endif
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2];
-					alpha[i++] = 0.95F;
-				}
-
-				//positive z
-				if(kv6->voxels[k].visfaces&8) {
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-
-					#ifdef OPENGL_ES
-					alpha[i++] = 0.9F;
-
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-					#endif
-
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-					alpha[i++] = 0.9F;
-				}
-
-				//negative x
-				if(kv6->voxels[k].visfaces&1) {
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2];
-
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-
-					#ifdef OPENGL_ES
-					alpha[i++] = 0.85F;
-
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2];
-
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-					#endif
-
-					kv6->vertices_final[v++] = p[0];
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2];
-					alpha[i++] = 0.85F;
-				}
-
-				//positive x
-				if(kv6->voxels[k].visfaces&2) {
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2];
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2];
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-
-					#ifdef OPENGL_ES
-					alpha[i++] = 0.8F;
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2];
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1]+kv6->scale;
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-					#endif
-
-					kv6->vertices_final[v++] = p[0]+kv6->scale;
-					kv6->vertices_final[v++] = p[1];
-					kv6->vertices_final[v++] = p[2]+kv6->scale;
-					alpha[i++] = 0.8F;
-				}
-
-				#ifdef OPENGL_ES
-				for(int k=0;k<i*3;k++) {
-					kv6->colors_final[c++] = r*alpha[k/3];
-					kv6->colors_final[c++] = g*alpha[k/3];
-					kv6->colors_final[c++] = b*alpha[k/3];
-					kv6->colors_final[c++] = 255;
-				#else
-				for(int k=0;k<i*4;k++) {
-					kv6->colors_final[c++] = r*alpha[k/4];
-					kv6->colors_final[c++] = g*alpha[k/4];
-					kv6->colors_final[c++] = b*alpha[k/4];
-					kv6->colors_final[c++] = 255;
-				#endif
-					kv6->normals_final[n++] = kv6_normals[a][0]*128;
-					kv6->normals_final[n++] = -kv6_normals[a][2]*128;
-					kv6->normals_final[n++] = kv6_normals[a][1]*128;
-				}
+				if(!kv6->colorize)
+					glx_displaylist_update(&kv6->display_list[t],v/3,GLX_DISPLAYLIST_ENHANCED,kv6->colors_final,kv6->vertices_final,kv6->normals_final);
 			}
 
-			if(!kv6->colorize)
-				glx_displaylist_update(&kv6->display_list[t],v/3,GLX_DISPLAYLIST_ENHANCED,kv6->colors_final,kv6->vertices_final,kv6->normals_final);
-		}
+			if(!kv6->colorize) {
+				free(kv6->vertices_final);
+				free(kv6->colors_final);
+				free(kv6->normals_final);
+			} else {
+				memcpy(kv6->colors_final+c*sizeof(unsigned char),kv6->colors_final,c*sizeof(unsigned char));
+				kv6->size = v/3;
+			}
 
-		if(!kv6->colorize) {
-			free(kv6->vertices_final);
-			free(kv6->colors_final);
-			free(kv6->normals_final);
+			kv6->has_display_list = 1;
 		} else {
-			memcpy(kv6->colors_final+c*sizeof(unsigned char),kv6->colors_final,c*sizeof(unsigned char));
-			kv6->size = v/3;
+			glEnable(GL_LIGHTING);
+			glEnable(GL_LIGHT0);
+			glEnable(GL_COLOR_MATERIAL);
+			#ifndef OPENGL_ES
+			glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
+			#endif
+			glEnable(GL_NORMALIZE);
+			if(!kv6->colorize) {
+				glx_displaylist_draw(&kv6->display_list[team%3],GLX_DISPLAYLIST_ENHANCED);
+			} else {
+				for(int k=0;k<kv6->size*4;k+=4) {
+					kv6->colors_final[k+0] = min(((float)kv6->colors_final[k+0+kv6->size*4*sizeof(unsigned char)])/0.4335F*kv6->red,255);
+					kv6->colors_final[k+1] = min(((float)kv6->colors_final[k+1+kv6->size*4*sizeof(unsigned char)])/0.4335F*kv6->green,255);
+					kv6->colors_final[k+2] = min(((float)kv6->colors_final[k+2+kv6->size*4*sizeof(unsigned char)])/0.4335F*kv6->blue,255);
+				}
+				glEnableClientState(GL_VERTEX_ARRAY);
+				glEnableClientState(GL_COLOR_ARRAY);
+				glEnableClientState(GL_NORMAL_ARRAY);
+				glVertexPointer(3,GL_FLOAT,0,kv6->vertices_final);
+				glColorPointer(4,GL_UNSIGNED_BYTE,0,kv6->colors_final);
+				glNormalPointer(GL_BYTE,0,kv6->normals_final);
+				#ifdef OPENGL_ES
+				glDrawArrays(GL_TRIANGLES,0,kv6->size);
+				#else
+				glDrawArrays(GL_QUADS,0,kv6->size);
+				#endif
+				glDisableClientState(GL_NORMAL_ARRAY);
+				glDisableClientState(GL_COLOR_ARRAY);
+				glDisableClientState(GL_VERTEX_ARRAY);
+			}
+			glDisable(GL_NORMALIZE);
+			glDisable(GL_COLOR_MATERIAL);
+			glDisable(GL_LIGHT0);
+			glDisable(GL_LIGHTING);
 		}
-
-		kv6->has_display_list = 1;
 	} else {
-		glEnable(GL_LIGHTING);
-		glEnable(GL_LIGHT0);
-		glEnable(GL_COLOR_MATERIAL);
+
+		//render like in voxlap
+		if(!kv6->has_display_list) {
+			kv6->vertices_final = malloc(kv6->voxel_count*3*sizeof(float));
+			CHECK_ALLOCATION_ERROR(kv6->vertices_final)
+			kv6->colors_final = malloc(kv6->voxel_count*4*sizeof(unsigned char)*2);
+			CHECK_ALLOCATION_ERROR(kv6->colors_final)
+			kv6->normals_final = malloc(kv6->voxel_count*3*sizeof(unsigned char));
+			CHECK_ALLOCATION_ERROR(kv6->normals_final)
+			kv6->has_display_list = 1;
+
+			for(int t=0;t<3;t++) {
+				int k = 0;
+				glx_displaylist_create(&kv6->display_list[t]);
+				for(int i=0;i<kv6->voxel_count;i++) {
+					int b = kv6->voxels[i].color & 0xFF;
+					int g = (kv6->voxels[i].color>>8) & 0xFF;
+					int r = (kv6->voxels[i].color>>16) & 0xFF;
+					int a = (kv6->voxels[i].color>>24) & 0xFF;
+					if((r|g|b)==0) {
+						switch(t) {
+							case TEAM_1:
+								r = gamestate.team_1.red*0.75F;
+								g = gamestate.team_1.green*0.75F;
+								b = gamestate.team_1.blue*0.75F;
+								break;
+							case TEAM_2:
+								r = gamestate.team_2.red*0.75F;
+								g = gamestate.team_2.green*0.75F;
+								b = gamestate.team_2.blue*0.75F;
+								break;
+						}
+					}
+
+					float v[3] = {	(kv6->voxels[i].x-kv6->xpiv)*kv6->scale,
+									(kv6->voxels[i].z-kv6->zpiv)*kv6->scale,
+									(kv6->voxels[i].y-kv6->ypiv)*kv6->scale };
+
+					kv6->colors_final[k*4+0] = r;
+					kv6->colors_final[k*4+1] = g;
+					kv6->colors_final[k*4+2] = b;
+					kv6->colors_final[k*4+3] = 255;
+
+					kv6->normals_final[k*3+0] = kv6_normals[a][0]*128;
+					kv6->normals_final[k*3+1] = -kv6_normals[a][2]*128;
+					kv6->normals_final[k*3+2] = kv6_normals[a][1]*128;
+
+					kv6->vertices_final[k*3+0] = v[0]+kv6->scale*0.5F;
+					kv6->vertices_final[k*3+1] = v[1]+kv6->scale*0.5F;
+					kv6->vertices_final[k*3+2] = v[2]+kv6->scale*0.5F;
+
+					k++;
+				}
+
+				glx_displaylist_update(&kv6->display_list[t],k,GLX_DISPLAYLIST_POINTS,kv6->colors_final,kv6->vertices_final,kv6->normals_final);
+				kv6->size = k;
+			}
+
+			if(!kv6->colorize) {
+				free(kv6->colors_final);
+				free(kv6->vertices_final);
+				free(kv6->normals_final);
+			} else {
+				memcpy(kv6->colors_final+kv6->size*4*sizeof(unsigned char),kv6->colors_final,kv6->size*4*sizeof(unsigned char));
+			}
+
+			if(kv6_program<0) {
+				kv6_program = glx_shader(	"uniform float size;\n" \
+											"uniform vec3 fog;\n" \
+											"uniform vec3 camera;\n" \
+											"uniform mat4 model;\n" \
+											"uniform float dist_factor;\n" \
+											"void main(void) {\n" \
+											"	gl_Position = gl_ModelViewProjectionMatrix*gl_Vertex;\n" \
+											"	float dist = length((model*gl_Vertex).xz-camera.xz)*dist_factor;\n" \
+											"	vec3 N = normalize(model*vec4(gl_Normal,0)).xyz;\n" \
+											"	vec3 L = normalize(vec3(0,-1,1));\n" \
+											"	float d = clamp(dot(N,L),0.0,1.0)*0.5+0.5;\n" \
+											"	gl_FrontColor = mix(vec4(d,d,d,1.0)*gl_Color,vec4(fog,1.0),min(dist,1.0));\n" \
+											"	gl_PointSize = size/gl_Position.w;\n" \
+											"}\n",
+											"void main(void) {\n" \
+											"	gl_FragColor = gl_Color;\n" \
+											"}\n");
+			}
+		}
+
+		float near_plane_height = (float)settings.window_height/(2.0F*tan(camera_fov_scaled()*1.570796F/180.0F));
+
+		float len_x = len3D(matrix_model[0],matrix_model[1],matrix_model[2]);
+		float len_y = len3D(matrix_model[4],matrix_model[5],matrix_model[6]);
+		float len_z = len3D(matrix_model[8],matrix_model[9],matrix_model[10]);
+
 		#ifndef OPENGL_ES
-		glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
+		if(!glx_version)
 		#endif
-		glEnable(GL_NORMALIZE);
-		if(!kv6->colorize) {
-			glx_displaylist_draw(&kv6->display_list[team%3],GLX_DISPLAYLIST_ENHANCED);
-		} else {
+		{
+			float params[3] = {0.0F,0.0F,1.0F};
+			glPointParameterfv(GL_POINT_DISTANCE_ATTENUATION,params);
+			glPointSize(1.414F*near_plane_height*kv6->scale*(len_x+len_y+len_z)/3.0F);
+			glEnable(GL_LIGHTING);
+			glEnable(GL_LIGHT0);
+			glEnable(GL_COLOR_MATERIAL);
+			#ifndef OPENGL_ES
+			glColorMaterial(GL_FRONT,GL_AMBIENT_AND_DIFFUSE);
+			#endif
+			glEnable(GL_NORMALIZE);
+		}
+
+		#ifndef OPENGL_ES
+		if(glx_version) {
+			glEnable(GL_PROGRAM_POINT_SIZE);
+			glUseProgram(kv6_program);
+			glUniform1f(glGetUniformLocation(kv6_program,"dist_factor"),glx_fog?1.0F/settings.render_distance:0.0F);
+			glUniform1f(glGetUniformLocation(kv6_program,"size"),1.414F*near_plane_height*kv6->scale*(len_x+len_y+len_z)/3.0F);
+			glUniform3f(glGetUniformLocation(kv6_program,"fog"),fog_color[0],fog_color[1],fog_color[2]);
+			glUniform3f(glGetUniformLocation(kv6_program,"camera"),camera_x,camera_y,camera_z);
+			glUniformMatrix4fv(glGetUniformLocation(kv6_program,"model"),1,0,matrix_model);
+		}
+		#endif
+		if(settings.multisamples)
+			glDisable(GL_MULTISAMPLE);
+
+		if(kv6->colorize) {
 			for(int k=0;k<kv6->size*4;k+=4) {
 				kv6->colors_final[k+0] = min(((float)kv6->colors_final[k+0+kv6->size*4*sizeof(unsigned char)])/0.4335F*kv6->red,255);
 				kv6->colors_final[k+1] = min(((float)kv6->colors_final[k+1+kv6->size*4*sizeof(unsigned char)])/0.4335F*kv6->green,255);
@@ -494,112 +692,31 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 			glVertexPointer(3,GL_FLOAT,0,kv6->vertices_final);
 			glColorPointer(4,GL_UNSIGNED_BYTE,0,kv6->colors_final);
 			glNormalPointer(GL_BYTE,0,kv6->normals_final);
-			#ifdef OPENGL_ES
-			glDrawArrays(GL_TRIANGLES,0,kv6->size);
-			#else
-			glDrawArrays(GL_QUADS,0,kv6->size);
-			#endif
+			glDrawArrays(GL_POINTS,0,kv6->size);
 			glDisableClientState(GL_NORMAL_ARRAY);
-			glDisableClientState(GL_COLOR_ARRAY);
 			glDisableClientState(GL_VERTEX_ARRAY);
-		}
-		glDisable(GL_NORMALIZE);
-		glDisable(GL_COLOR_MATERIAL);
-		glDisable(GL_LIGHT0);
-		glDisable(GL_LIGHTING);
-	}
-
-
-
-	//TODO: render like in voxlap
-
-	/*if(!kv6->has_display_list) {
-		int size = kv6->voxel_count*6;
-		kv6->vertices_final = malloc(size*12*sizeof(float));
-		kv6->colors_final = malloc(size*12*sizeof(unsigned char)*3);
-		kv6->normals_final = malloc(size*12*sizeof(unsigned char));
-		kv6->has_display_list = 1;
-		if(kv6_program<0) {
-			kv6_program = glx_vertex_shader("uniform float size;\n" \
-											"uniform vec3 fog;\n" \
-											"uniform vec3 camera;\n" \
-											"uniform mat4 model;\n" \
-											"void main() {\n" \
-											"	gl_Position = gl_ModelViewProjectionMatrix*gl_Vertex;\n" \
-											"	float dist = length((model*gl_Vertex).xz-camera.xz);\n" \
-											"	vec3 N = normalize(model*vec4(gl_Normal,0)).xyz;\n" \
-											"	vec3 L = normalize(vec3(0,-1,1));\n" \
-											"	float d = clamp(dot(N,L),0.0,1.0)*0.5+0.5;\n" \
-											"	gl_FrontColor = mix(vec4(d,d,d,1.0)*gl_Color,vec4(fog,1.0),min(dist/128.0,1.0));\n" \
-											"	gl_PointSize = size/gl_Position.w;\n" \
-											"}\n");
-		}
-	}
-
-	int k = 0;
-
-	for(int abc=0;abc<kv6->voxel_count;abc++) {
-		int x = kv6->voxels[abc].x;
-		int y = kv6->voxels[abc].y;
-		int z = kv6->voxels[abc].z;
-		int b = kv6->voxels[abc].color & 0xFF;
-		int g = (kv6->voxels[abc].color>>8) & 0xFF;
-		int r = (kv6->voxels[abc].color>>16) & 0xFF;
-		int a = (kv6->voxels[abc].color>>24) & 0xFF;
-		if(r==0 && g==0 && b==0) {
-			switch(team) {
-				case TEAM_1:
-					r = gamestate.team_1.red*0.75F;
-					g = gamestate.team_1.green*0.75F;
-					b = gamestate.team_1.blue*0.75F;
-					break;
-				case TEAM_2:
-					r = gamestate.team_2.red*0.75F;
-					g = gamestate.team_2.green*0.75F;
-					b = gamestate.team_2.blue*0.75F;
-					break;
-				default:
-					r = g = b = 0;
-			}
+			glDisableClientState(GL_COLOR_ARRAY);
+		} else {
+			glx_displaylist_draw(&kv6->display_list[team%3],GLX_DISPLAYLIST_POINTS);
 		}
 
-		float v[3] = {(x-kv6->xpiv)*kv6->scale,(z-kv6->zpiv)*kv6->scale,(y-kv6->ypiv)*kv6->scale};
-		float n[3] = {kv6_normals[a][0],-kv6_normals[a][2],kv6_normals[a][1]};
+		if(settings.multisamples)
+			glEnable(GL_MULTISAMPLE);
+		#ifndef OPENGL_ES
+		if(glx_version) {
+			glUseProgram(0);
+			glDisable(GL_PROGRAM_POINT_SIZE);
+		}
+		#endif
 
-		kv6->colors_final[k] = r;
-		kv6->normals_final[k] = n[0]*128;
-		kv6->vertices_final[k++] = v[0]+kv6->scale*0.5F;
-		kv6->colors_final[k] = g;
-		kv6->normals_final[k] = n[1]*128;
-		kv6->vertices_final[k++] = v[1]+kv6->scale*0.5F;
-		kv6->colors_final[k] = b;
-		kv6->normals_final[k] = n[2]*128;
-		kv6->vertices_final[k++] = v[2]+kv6->scale*0.5F;
+		#ifndef OPENGL_ES
+		if(!glx_version)
+		#endif
+		{
+			glDisable(GL_NORMALIZE);
+			glDisable(GL_COLOR_MATERIAL);
+			glDisable(GL_LIGHT0);
+			glDisable(GL_LIGHTING);
+		}
 	}
-
-	float heightOfNearPlane = (float)settings.window_height/(2.0F*tan(camera_fov_scaled()*1.570796F/180.0F));
-
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glEnableClientState(GL_COLOR_ARRAY);
-	glEnableClientState(GL_NORMAL_ARRAY);
-	glVertexPointer(3,GL_FLOAT,0,kv6->vertices_final);
-	glColorPointer(3,GL_UNSIGNED_BYTE,0,kv6->colors_final);
-	glNormalPointer(GL_BYTE,0,kv6->normals_final);
-	glEnable(GL_PROGRAM_POINT_SIZE);
-	int i = glx_fog;
-	if(i)
-		glx_disable_sphericalfog();
-	glUseProgram(kv6_program);
-	glUniform1f(glGetUniformLocation(kv6_program,"size"),1.414F*kv6->scale*heightOfNearPlane);
-	glUniform3f(glGetUniformLocation(kv6_program,"fog"),fog_color[0],fog_color[1],fog_color[2]);
-	glUniform3f(glGetUniformLocation(kv6_program,"camera"),camera_x,camera_y,camera_z);
-	glUniformMatrix4fv(glGetUniformLocation(kv6_program,"model"),1,0,matrix_model);
-	glDrawArrays(GL_POINTS,0,k/3);
-	glUseProgram(0);
-	if(i)
-		glx_enable_sphericalfog();
-	glDisable(GL_PROGRAM_POINT_SIZE);
-	glDisableClientState(GL_NORMAL_ARRAY);
-	glDisableClientState(GL_VERTEX_ARRAY);
-	glDisableClientState(GL_COLOR_ARRAY);*/
 }

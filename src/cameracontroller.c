@@ -19,31 +19,40 @@
 
 #include "common.h"
 
+int cameracontroller_bodyview_mode = 0;
 int cameracontroller_bodyview_player = 0;
+float cameracontroller_bodyview_zoom = 0.0F;
 
 void cameracontroller_fps(float dt) {
     players[local_player_id].connected = 1;
 	players[local_player_id].alive = 1;
 
-    char cooldown = 0;
-    if(players[local_player_id].held_item==TOOL_GRENADE && local_player_grenades==0) {
-        players[local_player_id].held_item--;
-        cooldown = 1;
-    }
-    if(players[local_player_id].held_item==TOOL_GUN && local_player_ammo+local_player_ammo_reserved==0) {
-        players[local_player_id].held_item--;
-        cooldown = 1;
-    }
-    if(players[local_player_id].held_item==TOOL_BLOCK && local_player_blocks==0) {
-        players[local_player_id].held_item--;
-        cooldown = 1;
-    }
+	int cooldown = 0;
+	if(players[local_player_id].held_item==TOOL_GRENADE && local_player_grenades==0) {
+		local_player_lasttool = players[local_player_id].held_item--;
+		cooldown = 1;
+	}
+	if(players[local_player_id].held_item==TOOL_GUN && local_player_ammo+local_player_ammo_reserved==0) {
+		local_player_lasttool = players[local_player_id].held_item--;
+		cooldown = 1;
+	}
+	if(players[local_player_id].held_item==TOOL_BLOCK && local_player_blocks==0) {
+		local_player_lasttool = players[local_player_id].held_item--;
+		cooldown = 1;
+	}
 
-    if(cooldown) {
-        players[local_player_id].item_disabled = window_time();
+	if(cooldown) {
+		players[local_player_id].item_disabled = window_time();
 		players[local_player_id].items_show_start = window_time();
 		players[local_player_id].items_show = 1;
-    }
+	}
+
+	#ifdef USE_TOUCH
+	if(!local_player_ammo) {
+		hud_ingame.input_keyboard(WINDOW_KEY_RELOAD,WINDOW_PRESS,0,0);
+		hud_ingame.input_keyboard(WINDOW_KEY_RELOAD,WINDOW_RELEASE,0,0);
+	}
+	#endif
 
     if(chat_input_mode==CHAT_NO_INPUT) {
     	players[local_player_id].input.keys.up = window_key_down(WINDOW_KEY_UP);
@@ -129,12 +138,12 @@ void cameracontroller_spectator(float dt) {
 	}
 
 	if(window_key_down(WINDOW_KEY_LEFT)) {
-		x += sin(camera_rot_x+1.57);
-		z += cos(camera_rot_x+1.57);
+		x += sin(camera_rot_x+1.57F);
+		z += cos(camera_rot_x+1.57F);
 	} else {
 		if(window_key_down(WINDOW_KEY_RIGHT)) {
-			x += sin(camera_rot_x-1.57);
-			z += cos(camera_rot_x-1.57);
+			x += sin(camera_rot_x-1.57F);
+			z += cos(camera_rot_x-1.57F);
 		}
 	}
 
@@ -179,25 +188,52 @@ void cameracontroller_spectator(float dt) {
 		camera_movement_z = 0.0F;
 	}
 
-	camera_x += camera_movement_x;
-	camera_y += camera_movement_y;
-	camera_z += camera_movement_z;
-    camera_vx = camera_movement_x;
-    camera_vy = camera_movement_y;
-    camera_vz = camera_movement_z;
-    matrix_lookAt(camera_x,camera_y,camera_z,camera_x+sin(camera_rot_x)*sin(camera_rot_y),camera_y+cos(camera_rot_y),camera_z+cos(camera_rot_x)*sin(camera_rot_y),0.0F,1.0F,0.0F);
+	if(cameracontroller_bodyview_mode) {
+		//check if we cant spectate the player anymore
+		for(int k=0;k<PLAYERS_MAX*2;k++) { //a while(1) loop caused it to get stuck on map change when playing on babel
+			if(player_can_spectate(&players[cameracontroller_bodyview_player]))
+				break;
+			cameracontroller_bodyview_player = (cameracontroller_bodyview_player+1)%PLAYERS_MAX;
+		}
+	}
+
+	if(cameracontroller_bodyview_mode && players[cameracontroller_bodyview_player].alive) {
+		struct Player* p = &players[cameracontroller_bodyview_player];
+		camera_x = p->physics.eye.x;
+		camera_y = p->physics.eye.y+player_height(p);
+		camera_z = p->physics.eye.z;
+
+		camera_vx = p->physics.velocity.x;
+		camera_vy = p->physics.velocity.y;
+		camera_vz = p->physics.velocity.z;
+
+		float l = sqrt(distance3D(p->orientation_smooth.x,p->orientation_smooth.y,p->orientation_smooth.z,0,0,0));
+		float ox = p->orientation_smooth.x/l;
+		float oy = p->orientation_smooth.y/l;
+		float oz = p->orientation_smooth.z/l;
+
+		matrix_lookAt(camera_x,camera_y,camera_z,camera_x+ox,camera_y+oy,camera_z+oz,0.0F,1.0F,0.0F);
+	} else {
+		camera_x += camera_movement_x;
+		camera_y += camera_movement_y;
+		camera_z += camera_movement_z;
+	    camera_vx = camera_movement_x;
+	    camera_vy = camera_movement_y;
+	    camera_vz = camera_movement_z;
+	    matrix_lookAt(camera_x,camera_y,camera_z,camera_x+sin(camera_rot_x)*sin(camera_rot_y),camera_y+cos(camera_rot_y),camera_z+cos(camera_rot_x)*sin(camera_rot_y),0.0F,1.0F,0.0F);
+	}
 }
 
 void cameracontroller_bodyview(float dt) {
-    //check if we cant spectate the player anymore
-    for(int k=0;k<PLAYERS_MAX*2;k++) { //a while(1) loop caused it to get stuck on map change when playing on babel
-        if(player_can_spectate(&players[cameracontroller_bodyview_player]))
-            break;
-        cameracontroller_bodyview_player = (cameracontroller_bodyview_player+1)%PLAYERS_MAX;
-    }
+	//check if we cant spectate the player anymore
+	for(int k=0;k<PLAYERS_MAX*2;k++) { //a while(1) loop caused it to get stuck on map change when playing on babel
+		if(player_can_spectate(&players[cameracontroller_bodyview_player]))
+			break;
+		cameracontroller_bodyview_player = (cameracontroller_bodyview_player+1)%PLAYERS_MAX;
+	}
 
-    AABB camera;
-    aabb_set_size(&camera,0.4F,0.4F,0.4F);
+	AABB camera = {0};
+	aabb_set_size(&camera,0.4F,0.4F,0.4F);
 
     float k;
     float traverse_lengths[2] = {-1,-1};
@@ -224,28 +260,48 @@ void cameracontroller_bodyview(float dt) {
     if(traverse_lengths[1]<0)
         traverse_lengths[1] = 5.0F;
 
-    k = (traverse_lengths[0]<=0)?(-traverse_lengths[1]):traverse_lengths[0];
+	float tmp = (traverse_lengths[0]<=0)?(-traverse_lengths[1]):traverse_lengths[0];
+
+	cameracontroller_bodyview_zoom = (tmp<cameracontroller_bodyview_zoom)?tmp:min(tmp,cameracontroller_bodyview_zoom+dt*8.0F);
 
     //this is needed to determine which chunks need/can be rendered and for sound, minimap etc...
-    camera_x = players[cameracontroller_bodyview_player].pos.x-sin(camera_rot_x)*sin(camera_rot_y)*k;
-    camera_y = players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*k+player_height2(&players[cameracontroller_bodyview_player]);
-    camera_z = players[cameracontroller_bodyview_player].pos.z-cos(camera_rot_x)*sin(camera_rot_y)*k;
+    camera_x = players[cameracontroller_bodyview_player].pos.x-sin(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom;
+    camera_y = players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*cameracontroller_bodyview_zoom+player_height2(&players[cameracontroller_bodyview_player]);
+    camera_z = players[cameracontroller_bodyview_player].pos.z-cos(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom;
     camera_vx = players[cameracontroller_bodyview_player].physics.velocity.x;
     camera_vy = players[cameracontroller_bodyview_player].physics.velocity.y;
     camera_vz = players[cameracontroller_bodyview_player].physics.velocity.z;
 
-    matrix_lookAt(players[cameracontroller_bodyview_player].pos.x-sin(camera_rot_x)*sin(camera_rot_y)*k,
-              players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*k+player_height2(&players[cameracontroller_bodyview_player]),
-              players[cameracontroller_bodyview_player].pos.z-cos(camera_rot_x)*sin(camera_rot_y)*k,
-              players[cameracontroller_bodyview_player].pos.x,
-              players[cameracontroller_bodyview_player].pos.y+player_height2(&players[cameracontroller_bodyview_player]),
-              players[cameracontroller_bodyview_player].pos.z,
-              0.0F,1.0F,0.0F);
+	if(cameracontroller_bodyview_mode && players[cameracontroller_bodyview_player].alive) {
+		struct Player* p = &players[cameracontroller_bodyview_player];
+		camera_x = p->physics.eye.x;
+		camera_y = p->physics.eye.y+player_height(p);
+		camera_z = p->physics.eye.z;
+
+		camera_vx = p->physics.velocity.x;
+		camera_vy = p->physics.velocity.y;
+		camera_vz = p->physics.velocity.z;
+
+		float l = sqrt(distance3D(p->orientation_smooth.x,p->orientation_smooth.y,p->orientation_smooth.z,0,0,0));
+		float ox = p->orientation_smooth.x/l;
+		float oy = p->orientation_smooth.y/l;
+		float oz = p->orientation_smooth.z/l;
+
+		matrix_lookAt(camera_x,camera_y,camera_z,camera_x+ox,camera_y+oy,camera_z+oz,0.0F,1.0F,0.0F);
+	} else {
+		matrix_lookAt(players[cameracontroller_bodyview_player].pos.x-sin(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom,
+					  players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*cameracontroller_bodyview_zoom+player_height2(&players[cameracontroller_bodyview_player]),
+					  players[cameracontroller_bodyview_player].pos.z-cos(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom,
+					  players[cameracontroller_bodyview_player].pos.x,
+					  players[cameracontroller_bodyview_player].pos.y+player_height2(&players[cameracontroller_bodyview_player]),
+					  players[cameracontroller_bodyview_player].pos.z,
+					  0.0F,1.0F,0.0F);
+	}
 }
 
 void cameracontroller_selection(float dt) {
     camera_x = 256.0F;
-    camera_y = 125.0F;
+    camera_y = 79.0F;
     camera_z = 256.0F;
     camera_vx = 0.0F;
     camera_vy = 0.0F;

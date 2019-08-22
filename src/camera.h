@@ -36,7 +36,6 @@ extern float camera_height;
 extern float camera_eye_height;
 extern float camera_movement_x, camera_movement_y, camera_movement_z;
 extern float camera_speed;
-extern long camera_last_key;
 
 struct Camera_HitType {
 	char type;

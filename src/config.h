@@ -17,8 +17,14 @@
     along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+struct config_file_entry {
+	char section[32];
+	char name[32];
+	char value[32];
+};
+
 extern struct RENDER_OPTIONS {
-    char name[17];
+    char name[16];
 	int opengl14;
 	int color_correction;
 	int shadow_entities;
@@ -29,24 +35,49 @@ extern struct RENDER_OPTIONS {
 	unsigned char multisamples;
 	int player_arms;
 	int fullscreen;
-    int greedy_meshing;
-    int vsync;
-    float mouse_sensitivity;
-    int show_news;
-    int show_fps;
-} settings;
+	int greedy_meshing;
+	int vsync;
+	float mouse_sensitivity;
+	int show_news;
+	int show_fps;
+	int volume;
+	int voxlap_models;
+	int force_displaylist;
+	int invert_y;
+	int smooth_fog;
+} settings, settings_tmp;
 
 extern struct list config_keys;
 
 struct config_key_pair {
-    int internal;
-    int def;
-    int toggle;
-    char name[32];
+	int internal;
+	int def;
+	int toggle;
+	char name[24];
+	char display[16];
 };
 
-void config_register_key(int internal, int def, const char* name, int toggle);
+enum {
+	CONFIG_TYPE_STRING,
+	CONFIG_TYPE_INT,
+	CONFIG_TYPE_FLOAT
+};
+
+struct config_setting {
+	void* value;
+	int type;
+	int max;
+	char name[32];
+	char help[32];
+	int defaults[8];
+	int defaults_length;
+};
+
+extern struct list config_settings;
+
+void config_register_key(int internal, int def, const char* name, int toggle, const char* display);
 int config_key_translate(int key, int dir);
 struct config_key_pair* config_key(int key);
 void config_key_reset_togglestates();
 void config_reload(void);
+void config_save(void);

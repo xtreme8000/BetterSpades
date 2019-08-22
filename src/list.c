@@ -21,7 +21,10 @@ void* list_add(struct list* l, void* e) {
         l->data = realloc(l->data,l->mem_size);
         CHECK_ALLOCATION_ERROR(l->data)
     }
-    memcpy(l->data+l->elements*l->element_size,e,l->element_size);
+	if(e)
+		memcpy(l->data+l->elements*l->element_size,e,l->element_size);
+	else
+		memset(l->data+l->elements*l->element_size,0,l->element_size);
     return l->data+(l->elements++)*l->element_size;
 }
 

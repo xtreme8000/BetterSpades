@@ -1,9 +1,13 @@
 [![Build Status](http://bytebit.info.tm/jenkins/buildStatus/icon?job=BetterSpades)](http://bytebit.info.tm/jenkins/job/BetterSpades/)
 [![](https://img.shields.io/github/downloads/xtreme8000/BetterSpades/total.svg)](https://github.com/xtreme8000/BetterSpades/releases)
+[![Discord](https://img.shields.io/badge/discord-join-ff00ff.svg)](https://discord.gg/9JGXKBt)
 [![GPL](https://img.shields.io/badge/license-GPL--3.0-red.svg)](https://github.com/xtreme8000/BetterSpades/blob/standalone/LICENSE)
-[![DonateBTC](https://img.shields.io/badge/bitcoin-donate-yellow.svg)](1AeSfdVmbEX6VCqxCgk9WkzSA8XJkKr4FM)
+[![DonateBTC](https://img.shields.io/badge/bitcoin-donate-yellow.svg)](https://github.com/xtreme8000/BetterSpades#donate)
 
-## ![](resources/icon_small.png) BetterSpades
+[![Google Play](/docs/android.png)](https://play.google.com/store/apps/details?id=party.aos.betterspades)
+![GPL v3](https://www.gnu.org/graphics/gplv3-127x51.png)
+
+## ![](docs/icon_small.png) BetterSpades
 
 * Replicate of the great game *Ace of Spades* (classic voxlap)
 * runs on very old systems back to OpenGL 1.1 (OpenGL ES support too)
@@ -27,6 +31,17 @@ You can either:
 * use the client temporarily by extracting the downloaded zip into a new directory.
 * extract all contents to your current Ace of Spades installation directory (normally found at `C:/Ace of Spades/`), effectively replacing the old voxlap version
 
+## System requirements
+
+| Type    | min. requirement                                     |
+| ------- | ---------------------------------------------------- |
+| OS      | Windows 98 or Linux                                  |
+| CPU     | 1 GHz single core processor                          |
+| GPU     | 64MB VRAM, Mobile Intel 945GM or equivalent          |
+| RAM     | 256MB                                                |
+| Display | 800x600px                                            |
+| Others  | Keyboard and mouse<br />Dial up network connection   |
+
 
 ## Build requirements
 
@@ -44,29 +59,34 @@ These libraries and files are needed:
 | libdeflate   | *MIT*           | decompression of maps  | [Link](https://github.com/ebiggers/libdeflate)    |
 | enet         | *MIT*           | networking library     | [Link](https://github.com/lsalzman/enet)          |
 | parson       | *MIT*           | JSON parser            | [Link](https://github.com/kgabis/parson)          |
+| log.c        | *MIT*           | logger                 | [Link](https://github.com/xtreme8000/log.c)       |
+| GLEW         | *MIT*           | OpenGL extensions      | [Link](https://github.com/nigels-com/glew)        |
 
 You will need to compile the following by yourself, or get hold of precompiled binaries:
 
 * GLFW3
+* GLEW
 * OpenAL soft *(only needed on Windows)*
 * libdeflate
 * enet
 
-Follow the instructions on their project page, then place produced static libraries in `lib/`.
+Follow the instructions on their project page, then place produced static libraries in `libs/`.
 
 Some files need to be copied to the `src/` directory.
 
 This means:
 
-| source                        | &rightarrow; | destination                                                                   |
-| ----------------------------- | ------------ | ---------------------------                                                   |
-| `dr_wav.h`                    | &rightarrow; | `src/dr_wav.c` <br /> Make sure to define `DR_WAV_IMPLEMENTATION` in *Line 9* |
-| `lodepng.h` and `lodepng.cpp` | &rightarrow; | `src/lodepng/lodepng.h` and `src/lodepng/lodepng.c`                           |
-| `libdeflate.h`                | &rightarrow; | `src/libdeflate.h`                                                            |
-| `ini.c` and `ini.h`           | &rightarrow; | `src/ini.c` and `src/ini.h`                                                   |
-| `parson.c` and `parson.h`     | &rightarrow; | `src/parson.c` and `src/parson.h`                                             |
-| `http.h`                      | &rightarrow; | `src/http.h`                                                                  |
-| `stb_truetype.h`              | &rightarrow; | `src/stb_truetype.h`                                                          |
+| source                        | &rightarrow; | destination                                                                              |
+| ----------------------------- | ------------ | ---------------------------------------------------------------------------------------- |
+| `dr_wav.h`                    | &rightarrow; | `src/dr_wav.c` <br /> Make sure to add `#define DR_WAV_IMPLEMENTATION` on the first line |
+| `lodepng.h` and `lodepng.cpp` | &rightarrow; | `src/lodepng/lodepng.h` and `src/lodepng/lodepng.c`                                      |
+| `libdeflate.h`                | &rightarrow; | `src/libdeflate.h`                                                                       |
+| `ini.c` and `ini.h`           | &rightarrow; | `src/ini.c` and `src/ini.h`                                                              |
+| `parson.c` and `parson.h`     | &rightarrow; | `src/parson.c` and `src/parson.h`                                                        |
+| `http.h`                      | &rightarrow; | `src/http.h`                                                                             |
+| `stb_truetype.h`              | &rightarrow; | `src/stb_truetype.h`                                                                     |
+| `log.h` and `log.c`           | &rightarrow; | `src/log.h` and `src/log.c`                                                              |
+
 
 Because state of copyright of 0.75 assets is unknown, you will need to get them *[here](http://aos.party/bsresources.zip)*. Unzip the file and extract all contents to `resources/` manually.
 
@@ -94,7 +114,7 @@ Compilation now works the same on Linux. Just change the build system to `Unix M
 
 You can build each library yourself, or install them with your distro's package manager:
 ```
-sudo apt-get install libgl1-mesa libgl1-mesa-dev libopenal1 libopenal-dev libglfw-dev libenet-dev
+sudo apt-get install libgl1-mesa libgl1-mesa-dev libopenal1 libopenal-dev libglfw-dev libenet-dev libglew-dev
 ```
 (this does not include libdeflate or lodepng which are a requirement too, see [_Wiki/Building_](https://github.com/xtreme8000/BetterSpades/wiki/Building) for more details)
 
@@ -116,11 +136,3 @@ The development headers for OpenAL and OpenGL don't have to be installed since t
 | <img src="/docs/pic01.png" width="250px"><br />*quite old* | <img src="/docs/pic02.png" width="250px"><br />*quite old* | <img src="/docs/pic03.png" width="250px"> |
 | :-: | :-: | :-: |
 | <img src="/docs/pic04.png" width="250px"><br />*grenade fun* | <img src="/docs/pic05.png" width="250px"><br />*falling block animation* | <img src="/docs/pic06.png" width="250px"><br />*sniping on normandie* |
-
-##
-
->*Donations are greatly appreciated* :+1:
->
-><img src="https://bitaps.com/static/img/bitcoin.svg" height="30px"> `1AeSfdVmbEX6VCqxCgk9WkzSA8XJkKr4FM`
-
-![GPL v3](https://www.gnu.org/graphics/gplv3-127x51.png)

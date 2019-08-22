@@ -32,8 +32,8 @@ unsigned char* map_minimap;
 
 struct DamagedVoxel map_damaged_voxels[8] = {0};
 
-int map_object_visible(float* loc) {
-	return !(loc[0]<=0.0F && loc[1]<=0.0F);
+int map_object_visible(float x, float y, float z) {
+	return !(x<=0.0F && z<=0.0F);
 }
 
 int map_damage(int x, int y, int z, int damage) {
@@ -59,6 +59,18 @@ int map_damage(int x, int y, int z, int damage) {
 	return damage;
 }
 
+int map_damage_get(int x, int y, int z) {
+	for(int k=0;k<8;k++) {
+		if(window_time()-map_damaged_voxels[k].timer<=10.0F
+		&& map_damaged_voxels[k].x==x
+		&& map_damaged_voxels[k].y==y
+		&& map_damaged_voxels[k].z==z) {
+			return map_damaged_voxels[k].damage;
+		}
+	}
+	return 0;
+}
+
 static void push_float3(float* buffer, int* index, float x, float y, float z) {
 	buffer[(*index)++] = x;
 	buffer[(*index)++] = y;
@@ -81,8 +93,9 @@ static void push_char46(unsigned char* buffer, int* index, int r, int g, int b, 
 void map_damaged_voxels_render() {
 	matrix_identity();
 	matrix_upload();
-	glEnable(GL_POLYGON_OFFSET_FILL);
-	glPolygonOffset(0.0F,-100.0F);
+	//glEnable(GL_POLYGON_OFFSET_FILL);
+	//glPolygonOffset(0.0F,-100.0F);
+	glDepthFunc(GL_EQUAL);
 	glEnable(GL_BLEND);
 	for(int k=0;k<8;k++) {
 		if(map_get(map_damaged_voxels[k].x,map_damaged_voxels[k].y,map_damaged_voxels[k].z)==0xFFFFFFFF) {
@@ -151,9 +164,10 @@ void map_damaged_voxels_render() {
 			}
 		}
 	}
+	glDepthFunc(GL_LEQUAL);
 	glDisable(GL_BLEND);
-	glPolygonOffset(0.0F,0.0F);
-	glDisable(GL_POLYGON_OFFSET_FILL);
+	//glPolygonOffset(0.0F,0.0F);
+	//glDisable(GL_POLYGON_OFFSET_FILL);
 }
 
 struct voxel {
@@ -168,7 +182,7 @@ static char stack_contains(struct voxel* stack2, int len, int x, int y, int z) {
 	return 0;
 }
 
-static struct {
+static struct map_collapsing {
 	struct voxel* voxels;
 	unsigned int* voxels_color;
 	int voxel_count;
@@ -343,7 +357,20 @@ static void map_update_physics_sub(int x, int y, int z) {
 	}
 }
 
+int map_collapsing_cmp(const void* a, const void *b) {
+	struct map_collapsing* A = (struct map_collapsing*)a;
+	struct map_collapsing* B = (struct map_collapsing*)b;
+	if(A->used && !B->used)
+		return -1;
+	if(!A->used && B->used)
+		return 1;
+	return	distance3D(B->p.x,B->p.y,B->p.z,camera_x,camera_y,camera_z)
+			-distance3D(A->p.x,A->p.y,A->p.z,camera_x,camera_y,camera_z);
+}
+
 void map_collapsing_render(float dt) {
+	qsort(map_collapsing_structures,32,sizeof(struct map_collapsing),map_collapsing_cmp);
+
 	glEnable(GL_BLEND);
 	for(int k=0;k<32;k++) {
 		if(map_collapsing_structures[k].used) {
@@ -530,6 +557,9 @@ void map_collapsing_render(float dt) {
 				free(colors);
 				free(vertices);
 			}
+			glColorMask(0,0,0,0);
+			glx_displaylist_draw(&map_collapsing_structures[k].displaylist,GLX_DISPLAYLIST_ENHANCED);
+			glColorMask(1,1,1,1);
 			glx_displaylist_draw(&map_collapsing_structures[k].displaylist,GLX_DISPLAYLIST_ENHANCED);
 
 			if(absf(map_collapsing_structures[k].v.y)<0.1F && hit_floor) {
@@ -569,31 +599,47 @@ void map_update_physics(int x, int y, int z) {
 		map_update_physics_sub(x,y+1,z);
 }
 
-unsigned long long map_get(int x, int y, int z) {
+//see this for details: https://github.com/infogulch/pyspades/blob/protocol075/pyspades/vxl_c.cpp#L380
+float map_sunblock(int x, int y, int z) {
+	int dec = 18;
+	int i = 127;
+
+	while(dec && y<64) {
+		if((map_get(x,++y,--z)&0xFFFFFFFF)!=0xFFFFFFFF)
+			i -= dec;
+		dec -= 2;
+	}
+	return (float)i/127.0F;
+}
+
+int map_isair(int x, int y, int z) {
+	return map_get(x,y,z)==0xFFFFFFFF;
+}
+
+unsigned int map_get(int x, int y, int z) {
 	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_y || z>=map_size_z)
 		return 0xFFFFFFFF;
 
 	pthread_rwlock_rdlock(&chunk_map_locks[x+z*map_size_x]);
-	unsigned long long ret = map_colors[x+(y*map_size_z+z)*map_size_x];
+	unsigned int ret = map_colors[x+(y*map_size_z+z)*map_size_x];
 	pthread_rwlock_unlock(&chunk_map_locks[x+z*map_size_x]);
 	return ret;
 }
 
-unsigned long long map_get_unblocked(int x, int y, int z) {
+unsigned int map_get_unblocked(int x, int y, int z) {
 	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_y || z>=map_size_z)
 		return 0xFFFFFFFF;
 
 	return map_colors[x+(y*map_size_z+z)*map_size_x];
 }
 
-void map_set(int x, int y, int z, unsigned long long color) {
-	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_y || z>=map_size_z) {
+void map_set(int x, int y, int z, unsigned int color) {
+	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_y || z>=map_size_z)
 		return;
-	}
 
 	/*int err = pthread_rwlock_trywrlock(&chunk_map_lock);
 	if(err!=0) {
-		printf("pthread: %i\n",err);
+		log_debug("pthread: %i",err);
 		return;
 	}*/
 	pthread_rwlock_wrlock(&chunk_map_locks[x+z*map_size_x]);
@@ -633,17 +679,15 @@ void map_set(int x, int y, int z, unsigned long long color) {
 }
 
 void map_vxl_setgeom(int x, int y, int z, unsigned int t, unsigned int* map) {
-	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_z || z>=map_size_y) {
+	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_z || z>=map_size_y)
 		return;
-	}
 
 	map[x+((map_size_y-1-z)*map_size_z+y)*map_size_x] = t;
 }
 
 void map_vxl_setcolor(int x, int y, int z, unsigned int t, unsigned int* map) {
-	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_z || z>=map_size_y) {
+	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_z || z>=map_size_y)
 		return;
-	}
 	unsigned char r = t & 255;
 	unsigned char g = (t>>8) & 255;
 	unsigned char b = (t>>16) & 255;
@@ -727,13 +771,13 @@ int map_cube_line(int x1, int y1, int z1, int x2, int y2, int z2, struct Point* 
 }
 
 static int lerp(int a, int b, int amt) { //amt from 0 to 8
-    return a + (b-a)*amt/8;
+	return a + (b-a)*amt/8;
 }
 
 static int dirt_color_table[] = {
-    0x506050, 0x605848, 0x705040,
-    0x804838, 0x704030, 0x603828,
-    0x503020, 0x402818, 0x302010
+	0x506050, 0x605848, 0x705040,
+	0x804838, 0x704030, 0x603828,
+	0x503020, 0x402818, 0x302010
 };
 
 //thanks to BR_ for deobfuscating this method

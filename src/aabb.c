@@ -19,35 +19,7 @@
 
 #include "common.h"
 
-void aabb_render(AABB* a) {
-	/*glLineWidth(1.0F);
-	glBegin(GL_LINES);
-	glVertex3f(a->min_x,a->min_y,a->min_z);
-	glVertex3f(a->max_x,a->min_y,a->min_z);
-	glVertex3f(a->min_x,a->min_y,a->min_z);
-	glVertex3f(a->min_x,a->min_y,a->max_z);
-	glVertex3f(a->max_x,a->min_y,a->min_z);
-	glVertex3f(a->max_x,a->min_y,a->max_z);
-	glVertex3f(a->min_x,a->min_y,a->max_z);
-	glVertex3f(a->max_x,a->min_y,a->max_z);
-	glVertex3f(a->min_x,a->max_y,a->min_z);
-	glVertex3f(a->max_x,a->max_y,a->min_z);
-	glVertex3f(a->min_x,a->max_y,a->min_z);
-	glVertex3f(a->min_x,a->max_y,a->max_z);
-	glVertex3f(a->max_x,a->max_y,a->min_z);
-	glVertex3f(a->max_x,a->max_y,a->max_z);
-	glVertex3f(a->min_x,a->max_y,a->max_z);
-	glVertex3f(a->max_x,a->max_y,a->max_z);
-	glVertex3f(a->min_x,a->min_y,a->min_z);
-	glVertex3f(a->min_x,a->max_y,a->min_z);
-	glVertex3f(a->max_x,a->min_y,a->min_z);
-	glVertex3f(a->max_x,a->max_y,a->min_z);
-	glVertex3f(a->max_x,a->min_y,a->max_z);
-	glVertex3f(a->max_x,a->max_y,a->max_z);
-	glVertex3f(a->min_x,a->min_y,a->max_z);
-	glVertex3f(a->min_x,a->max_y,a->max_z);
-	glEnd();*/
-}
+void aabb_render(AABB* a) {}
 
 char aabb_intersection_ray(AABB* a, Ray* r) {
 	double t1 = (a->min_x-r->origin.x)/r->direction.x;
@@ -105,7 +77,7 @@ unsigned char aabb_intersection_terrain(AABB* a, int miny) {
 	for(int x=min_x;x<max_x;x++) {
 		for(int z=min_z;z<max_z;z++) {
 			for(int y=min_y;y<max_y;y++) {
-				if(map_get(x,y,z)!=0xFFFFFFFF) {
+				if(!map_isair(x,y,z)) {
 					terrain_cube.min_x = x;
 					terrain_cube.min_y = y;
 					terrain_cube.min_z = z;

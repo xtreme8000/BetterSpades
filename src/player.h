@@ -47,6 +47,7 @@ extern unsigned char local_player_respawn_time;
 extern float		 local_player_death_time;
 extern unsigned char local_player_respawn_cnt_last;
 extern unsigned char local_player_newteam;
+extern unsigned char local_player_lasttool;
 
 extern float local_player_last_damage_timer;
 extern float local_player_last_damage_x;
@@ -70,11 +71,12 @@ extern struct Player {
 	struct Orientation {
 		float x,y,z;
 	} orientation;
+	AABB bb_2d;
 	struct Orientation orientation_smooth;
 	struct Position gun_pos;
 	struct Position casing_dir;
 	float gun_shoot_timer;
-	int ammo;
+	int ammo, ammo_reserved;
 	float spade_use_timer;
 	unsigned char spade_used, spade_use_type;
 	unsigned int score;

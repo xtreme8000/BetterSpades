@@ -33,7 +33,7 @@ void glDepthRange(float near, float far) {
 }
 
 void glClearDepth(float x) {
-	glClearDepth(x);
+	glClearDepthf(x);
 }
 #endif
 
@@ -41,8 +41,8 @@ int fps = 0;
 
 int ms_seed = 1;
 int ms_rand() {
-  ms_seed = ms_seed*0x343FD+0x269EC3;
-  return (ms_seed>>0x10) & 0x7FFF;
+	ms_seed = ms_seed*0x343FD+0x269EC3;
+	return (ms_seed>>0x10) & 0x7FFF;
 }
 
 int chat_input_mode = CHAT_NO_INPUT;
@@ -59,32 +59,19 @@ void chat_add(int channel, unsigned int color, const char* msg) {
 	strcpy(chat[channel][1],msg);
 	chat_color[channel][1] = color;
 	chat_timer[channel][1] = window_time();
+	if(channel==0)
+		log_info(msg);
 }
 char chat_popup[256] = {};
+int chat_popup_color;
 float chat_popup_timer = 0.0F;
 float chat_popup_duration = 0.0F;
 
-void chat_showpopup(const char* msg, float duration) {
+void chat_showpopup(const char* msg, float duration, int color) {
 	strcpy(chat_popup,msg);
 	chat_popup_timer = window_time();
     chat_popup_duration = duration;
-}
-
-const char* reason_disconnect(int code) {
-    switch(code) {
-        case 1:
-            return "Banned";
-        case 2:
-            return "Connection limit";
-        case 3:
-            return "Wrong protocol";
-        case 4:
-            return "Server full";
-        case 10:
-            return "Kicked";
-        default:
-            return "Unknown";
-    }
+	chat_popup_color = color;
 }
 
 void drawScene(float dt) {
@@ -97,7 +84,15 @@ void drawScene(float dt) {
 	matrix_upload();
 	chunk_draw_visible();
 
+	if(settings.smooth_fog) {
+		glFogi(GL_FOG_MODE,GL_EXP2);
+		glFogf(GL_FOG_DENSITY,0.015F);
+		glFogfv(GL_FOG_COLOR,fog_color);
+		glEnable(GL_FOG);
+	}
+
 	glShadeModel(GL_FLAT);
+	kv6_calclight(-1,-1,-1);
 	matrix_upload();
 	particle_render();
 	tracer_render();
@@ -106,42 +101,56 @@ void drawScene(float dt) {
 	matrix_upload();
 
 	if(gamestate.gamemode_type==GAMEMODE_CTF) {
-		if(!gamestate.gamemode.ctf.team_1_intel /*&& map_object_visible((float*)&gamestate.gamemode.ctf.team_1_intel_location.dropped)*/) {
+		if(!gamestate.gamemode.ctf.team_1_intel) {
+			float x = gamestate.gamemode.ctf.team_1_intel_location.dropped.x;
+			float y = 63.0F-gamestate.gamemode.ctf.team_1_intel_location.dropped.z+1.0F;
+			float z = gamestate.gamemode.ctf.team_1_intel_location.dropped.y;
 			matrix_push();
-			matrix_translate(gamestate.gamemode.ctf.team_1_intel_location.dropped.x,
-						 63.0F-gamestate.gamemode.ctf.team_1_intel_location.dropped.z+1.0F,
-						 gamestate.gamemode.ctf.team_1_intel_location.dropped.y);
+			matrix_translate(x,y,z);
+			kv6_calclight(x,y,z);
 			matrix_upload();
 			kv6_render(&model_intel,TEAM_1);
 			matrix_pop();
 		}
-		if(!gamestate.gamemode.ctf.team_2_intel /*&& map_object_visible((float*)&gamestate.gamemode.ctf.team_2_intel_location.dropped)*/) {
+		if(!gamestate.gamemode.ctf.team_2_intel) {
+			float x = gamestate.gamemode.ctf.team_2_intel_location.dropped.x;
+			float y = 63.0F-gamestate.gamemode.ctf.team_2_intel_location.dropped.z+1.0F;
+			float z = gamestate.gamemode.ctf.team_2_intel_location.dropped.y;
 			matrix_push();
-			matrix_translate(gamestate.gamemode.ctf.team_2_intel_location.dropped.x,
-						 63.0F-gamestate.gamemode.ctf.team_2_intel_location.dropped.z+1.0F,
-						 gamestate.gamemode.ctf.team_2_intel_location.dropped.y);
+			matrix_translate(x,y,z);
+			kv6_calclight(x,y,z);
 			matrix_upload();
 			kv6_render(&model_intel,TEAM_2);
 			matrix_pop();
 		}
-        if(1/*map_object_visible((float*)&gamestate.gamemode.ctf.team_1_base)*/) {
-    		matrix_push();
-    		matrix_translate(gamestate.gamemode.ctf.team_1_base.x,
-    					 63.0F-gamestate.gamemode.ctf.team_1_base.z+1.0F,
-    					 gamestate.gamemode.ctf.team_1_base.y);
-    		matrix_upload();
-    		kv6_render(&model_tent,TEAM_1);
-    		matrix_pop();
-        }
-        if(1/*map_object_visible((float*)&gamestate.gamemode.ctf.team_2_base)*/) {
-    		matrix_push();
-    		matrix_translate(gamestate.gamemode.ctf.team_2_base.x,
-    					 63.0F-gamestate.gamemode.ctf.team_2_base.z+1.0F,
-    					 gamestate.gamemode.ctf.team_2_base.y);
-    		matrix_upload();
-    		kv6_render(&model_tent,TEAM_2);
-    		matrix_pop();
-        }
+		if(map_object_visible(gamestate.gamemode.ctf.team_1_base.x,
+						 63.0F-gamestate.gamemode.ctf.team_1_base.z+1.0F,
+						 gamestate.gamemode.ctf.team_1_base.y)) {
+			matrix_push();
+			matrix_translate(gamestate.gamemode.ctf.team_1_base.x,
+							 63.0F-gamestate.gamemode.ctf.team_1_base.z+1.0F,
+							 gamestate.gamemode.ctf.team_1_base.y);
+			kv6_calclight(gamestate.gamemode.ctf.team_1_base.x,
+							 63.0F-gamestate.gamemode.ctf.team_1_base.z+1.0F,
+							 gamestate.gamemode.ctf.team_1_base.y);
+			matrix_upload();
+			kv6_render(&model_tent,TEAM_1);
+			matrix_pop();
+		}
+		if(map_object_visible(gamestate.gamemode.ctf.team_2_base.x,
+						 63.0F-gamestate.gamemode.ctf.team_2_base.z+1.0F,
+						 gamestate.gamemode.ctf.team_2_base.y)) {
+			matrix_push();
+			matrix_translate(gamestate.gamemode.ctf.team_2_base.x,
+					 63.0F-gamestate.gamemode.ctf.team_2_base.z+1.0F,
+					 gamestate.gamemode.ctf.team_2_base.y);
+			kv6_calclight(gamestate.gamemode.ctf.team_2_base.x,
+						 63.0F-gamestate.gamemode.ctf.team_2_base.z+1.0F,
+						 gamestate.gamemode.ctf.team_2_base.y);
+			matrix_upload();
+			kv6_render(&model_tent,TEAM_2);
+			matrix_pop();
+		}
 	}
 	if(gamestate.gamemode_type==GAMEMODE_TC) {
 		for(int k=0;k<gamestate.gamemode.tc.territory_count;k++) {
@@ -149,6 +158,9 @@ void drawScene(float dt) {
 			matrix_translate(gamestate.gamemode.tc.territory[k].x,
 						 63.0F-gamestate.gamemode.tc.territory[k].z+1.0F,
 						 gamestate.gamemode.tc.territory[k].y);
+			kv6_calclight(gamestate.gamemode.tc.territory[k].x,
+ 						 63.0F-gamestate.gamemode.tc.territory[k].z+1.0F,
+ 						 gamestate.gamemode.tc.territory[k].y);
 			matrix_upload();
 			kv6_render(&model_tent,min(gamestate.gamemode.tc.territory[k].team,2));
 			matrix_pop();
@@ -196,13 +208,9 @@ void display(float dt) {
 			matrix_select(matrix_model);
 			matrix_identity();
 
-			float lpos[4] = {0.0F,-1.0F,1.0F,0.0F};
-			float lambient[4] = {0.5F,0.5F,0.5F,1.0F};
-			float ldiffuse[4] = {0.5F,0.5F,0.5F,1.0F};
 			matrix_upload();
+			float lpos[4] = {0.0F,-1.0F,1.0F,0.0F};
 			glLightfv(GL_LIGHT0,GL_POSITION,lpos);
-			glLightfv(GL_LIGHT0,GL_AMBIENT,lambient);
-			glLightfv(GL_LIGHT0,GL_DIFFUSE,ldiffuse);
 
 			map_sun[0] = 1.0F;
 			map_sun[1] = -3.0F;
@@ -220,9 +228,6 @@ void display(float dt) {
 
 		camera_ExtractFrustum();
 
-		float fps = 1.0F/dt;
-		//printf("FPS: %0.2f\n",fps);
-
 		if(!network_map_transfer) {
 
 			glx_enable_sphericalfog();
@@ -230,6 +235,10 @@ void display(float dt) {
 
 			grenade_update(dt);
 			tracer_update(dt);
+
+			int render_fpv = (camera_mode==CAMERAMODE_FPS) || ((camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR) && cameracontroller_bodyview_mode);
+			int is_local = (camera_mode==CAMERAMODE_FPS) || (cameracontroller_bodyview_player==local_player_id);
+			int local_id = (camera_mode==CAMERAMODE_FPS)?local_player_id:cameracontroller_bodyview_player;
 
 			if(players[local_player_id].items_show && window_time()-players[local_player_id].items_show_start>=0.5F) {
 				players[local_player_id].items_show = 0;
@@ -275,10 +284,14 @@ void display(float dt) {
 			}
 
 			int* pos = NULL;
-			switch(players[local_player_id].held_item) {
+			switch(players[local_id].held_item) {
 				case TOOL_BLOCK:
-					if(!players[local_player_id].input.keys.sprint && camera_mode==CAMERAMODE_FPS)
-						pos = camera_terrain_pick(0);
+					if(!players[local_id].input.keys.sprint && render_fpv) {
+						if(is_local)
+							pos = camera_terrain_pick(0);
+						else
+							pos = camera_terrain_pickEx(0,camera_x,camera_y,camera_z,players[local_id].orientation_smooth.x,players[local_id].orientation_smooth.y,players[local_id].orientation_smooth.z);
+					}
 					break;
 				default:
 					pos = NULL;
@@ -291,7 +304,7 @@ void display(float dt) {
 				glDepthMask(GL_FALSE);
 				struct Point cubes[64];
 				int amount = 0;
-				if(local_player_drag_active && players[local_player_id].input.buttons.rmb && players[local_player_id].held_item==TOOL_BLOCK) {
+				if(is_local && local_player_drag_active && players[local_player_id].input.buttons.rmb && players[local_player_id].held_item==TOOL_BLOCK) {
 					amount = map_cube_line(local_player_drag_x,local_player_drag_z,63-local_player_drag_y,pos[0],pos[2],63-pos[1],cubes);
 				} else {
 					amount = 1;
@@ -303,7 +316,7 @@ void display(float dt) {
 					int tmp = cubes[amount-1].y;
 					cubes[amount-1].y = 63-cubes[amount-1].z;
 					cubes[amount-1].z = tmp;
-					if(amount<=local_player_blocks) {
+					if(amount<=(is_local?local_player_blocks:50)) {
 						glColor3f(1.0F,1.0F,1.0F);
 					}
 
@@ -355,15 +368,22 @@ void display(float dt) {
 				if(hud_active->render_localplayer) {
 					float tmp2 = players[local_player_id].physics.eye.y;
 					players[local_player_id].physics.eye.y = last_cy;
-					if(camera_mode==CAMERAMODE_FPS) {
+					if(camera_mode==CAMERAMODE_FPS)
 						glDepthRange(0.0F,0.05F);
-					}
 					matrix_select(matrix_projection);
 					matrix_push();
 					matrix_translate(0.0F,-0.25F,0.0F);
 					matrix_upload_p();
 					matrix_select(matrix_model);
+					#ifdef OPENGL_ES
+					if(camera_mode==CAMERAMODE_FPS)
+						glx_disable_sphericalfog();
+					#endif
 					player_render(&players[local_player_id],local_player_id,NULL,1);
+					#ifdef OPENGL_ES
+					if(camera_mode==CAMERAMODE_FPS)
+						glx_enable_sphericalfog();
+					#endif
 					matrix_select(matrix_projection);
 					matrix_pop();
 					matrix_select(matrix_model);
@@ -381,11 +401,13 @@ void display(float dt) {
 			map_collapsing_render(dt);
 			matrix_upload();
 
-			if(map_get(camera_x,camera_y,camera_z)!=0xFFFFFFFF) {
+			if(!map_isair(camera_x,camera_y,camera_z)) {
 				glClear(GL_COLOR_BUFFER_BIT);
 			}
 
 			glx_disable_sphericalfog();
+			if(settings.smooth_fog)
+				glDisable(GL_FOG);
 		}
 	}
 
@@ -438,18 +460,19 @@ void init() {
 	//set minimap borders (white on 64x64 chunks, black map border)
 	memset(map_minimap,0xCCCCCCFF,map_size_x*map_size_z*sizeof(unsigned char)*4);
 
-    glx_init();
+	glx_init();
 
 	font_init();
 	player_init();
 	particle_init();
 	network_init();
+	ping_init();
 	kv6_init();
 	texture_init();
 	sound_init();
 	tracer_init();
 	hud_init();
-    chunk_init();
+	chunk_init();
 
 	weapon_set();
 }
@@ -465,15 +488,9 @@ void reshape(struct window_instance* window, int width, int height) {
        window_swapping(0);
 }
 
-char text_input_first;
 void text_input(struct window_instance* window, unsigned int codepoint) {
-	if(chat_input_mode==CHAT_NO_INPUT) {
+	if(chat_input_mode==CHAT_NO_INPUT)
 		return;
-	}
-	if(text_input_first) {
-		text_input_first = 0;
-		return;
-	}
 
 	int len = strlen(chat[0][0]);
 	if(len<128) {
@@ -484,18 +501,19 @@ void text_input(struct window_instance* window, unsigned int codepoint) {
 
 void keys(struct window_instance* window, int key, int scancode, int action, int mods) {
     if(action==WINDOW_PRESS) {
-        if(config_key(key)->toggle)
-            window_pressed_keys[key] = !window_pressed_keys[key];
-        else
-            window_pressed_keys[key] = 1;
-    }
-    if(action==WINDOW_RELEASE && !config_key(key)->toggle)
-        window_pressed_keys[key] = 0;
-	if(hud_active->input_keyboard)
-		hud_active->input_keyboard(key,action,mods);
+        if(config_key(key)->toggle) {
+			if(chat_input_mode==CHAT_NO_INPUT) {
+				window_pressed_keys[key] = !window_pressed_keys[key];
+			}
+		} else {
+			window_pressed_keys[key] = 1;
+		}
+	}
+	if(action==WINDOW_RELEASE && !config_key(key)->toggle)
+		window_pressed_keys[key] = 0;
 
 	#ifdef USE_GLFW
-	if(key==WINDOW_KEY_FULLSCREEN && action==GLFW_PRESS) { //switch between fullscreen
+	if(key==WINDOW_KEY_FULLSCREEN && action==WINDOW_PRESS) { //switch between fullscreen
 		const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 		if(!settings.fullscreen) {
 			glfwSetWindowMonitor(window->impl,glfwGetPrimaryMonitor(),0,0,mode->width,mode->height,mode->refreshRate);
@@ -507,7 +525,7 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
 	}
 	#endif
 
-	if(key==WINDOW_KEY_SCREENSHOT && action==GLFW_PRESS) { //take screenshot
+	if(key==WINDOW_KEY_SCREENSHOT && action==WINDOW_PRESS) { //take screenshot
 		time_t pic_time;
 		time(&pic_time);
 		char pic_name[128];
@@ -535,8 +553,11 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
 }
 
 void mouse_click(struct window_instance* window, int button, int action, int mods) {
-	if(hud_active->input_mouseclick)
-		hud_active->input_mouseclick(button,action,mods);
+	if(hud_active->input_mouseclick) {
+		double x,y;
+		window_mouseloc(&x,&y);
+		hud_active->input_mouseclick(x,y,button,action,mods);
+	}
 }
 
 void mouse(struct window_instance* window, double x, double y) {
@@ -550,15 +571,17 @@ void mouse_scroll(struct window_instance* window, double xoffset, double yoffset
 }
 
 void deinit() {
-    if(settings.show_news)
-        file_url("https://www.buildandshoot.com/news/");
+	ping_deinit();
+	if(settings.show_news)
+		file_url("https://www.buildandshoot.com/news/");
 	if(network_connected)
 		network_disconnect();
+	window_deinit();
 }
 
 void on_error(int i, const char* s) {
-    printf("Major error occured: [%i] %s\n",i,s);
-    getchar();
+	log_fatal("Major error occured: [%i] %s",i,s);
+	getchar();
 }
 
 int main(int argc, char** argv) {
@@ -575,25 +598,53 @@ int main(int argc, char** argv) {
 	settings.greedy_meshing = 0;
 	settings.mouse_sensitivity = MOUSE_SENSITIVITY;
 	settings.show_news = 1;
-	settings.show_fps = 1;
+	settings.show_fps = 0;
+	settings.volume = 10;
+	settings.voxlap_models = 0;
+	settings.force_displaylist = 0;
+	settings.invert_y = 0;
+	settings.smooth_fog = 0;
 	strcpy(settings.name,"DEV_CLIENT");
+
+	#ifdef USE_TOUCH
+		mkdir("/sdcard/BetterSpades");
+	#else
+		if(!file_dir_exists("logs"))
+			file_dir_create("logs");
+		if(!file_dir_exists("cache"))
+			file_dir_create("cache");
+		if(!file_dir_exists("screenshots"))
+			file_dir_create("screenshots");
+	#endif
+
+	log_set_level(LOG_INFO);
+
+	time_t t = time(NULL);
+	char buf[32];
+	strftime(buf,32,"logs/%m-%d-%Y.log",localtime(&t));
+	log_set_fp(fopen(buf,"a"));
+
+	srand(t);
+
+	log_info("Game started!");
 
 	config_reload();
 
 	window_init();
 
-	printf("Vendor: %s\n",glGetString(GL_VENDOR));
-	printf("Renderer: %s\n",glGetString(GL_RENDERER));
-	printf("Version: %s\n",glGetString(GL_VERSION));
+	#ifndef OPENGL_ES
+	if(glewInit()) {
+		log_error("Could not load extended OpenGL functions!");
+	}
+	#endif
+
+	log_info("Vendor: %s",glGetString(GL_VENDOR));
+	log_info("Renderer: %s",glGetString(GL_RENDERER));
+	log_info("Version: %s",glGetString(GL_VERSION));
 
 	if(settings.multisamples>0) {
 		glEnable(GL_MULTISAMPLE);
-		//glHint(GL_MULTISAMPLE_FILTER_HINT_NV,GL_NICEST);
-		int iMultiSample = 0;
-		int iNumSamples = 0;
-		glGetIntegerv(GL_SAMPLE_BUFFERS,&iMultiSample);
-		glGetIntegerv(GL_SAMPLES,&iNumSamples);
-		printf("MSAA on, GL_SAMPLE_BUFFERS = %d, GL_SAMPLES = %d\n",iMultiSample,iNumSamples);
+		log_info("MSAAx%i on",settings.multisamples);
 	}
 
 	while(glGetError()!=GL_NO_ERROR);
@@ -608,16 +659,16 @@ int main(int argc, char** argv) {
 
 	if(argc>1) {
 		if(!strcmp(argv[1],"--help")) {
-			printf("Usage: client                     [server browser]\n");
-			printf("       client -aos://<ip>:<port>  [custom address]\n");
+			log_info("Usage: client                     [server browser]");
+			log_info("       client -aos://<ip>:<port>  [custom address]");
 			exit(0);
 		}
 
 		if(!network_connect_string(argv[1]+1)) {
-			printf("Error: Connection failed (use --help for instructions)\n");
+			log_error("Error: Connection failed (use --help for instructions)");
 			exit(1);
 		} else {
-			printf("Connection to %s successfull\n",argv[1]+1);
+			log_info("Connection to %s successful",argv[1]+1);
 			hud_change(&hud_ingame);
 		}
 	}
@@ -636,14 +687,12 @@ int main(int argc, char** argv) {
 		window_update();
 
 		if(settings.vsync>1 && (window_time()-last_frame_start)<(1.0F/settings.vsync)) {
-		    double sleep_s = 1.0F/settings.vsync-(window_time()-last_frame_start);
-		    struct timespec ts;
-		    ts.tv_sec = (int)sleep_s;
-		    ts.tv_nsec = (sleep_s-ts.tv_sec)*1000000000.0;
-		    nanosleep(&ts,NULL);
+			double sleep_s = 1.0F/settings.vsync-(window_time()-last_frame_start);
+			struct timespec ts;
+			ts.tv_sec = (int)sleep_s;
+			ts.tv_nsec = (sleep_s-ts.tv_sec)*1000000000.0;
+			nanosleep(&ts,NULL);
 		}
 		fps = 1.0F/(window_time()-last_frame_start);
 	}
-
-    window_deinit();
 }

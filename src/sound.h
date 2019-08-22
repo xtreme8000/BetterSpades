@@ -17,12 +17,14 @@
     along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#if __APPLE__
-#include <OpenAL/al.h>
-#include <OpenAL/alc.h>
-#else
-#include <AL/al.h>
-#include <AL/alc.h>
+#ifdef USE_SOUND
+	#if __APPLE__
+		#include <OpenAL/al.h>
+		#include <OpenAL/alc.h>
+	#else
+		#include <AL/al.h>
+		#include <AL/alc.h>
+	#endif
 #endif
 
 #define SOUND_SCALE         0.6F
@@ -32,7 +34,7 @@
 #define SOUND_WORLD         0
 #define SOUND_LOCAL         1
 
-extern unsigned char sound_enabled;
+extern int sound_enabled;
 
 struct Sound_source {
     int openal_handle;
@@ -100,9 +102,6 @@ extern struct Sound_wav sound_intro;
 extern struct Sound_wav sound_debris;
 extern struct Sound_wav sound_bounce;
 extern struct Sound_wav sound_impact;
-
-extern float sound_global_volume;
-
 
 void sound_volume(float vol);
 struct Sound_source* sound_create(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z);

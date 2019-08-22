@@ -129,7 +129,7 @@ void matrix_identity() {
 
 void matrix_push() {
     if(matrix_stack_index>=MATRIX_STACK_DEPTH) {
-        printf("Matrix stack overflow!\n");
+        log_fatal("Matrix stack overflow!");
         return;
     }
     memcpy(matrix_stack[matrix_stack_index++],matrix_current,16*sizeof(float));
@@ -137,7 +137,7 @@ void matrix_push() {
 
 void matrix_pop() {
     if(matrix_stack_index<1) {
-        printf("Matrix stack underflow!\n");
+        log_fatal("Matrix stack underflow!");
         return;
     }
     memcpy(matrix_current,matrix_stack[--matrix_stack_index],16*sizeof(float));
@@ -166,7 +166,7 @@ void matrix_pointAt(float dx, float dy, float dz) {
     float rx = -atan2(dz,dx)/3.1415926535F*180.0F;
     matrix_rotate(rx,0.0F,1.0F,0.0F);
     if(dy) {
-        float ry = asin(dy/sqrt(dx*dx+dy*dy+dz*dz))/3.1415926535F*180.0F;
+        float ry = asin(dy)/3.1415926535F*180.0F;
         matrix_rotate(ry,0.0F,0.0F,1.0F);
     }
 }

@@ -31,12 +31,13 @@ float camera_height = 0.8F;
 float camera_eye_height = 0.0F;
 float camera_movement_x = 0.0F, camera_movement_y = 0.0F, camera_movement_z = 0.0F;
 float camera_speed = 32.0F;
-long camera_last_key = 0;
 
 float camera_fov_scaled() {
-	if(camera_mode==CAMERAMODE_FPS && players[local_player_id].held_item==TOOL_GUN && players[local_player_id].input.buttons.rmb && !players[local_player_id].input.keys.sprint) {
+	int render_fpv = (camera_mode==CAMERAMODE_FPS) || ((camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR) && cameracontroller_bodyview_mode);
+	int local_id = (camera_mode==CAMERAMODE_FPS)?local_player_id:cameracontroller_bodyview_player;
+
+	if(render_fpv && players[local_id].held_item==TOOL_GUN && players[local_id].input.buttons.rmb && !players[local_id].input.keys.sprint && players[local_id].alive)
 		return camera_fov*atan(tan((camera_fov/180.0F*PI)/2)/2.0F)*2.0F;
-	}
 	return camera_fov;
 }
 
@@ -95,7 +96,7 @@ void camera_hit_mask(struct Camera_HitType* hit, int exclude_player, float x, fl
 	hit->type = CAMERA_HITTYPE_NONE;
 	hit->distance = FLT_MAX;
 	int* pos = camera_terrain_pickEx(1,x,y,z,ray_x,ray_y,ray_z);
-	if(pos!=NULL && pos[1]>1 && distance2D(x,z,pos[0],pos[2])<=range*range) {
+	if(pos!=NULL && distance2D(x,z,pos[0],pos[2])<=range*range) {
 		hit->type = CAMERA_HITTYPE_BLOCK;
 		hit->distance = distance3D(x,y,z,pos[0],pos[1],pos[2]);
 		hit->x = pos[0];
@@ -126,7 +127,7 @@ void camera_hit_mask(struct Camera_HitType* hit, int exclude_player, float x, fl
 			if(angle<45.0F/180.0F*PI) {
 				int intersections = player_render(&players[i],i,&dir,0);
 				if((intersections&mask) && l<player_nearest) {
-					player_nearest = distance3D(x,y,z,players[i].pos.x,players[i].pos.y,players[i].pos.z);
+					player_nearest = distance3D(x,y,z,players[i].pos.x,players[i].pos.y+player_section_height(player_damage(intersections&mask)),players[i].pos.z);
 					player_nearest_id = i;
 					player_nearest_section = intersections;
 				}
@@ -203,7 +204,7 @@ int* camera_terrain_pickEx(unsigned char mode, float gx0, float gy0, float gz0, 
 		}
 		switch(mode) {
 			case 0:
-				if(map_get(gx,gy,gz)!=0xFFFFFFFF && map_get(gx_pre,gy_pre,gz_pre)==0xFFFFFFFF) {
+				if(!map_isair(gx,gy,gz) && map_isair(gx_pre,gy_pre,gz_pre)) {
 					ret[0] = gx_pre;
 					ret[1] = gy_pre;
 					ret[2] = gz_pre;
@@ -211,7 +212,7 @@ int* camera_terrain_pickEx(unsigned char mode, float gx0, float gy0, float gz0, 
 				}
 				break;
 			case 1:
-				if(map_get(gx,gy,gz)!=0xFFFFFFFF) {
+				if(!map_isair(gx,gy,gz)) {
 					ret[0] = gx;
 					ret[1] = gy;
 					ret[2] = gz;

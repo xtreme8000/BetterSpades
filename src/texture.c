@@ -53,6 +53,51 @@ struct texture texture_ui_join;
 struct texture texture_ui_reload;
 struct texture texture_ui_bg;
 struct texture texture_ui_input;
+struct texture texture_ui_box_empty;
+struct texture texture_ui_box_check;
+struct texture texture_ui_arrow;
+struct texture texture_ui_arrow2;
+struct texture texture_ui_flags;
+struct texture texture_ui_alert;
+struct texture texture_ui_joystick;
+struct texture texture_ui_knob;
+
+static char* texture_flags[251] = {
+									"AD","AE","AF","AG","AI","AL","AM","AN","AO","AQ","AR","AS","AT","AU",
+									"AW","AX","AZ","BA","BB","BD","BE","BF","BG","BH","BI","BJ","BL","BM",
+									"BN","BO","BR","BS","BT","BV","BW","BY","BZ","CA","CC","CD","CF","CG",
+									"CH","CI","CK","CL","CM","CN","CO","CR","CS","CU","CV","CX","CY","CZ",
+									"DE","DJ","DK","DM","DO","DZ","EC","EE","EG","EH","ER","ES","ET","FI",
+									"FJ","FK","FM","FO","FR","FX","GA","GB","GD","GE","GF","GG","GH","GI",
+									"GL","GM","GN","GP","GQ","GR","GS","GT","GU","GW","GY","HK","HM","HN",
+									"HR","HT","HU","ID","IE","IL","IN","IO","IQ","IR","IS","IT","JE","JM",
+									"JO","JP","KE","KG","KH","KI","KM","KN","KP","KR","KW","KY","KZ","LA",
+									"LAN","LB","LC","LI","LK","LR","LS","LT","LU","LV","LY","MA","MC","MD",
+									"ME","MF","MG","MH","MK","ML","MM","MN","MO","MP","MQ","MR","MS","MT",
+									"MU","MV","MW","MX","MY","MZ","NA","NC","NE","NF","NG","NI","NL","NO",
+									"NP","NR","NU","NZ","OM","PA","PE","PF","PG","PH","PK","PL","PM","PN",
+									"PR","PS","PT","PW","PY","QA","RE","RO","RS","RU","RW","SA","SB","SC",
+									"SD","SE","SG","SH","SI","SJ","SK","SL","SM","SN","SO","SR","ST","SV",
+									"SY","SZ","TC","TD","TF","TG","TH","TJ","TK","TL","TM","TN","TO","TP",
+									"TR","TT","TV","TW","TZ","UA","UG","UM","US","UY","UZ","VA","VC","VE",
+									"VG","VI","VN","VU","WF","WS","XT","YE","YT","YU","ZA","ZM","ZW"
+								};
+
+static int texture_flag_cmp(const void* a, const void* b) {
+	return strcmp(a,*(const void* const*)b);
+}
+
+void texture_flag_offset(const char* country, float* u, float* v) {
+	char** res = bsearch(country,texture_flags,251,sizeof(char*),texture_flag_cmp);
+	if(res) {
+		int i = res-texture_flags;
+		*u = (i%14)*(18.0F/256.0F);
+		*v = (i/14)*(12.0F/256.0F);
+	} else {
+		*u = 0.0F;
+		*v = 0.9375F;
+	}
+}
 
 void texture_filter(struct texture* t, int filter) {
     glBindTexture(GL_TEXTURE_2D,t->texture_id);
@@ -70,9 +115,13 @@ void texture_filter(struct texture* t, int filter) {
 }
 
 int texture_create(struct texture* t, char* filename) {
-    int error = lodepng_decode32_file(&t->pixels,&t->width,&t->height,filename);
+	int sz = file_size(filename);
+	void* data = file_load(filename);
+	int error = lodepng_decode32(&t->pixels,&t->width,&t->height,data,sz);
+	free(data);
+
     if(error) {
-        printf("Could not load texture (%u): %s\n",error,lodepng_error_text(error));
+        log_warn("Could not load texture (%u): %s",error,lodepng_error_text(error));
         return 0;
     }
 
@@ -88,10 +137,9 @@ int texture_create(struct texture* t, char* filename) {
     glBindTexture(GL_TEXTURE_2D,0);
 }
 
-int texture_create_buffer(struct texture* t, int width, int height, unsigned char* buff) {
-    if(t->pixels==NULL) {
-        glGenTextures(1,&t->texture_id);
-    }
+int texture_create_buffer(struct texture* t, int width, int height, unsigned char* buff, int new) {
+	if(new)
+		glGenTextures(1,&t->texture_id);
     t->width = width;
     t->height = height;
     t->pixels = buff;
@@ -104,6 +152,12 @@ int texture_create_buffer(struct texture* t, int width, int height, unsigned cha
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_REPEAT);
     glBindTexture(GL_TEXTURE_2D,0);
+}
+
+void texture_delete(struct texture* t) {
+	if(t->pixels)
+		free(t->pixels);
+	glDeleteTextures(1,&t->texture_id);
 }
 
 void texture_draw_sector(struct texture* t, float x, float y, float w, float h, float u, float v, float us, float vs) {
@@ -164,60 +218,62 @@ void texture_draw_rotated(struct texture* t, float x, float y, float w, float h,
 }
 
 void texture_draw_empty(float x, float y, float w, float h) {
-    float vertices[12] = {
-        x,y,
-        x,y-h,
-        x+w,y-h,
-        x,y,
-        x+w,y-h,
-        x+w,y
-    };
-    float texcoords[12] = {
-        0.0F,0.0F,
-        0.0F,1.0F,
-        1.0F,1.0F,
-        0.0F,0.0F,
-        1.0F,1.0F,
-        1.0F,0.0F
-    };
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glTexCoordPointer(2,GL_FLOAT,0,texcoords);
-    glVertexPointer(2,GL_FLOAT,0,vertices);
-    glDrawArrays(GL_TRIANGLES,0,6);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_VERTEX_ARRAY);
+	float vertices[12] = {
+		x,y,
+		x,y-h,
+		x+w,y-h,
+		x,y,
+		x+w,y-h,
+		x+w,y
+	};
+	float texcoords[12] = {
+		0.0F,0.0F,
+		0.0F,1.0F,
+		1.0F,1.0F,
+		0.0F,0.0F,
+		1.0F,1.0F,
+		1.0F,0.0F
+	};
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glTexCoordPointer(2,GL_FLOAT,0,texcoords);
+	glVertexPointer(2,GL_FLOAT,0,vertices);
+	glDrawArrays(GL_TRIANGLES,0,6);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 #define texture_emit_rotated(tx,ty,x,y,a) cos(a)*x-sin(a)*y+tx,sin(a)*x+cos(a)*y+ty
 
 void texture_draw_empty_rotated(float x, float y, float w, float h, float angle) {
-    float vertices[12] = {
-        texture_emit_rotated(x,y,-w/2,h/2,angle),
-        texture_emit_rotated(x,y,-w/2,-h/2,angle),
-        texture_emit_rotated(x,y,w/2,-h/2,angle),
-        texture_emit_rotated(x,y,-w/2,h/2,angle),
-        texture_emit_rotated(x,y,w/2,-h/2,angle),
-        texture_emit_rotated(x,y,w/2,h/2,angle)
-    };
-    float texcoords[12] = {
-        0.0F,0.0F,
-        0.0F,1.0F,
-        1.0F,1.0F,
-        0.0F,0.0F,
-        1.0F,1.0F,
-        1.0F,0.0F
-    };
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glTexCoordPointer(2,GL_FLOAT,0,texcoords);
-    glVertexPointer(2,GL_FLOAT,0,vertices);
-    glDrawArrays(GL_TRIANGLES,0,6);
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_VERTEX_ARRAY);
+	float vertices[12] = {
+		texture_emit_rotated(x,y,-w/2,h/2,angle),
+		texture_emit_rotated(x,y,-w/2,-h/2,angle),
+		texture_emit_rotated(x,y,w/2,-h/2,angle),
+		texture_emit_rotated(x,y,-w/2,h/2,angle),
+		texture_emit_rotated(x,y,w/2,-h/2,angle),
+		texture_emit_rotated(x,y,w/2,h/2,angle)
+	};
+	float texcoords[12] = {
+		0.0F,0.0F,
+		0.0F,1.0F,
+		1.0F,1.0F,
+		0.0F,0.0F,
+		1.0F,1.0F,
+		1.0F,0.0F
+	};
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glTexCoordPointer(2,GL_FLOAT,0,texcoords);
+	glVertexPointer(2,GL_FLOAT,0,vertices);
+	glDrawArrays(GL_TRIANGLES,0,6);
+	glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+	glDisableClientState(GL_VERTEX_ARRAY);
 }
 
 void texture_resize_pow2(struct texture* t, int min_size) {
+	if(!t->pixels)
+		return;
     int max_size = 0;
     glGetIntegerv(GL_MAX_TEXTURE_SIZE,&max_size);
     max_size = max(max_size,min_size);
@@ -241,7 +297,7 @@ void texture_resize_pow2(struct texture* t, int min_size) {
     if(t->width==w && t->height==h)
         return;
 
-    printf("original: %i:%i now: %i:%i limit: %i\n",t->width,t->height,w,h,max_size);
+    log_info("texture original: %i:%i now: %i:%i limit: %i",t->width,t->height,w,h,max_size);
 
     unsigned int* pixels_new = malloc(w*h*sizeof(unsigned int));
     CHECK_ALLOCATION_ERROR(pixels_new)
@@ -319,12 +375,20 @@ void texture_init() {
     texture_create(&texture_command,"png/command.png");
     texture_create(&texture_tracer,"png/tracer.png");
 
-
     texture_create(&texture_ui_wait,"png/ui/wait.png");
+	texture_filter(&texture_ui_wait,TEXTURE_FILTER_LINEAR);
     texture_create(&texture_ui_join,"png/ui/join.png");
     texture_create(&texture_ui_reload,"png/ui/reload.png");
     texture_create(&texture_ui_bg,"png/ui/bg.png");
     texture_create(&texture_ui_input,"png/ui/input.png");
+	texture_create(&texture_ui_box_empty,"png/ui/box_empty.png");
+	texture_create(&texture_ui_box_check,"png/ui/box_check.png");
+	texture_create(&texture_ui_arrow,"png/ui/arrow.png");
+	texture_create(&texture_ui_arrow2,"png/ui/arrow2.png");
+	texture_create(&texture_ui_flags,"png/ui/flags.png");
+	texture_filter(&texture_ui_flags,TEXTURE_FILTER_LINEAR);
+	texture_create(&texture_ui_alert,"png/ui/alert.png");
+	texture_filter(&texture_ui_alert,TEXTURE_FILTER_LINEAR);
 
 
     unsigned int* pixels = malloc(64*64*sizeof(unsigned int));
@@ -339,12 +403,12 @@ void texture_init() {
             }
         }
     }
-    texture_create_buffer(&texture_color_selection,64,64,(unsigned char*)pixels);
+    texture_create_buffer(&texture_color_selection,64,64,(unsigned char*)pixels,1);
 
-    texture_create_buffer(&texture_minimap,map_size_x,map_size_z,map_minimap);
+    texture_create_buffer(&texture_minimap,map_size_x,map_size_z,map_minimap,1);
 
     unsigned int* gradient = malloc(512*512*sizeof(unsigned int));
     CHECK_ALLOCATION_ERROR(gradient)
     texture_gradient_fog(gradient);
-    texture_create_buffer(&texture_gradient,512,512,(unsigned char*)gradient);
+    texture_create_buffer(&texture_gradient,512,512,(unsigned char*)gradient,1);
 }

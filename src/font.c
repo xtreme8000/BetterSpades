@@ -80,6 +80,9 @@ static struct font_backed* font_find(float h) {
         case FONT_SMALLFNT:
             file = file_load("fonts/Terminal.ttf");
             break;
+		default:
+			free(f.cdata);
+			return NULL;
     }
 
     while(1) {
@@ -95,7 +98,7 @@ static struct font_backed* font_find(float h) {
             f.h *= 2;
     }
 
-    printf("texsize: %i:%ipx [size %f] type: %i\n",f.w,f.h,f.size,f.type);
+    log_info("font texsize: %i:%ipx [size %f] type: %i",f.w,f.h,f.size,f.type);
 
     glGenTextures(1,&f.texture_id);
     glBindTexture(GL_TEXTURE_2D,f.texture_id);
@@ -112,6 +115,8 @@ static struct font_backed* font_find(float h) {
 float font_length(float h, char* text) {
     struct font_backed* font = font_find(h);
 
+	if(!font)
+		return 0.0F;
 
     stbtt_aligned_quad q;
     float y = h*0.75F;
@@ -136,6 +141,9 @@ void font_reset() {
 void font_render(float x, float y, float h, char* text) {
 
     struct font_backed* font = font_find(h);
+
+	if(!font)
+		return;
 
     int chars_x = 16;
     int chars_y = (font_type==FONT_SMALLFNT)?16:14;
