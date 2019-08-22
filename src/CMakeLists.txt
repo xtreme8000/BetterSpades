@@ -22,7 +22,9 @@ download_file_if_it_doesnt_exist(stb_truetype.h https://raw.githubusercontent.co
 download_file_if_it_doesnt_exist(parson.c https://raw.githubusercontent.com/kgabis/parson/master/parson.c)
 download_file_if_it_doesnt_exist(parson.h https://raw.githubusercontent.com/kgabis/parson/master/parson.h)
 download_file_if_it_doesnt_exist(http.h https://raw.githubusercontent.com/mattiasgustavsson/libs/master/http.h)
-download_file_if_it_doesnt_exist(../resources/bsresources.zip http://aos.party/bsresources.zip)
+download_file_if_it_doesnt_exist(log.h https://raw.githubusercontent.com/xtreme8000/log.c/master/src/log.h)
+download_file_if_it_doesnt_exist(log.c https://raw.githubusercontent.com/xtreme8000/log.c/master/src/log.c)
+download_file_if_it_doesnt_exist(../bsresources.zip http://aos.party/bsresources.zip)
 
 list(APPEND CLIENT_SOURCES aabb.c)
 list(APPEND CLIENT_SOURCES camera.c)
@@ -52,10 +54,15 @@ list(APPEND CLIENT_SOURCES texture.c)
 list(APPEND CLIENT_SOURCES tracer.c)
 list(APPEND CLIENT_SOURCES weapon.c)
 list(APPEND CLIENT_SOURCES window.c)
+list(APPEND CLIENT_SOURCES utils.c)
+list(APPEND CLIENT_SOURCES ping.c)
+list(APPEND CLIENT_SOURCES log.c)
 list(APPEND CLIENT_SOURCES ${BetterSpades_SOURCE_DIR}/resources/icon.rc)
 
 add_executable(client ${CLIENT_SOURCES})
 target_compile_definitions(client PRIVATE DR_WAV_IMPLEMENTATION)
+target_compile_definitions(client PRIVATE LOG_USE_COLOR)
+
 set_target_properties(
 	client PROPERTIES
 	RUNTIME_OUTPUT_DIRECTORY ${BetterSpades_SOURCE_DIR}/build/BetterSpades
@@ -71,8 +78,9 @@ find_package(OpenAL REQUIRED)
 find_package(enet REQUIRED)
 find_package(deflate REQUIRED)
 find_package(Threads REQUIRED)
+find_package(GLEW REQUIRED)
 
-target_link_libraries(client ${CMAKE_THREAD_LIBS_INIT} glfw OpenGL::GL ${OPENAL_LIBRARY} enet::enet deflate::deflate m)
+target_link_libraries(client ${CMAKE_THREAD_LIBS_INIT} glfw GLEW OpenGL::GL ${OPENAL_LIBRARY} enet::enet deflate::deflate m)
 include_directories(client ${OPENAL_INCLUDE_DIRS})
 
 add_custom_command(
@@ -86,7 +94,7 @@ add_custom_command(
 	TARGET client
 	POST_BUILD
 	COMMENT "Extracting additional third-party assets..."
-	DEPENDS ${BetterSpades_SOURCE_DIR}/resources/bsresources.zip
+	DEPENDS ${BetterSpades_SOURCE_DIR}/bsresources.zip
 	WORKING_DIRECTORY ${BetterSpades_SOURCE_DIR}/build/BetterSpades
-	COMMAND ${CMAKE_COMMAND} -E tar xzf ${BetterSpades_SOURCE_DIR}/resources/bsresources.zip
+	COMMAND ${CMAKE_COMMAND} -E tar xzf ${BetterSpades_SOURCE_DIR}/bsresources.zip
 )
