@@ -17,20 +17,6 @@
     along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define BETTERSPADES_VERSION    "v0.1.4"
-
-#define BETTERSPADES_PATCH      4
-#define BETTERSPADES_MINOR      1
-#define BETTERSPADES_MAJOR      0
-
-#define USE_GLFW
-#define USE_SOUND
-//#define USE_SDL
-
-//for android define these:
-//#define USE_TOUCH
-//#define USE_ANDROID_FILE
-
 #ifndef OPENGL_ES
 	#define GLEW_STATIC
 	#include <GL/glew.h>
@@ -38,9 +24,9 @@
 	#include <enet/enet.h>
 #else
 	#ifdef USE_SDL
-		#include "SDL2/SDL_opengles.h"
+		#include <SDL2/SDL_opengles.h>
 	#endif
-	#include "enet/enet.h"
+	#include <enet/enet.h>
 
 	void glColor3f(float r, float g, float b);
 	void glColor3ub(unsigned char r, unsigned char g, unsigned char b);
@@ -49,11 +35,11 @@
 #endif
 
 #ifdef USE_GLFW
-#include "GLFW/glfw3.h"
+#include <GLFW/glfw3.h>
 #endif
 
 #ifdef USE_SDL
-#include "SDL2/SDL.h"
+#include <SDL2/SDL.h>
 #endif
 
 #include <stdlib.h>

@@ -43,7 +43,7 @@ if (enet_FOUND)
     IMPORTED_LOCATION ${enet_LIBRARY}
     INTERFACE_INCLUDE_DIRECTORIES ${enet_INCLUDE_DIR}
   )
-  target_include_directories(enet::enet INTERFACE ${enet_INCLUDE_DIR})
+  #target_include_directories(enet::enet INTERFACE ${enet_INCLUDE_DIR})
   if (WIN32)
     set_target_properties(enet::enet PROPERTIES
       INTERFACE_LINK_LIBRARIES "ws2_32;winmm"

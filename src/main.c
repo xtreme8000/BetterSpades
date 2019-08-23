@@ -74,7 +74,7 @@ void chat_showpopup(const char* msg, float duration, int color) {
 	chat_popup_color = color;
 }
 
-void drawScene(float dt) {
+void drawScene() {
 	if(settings.ambient_occlusion) {
 		glShadeModel(GL_SMOOTH);
 	} else {
@@ -85,7 +85,11 @@ void drawScene(float dt) {
 	chunk_draw_visible();
 
 	if(settings.smooth_fog) {
-		glFogi(GL_FOG_MODE,GL_EXP2);
+		#ifdef OPENGL_ES
+			glFogx(GL_FOG_MODE,GL_EXP2);
+		#else
+			glFogi(GL_FOG_MODE,GL_EXP2);
+		#endif
 		glFogf(GL_FOG_DENSITY,0.015F);
 		glFogfv(GL_FOG_COLOR,fog_color);
 		glEnable(GL_FOG);
@@ -231,7 +235,7 @@ void display(float dt) {
 		if(!network_map_transfer) {
 
 			glx_enable_sphericalfog();
-			drawScene(dt);
+			drawScene();
 
 			grenade_update(dt);
 			tracer_update(dt);

@@ -390,6 +390,12 @@ void texture_init() {
 	texture_create(&texture_ui_alert,"png/ui/alert.png");
 	texture_filter(&texture_ui_alert,TEXTURE_FILTER_LINEAR);
 
+	#ifdef USE_TOUCH
+		texture_create(&texture_ui_knob,"png/ui/knob.png");
+		texture_filter(&texture_ui_knob,TEXTURE_FILTER_LINEAR);
+		texture_create(&texture_ui_joystick,"png/ui/joystick.png");
+		texture_filter(&texture_ui_joystick,TEXTURE_FILTER_LINEAR);
+	#endif
 
     unsigned int* pixels = malloc(64*64*sizeof(unsigned int));
     CHECK_ALLOCATION_ERROR(pixels)
