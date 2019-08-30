@@ -636,7 +636,7 @@ int main(int argc, char** argv) {
 
 	window_init();
 
-	#ifndef OPENGL_ES
+	#if !defined(OPENGL_ES) && !__APPLE__
 	if(glewInit()) {
 		log_error("Could not load extended OpenGL functions!");
 	}

@@ -18,8 +18,13 @@
 */
 
 #ifndef OPENGL_ES
+	#if __APPLE__
+	#define GL_SILENCE_DEPRECATION
+	#include <OpenGL/gl.h>
+	#else
 	#define GLEW_STATIC
 	#include <GL/glew.h>
+	#endif
 
 	#include <enet/enet.h>
 #else

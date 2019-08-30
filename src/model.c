@@ -668,7 +668,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 
 		#ifndef OPENGL_ES
 		if(glx_version) {
-			glEnable(GL_PROGRAM_POINT_SIZE);
+			glEnable(GL_PROGRAM_POINT_SIZE_EXT);
 			glUseProgram(kv6_program);
 			glUniform1f(glGetUniformLocation(kv6_program,"dist_factor"),glx_fog?1.0F/settings.render_distance:0.0F);
 			glUniform1f(glGetUniformLocation(kv6_program,"size"),1.414F*near_plane_height*kv6->scale*(len_x+len_y+len_z)/3.0F);
@@ -705,7 +705,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		#ifndef OPENGL_ES
 		if(glx_version) {
 			glUseProgram(0);
-			glDisable(GL_PROGRAM_POINT_SIZE);
+			glDisable(GL_PROGRAM_POINT_SIZE_EXT);
 		}
 		#endif
 
