@@ -18,6 +18,7 @@
 */
 
 extern unsigned int* map_colors;
+extern uint8_t* map_heights;
 extern int map_size_x;
 extern int map_size_y;
 extern int map_size_z;
@@ -46,6 +47,7 @@ float map_sunblock(int x, int y, int z);
 int map_isair(int x, int y, int z);
 unsigned int map_get(int x, int y, int z);
 unsigned int map_get_unblocked(int x, int y, int z);
+int map_height(int x, int z);
 void map_set(int x, int y, int z, unsigned int color);
 int map_cube_line(int x1, int y1, int z1, int x2, int y2, int z2, struct Point* cube_array);
 void map_vxl_setgeom(int x, int y, int z, unsigned int t, unsigned int* map);
@@ -53,4 +55,5 @@ void map_vxl_setcolor(int x, int y, int z, unsigned int t, unsigned int* map);
 int map_dirt_color(int x, int y, int z);
 int map_placedblock_color(int color);
 void map_vxl_load(unsigned char* v, unsigned int* map);
-void map_collapsing_render(float dt);
+void map_collapsing_render(void);
+void map_collapsing_update(float dt);

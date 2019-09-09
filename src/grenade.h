@@ -31,4 +31,5 @@ struct Grenade {
 
 struct Grenade* grenade_add(void);
 void grenade_update(float dt);
+void grenade_render(void);
 int grenade_inwater(struct Grenade* g);

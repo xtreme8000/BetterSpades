@@ -20,6 +20,7 @@
 #include "common.h"
 
 unsigned int* map_colors;
+uint8_t* map_heights;
 int map_size_x = 512;
 int map_size_y = 64;
 int map_size_z = 512;
@@ -171,190 +172,116 @@ void map_damaged_voxels_render() {
 }
 
 struct voxel {
-	int x,y,z;
-	char processed;
+	short x,y,z;
 };
 
-static char stack_contains(struct voxel* stack2, int len, int x, int y, int z) {
+struct map_collapsing {
+	HashTable voxels;
+	struct Velocity v;
+	struct Position p;
+	struct Position p2;
+	struct Orientation o;
+	int voxel_count;
+	int used, rotation, has_displaylist;
+	struct glx_displaylist displaylist;
+} map_collapsing_structures[32] = {0};
+
+static int stack_contains(struct voxel* stack2, int len, int x, int y, int z) {
 	for(int k=0;k<len;k++)
 		if(stack2[k].x==x && stack2[k].y==y && stack2[k].z==z)
 			return 1;
 	return 0;
 }
 
-static struct map_collapsing {
-	struct voxel* voxels;
-	unsigned int* voxels_color;
-	int voxel_count;
-	struct Velocity v;
-	struct Position p;
-	struct Position p2;
-	struct Orientation o;
-	char used, rotation, has_displaylist;
-	struct glx_displaylist displaylist;
-} map_collapsing_structures[32] = {0};
-
-static struct voxel* stack = NULL;
-static int stack_size;
-
 static void map_update_physics_sub(int x, int y, int z) {
-	//TODO: remove calls to malloc and realloc
-	if(!stack) {
-		stack_size = 4096;
-		stack = malloc(stack_size*sizeof(struct voxel));
-		CHECK_ALLOCATION_ERROR(stack)
-	}
-	int stack_depth = 1;
-	stack[0].x = x;
-	stack[0].y = y;
-	stack[0].z = z;
-	stack[0].processed = 1;
+	struct minheap openlist;
+	minheap_create(&openlist);
+	HashTable closedlist;
+	ht_setup(&closedlist,sizeof(uint32_t),sizeof(uint32_t),256);
 
-	while(1) { //find all connected blocks
-		if(map_get(x,y-1,z)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x,y-1,z)) {
-			if(y<=2) {
+	struct minheap_block start;
+	start.pos = pos_key(x,y,z);
+	minheap_put(&openlist,&start);
+
+	while(!minheap_isempty(&openlist)) { //find all connected blocks
+		struct minheap_block current = minheap_extract(&openlist);
+		uint32_t color = map_get(pos_keyx(current.pos),pos_keyy(current.pos),pos_keyz(current.pos));
+		ht_insert(&closedlist,&current.pos,&color);
+
+		int x = pos_keyx(current.pos);
+		int y = pos_keyy(current.pos);
+		int z = pos_keyz(current.pos);
+
+		int key;
+		key = pos_key(x,y-1,z);
+		if(y>=1 && !map_isair(x,y-1,z) && !ht_contains(&closedlist,&key)) {
+			if(y<=2) { //reached layer at water level = finished!
+				minheap_destroy(&openlist);
+				ht_destroy(&closedlist);
 				return;
 			}
-			stack[stack_depth].processed = 0;
-			stack[stack_depth].x = x;
-			stack[stack_depth].y = y-1;
-			stack[stack_depth++].z = z;
-			if(stack_depth==stack_size) {
-				stack_size += 4096;
-				stack = realloc(stack,stack_size*sizeof(struct voxel));
-        		CHECK_ALLOCATION_ERROR(stack)
-			}
-		}
-		if(map_get(x,y+1,z)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x,y+1,z)) {
-			stack[stack_depth].processed = 0;
-			stack[stack_depth].x = x;
-			stack[stack_depth].y = y+1;
-			stack[stack_depth++].z = z;
-			if(stack_depth==stack_size) {
-				stack_size += 4096;
-                stack = realloc(stack,stack_size*sizeof(struct voxel));
-        		CHECK_ALLOCATION_ERROR(stack)
-			}
-		}
-		if(map_get(x+1,y,z)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x+1,y,z)) {
-			stack[stack_depth].processed = 0;
-			stack[stack_depth].x = x+1;
-			stack[stack_depth].y = y;
-			stack[stack_depth++].z = z;
-			if(stack_depth==stack_size) {
-				stack_size += 4096;
-				stack = realloc(stack,stack_size*sizeof(struct voxel));
-        		CHECK_ALLOCATION_ERROR(stack)
-			}
-		}
-		if(map_get(x-1,y,z)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x-1,y,z)) {
-			stack[stack_depth].processed = 0;
-			stack[stack_depth].x = x-1;
-			stack[stack_depth].y = y;
-			stack[stack_depth++].z = z;
-			if(stack_depth==stack_size) {
-				stack_size += 4096;
-				stack = realloc(stack,stack_size*sizeof(struct voxel));
-        		CHECK_ALLOCATION_ERROR(stack)
-			}
-		}
-		if(map_get(x,y,z+1)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x,y,z+1)) {
-			stack[stack_depth].processed = 0;
-			stack[stack_depth].x = x;
-			stack[stack_depth].y = y;
-			stack[stack_depth++].z = z+1;
-			if(stack_depth==stack_size) {
-				stack_size += 4096;
-				stack = realloc(stack,stack_size*sizeof(struct voxel));
-        		CHECK_ALLOCATION_ERROR(stack)
-			}
-		}
-		if(map_get(x,y,z-1)!=0xFFFFFFFF && !stack_contains(stack,stack_depth,x,y,z-1)) {
-			stack[stack_depth].processed = 0;
-			stack[stack_depth].x = x;
-			stack[stack_depth].y = y;
-			stack[stack_depth++].z = z-1;
-			if(stack_depth==stack_size) {
-				stack_size += 4096;
-				stack = realloc(stack,stack_size*sizeof(struct voxel));
-        		CHECK_ALLOCATION_ERROR(stack)
-			}
+			minheap_put(&openlist,&(struct minheap_block){.pos=key});
 		}
 
+		key = pos_key(x,y+1,z);
+		if(y<map_size_y-1 && !map_isair(x,y+1,z) && !ht_contains(&closedlist,&key))
+			minheap_put(&openlist,&(struct minheap_block){.pos=key});
 
-		//find the next best block to work on
-		//first: lower y coord, second: equal y coord, last: everything else
-		int k, level = -1, level_best = 0;
-		for(k=0;k<stack_depth;k++) {
-			if(!stack[k].processed) {
-				if(stack[k].y==y-1 && stack[k].x==x && stack[k].z==z) {
-					level = 4;
-					level_best = k;
-					break;
-				}
-				if(stack[k].y<y && level<3) {
-					level = 3;
-					level_best = k;
-					continue;
-				}
-				if(stack[k].y==y && level<2) {
-					level = 2;
-					level_best = k;
-					continue;
-				}
-				if(level<1) {
-					level = 1;
-					level_best = k;
-					continue;
-				}
-			}
-		}
-		if(level<0) { //all connected blocks processed
-			break;
-		} else {
-			x = stack[level_best].x;
-			y = stack[level_best].y;
-			z = stack[level_best].z;
-			stack[level_best].processed = 1;
-		}
+		key = pos_key(x+1,y,z);
+		if(x<map_size_x-1 && !map_isair(x+1,y,z) && !ht_contains(&closedlist,&key))
+			minheap_put(&openlist,&(struct minheap_block){.pos=key});
+
+		key = pos_key(x-1,y,z);
+		if(y>=1 && !map_isair(x-1,y,z) && !ht_contains(&closedlist,&key))
+			minheap_put(&openlist,&(struct minheap_block){.pos=key});
+
+		key = pos_key(x,y,z+1);
+		if(z<map_size_z-1 && !map_isair(x,y,z+1) && !ht_contains(&closedlist,&key))
+			minheap_put(&openlist,&(struct minheap_block){.pos=key});
+
+		key = pos_key(x,y,z-1);
+		if(z>=1 && !map_isair(x,y,z-1) && !ht_contains(&closedlist,&key))
+			minheap_put(&openlist,&(struct minheap_block){.pos=key});
 	}
 
-	if(stack_depth==0) {
-		return;
+	minheap_destroy(&openlist);
+
+	float px = 0.0F, py = 0.0F, pz = 0.0F;
+	for(int chain=0;chain<closedlist.capacity;chain++) {
+		HTNode* node = closedlist.nodes[chain];
+		while(node) {
+			uint32_t key = *(uint32_t*)(node->key);
+			map_set(pos_keyx(key),pos_keyy(key),pos_keyz(key),0xFFFFFFFF);
+			px += pos_keyx(key);
+			py += pos_keyy(key);
+			pz += pos_keyz(key);
+
+			node = node->next;
+		}
 	}
+	px = (px/(float)closedlist.size)+0.5F;
+	py = (py/(float)closedlist.size)+0.5F;
+	pz = (pz/(float)closedlist.size)+0.5F;
+
+	sound_create(NULL,SOUND_WORLD,&sound_debris,px,py,pz);
 
 	for(int k=0;k<32;k++) {
 		if(!map_collapsing_structures[k].used) {
-			float px = 0.0F,py = 0.0F,pz = 0.0F;
-			map_collapsing_structures[k].voxels_color = malloc(stack_depth*sizeof(unsigned int));
-			CHECK_ALLOCATION_ERROR(map_collapsing_structures[k].voxels_color)
-			for(int i=0;i<stack_depth;i++) {
-				px += stack[i].x+0.5F;
-				py += stack[i].y+0.5F;
-				pz += stack[i].z+0.5F;
-				map_collapsing_structures[k].voxels_color[i] = map_get(stack[i].x,stack[i].y,stack[i].z);
-				map_set(stack[i].x,stack[i].y,stack[i].z,0xFFFFFFFF);
-			}
-
-			px /= (float)stack_depth;
-			py /= (float)stack_depth;
-			pz /= (float)stack_depth;
-
-			sound_create(NULL,SOUND_WORLD,&sound_debris,px,py,pz);
-
 			map_collapsing_structures[k].used = 1;
-			map_collapsing_structures[k].voxels = stack;
-			stack = NULL;
+			map_collapsing_structures[k].voxels = closedlist;
 			map_collapsing_structures[k].v = (struct Velocity) {0,0,0};
 			map_collapsing_structures[k].o = (struct Orientation) {0,0,0};
 			map_collapsing_structures[k].p = (struct Position) {px,py,pz};
 			map_collapsing_structures[k].p2 = (struct Position) {px,py,pz};
 			map_collapsing_structures[k].rotation = rand()&3;
-			map_collapsing_structures[k].voxel_count = stack_depth;
+			map_collapsing_structures[k].voxel_count = closedlist.size;
 			map_collapsing_structures[k].has_displaylist = 0;
 			return;
 		}
 	}
+
+	//there was no free slot!
+	ht_destroy(&closedlist);
 }
 
 int map_collapsing_cmp(const void* a, const void *b) {
@@ -368,34 +295,15 @@ int map_collapsing_cmp(const void* a, const void *b) {
 			-distance3D(A->p.x,A->p.y,A->p.z,camera_x,camera_y,camera_z);
 }
 
-void map_collapsing_render(float dt) {
+void map_collapsing_render() {
 	qsort(map_collapsing_structures,32,sizeof(struct map_collapsing),map_collapsing_cmp);
 
 	glEnable(GL_BLEND);
 	for(int k=0;k<32;k++) {
 		if(map_collapsing_structures[k].used) {
-			map_collapsing_structures[k].v.y -= dt;
-			char hit_floor = 0;
-			if(map_get(map_collapsing_structures[k].p.x+map_collapsing_structures[k].v.x*dt*32.0F,
-					   map_collapsing_structures[k].p.y+map_collapsing_structures[k].v.y*dt*32.0F,
-					   map_collapsing_structures[k].p.z+map_collapsing_structures[k].v.z*dt*32.0F)==0xFFFFFFFF) {
-				map_collapsing_structures[k].p.x += map_collapsing_structures[k].v.x*dt*32.0F;
-				map_collapsing_structures[k].p.y += map_collapsing_structures[k].v.y*dt*32.0F;
-				map_collapsing_structures[k].p.z += map_collapsing_structures[k].v.z*dt*32.0F;
-			} else {
-				map_collapsing_structures[k].v.x *= 0.7F;
-				map_collapsing_structures[k].v.y *= -0.7F;
-				map_collapsing_structures[k].v.z *= 0.7F;
-				map_collapsing_structures[k].rotation++;
-				map_collapsing_structures[k].rotation &= 3;
-				sound_create(NULL,SOUND_WORLD,&sound_bounce,map_collapsing_structures[k].p.x,map_collapsing_structures[k].p.y,map_collapsing_structures[k].p.z);
-				hit_floor = 1;
-			}
 			matrix_push();
 			matrix_identity();
 			matrix_translate(map_collapsing_structures[k].p.x,map_collapsing_structures[k].p.y,map_collapsing_structures[k].p.z);
-			map_collapsing_structures[k].o.x += ((map_collapsing_structures[k].rotation&1)?1.0F:-1.0F)*dt*75.0F;
-			map_collapsing_structures[k].o.y += ((map_collapsing_structures[k].rotation&2)?1.0F:-1.0F)*dt*75.0F;
 			matrix_rotate(map_collapsing_structures[k].o.x,1.0F,0.0F,0.0F);
 			matrix_rotate(map_collapsing_structures[k].o.y,0.0F,1.0F,0.0F);
 			matrix_upload();
@@ -418,139 +326,153 @@ void map_collapsing_render(float dt) {
 				int vertex_index = 0;
 				int color_index = 0;
 
-				for(int i=0;i<map_collapsing_structures[k].voxel_count;i++) {
-					float x = map_collapsing_structures[k].voxels[i].x-map_collapsing_structures[k].p2.x;
-					float y = map_collapsing_structures[k].voxels[i].y-map_collapsing_structures[k].p2.y;
-					float z = map_collapsing_structures[k].voxels[i].z-map_collapsing_structures[k].p2.z;
+				for(int chain=0;chain<map_collapsing_structures[k].voxels.capacity;chain++) {
+					HTNode* node = map_collapsing_structures[k].voxels.nodes[chain];
+					while(node) {
+						uint32_t key = *(uint32_t*)(node->key);
+						uint32_t color = *(uint32_t*)(node->value);
 
-					int x2 = map_collapsing_structures[k].voxels[i].x;
-					int y2 = map_collapsing_structures[k].voxels[i].y;
-					int z2 = map_collapsing_structures[k].voxels[i].z;
+						int x2 = pos_keyx(key);
+						int y2 = pos_keyy(key);
+						int z2 = pos_keyz(key);
 
-					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2,y2-1,z2)) {
-						#ifdef OPENGL_ES
-						for(int l=0;l<6;l++) {
-						#else
-						for(int l=0;l<4;l++) {
-						#endif
-							push_char4(colors,&color_index,
-								red(map_collapsing_structures[k].voxels_color[i])*0.5F,
-								green(map_collapsing_structures[k].voxels_color[i])*0.5F,
-								blue(map_collapsing_structures[k].voxels_color[i])*0.5F,0xCC);
+						float x = x2-map_collapsing_structures[k].p2.x;
+						float y = y2-map_collapsing_structures[k].p2.y;
+						float z = z2-map_collapsing_structures[k].p2.z;
+
+						key = pos_key(x2,y2-1,z2);
+						if(!ht_contains(&map_collapsing_structures[k].voxels,&key)) {
+							#ifdef OPENGL_ES
+							for(int l=0;l<6;l++) {
+							#else
+							for(int l=0;l<4;l++) {
+							#endif
+								push_char4(colors,&color_index,
+									red(color)*0.5F,
+									green(color)*0.5F,
+									blue(color)*0.5F,0xCC);
+							}
+							push_float3(vertices,&vertex_index,x,y,z);
+							push_float3(vertices,&vertex_index,x+1,y,z);
+							push_float3(vertices,&vertex_index,x+1,y,z+1);
+							#ifdef OPENGL_ES
+							push_float3(vertices,&vertex_index,x,y,z);
+							push_float3(vertices,&vertex_index,x+1,y,z+1);
+							#endif
+							push_float3(vertices,&vertex_index,x,y,z+1);
 						}
-						push_float3(vertices,&vertex_index,x,y,z);
-						push_float3(vertices,&vertex_index,x+1,y,z);
-						push_float3(vertices,&vertex_index,x+1,y,z+1);
-						#ifdef OPENGL_ES
-						push_float3(vertices,&vertex_index,x,y,z);
-						push_float3(vertices,&vertex_index,x+1,y,z+1);
-						#endif
-						push_float3(vertices,&vertex_index,x,y,z+1);
-					}
 
-					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2,y2+1,z2)) {
-						#ifdef OPENGL_ES
-						for(int l=0;l<6;l++) {
-						#else
-						for(int l=0;l<4;l++) {
-						#endif
-							push_char4(colors,&color_index,
-								red(map_collapsing_structures[k].voxels_color[i]),
-								green(map_collapsing_structures[k].voxels_color[i]),
-								blue(map_collapsing_structures[k].voxels_color[i]),0xCC);
+						key = pos_key(x2,y2+1,z2);
+						if(!ht_contains(&map_collapsing_structures[k].voxels,&key)) {
+							#ifdef OPENGL_ES
+							for(int l=0;l<6;l++) {
+							#else
+							for(int l=0;l<4;l++) {
+							#endif
+								push_char4(colors,&color_index,
+									red(color),
+									green(color),
+									blue(color),0xCC);
+							}
+							push_float3(vertices,&vertex_index,x,y+1,z);
+							push_float3(vertices,&vertex_index,x,y+1,z+1);
+							push_float3(vertices,&vertex_index,x+1,y+1,z+1);
+							#ifdef OPENGL_ES
+							push_float3(vertices,&vertex_index,x,y+1,z);
+							push_float3(vertices,&vertex_index,x+1,y+1,z+1);
+							#endif
+							push_float3(vertices,&vertex_index,x+1,y+1,z);
 						}
-						push_float3(vertices,&vertex_index,x,y+1,z);
-						push_float3(vertices,&vertex_index,x,y+1,z+1);
-						push_float3(vertices,&vertex_index,x+1,y+1,z+1);
-						#ifdef OPENGL_ES
-						push_float3(vertices,&vertex_index,x,y+1,z);
-						push_float3(vertices,&vertex_index,x+1,y+1,z+1);
-						#endif
-						push_float3(vertices,&vertex_index,x+1,y+1,z);
-					}
 
-					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2,y2,z2-1)) {
-						#ifdef OPENGL_ES
-						for(int l=0;l<6;l++) {
-						#else
-						for(int l=0;l<4;l++) {
-						#endif
-							push_char4(colors,&color_index,
-								red(map_collapsing_structures[k].voxels_color[i])*0.7F,
-								green(map_collapsing_structures[k].voxels_color[i])*0.7F,
-								blue(map_collapsing_structures[k].voxels_color[i])*0.7F,0xCC);
+						key = pos_key(x2,y2,z2-1);
+						if(!ht_contains(&map_collapsing_structures[k].voxels,&key)) {
+							#ifdef OPENGL_ES
+							for(int l=0;l<6;l++) {
+							#else
+							for(int l=0;l<4;l++) {
+							#endif
+								push_char4(colors,&color_index,
+									red(color)*0.7F,
+									green(color)*0.7F,
+									blue(color)*0.7F,0xCC);
+							}
+							push_float3(vertices,&vertex_index,x,y,z);
+							push_float3(vertices,&vertex_index,x,y+1,z);
+							push_float3(vertices,&vertex_index,x+1,y+1,z);
+							#ifdef OPENGL_ES
+							push_float3(vertices,&vertex_index,x,y,z);
+							push_float3(vertices,&vertex_index,x+1,y+1,z);
+							#endif
+							push_float3(vertices,&vertex_index,x+1,y,z);
 						}
-						push_float3(vertices,&vertex_index,x,y,z);
-						push_float3(vertices,&vertex_index,x,y+1,z);
-						push_float3(vertices,&vertex_index,x+1,y+1,z);
-						#ifdef OPENGL_ES
-						push_float3(vertices,&vertex_index,x,y,z);
-						push_float3(vertices,&vertex_index,x+1,y+1,z);
-						#endif
-						push_float3(vertices,&vertex_index,x+1,y,z);
-					}
 
-					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2,y2,z2+1)) {
-						#ifdef OPENGL_ES
-						for(int l=0;l<6;l++) {
-						#else
-						for(int l=0;l<4;l++) {
-						#endif
-							push_char4(colors,&color_index,
-								red(map_collapsing_structures[k].voxels_color[i])*0.6F,
-								green(map_collapsing_structures[k].voxels_color[i])*0.6F,
-								blue(map_collapsing_structures[k].voxels_color[i])*0.6F,0xCC);
+						key = pos_key(x2,y2,z2+1);
+						if(!ht_contains(&map_collapsing_structures[k].voxels,&key)) {
+							#ifdef OPENGL_ES
+							for(int l=0;l<6;l++) {
+							#else
+							for(int l=0;l<4;l++) {
+							#endif
+								push_char4(colors,&color_index,
+									red(color)*0.6F,
+									green(color)*0.6F,
+									blue(color)*0.6F,0xCC);
+							}
+							push_float3(vertices,&vertex_index,x,y,z+1);
+							push_float3(vertices,&vertex_index,x+1,y,z+1);
+							push_float3(vertices,&vertex_index,x+1,y+1,z+1);
+							#ifdef OPENGL_ES
+							push_float3(vertices,&vertex_index,x,y,z+1);
+							push_float3(vertices,&vertex_index,x+1,y+1,z+1);
+							#endif
+							push_float3(vertices,&vertex_index,x,y+1,z+1);
 						}
-						push_float3(vertices,&vertex_index,x,y,z+1);
-						push_float3(vertices,&vertex_index,x+1,y,z+1);
-						push_float3(vertices,&vertex_index,x+1,y+1,z+1);
-						#ifdef OPENGL_ES
-						push_float3(vertices,&vertex_index,x,y,z+1);
-						push_float3(vertices,&vertex_index,x+1,y+1,z+1);
-						#endif
-						push_float3(vertices,&vertex_index,x,y+1,z+1);
-					}
 
-					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2-1,y2,z2)) {
-						#ifdef OPENGL_ES
-						for(int l=0;l<6;l++) {
-						#else
-						for(int l=0;l<4;l++) {
-						#endif
-							push_char4(colors,&color_index,
-								red(map_collapsing_structures[k].voxels_color[i])*0.9F,
-								green(map_collapsing_structures[k].voxels_color[i])*0.9F,
-								blue(map_collapsing_structures[k].voxels_color[i])*0.9F,0xCC);
+						key = pos_key(x2-1,y2,z2);
+						if(!ht_contains(&map_collapsing_structures[k].voxels,&key)) {
+							#ifdef OPENGL_ES
+							for(int l=0;l<6;l++) {
+							#else
+							for(int l=0;l<4;l++) {
+							#endif
+								push_char4(colors,&color_index,
+									red(color)*0.9F,
+									green(color)*0.9F,
+									blue(color)*0.9F,0xCC);
+							}
+							push_float3(vertices,&vertex_index,x,y,z);
+							push_float3(vertices,&vertex_index,x,y,z+1);
+							push_float3(vertices,&vertex_index,x,y+1,z+1);
+							#ifdef OPENGL_ES
+							push_float3(vertices,&vertex_index,x,y,z);
+							push_float3(vertices,&vertex_index,x,y+1,z+1);
+							#endif
+							push_float3(vertices,&vertex_index,x,y+1,z);
 						}
-						push_float3(vertices,&vertex_index,x,y,z);
-						push_float3(vertices,&vertex_index,x,y,z+1);
-						push_float3(vertices,&vertex_index,x,y+1,z+1);
-						#ifdef OPENGL_ES
-						push_float3(vertices,&vertex_index,x,y,z);
-						push_float3(vertices,&vertex_index,x,y+1,z+1);
-						#endif
-						push_float3(vertices,&vertex_index,x,y+1,z);
-					}
 
-					if(!stack_contains(map_collapsing_structures[k].voxels,map_collapsing_structures[k].voxel_count,x2+1,y2,z2)) {
-						#ifdef OPENGL_ES
-						for(int l=0;l<6;l++) {
-						#else
-						for(int l=0;l<4;l++) {
-						#endif
-							push_char4(colors,&color_index,
-								red(map_collapsing_structures[k].voxels_color[i])*0.8F,
-								green(map_collapsing_structures[k].voxels_color[i])*0.8F,
-								blue(map_collapsing_structures[k].voxels_color[i])*0.8F,0xCC);
+						key = pos_key(x2+1,y2,z2);
+						if(!ht_contains(&map_collapsing_structures[k].voxels,&key)) {
+							#ifdef OPENGL_ES
+							for(int l=0;l<6;l++) {
+							#else
+							for(int l=0;l<4;l++) {
+							#endif
+								push_char4(colors,&color_index,
+									red(color)*0.8F,
+									green(color)*0.8F,
+									blue(color)*0.8F,0xCC);
+							}
+							push_float3(vertices,&vertex_index,x+1,y,z);
+							push_float3(vertices,&vertex_index,x+1,y+1,z);
+							push_float3(vertices,&vertex_index,x+1,y+1,z+1);
+							#ifdef OPENGL_ES
+							push_float3(vertices,&vertex_index,x+1,y,z);
+							push_float3(vertices,&vertex_index,x+1,y+1,z+1);
+							#endif
+							push_float3(vertices,&vertex_index,x+1,y,z+1);
 						}
-						push_float3(vertices,&vertex_index,x+1,y,z);
-						push_float3(vertices,&vertex_index,x+1,y+1,z);
-						push_float3(vertices,&vertex_index,x+1,y+1,z+1);
-						#ifdef OPENGL_ES
-						push_float3(vertices,&vertex_index,x+1,y,z);
-						push_float3(vertices,&vertex_index,x+1,y+1,z+1);
-						#endif
-						push_float3(vertices,&vertex_index,x+1,y,z+1);
+
+						node = node->next;
 					}
 				}
 				glx_displaylist_update(&map_collapsing_structures[k].displaylist,vertex_index/3,GLX_DISPLAYLIST_ENHANCED,colors,vertices,NULL);
@@ -562,40 +484,103 @@ void map_collapsing_render(float dt) {
 			glColorMask(1,1,1,1);
 			glx_displaylist_draw(&map_collapsing_structures[k].displaylist,GLX_DISPLAYLIST_ENHANCED);
 
-			if(absf(map_collapsing_structures[k].v.y)<0.1F && hit_floor) {
-				for(int i=0;i<map_collapsing_structures[k].voxel_count;i++) {
-					float v[4] = {map_collapsing_structures[k].voxels[i].x-map_collapsing_structures[k].p2.x+0.5F,
-								  map_collapsing_structures[k].voxels[i].y-map_collapsing_structures[k].p2.y+0.5F,
-								  map_collapsing_structures[k].voxels[i].z-map_collapsing_structures[k].p2.z+0.5F,
-								  1.0F};
-					matrix_vector(v);
-					particle_create(map_collapsing_structures[k].voxels_color[i],v[0],v[1],v[2],2.5F,1.0F,2,0.25F,0.4F);
-				}
-				free(map_collapsing_structures[k].voxels);
-				free(map_collapsing_structures[k].voxels_color);
-
-				glx_displaylist_destroy(&map_collapsing_structures[k].displaylist);
-				map_collapsing_structures[k].used = 0;
-			}
-
 			matrix_pop();
 		}
 	}
 	glDisable(GL_BLEND);
 }
 
+void map_collapsing_update(float dt) {
+	for(int k=0;k<32;k++) {
+		if(map_collapsing_structures[k].used) {
+			map_collapsing_structures[k].v.y -= dt;
+
+			matrix_push();
+			matrix_identity();
+			matrix_translate(map_collapsing_structures[k].p.x,map_collapsing_structures[k].p.y,map_collapsing_structures[k].p.z);
+			matrix_rotate(map_collapsing_structures[k].o.x,1.0F,0.0F,0.0F);
+			matrix_rotate(map_collapsing_structures[k].o.y,0.0F,1.0F,0.0F);
+
+			int collision = 0;
+			for(int chain=0;chain<map_collapsing_structures[k].voxels.capacity && !collision;chain++) {
+				HTNode* node = map_collapsing_structures[k].voxels.nodes[chain];
+				while(node) {
+					uint32_t key = *(uint32_t*)(node->key);
+
+					float v[4] = {pos_keyx(key)+map_collapsing_structures[k].v.x*dt*32.0F-map_collapsing_structures[k].p2.x+0.5F,
+								  pos_keyy(key)+map_collapsing_structures[k].v.y*dt*32.0F-map_collapsing_structures[k].p2.y+0.5F,
+								  pos_keyz(key)+map_collapsing_structures[k].v.z*dt*32.0F-map_collapsing_structures[k].p2.z+0.5F,
+								  1.0F};
+					matrix_vector(v);
+					if(!map_isair(v[0],v[1],v[2])) {
+						collision = 1;
+						break;
+					}
+
+					node = node->next;
+				}
+			}
+
+			if(!collision) {
+				map_collapsing_structures[k].p.x += map_collapsing_structures[k].v.x*dt*32.0F;
+				map_collapsing_structures[k].p.y += map_collapsing_structures[k].v.y*dt*32.0F;
+				map_collapsing_structures[k].p.z += map_collapsing_structures[k].v.z*dt*32.0F;
+			} else {
+				map_collapsing_structures[k].v.x *= 0.85F;
+				map_collapsing_structures[k].v.y *= -0.85F;
+				map_collapsing_structures[k].v.z *= 0.85F;
+				map_collapsing_structures[k].rotation++;
+				map_collapsing_structures[k].rotation &= 3;
+				sound_create(NULL,SOUND_WORLD,&sound_bounce,map_collapsing_structures[k].p.x,map_collapsing_structures[k].p.y,map_collapsing_structures[k].p.z);
+
+				if(absf(map_collapsing_structures[k].v.y)<0.1F) {
+					for(int chain=0;chain<map_collapsing_structures[k].voxels.capacity;chain++) {
+						HTNode* node = map_collapsing_structures[k].voxels.nodes[chain];
+						while(node) {
+							uint32_t key = *(uint32_t*)(node->key);
+							uint32_t color = *(uint32_t*)(node->value);
+
+							float v[4] = {pos_keyx(key)-map_collapsing_structures[k].p2.x+0.5F,
+										  pos_keyy(key)-map_collapsing_structures[k].p2.y+0.5F,
+										  pos_keyz(key)-map_collapsing_structures[k].p2.z+0.5F,
+										  1.0F};
+							matrix_vector(v);
+							particle_create(color,v[0],v[1],v[2],2.5F,1.0F,2,0.25F,0.4F);
+
+							node = node->next;
+						}
+					}
+
+					matrix_pop();
+
+					ht_destroy(&map_collapsing_structures[k].voxels);
+					glx_displaylist_destroy(&map_collapsing_structures[k].displaylist);
+
+					map_collapsing_structures[k].used = 0;
+					continue;
+				}
+			}
+
+			matrix_pop();
+
+			map_collapsing_structures[k].o.x += ((map_collapsing_structures[k].rotation&1)?1.0F:-1.0F)*dt*75.0F;
+			map_collapsing_structures[k].o.y += ((map_collapsing_structures[k].rotation&2)?1.0F:-1.0F)*dt*75.0F;
+		}
+	}
+}
+
 void map_update_physics(int x, int y, int z) {
-	if(map_get(x+1,y,z)!=0xFFFFFFFF)
+	if(!map_isair(x+1,y,z))
 		map_update_physics_sub(x+1,y,z);
-	if(map_get(x-1,y,z)!=0xFFFFFFFF)
+	if(!map_isair(x-1,y,z))
 		map_update_physics_sub(x-1,y,z);
-	if(map_get(x,y,z+1)!=0xFFFFFFFF)
+	if(!map_isair(x,y,z+1))
 		map_update_physics_sub(x,y,z+1);
-	if(map_get(x,y,z-1)!=0xFFFFFFFF)
+	if(!map_isair(x,y,z-1))
 		map_update_physics_sub(x,y,z-1);
-	if(map_get(x,y-1,z)!=0xFFFFFFFF)
+	if(!map_isair(x,y-1,z))
 		map_update_physics_sub(x,y-1,z);
-	if(map_get(x,y+1,z)!=0xFFFFFFFF)
+	if(!map_isair(x,y+1,z))
 		map_update_physics_sub(x,y+1,z);
 }
 
@@ -605,7 +590,7 @@ float map_sunblock(int x, int y, int z) {
 	int i = 127;
 
 	while(dec && y<64) {
-		if((map_get(x,++y,--z)&0xFFFFFFFF)!=0xFFFFFFFF)
+		if(!map_isair(x,++y,--z))
 			i -= dec;
 		dec -= 2;
 	}
@@ -626,6 +611,15 @@ unsigned int map_get(int x, int y, int z) {
 	return ret;
 }
 
+int map_height(int x, int z) {
+	if(x<0 || z<0 || x>=map_size_x || z>=map_size_z)
+		return 0;
+	pthread_rwlock_rdlock(&chunk_map_locks[x+z*map_size_x]);
+	int ret = map_heights[x+z*map_size_x];
+	pthread_rwlock_unlock(&chunk_map_locks[x+z*map_size_x]);
+	return ret;
+}
+
 unsigned int map_get_unblocked(int x, int y, int z) {
 	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_y || z>=map_size_z)
 		return 0xFFFFFFFF;
@@ -637,14 +631,22 @@ void map_set(int x, int y, int z, unsigned int color) {
 	if(x<0 || y<0 || z<0 || x>=map_size_x || y>=map_size_y || z>=map_size_z)
 		return;
 
-	/*int err = pthread_rwlock_trywrlock(&chunk_map_lock);
-	if(err!=0) {
-		log_debug("pthread: %i",err);
-		return;
-	}*/
-	pthread_rwlock_wrlock(&chunk_map_locks[x+z*map_size_x]);
+	int offset = x+z*map_size_x;
+	pthread_rwlock_wrlock(&chunk_map_locks[offset]);
 	map_colors[x+(y*map_size_z+z)*map_size_x] = color;
-	pthread_rwlock_unlock(&chunk_map_locks[x+z*map_size_x]);
+	if(color!=0xFFFFFFFF) {
+		map_heights[offset] = max(map_heights[offset],y);
+	} else {
+		if(map_heights[offset]==y) {
+			for(int k=y-1;k>=0;k--) {
+				if(map_get_unblocked(x,k,z)!=0xFFFFFFFF || k==0) {
+					map_heights[offset] = k;
+					break;
+				}
+			}
+		}
+	}
+	pthread_rwlock_unlock(&chunk_map_locks[offset]);
 
 	chunk_block_update(x,y,z);
 
@@ -816,6 +818,7 @@ void map_vxl_load(unsigned char* v, unsigned int* map) {
 				map_vxl_setgeom(x,y,z,map_dirt_color(x,map_size_y-1-z,y),map);
 			}
 			z = 0;
+			map_heights[x+y*map_size_x] = map_size_y-1-v[1];
 			while(1) {
 				unsigned int *color;
 				int i;

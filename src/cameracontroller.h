@@ -25,3 +25,8 @@ void cameracontroller_fps(float dt);
 void cameracontroller_spectator(float dt);
 void cameracontroller_bodyview(float dt);
 void cameracontroller_selection(float dt);
+
+void cameracontroller_fps_render(void);
+void cameracontroller_spectator_render(void);
+void cameracontroller_bodyview_render(void);
+void cameracontroller_selection_render(void);

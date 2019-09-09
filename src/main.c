@@ -100,7 +100,7 @@ void drawScene() {
 	matrix_upload();
 	particle_render();
 	tracer_render();
-
+	grenade_render();
 	map_damaged_voxels_render();
 	matrix_upload();
 
@@ -172,8 +172,7 @@ void drawScene() {
 	}
 }
 
-float last_cy;
-void display(float dt) {
+void display() {
 	if(network_map_transfer) {
 		glClearColor(0.0F,0.0F,0.0F,1.0F);
 	} else {
@@ -188,18 +187,6 @@ void display(float dt) {
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		player_move(&players[local_player_id],dt,local_player_id);
-		last_cy = players[local_player_id].physics.eye.y-players[local_player_id].physics.velocity.y*0.4F;
-
-		//following if-statement disables smooth crouching on local player
-		if(camera_mode==CAMERAMODE_FPS && chat_input_mode==CHAT_NO_INPUT) {
-			if(!players[local_player_id].input.keys.crouch && window_key_down(WINDOW_KEY_CROUCH) && !players[local_player_id].physics.airborne) {
-				players[local_player_id].pos.y -= 0.9F;
-				players[local_player_id].physics.eye.y -= 0.9F;
-				last_cy -= 0.9F;
-			}
-		}
-
 		if(settings.opengl14) {
 			matrix_select(matrix_projection);
 			matrix_identity();
@@ -208,7 +195,7 @@ void display(float dt) {
 
 			matrix_select(matrix_view);
 			matrix_identity();
-			camera_apply(dt);
+			camera_apply();
 			matrix_select(matrix_model);
 			matrix_identity();
 
@@ -224,7 +211,7 @@ void display(float dt) {
 			matrix_load(matrix_view);
 			matrix_vector(map_sun);
 			matrix_pop();
-			float map_sun_len = sqrt(map_sun[0]*map_sun[0]+map_sun[1]*map_sun[1]+map_sun[2]*map_sun[2]);
+			float map_sun_len = len3D(map_sun[0],map_sun[1],map_sun[2]);
 			map_sun[0] /= map_sun_len;
 			map_sun[1] /= map_sun_len;
 			map_sun[2] /= map_sun_len;
@@ -237,16 +224,12 @@ void display(float dt) {
 			glx_enable_sphericalfog();
 			drawScene();
 
-			grenade_update(dt);
-			tracer_update(dt);
-
 			int render_fpv = (camera_mode==CAMERAMODE_FPS) || ((camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR) && cameracontroller_bodyview_mode);
 			int is_local = (camera_mode==CAMERAMODE_FPS) || (cameracontroller_bodyview_player==local_player_id);
 			int local_id = (camera_mode==CAMERAMODE_FPS)?local_player_id:cameracontroller_bodyview_player;
 
-			if(players[local_player_id].items_show && window_time()-players[local_player_id].items_show_start>=0.5F) {
+			if(players[local_player_id].items_show && window_time()-players[local_player_id].items_show_start>=0.5F)
 				players[local_player_id].items_show = 0;
-			}
 
 			if(camera_mode==CAMERAMODE_FPS) {
 				weapon_update();
@@ -320,9 +303,8 @@ void display(float dt) {
 					int tmp = cubes[amount-1].y;
 					cubes[amount-1].y = 63-cubes[amount-1].z;
 					cubes[amount-1].z = tmp;
-					if(amount<=(is_local?local_player_blocks:50)) {
+					if(amount<=(is_local?local_player_blocks:50))
 						glColor3f(1.0F,1.0F,1.0F);
-					}
 
                     short vertices[72] = {
                         cubes[amount-1].x,cubes[amount-1].y,cubes[amount-1].z,
@@ -364,9 +346,8 @@ void display(float dt) {
 
 			if(window_time()-players[local_player_id].item_disabled<0.3F) {
 				players[local_player_id].item_showup = window_time();
-				if(players[local_player_id].input.buttons.lmb) {
+				if(players[local_player_id].input.buttons.lmb)
 					players[local_player_id].input.buttons.lmb_start = window_time();
-				}
 				players[local_player_id].input.buttons.rmb = 0;
 			} else {
 				if(hud_active->render_localplayer) {
@@ -399,15 +380,14 @@ void display(float dt) {
 
 			matrix_upload_p();
 			matrix_upload();
-			player_update(dt);
+			player_render_all();
 
 			matrix_upload();
-			map_collapsing_render(dt);
+			map_collapsing_render();
 			matrix_upload();
 
-			if(!map_isair(camera_x,camera_y,camera_z)) {
+			if(!map_isair(camera_x,camera_y,camera_z))
 				glClear(GL_COLOR_BUFFER_BIT);
-			}
 
 			glx_disable_sphericalfog();
 			if(settings.smooth_fog)
@@ -435,9 +415,8 @@ void display(float dt) {
 	if(hud_active->render_2D)
 		hud_active->render_2D(scalex,scalef);
 
-	if(settings.multisamples>0) {
+	if(settings.multisamples>0)
 		glEnable(GL_MULTISAMPLE);
-	}
 }
 
 void init() {
@@ -458,6 +437,9 @@ void init() {
 	map_colors = malloc(map_size_x*map_size_y*map_size_z*sizeof(unsigned int));
 	CHECK_ALLOCATION_ERROR(map_colors)
 	memset(map_colors,(unsigned int)0xFFFFFFFF,map_size_x*map_size_y*map_size_z);
+
+	map_heights = malloc(map_size_x*map_size_z*sizeof(uint8_t));
+	CHECK_ALLOCATION_ERROR(map_heights)
 
 	map_minimap = malloc(map_size_x*map_size_z*sizeof(unsigned char)*4);
 	CHECK_ALLOCATION_ERROR(map_minimap)
@@ -540,9 +522,8 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
 		glReadPixels(0,0,settings.window_width,settings.window_height,GL_RGBA,GL_UNSIGNED_BYTE,pic_data);
 
 		for(int y=0;y<settings.window_height;y++) { //mirror image (top-bottom)
-            for(int x=0;x<settings.window_width;x++) {
-                pic_data[(x+(settings.window_height-y-1)*settings.window_width)*4+3] = 255;
-            }
+			for(int x=0;x<settings.window_width;x++)
+				pic_data[(x+(settings.window_height-y-1)*settings.window_width)*4+3] = 255;
 			memcpy(pic_data+settings.window_width*4*(y+settings.window_height),
 				   pic_data+settings.window_width*4*(settings.window_height-y-1),
 				   settings.window_width*4);
@@ -637,9 +618,8 @@ int main(int argc, char** argv) {
 	window_init();
 
 	#ifndef OPENGL_ES
-	if(glewInit()) {
+	if(glewInit())
 		log_error("Could not load extended OpenGL functions!");
-	}
 	#endif
 
 	log_info("Vendor: %s",glGetString(GL_VENDOR));
@@ -678,16 +658,38 @@ int main(int argc, char** argv) {
 	}
 
 	float last_frame_start = 0.0F;
+	double physics_time_fixed = 0.0F;
+	double physics_time_fast = 0.0F;
 	while(!window_closed()) {
 		float dt = window_time()-last_frame_start;
 		last_frame_start = window_time();
 
-		display(dt);
+		physics_time_fast += dt;
+		physics_time_fixed += dt;
 
-		particle_update(dt);
+		//these run at exactly ~60fps
+		#define PHYSICS_STEP_TIME 0.016
+		while(physics_time_fixed>=PHYSICS_STEP_TIME) {
+			physics_time_fixed -= PHYSICS_STEP_TIME;
+			player_update(PHYSICS_STEP_TIME,1); //just physics tick
+			grenade_update(PHYSICS_STEP_TIME);
+		}
+
+		//these run at min. ~60fps but as fast as possible
+		while(physics_time_fast>0) {
+			double step = min(dt,PHYSICS_STEP_TIME);
+			physics_time_fast -= step;
+			player_update(step,0); //smooth orientation update
+			camera_update(step);
+			tracer_update(step);
+			particle_update(step);
+			map_collapsing_update(step);
+		}
+
+		display();
+
 		sound_update();
 		network_update();
-
 		window_update();
 
 		if(settings.vsync>1 && (window_time()-last_frame_start)<(1.0F/settings.vsync)) {

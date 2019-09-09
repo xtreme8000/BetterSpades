@@ -60,6 +60,8 @@
 #include "libdeflate.h"
 #include "ini.h"
 #include "log.h"
+#include "hashtable.h"
+#include "minheap.h"
 
 #ifdef _WIN32
 #define OS_WINDOWS

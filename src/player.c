@@ -231,7 +231,24 @@ float player_section_height(int section) {
     }
 }
 
-void player_update(float dt) {
+void player_update(float dt, int locked) {
+	for(int k=0;k<PLAYERS_MAX;k++) {
+		if(players[k].connected) {
+			if(locked) {
+				player_move(&players[k],dt,k);
+			} else {
+				if(k!=local_player_id) {
+					//smooth out player orientation
+					players[k].orientation_smooth.x = players[k].orientation_smooth.x*pow(0.9F,dt*60.0F)+players[k].orientation.x*pow(0.1F,dt*60.0F);
+					players[k].orientation_smooth.y = players[k].orientation_smooth.y*pow(0.9F,dt*60.0F)+players[k].orientation.y*pow(0.1F,dt*60.0F);
+					players[k].orientation_smooth.z = players[k].orientation_smooth.z*pow(0.9F,dt*60.0F)+players[k].orientation.z*pow(0.1F,dt*60.0F);
+				}
+			}
+		}
+	}
+}
+
+void player_render_all() {
     player_intersection_type = -1;
     player_intersection_dist = 1024.0F;
 
@@ -244,13 +261,6 @@ void player_update(float dt) {
     ray.direction.z = cos(camera_rot_x)*sin(camera_rot_y);
 
     for(int k=0;k<PLAYERS_MAX;k++) {
-        //smooth out player orientation
-        if(players[k].connected && k!=local_player_id) {
-            players[k].orientation_smooth.x = players[k].orientation_smooth.x*pow(0.9F,dt*60.0F)+players[k].orientation.x*pow(0.1F,dt*60.0F);
-            players[k].orientation_smooth.y = players[k].orientation_smooth.y*pow(0.9F,dt*60.0F)+players[k].orientation.y*pow(0.1F,dt*60.0F);
-            players[k].orientation_smooth.z = players[k].orientation_smooth.z*pow(0.9F,dt*60.0F)+players[k].orientation.z*pow(0.1F,dt*60.0F);
-        }
-
         if(!players[k].input.buttons.lmb && !players[k].input.buttons.rmb) {
             players[k].spade_used = 0;
             if(players[k].spade_use_type==1)
@@ -350,7 +360,6 @@ void player_update(float dt) {
                     }
                 }
             }
-			player_move(&players[k],dt,k);
 
             if(players[k].alive && players[k].held_item==TOOL_GUN && players[k].input.buttons.lmb) {
                 if(window_time()-players[k].gun_shoot_timer>weapon_delay(players[k].weapon) && players[k].ammo>0) {

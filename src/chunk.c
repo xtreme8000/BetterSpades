@@ -63,6 +63,7 @@ void chunk_init() {
 		chunk_workers[k].vertex_data = NULL;
 		chunk_workers[k].color_data = NULL;
 		pthread_mutex_init(&chunk_workers[k].state_lock,NULL);
+		pthread_cond_init(&chunk_workers[k].can_work,NULL);
 		pthread_create(&chunk_workers[k].thread,NULL,chunk_generate,&chunk_workers[k]);
 	}
 }
@@ -137,42 +138,34 @@ void* chunk_generate(void* data) {
 	struct chunk_worker* worker = (struct chunk_worker*)data;
 
 	while(1) {
-		int state = -1;
 		pthread_mutex_lock(&worker->state_lock);
-		state = worker->state;
+		while(worker->state!=CHUNK_WORKERSTATE_BUSY)
+			pthread_cond_wait(&worker->can_work,&worker->state_lock);
 		pthread_mutex_unlock(&worker->state_lock);
 
-		if(state==CHUNK_WORKERSTATE_BUSY) {
-			pthread_mutex_lock(&chunk_minimap_lock);
-			for(int x=worker->chunk_x;x<worker->chunk_x+CHUNK_SIZE;x++) {
-				for(int z=worker->chunk_y;z<worker->chunk_y+CHUNK_SIZE;z++) {
-					if((x%64)>0 && (z%64)>0) {
-						pthread_rwlock_rdlock(&chunk_map_locks[x+z*map_size_x]);
-						for(int y=map_size_y-1;y>=0;y--) {
-							if(map_colors[x+(y*map_size_z+z)*map_size_x]!=0xFFFFFFFF) {
-								map_minimap[(x+z*map_size_x)*4+0] = red(map_colors[x+(y*map_size_z+z)*map_size_x]);
-								map_minimap[(x+z*map_size_x)*4+1] = green(map_colors[x+(y*map_size_z+z)*map_size_x]);
-								map_minimap[(x+z*map_size_x)*4+2] = blue(map_colors[x+(y*map_size_z+z)*map_size_x]);
-								break;
-							}
-						}
-						pthread_rwlock_unlock(&chunk_map_locks[x+z*map_size_x]);
-					}
+		pthread_mutex_lock(&chunk_minimap_lock);
+		for(int x=worker->chunk_x;x<worker->chunk_x+CHUNK_SIZE;x++) {
+			for(int z=worker->chunk_y;z<worker->chunk_y+CHUNK_SIZE;z++) {
+				if((x%64)>0 && (z%64)>0) {
+					pthread_rwlock_rdlock(&chunk_map_locks[x+z*map_size_x]);
+					uint32_t color = map_colors[x+(map_heights[x+z*map_size_x]*map_size_z+z)*map_size_x];
+					map_minimap[(x+z*map_size_x)*4+0] = red(color);
+					map_minimap[(x+z*map_size_x)*4+1] = green(color);
+					map_minimap[(x+z*map_size_x)*4+2] = blue(color);
+					pthread_rwlock_unlock(&chunk_map_locks[x+z*map_size_x]);
 				}
 			}
-			pthread_mutex_unlock(&chunk_minimap_lock);
-
-			if(settings.greedy_meshing)
-				chunk_generate_greedy(worker);
-			else
-				chunk_generate_naive(worker);
-
-			pthread_mutex_lock(&worker->state_lock);
-			worker->state = CHUNK_WORKERSTATE_FINISHED;
-			pthread_mutex_unlock(&worker->state_lock);
 		}
+		pthread_mutex_unlock(&chunk_minimap_lock);
 
-		usleep(10);
+		if(settings.greedy_meshing)
+			chunk_generate_greedy(worker);
+		else
+			chunk_generate_naive(worker);
+
+		pthread_mutex_lock(&worker->state_lock);
+		worker->state = CHUNK_WORKERSTATE_FINISHED;
+		pthread_mutex_unlock(&worker->state_lock);
 	}
 	return NULL;
 }
@@ -1054,7 +1047,7 @@ void chunk_update_all() {
 			glBindTexture(GL_TEXTURE_2D,0);
 		}
 		if(chunk_workers[j].state==CHUNK_WORKERSTATE_IDLE && chunk_geometry_changed_lenght>0) {
-			float closest_dist = 1e10;
+			float closest_dist = FLT_MAX;
 			int closest_index = 0;
 			for(int k=0;k<chunk_geometry_changed_lenght;k++) {
 				int chunk_x = (chunk_geometry_changed[k]%CHUNKS_PER_DIM)*CHUNK_SIZE;
@@ -1077,6 +1070,9 @@ void chunk_update_all() {
 			chunk_workers[j].state = CHUNK_WORKERSTATE_BUSY;
 			chunks[chunk_geometry_changed[closest_index]].last_update = window_time();
 			chunks[chunk_geometry_changed[closest_index]].created = 1;
+
+			pthread_cond_signal(&chunk_workers[j].can_work);
+
 			for(int i=closest_index;i<chunk_geometry_changed_lenght-1;i++) {
 				chunk_geometry_changed[i] = chunk_geometry_changed[i+1];
 			}

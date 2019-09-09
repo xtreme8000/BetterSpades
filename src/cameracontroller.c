@@ -23,6 +23,7 @@ int cameracontroller_bodyview_mode = 0;
 int cameracontroller_bodyview_player = 0;
 float cameracontroller_bodyview_zoom = 0.0F;
 
+float last_cy;
 void cameracontroller_fps(float dt) {
     players[local_player_id].connected = 1;
 	players[local_player_id].alive = 1;
@@ -54,6 +55,8 @@ void cameracontroller_fps(float dt) {
 	}
 	#endif
 
+	last_cy = players[local_player_id].physics.eye.y-players[local_player_id].physics.velocity.y*0.4F;
+
     if(chat_input_mode==CHAT_NO_INPUT) {
     	players[local_player_id].input.keys.up = window_key_down(WINDOW_KEY_UP);
     	players[local_player_id].input.keys.down = window_key_down(WINDOW_KEY_DOWN);
@@ -62,18 +65,24 @@ void cameracontroller_fps(float dt) {
         if(players[local_player_id].input.keys.crouch && !window_key_down(WINDOW_KEY_CROUCH) && player_uncrouch(&players[local_player_id])) {
             players[local_player_id].input.keys.crouch = 0;
         }
-        if(window_key_down(WINDOW_KEY_CROUCH)) {
-            players[local_player_id].input.keys.crouch = 1;
-        }
-    	//players[local_player_id].input.keys.crouch = window_key_down(WINDOW_KEY_CROUCH);
-    	players[local_player_id].input.keys.sprint = window_key_down(WINDOW_KEY_SPRINT);
-        players[local_player_id].input.keys.jump = window_key_down(WINDOW_KEY_SPACE);
-        players[local_player_id].input.keys.sneak = window_key_down(WINDOW_KEY_SNEAK);
 
-        if(window_key_down(WINDOW_KEY_SPACE) && !players[local_player_id].physics.airborne) {
-            players[local_player_id].physics.jump = 1;
-        }
-    }
+		if(window_key_down(WINDOW_KEY_CROUCH)) {
+			//following if-statement disables smooth crouching on local player
+			if(!players[local_player_id].input.keys.crouch && !players[local_player_id].physics.airborne) {
+				players[local_player_id].pos.y -= 0.9F;
+				players[local_player_id].physics.eye.y -= 0.9F;
+				last_cy -= 0.9F;
+			}
+			players[local_player_id].input.keys.crouch = 1;
+		}
+		players[local_player_id].input.keys.sprint = window_key_down(WINDOW_KEY_SPRINT);
+		players[local_player_id].input.keys.jump = window_key_down(WINDOW_KEY_SPACE);
+		players[local_player_id].input.keys.sneak = window_key_down(WINDOW_KEY_SNEAK);
+
+		if(window_key_down(WINDOW_KEY_SPACE) && !players[local_player_id].physics.airborne) {
+			players[local_player_id].physics.jump = 1;
+		}
+	}
 
     camera_x = players[local_player_id].physics.eye.x;
     camera_y = players[local_player_id].physics.eye.y+player_height(&players[local_player_id]);
@@ -114,8 +123,10 @@ void cameracontroller_fps(float dt) {
     camera_vx = players[local_player_id].physics.velocity.x;
     camera_vy = players[local_player_id].physics.velocity.y;
     camera_vz = players[local_player_id].physics.velocity.z;
+}
 
-    matrix_lookAt(camera_x,camera_y,camera_z,camera_x+sin(camera_rot_x)*sin(camera_rot_y),camera_y+cos(camera_rot_y),camera_z+cos(camera_rot_x)*sin(camera_rot_y),0.0F,1.0F,0.0F);
+void cameracontroller_fps_render() {
+	matrix_lookAt(camera_x,camera_y,camera_z,camera_x+sin(camera_rot_x)*sin(camera_rot_y),camera_y+cos(camera_rot_y),camera_z+cos(camera_rot_x)*sin(camera_rot_y),0.0F,1.0F,0.0F);
 }
 
 void cameracontroller_spectator(float dt) {
@@ -206,21 +217,27 @@ void cameracontroller_spectator(float dt) {
 		camera_vx = p->physics.velocity.x;
 		camera_vy = p->physics.velocity.y;
 		camera_vz = p->physics.velocity.z;
+	} else {
+		camera_x += camera_movement_x;
+		camera_y += camera_movement_y;
+		camera_z += camera_movement_z;
+		camera_vx = camera_movement_x;
+		camera_vy = camera_movement_y;
+		camera_vz = camera_movement_z;
+	}
+}
 
-		float l = sqrt(distance3D(p->orientation_smooth.x,p->orientation_smooth.y,p->orientation_smooth.z,0,0,0));
+void cameracontroller_spectator_render() {
+	if(cameracontroller_bodyview_mode && players[cameracontroller_bodyview_player].alive) {
+		struct Player* p = &players[cameracontroller_bodyview_player];
+		float l = len3D(p->orientation_smooth.x,p->orientation_smooth.y,p->orientation_smooth.z);
 		float ox = p->orientation_smooth.x/l;
 		float oy = p->orientation_smooth.y/l;
 		float oz = p->orientation_smooth.z/l;
 
 		matrix_lookAt(camera_x,camera_y,camera_z,camera_x+ox,camera_y+oy,camera_z+oz,0.0F,1.0F,0.0F);
 	} else {
-		camera_x += camera_movement_x;
-		camera_y += camera_movement_y;
-		camera_z += camera_movement_z;
-	    camera_vx = camera_movement_x;
-	    camera_vy = camera_movement_y;
-	    camera_vz = camera_movement_z;
-	    matrix_lookAt(camera_x,camera_y,camera_z,camera_x+sin(camera_rot_x)*sin(camera_rot_y),camera_y+cos(camera_rot_y),camera_z+cos(camera_rot_x)*sin(camera_rot_y),0.0F,1.0F,0.0F);
+		matrix_lookAt(camera_x,camera_y,camera_z,camera_x+sin(camera_rot_x)*sin(camera_rot_y),camera_y+cos(camera_rot_y),camera_z+cos(camera_rot_x)*sin(camera_rot_y),0.0F,1.0F,0.0F);
 	}
 }
 
@@ -281,7 +298,12 @@ void cameracontroller_bodyview(float dt) {
 		camera_vx = p->physics.velocity.x;
 		camera_vy = p->physics.velocity.y;
 		camera_vz = p->physics.velocity.z;
+	}
+}
 
+void cameracontroller_bodyview_render() {
+	if(cameracontroller_bodyview_mode && players[cameracontroller_bodyview_player].alive) {
+		struct Player* p = &players[cameracontroller_bodyview_player];
 		float l = sqrt(distance3D(p->orientation_smooth.x,p->orientation_smooth.y,p->orientation_smooth.z,0,0,0));
 		float ox = p->orientation_smooth.x/l;
 		float oy = p->orientation_smooth.y/l;
@@ -308,4 +330,9 @@ void cameracontroller_selection(float dt) {
     camera_vz = 0.0F;
     matrix_rotate(90.0F,1.0F,0.0F,0.0F);
     matrix_translate(-camera_x,-camera_y,-camera_z);
+}
+
+void cameracontroller_selection_render() {
+	matrix_rotate(90.0F,1.0F,0.0F,0.0F);
+	matrix_translate(-camera_x,-camera_y,-camera_z);
 }

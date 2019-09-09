@@ -57,7 +57,24 @@ void camera_overflow_adjust() {
 	}
 }
 
-void camera_apply(float dt) {
+void camera_apply() {
+	switch(camera_mode) {
+		case CAMERAMODE_FPS:
+			cameracontroller_fps_render();
+			break;
+		case CAMERAMODE_BODYVIEW:
+			cameracontroller_bodyview_render();
+			break;
+		case CAMERAMODE_SPECTATOR:
+			cameracontroller_spectator_render();
+			break;
+		case CAMERAMODE_SELECTION:
+			cameracontroller_selection_render();
+			break;
+	}
+}
+
+void camera_update(float dt) {
 	switch(camera_mode) {
 		case CAMERAMODE_FPS:
 			cameracontroller_fps(dt);

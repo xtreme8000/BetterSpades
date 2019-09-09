@@ -48,6 +48,7 @@ extern struct chunk_worker {
 	int chunk_id;
 	int chunk_x, chunk_y;
 	pthread_mutex_t state_lock;
+	pthread_cond_t can_work;
 	int state;
 	pthread_t thread;
 	short* vertex_data;
