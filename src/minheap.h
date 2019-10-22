@@ -42,6 +42,9 @@ struct minheap {
 	struct minheap_block* nodes;
 };
 
+int int_cmp(void* first_key, void* second_key, size_t key_size);
+size_t int_hash(void* raw_key, size_t key_size);
+
 void minheap_create(struct minheap* h);
 void minheap_clear(struct minheap* h);
 void minheap_destroy(struct minheap* h);

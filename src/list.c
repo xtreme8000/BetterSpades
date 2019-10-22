@@ -39,11 +39,12 @@ void list_remove(struct list* l, int i) {
 }
 
 void list_clear(struct list* l) {
-    l->mem_size = l->element_size*64;
-    l->data = realloc(l->data,l->mem_size);
-    CHECK_ALLOCATION_ERROR(l->data)
-    l->elements = 0;
-    l->mem_size = 0;
+	void* new = realloc(l->data,l->element_size*64);
+	if(new) {
+		l->data = new;
+		l->mem_size = l->element_size*64;
+	}
+	l->elements = 0;
 }
 
 int list_size(struct list* l) {

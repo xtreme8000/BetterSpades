@@ -194,10 +194,15 @@ static int stack_contains(struct voxel* stack2, int len, int x, int y, int z) {
 }
 
 static void map_update_physics_sub(int x, int y, int z) {
+	if(y<=1)
+		return;
+
 	struct minheap openlist;
 	minheap_create(&openlist);
 	HashTable closedlist;
 	ht_setup(&closedlist,sizeof(uint32_t),sizeof(uint32_t),256);
+	closedlist.compare = int_cmp;
+	closedlist.hash = int_hash;
 
 	struct minheap_block start;
 	start.pos = pos_key(x,y,z);

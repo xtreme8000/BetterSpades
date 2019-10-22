@@ -56,6 +56,10 @@
 #include <limits.h>
 #include <dirent.h>
 
+#ifdef USE_RPC
+	#include <discord_rpc.h>
+#endif
+
 #include "lodepng/lodepng.h"
 #include "libdeflate.h"
 #include "ini.h"
@@ -128,6 +132,7 @@
 #include "tracer.h"
 #include "config.h"
 #include "hud.h"
+#include "rpc.h"
 
 void reshape(struct window_instance* window, int width, int height);
 void text_input(struct window_instance* window, unsigned int codepoint);

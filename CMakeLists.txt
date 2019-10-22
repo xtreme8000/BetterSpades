@@ -11,6 +11,8 @@ option(ENABLE_OPENGLES "Build for OpenGL ES" OFF)
 option(ENABLE_SDL "Build against SDL backend" OFF)
 option(ENABLE_GLFW "Build against GLFW3 backend" ON)
 option(ENABLE_SOUND "Enable sound support using OpenAL" ON)
+option(ENABLE_RPC "Enable Discord Rich Presence support" OFF)
+
 
 if((ENABLE_ANDROID_FILE OR ENABLE_TOUCH OR ENABLE_OPENGLES) AND NOT ENABLE_SDL)
 	message(FATAL_ERROR "Enable SDL to use ENABLE_ANDROID_FILE, ENABLE_TOUCH or ENABLE_OPENGLES")
@@ -20,6 +22,14 @@ if(ENABLE_SDL AND ENABLE_GLFW)
 endif()
 if(NOT ENABLE_SDL AND NOT ENABLE_GLFW)
 	message(FATAL_ERROR "Enable SDL or GLFW")
+endif()
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	if(CMAKE_BUILD_TYPE STREQUAL "Release")
+		add_compile_options(-O3)
+	else()
+		add_compile_options(-O3 -g -march=native)
+	endif()
 endif()
 
 add_subdirectory(src)

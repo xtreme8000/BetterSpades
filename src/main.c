@@ -461,6 +461,8 @@ void init() {
 	chunk_init();
 
 	weapon_set();
+
+	rpc_init();
 }
 
 void reshape(struct window_instance* window, int width, int height) {
@@ -556,6 +558,7 @@ void mouse_scroll(struct window_instance* window, double xoffset, double yoffset
 }
 
 void deinit() {
+	rpc_deinit();
 	ping_deinit();
 	if(settings.show_news)
 		file_url("https://www.buildandshoot.com/news/");
@@ -691,6 +694,8 @@ int main(int argc, char** argv) {
 		sound_update();
 		network_update();
 		window_update();
+
+		rpc_update();
 
 		if(settings.vsync>1 && (window_time()-last_frame_start)<(1.0F/settings.vsync)) {
 			double sleep_s = 1.0F/settings.vsync-(window_time()-last_frame_start);

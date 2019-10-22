@@ -26,6 +26,18 @@
 #include "hashtable.h"
 #include "minheap.h"
 
+int int_cmp(void* first_key, void* second_key, size_t key_size) {
+	return (*(uint32_t*)first_key)!=(*(uint32_t*)second_key);
+}
+
+size_t int_hash(void* raw_key, size_t key_size) {
+	uint32_t x = *(uint32_t*)raw_key;
+	x = ((x >> 16) ^ x) * 0x45d9f3b;
+	x = ((x >> 16) ^ x) * 0x45d9f3b;
+	x = (x >> 16) ^ x;
+	return x;
+}
+
 static void nodes_swap(struct minheap* h, int a, int b) {
 	struct minheap_block tmp;
 	tmp = h->nodes[a];
@@ -41,6 +53,8 @@ void minheap_create(struct minheap* h) {
 	h->length = 256;
 	h->nodes = malloc(sizeof(struct minheap_block)*h->length);
 	ht_setup(&h->contains,sizeof(uint32_t),sizeof(uint32_t),256);
+	h->contains.compare = int_cmp;
+	h->contains.hash = int_hash;
 }
 
 void minheap_clear(struct minheap* h) {
