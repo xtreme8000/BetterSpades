@@ -246,10 +246,12 @@ void read_PacketBlockLine(void* data, int len) {
 		struct Point blocks[64];
 		int len = map_cube_line(p->sx,p->sy,p->sz,p->ex,p->ey,p->ez,blocks);
 		while(len>0) {
-			map_set(blocks[len-1].x,63-blocks[len-1].z,blocks[len-1].y,
-				players[p->player_id].block.red |
-				(players[p->player_id].block.green<<8) |
-				(players[p->player_id].block.blue<<16));
+			if(map_isair(blocks[len-1].x,63-blocks[len-1].z,blocks[len-1].y)) {
+				map_set(blocks[len-1].x,63-blocks[len-1].z,blocks[len-1].y,
+					players[p->player_id].block.red |
+					(players[p->player_id].block.green<<8) |
+					(players[p->player_id].block.blue<<16));
+			}
 			len--;
 		}
 	}
