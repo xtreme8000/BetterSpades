@@ -364,7 +364,7 @@ void display() {
 					if(camera_mode==CAMERAMODE_FPS)
 						glx_disable_sphericalfog();
 					#endif
-					player_render(&players[local_player_id],local_player_id,NULL,1);
+					player_render(&players[local_player_id],local_player_id,NULL,1,NULL);
 					#ifdef OPENGL_ES
 					if(camera_mode==CAMERAMODE_FPS)
 						glx_enable_sphericalfog();

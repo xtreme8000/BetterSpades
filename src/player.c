@@ -199,23 +199,6 @@ float player_height2(struct Player* p) {
     return p->alive?0.0F:1.0F;
 }
 
-int player_damage(int damage_sections) {
-    int type = -1;
-    if(damage_sections & (1<<HITTYPE_ARMS)) {
-        type = HITTYPE_ARMS;
-    }
-    if(damage_sections & (1<<HITTYPE_LEGS)) {
-        type = HITTYPE_LEGS;
-    }
-    if(damage_sections & (1<<HITTYPE_TORSO)) {
-        type = HITTYPE_TORSO;
-    }
-    if(damage_sections & (1<<HITTYPE_HEAD)) {
-        type = HITTYPE_HEAD;
-    }
-    return type;
-}
-
 float player_section_height(int section) {
     switch(section) {
         case HITTYPE_HEAD:
@@ -229,6 +212,40 @@ float player_section_height(int section) {
         default:
             return 0.0F;
     }
+}
+
+int player_intersection_exists(struct player_intersection* s) {
+	return s->head || s->torso || s->arms || s->leg_left || s->leg_right;
+}
+
+int player_intersection_choose(struct player_intersection* s) {
+	int type;
+	if(s->arms)
+		type = HITTYPE_ARMS;
+	if(s->leg_left)
+		type = HITTYPE_LEGS;
+	if(s->leg_right)
+		type = HITTYPE_LEGS;
+	if(s->torso)
+		type = HITTYPE_TORSO;
+	if(s->head)
+		type = HITTYPE_HEAD;
+	return type;
+}
+
+float player_intersection_choose_dist(struct player_intersection* s) {
+	float dist;
+	if(s->arms)
+		dist = s->distance.arms;
+	if(s->leg_left)
+		dist = s->distance.leg_left;
+	if(s->leg_right)
+		dist = s->distance.leg_right;
+	if(s->torso)
+		dist = s->distance.torso;
+	if(s->head)
+		dist = s->distance.head;
+	return dist;
 }
 
 void player_update(float dt, int locked) {
@@ -296,7 +313,7 @@ void player_render_all() {
                         break;
                     case CAMERA_HITTYPE_PLAYER:
                         sound_create(NULL,SOUND_WORLD,&sound_spade_whack,players[k].pos.x,players[k].pos.y,players[k].pos.z)->stick_to_player = k;
-                        particle_create(0x0000FF,players[hit.player_id].physics.eye.x,players[hit.player_id].physics.eye.y+player_section_height(player_damage(hit.player_section)),players[hit.player_id].physics.eye.z,3.5F,1.0F,8,0.1F,0.4F);
+                        particle_create(0x0000FF,players[hit.player_id].physics.eye.x,players[hit.player_id].physics.eye.y+player_section_height(hit.player_section),players[hit.player_id].physics.eye.z,3.5F,1.0F,8,0.1F,0.4F);
                         if(k==local_player_id) {
                             struct PacketHit h;
                             h.player_id = hit.player_id;
@@ -338,26 +355,12 @@ void player_render_all() {
         if(players[k].connected && k!=local_player_id) {
             if(camera_CubeInFrustum(players[k].pos.x,players[k].pos.y,players[k].pos.z,1.0F,2.0F)
 			&& distance2D(players[k].pos.x,players[k].pos.z,camera_x,camera_z)<=pow(settings.render_distance+2.0F,2.0F)) {
-                int intersections = player_render(&players[k],k,&ray,1);
-                float d = (camera_x-players[k].pos.x)*(camera_x-players[k].pos.x)
-                         +(camera_y-players[k].pos.y)*(camera_y-players[k].pos.y)
-                         +(camera_z-players[k].pos.z)*(camera_z-players[k].pos.z);
-                if(intersections && d<player_intersection_dist*player_intersection_dist) {
-                    player_intersection_dist = sqrt(d);
+				struct player_intersection intersects = {0};
+				player_render(&players[k],k,&ray,1,&intersects);
+                if(player_intersection_exists(&intersects) && player_intersection_choose_dist(&intersects)<player_intersection_dist) {
+                    player_intersection_dist = player_intersection_choose_dist(&intersects);
                     player_intersection_player = k;
-                    player_intersection_type = -1;
-                    if(intersections & (1<<HITTYPE_ARMS)) {
-                        player_intersection_type = HITTYPE_ARMS;
-                    }
-                    if(intersections & (1<<HITTYPE_LEGS)) {
-                        player_intersection_type = HITTYPE_LEGS;
-                    }
-                    if(intersections & (1<<HITTYPE_TORSO)) {
-                        player_intersection_type = HITTYPE_TORSO;
-                    }
-                    if(intersections & (1<<HITTYPE_HEAD)) {
-                        player_intersection_type = HITTYPE_HEAD;
-                    }
+                    player_intersection_type = player_intersection_choose(&intersects);
                 }
             }
 
@@ -388,9 +391,8 @@ void player_render_all() {
                     switch(hit.type) {
                         case CAMERA_HITTYPE_PLAYER:
                         {
-                            int type = player_damage(hit.player_section);
-                            sound_create(NULL,SOUND_WORLD,(type==HITTYPE_HEAD)?&sound_spade_whack:&sound_hitplayer,players[hit.player_id].pos.x,players[hit.player_id].pos.y,players[hit.player_id].pos.z)->stick_to_player = hit.player_id;
-                            particle_create(0x0000FF,players[hit.player_id].physics.eye.x,players[hit.player_id].physics.eye.y+player_section_height(type),players[hit.player_id].physics.eye.z,3.5F,1.0F,8,0.1F,0.4F);
+                            sound_create(NULL,SOUND_WORLD,(hit.player_section==HITTYPE_HEAD)?&sound_spade_whack:&sound_hitplayer,players[hit.player_id].pos.x,players[hit.player_id].pos.y,players[hit.player_id].pos.z)->stick_to_player = hit.player_id;
+                            particle_create(0x0000FF,players[hit.player_id].physics.eye.x,players[hit.player_id].physics.eye.y+player_section_height(hit.player_section),players[hit.player_id].physics.eye.z,3.5F,1.0F,8,0.1F,0.4F);
                             break;
                         }
                         case CAMERA_HITTYPE_BLOCK:
@@ -410,7 +412,7 @@ static float foot_function(struct Player* p) {
     return p->sound.feet_cylce?f:-f;
 }
 
-int player_render(struct Player* p, int id, Ray* ray, char render) {
+void player_render(struct Player* p, int id, Ray* ray, char render, struct player_intersection* intersects) {
 	p->bb_2d = (AABB) {
 					.min_x = INT_MAX,
 					.min_y = INT_MAX,
@@ -477,7 +479,7 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 			kv6_boundingbox(&model_playerdead,&p->bb_2d);
 			matrix_pop();
 		}
-		return 0;
+		return;
 	}
 
     float time = window_time()*1000.0F;
@@ -498,8 +500,6 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
     a /= 0.25F;
     b /= 0.25F;
 
-    int intersections = 0;
-
 	int render_body = (id!=local_player_id || !p->alive || camera_mode!=CAMERAMODE_FPS) && !((camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR) && cameracontroller_bodyview_mode && cameracontroller_bodyview_player==id);
 	int render_fpv = (id==local_player_id && camera_mode==CAMERAMODE_FPS) || ((camera_mode==CAMERAMODE_BODYVIEW || camera_mode==CAMERAMODE_SPECTATOR) && cameracontroller_bodyview_mode && cameracontroller_bodyview_player==id);
 
@@ -516,8 +516,12 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 			kv6_render(&model_playerhead,p->team);
 		}
 		kv6_boundingbox(&model_playerhead,&p->bb_2d);
-        if(ray!=NULL && kv6_intersection(&model_playerhead,ray)) {
-            intersections |= (1<<HITTYPE_HEAD);
+        if(ray!=NULL && intersects!=NULL) {
+			float d = kv6_intersection(&model_playerhead,ray);
+			if(d>=0) {
+				intersects->head = 1;
+				intersects->distance.head = d;
+			}
         }
         matrix_pop();
 
@@ -530,8 +534,12 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
             kv6_render(torso,p->team);
 		}
 		kv6_boundingbox(torso,&p->bb_2d);
-        if(ray!=NULL && kv6_intersection(torso,ray)) {
-            intersections |= (1<<HITTYPE_TORSO);
+        if(ray!=NULL && intersects!=NULL) {
+			float d = kv6_intersection(torso,ray);
+			if(d>=0) {
+				intersects->torso = 1;
+				intersects->distance.torso = d;
+			}
         }
         matrix_pop();
 
@@ -571,8 +579,12 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
             kv6_render(leg,p->team);
 		}
 		kv6_boundingbox(leg,&p->bb_2d);
-        if(ray!=NULL && kv6_intersection(leg,ray)) {
-            intersections |= (1<<HITTYPE_LEGS);
+        if(ray!=NULL && intersects!=NULL) {
+			float d = kv6_intersection(leg,ray);
+			if(d>=0) {
+				intersects->leg_left = 1;
+				intersects->distance.leg_left = d;
+			}
         }
         matrix_pop();
 
@@ -588,8 +600,12 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
             kv6_render(leg,p->team);
 		}
 		kv6_boundingbox(leg,&p->bb_2d);
-        if(ray!=NULL && kv6_intersection(leg,ray)) {
-            intersections |= (1<<HITTYPE_LEGS);
+        if(ray!=NULL && intersects!=NULL) {
+			float d = kv6_intersection(leg,ray);
+			if(d>=0) {
+				intersects->leg_right = 1;
+				intersects->distance.leg_right = d;
+			}
         }
         matrix_pop();
     }
@@ -626,8 +642,12 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
             kv6_render(&model_playerarms,p->team);
 		}
 		kv6_boundingbox(&model_playerarms,&p->bb_2d);
-        if(ray!=NULL && kv6_intersection(&model_playerarms,ray)) {
-            intersections |= (1<<HITTYPE_ARMS);
+        if(ray!=NULL && intersects!=NULL) {
+			float d = kv6_intersection(&model_playerarms,ray);
+			if(d>=0) {
+				intersects->arms = 1;
+				intersects->distance.arms = d;
+			}
         }
     }
 
@@ -725,8 +745,6 @@ int player_render(struct Player* p, int id, Ray* ray, char render) {
 
 		matrix_upload_p();
 	}*/
-
-	return intersections;
 }
 
 int player_clipbox(float x, float y, float z) {

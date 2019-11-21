@@ -75,10 +75,10 @@ static void hud_ingame_render3D() {
 
 	matrix_select(matrix_projection);
 	matrix_identity();
-	matrix_perspective(camera_fov,((float)settings.window_width)/((float)settings.window_height), 0.1F, settings.render_distance+CHUNK_SIZE*4.0F+128.0F);
-	matrix_upload_p();
+	matrix_perspective(camera_fov,((float)settings.window_width)/((float)settings.window_height),0.1F,128.0F);
 	matrix_select(matrix_view);
 	matrix_identity();
+	matrix_upload_p();
 	matrix_select(matrix_model);
 
 	if(!network_map_transfer) {
@@ -174,13 +174,13 @@ static void hud_ingame_render3D() {
 			p_hud.alive = 1;
 
 			p_hud.team = TEAM_1;
-			player_render(&p_hud,PLAYERS_MAX,NULL,1);
+			player_render(&p_hud,PLAYERS_MAX,NULL,1,NULL);
 			matrix_identity();
 			matrix_translate(1.4F,-2.0F,-3.0F);
 			matrix_rotate(-90.0F-22.5F,0.0F,1.0F,0.0F);
 			matrix_upload();
 			p_hud.team = TEAM_2;
-			player_render(&p_hud,PLAYERS_MAX,NULL,1);
+			player_render(&p_hud,PLAYERS_MAX,NULL,1,NULL);
 		}
 
 		if(screen_current==SCREEN_GUN_SELECT) {
@@ -1776,6 +1776,7 @@ static void hud_serverlist_init() {
 	ping_stop();
 	network_disconnect();
 	window_title(NULL);
+	rpc_seti(RPC_VALUE_SLOTS,0);
 
 	window_mousemode(WINDOW_CURSOR_ENABLED);
 
@@ -2216,6 +2217,13 @@ static void server_c(char* address, char* name) {
 		hud_change(&hud_ingame);
 	} else {
 		window_title(name);
+		if(name && address) {
+			rpc_setv(RPC_VALUE_SERVERNAME,name);
+			rpc_setv(RPC_VALUE_SERVERURL,address);
+			rpc_seti(RPC_VALUE_SLOTS,32);
+		} else {
+			rpc_seti(RPC_VALUE_SLOTS,0);
+		}
 		hud_change(network_connect_string(address)?&hud_ingame:&hud_serverlist);
 	}
 }

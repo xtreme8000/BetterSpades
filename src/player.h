@@ -63,6 +63,28 @@ extern int player_intersection_type;
 extern int player_intersection_player;
 extern float player_intersection_dist;
 
+struct player_intersection {
+	unsigned char head : 1;
+	unsigned char torso : 1;
+	unsigned char leg_left : 1;
+	unsigned char leg_right : 1;
+	unsigned char arms : 1;
+	union {
+		struct {
+			float head;
+			float torso;
+			float leg_left;
+			float leg_right;
+			float arms;
+		};
+		float values[5];
+	} distance;
+};
+
+int player_intersection_exists(struct player_intersection* s);
+int player_intersection_choose(struct player_intersection* s);
+float player_intersection_choose_dist(struct player_intersection* s);
+
 extern struct Player {
 	char name[17];
 	struct Position {
@@ -135,14 +157,13 @@ extern struct Player {
 
 int player_can_spectate(struct Player* p);
 float player_section_height(int section);
-int player_damage(int damage_sections);
 void player_init(void);
 float player_height(struct Player* p);
 float player_height2(struct Player* p);
 void player_reposition(struct Player* p);
 void player_update(float dt, int locked);
 void player_render_all(void);
-int player_render(struct Player* p, int id, Ray* ray, char render);
+void player_render(struct Player* p, int id, Ray* ray, char render, struct player_intersection* intersects);
 void player_reset(struct Player* p);
 int player_move(struct Player* p, float fsynctics, int id);
 int player_uncrouch(struct Player* p);

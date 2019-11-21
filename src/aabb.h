@@ -18,21 +18,37 @@
 */
 
 typedef struct {
-	float min_x, min_y, min_z;
-	float max_x, max_y, max_z;
+	union {
+		struct {
+			float min_x, min_y, min_z;
+		};
+		float min[3];
+	};
+	union {
+		struct {
+			float max_x, max_y, max_z;
+		};
+		float max[3];
+	};
 } AABB;
 
 typedef struct {
-	struct {
-		float x,y,z;
+	union {
+		struct {
+			float x,y,z;
+		};
+		float coords[3];
 	} origin;
-	struct {
-		float x,y,z;
+	union {
+		struct {
+			float x,y,z;
+		};
+		float coords[3];
 	} direction;
 } Ray;
 
 unsigned char aabb_intersection(AABB* a, AABB* b);
-char aabb_intersection_ray(AABB* a, Ray* r);
+float aabb_intersection_ray(AABB* a, Ray* r);
 unsigned char aabb_intersection_terrain(AABB* a, int miny);
 void aabb_set_size(AABB* a, float x, float y, float z);
 void aabb_set_center(AABB* a, float x, float y, float z);

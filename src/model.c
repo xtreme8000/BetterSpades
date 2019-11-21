@@ -190,7 +190,7 @@ void kv6_boundingbox(struct kv6_t* kv6, AABB* bb) {
 	matrix_pop();
 }
 
-char kv6_intersection(struct kv6_t* kv6, Ray* r) {
+float kv6_intersection(struct kv6_t* kv6, Ray* r) {
 	AABB bb;
 
 	for(int k=0;k<8;k++) {

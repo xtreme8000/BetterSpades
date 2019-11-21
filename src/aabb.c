@@ -21,24 +21,31 @@
 
 void aabb_render(AABB* a) {}
 
-char aabb_intersection_ray(AABB* a, Ray* r) {
-	double t1 = (a->min_x-r->origin.x)/r->direction.x;
-    double t2 = (a->max_x-r->origin.x)/r->direction.x;
+float aabb_intersection_ray(AABB* a, Ray* r) {
+	float total_min = FLT_MIN, total_max = FLT_MAX;
 
-    double tmin = min(t1, t2);
-    double tmax = max(t1, t2);
+	for(int coord=0;coord<3;coord++) {
+		float t_A = (a->min[coord]-r->origin.coords[coord])/r->direction.coords[coord];
+		float t_B = (a->max[coord]-r->origin.coords[coord])/r->direction.coords[coord];
 
-	t1 = (a->min_y - r->origin.y)/r->direction.y;
-	t2 = (a->max_y - r->origin.y)/r->direction.y;
-	tmin = max(tmin, min(min(t1, t2), tmax));
-	tmax = min(tmax, max(max(t1, t2), tmin));
+		float range_min = min(t_A,t_B);
+		float range_max = max(t_A,t_B);
 
-	t1 = (a->min_z - r->origin.z)/r->direction.z;
-	t2 = (a->max_z - r->origin.z)/r->direction.z;
-	tmin = max(tmin, min(min(t1, t2), tmax));
-	tmax = min(tmax, max(max(t1, t2), tmin));
+		//test if intervals don't intersect
+		if(total_max<=range_min && total_min<=range_min)
+			return -1;
+		if(range_max<=total_max && range_max<=total_min)
+			return -1;
 
-    return tmax > max(tmin, 0.0);
+		//now calculate overlap of intervals/ranges
+		total_min = max(range_min,total_min);
+		total_max = min(range_max,total_max);
+	}
+
+	if(total_min<0)
+		return -1;
+
+	return absf(total_min)*len3D(r->direction.x,r->direction.y,r->direction.z);
 }
 
 void aabb_set_center(AABB* a, float x, float y, float z) {

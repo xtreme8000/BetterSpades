@@ -106,24 +106,10 @@ void camera_hit_fromplayer(struct Camera_HitType* hit, int player_id, float rang
 }
 
 void camera_hit(struct Camera_HitType* hit, int exclude_player, float x, float y, float z, float ray_x, float ray_y, float ray_z, float range) {
-	camera_hit_mask(hit,exclude_player,x,y,z,ray_x,ray_y,ray_z,range,0xFF);
+	camera_hit_mask(hit,exclude_player,x,y,z,ray_x,ray_y,ray_z,range);
 }
 
-void camera_hit_mask(struct Camera_HitType* hit, int exclude_player, float x, float y, float z, float ray_x, float ray_y, float ray_z, float range, int mask) {
-	hit->type = CAMERA_HITTYPE_NONE;
-	hit->distance = FLT_MAX;
-	int* pos = camera_terrain_pickEx(1,x,y,z,ray_x,ray_y,ray_z);
-	if(pos!=NULL && distance2D(x,z,pos[0],pos[2])<=range*range) {
-		hit->type = CAMERA_HITTYPE_BLOCK;
-		hit->distance = distance3D(x,y,z,pos[0],pos[1],pos[2]);
-		hit->x = pos[0];
-		hit->y = pos[1];
-		hit->z = pos[2];
-		hit->xb = pos[3];
-		hit->yb = pos[4];
-		hit->zb = pos[5];
-	}
-
+void camera_hit_mask(struct Camera_HitType* hit, int exclude_player, float x, float y, float z, float ray_x, float ray_y, float ray_z, float range) {
 	Ray dir;
 	dir.origin.x = x;
 	dir.origin.y = y;
@@ -132,8 +118,32 @@ void camera_hit_mask(struct Camera_HitType* hit, int exclude_player, float x, fl
 	dir.direction.y = ray_y;
 	dir.direction.z = ray_z;
 
-	float player_nearest = 1e10;
-	int player_nearest_id, player_nearest_section;
+	hit->type = CAMERA_HITTYPE_NONE;
+	hit->distance = FLT_MAX;
+	int* pos = camera_terrain_pickEx(1,x,y,z,ray_x,ray_y,ray_z);
+	if(pos!=NULL && distance2D(x,z,pos[0],pos[2])<=range*range) {
+		AABB block = (AABB) {
+			.min_x = pos[0],
+			.min_y = pos[1],
+			.min_z = pos[2],
+			.max_x = pos[0]+1,
+			.max_y = pos[1]+1,
+			.max_z = pos[2]+1,
+		};
+
+		float d = aabb_intersection_ray(&block,&dir);
+		if(d>=0.0F) {
+			hit->type = CAMERA_HITTYPE_BLOCK;
+			hit->distance = d;
+			hit->x = pos[0];
+			hit->y = pos[1];
+			hit->z = pos[2];
+			hit->xb = pos[3];
+			hit->yb = pos[4];
+			hit->zb = pos[5];
+		}
+	}
+
 	for(int i=0;i<PLAYERS_MAX;i++) {
 		float l = distance2D(x,z,players[i].pos.x,players[i].pos.z);
 		if(players[i].connected && players[i].alive && l<range*range && (exclude_player<0 || (exclude_player>=0 && exclude_player!=i))) {
@@ -142,23 +152,20 @@ void camera_hit_mask(struct Camera_HitType* hit, int exclude_player, float x, fl
 			float pz = players[i].pos.z-z;
 			float angle = acos(((px*ray_x)+(py*ray_y)+(pz*ray_z))/sqrt(px*px+py*py+pz*pz));
 			if(angle<45.0F/180.0F*PI) {
-				int intersections = player_render(&players[i],i,&dir,0);
-				if((intersections&mask) && l<player_nearest) {
-					player_nearest = distance3D(x,y,z,players[i].pos.x,players[i].pos.y+player_section_height(player_damage(intersections&mask)),players[i].pos.z);
-					player_nearest_id = i;
-					player_nearest_section = intersections;
+				struct player_intersection intersects = {0};
+				player_render(&players[i],i,&dir,0,&intersects);
+				float d = player_intersection_choose_dist(&intersects);
+				if(player_intersection_exists(&intersects) && d<hit->distance) {
+					hit->type = CAMERA_HITTYPE_PLAYER;
+					hit->distance = d;
+					hit->x = players[i].pos.x;
+					hit->y = players[i].pos.y;
+					hit->z = players[i].pos.z;
+					hit->player_id = i;
+					hit->player_section = player_intersection_choose(&intersects);
 				}
 			}
 		}
-	}
-	if(player_nearest<=range*range && player_nearest<hit->distance) {
-		hit->type = CAMERA_HITTYPE_PLAYER;
-		hit->x = players[player_nearest_id].pos.x;
-		hit->y = players[player_nearest_id].pos.y;
-		hit->z = players[player_nearest_id].pos.z;
-		hit->player_id = player_nearest_id;
-		hit->player_section = player_nearest_section;
-		hit->distance = player_nearest;
 	}
 }
 
