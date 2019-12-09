@@ -3,18 +3,18 @@
 
 	This file is part of BetterSpades.
 
-    BetterSpades is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	BetterSpades is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    BetterSpades is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	BetterSpades is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "common.h"
@@ -25,7 +25,7 @@ float cameracontroller_bodyview_zoom = 0.0F;
 
 float last_cy;
 void cameracontroller_fps(float dt) {
-    players[local_player_id].connected = 1;
+	players[local_player_id].connected = 1;
 	players[local_player_id].alive = 1;
 
 	int cooldown = 0;
@@ -57,14 +57,14 @@ void cameracontroller_fps(float dt) {
 
 	last_cy = players[local_player_id].physics.eye.y-players[local_player_id].physics.velocity.y*0.4F;
 
-    if(chat_input_mode==CHAT_NO_INPUT) {
-    	players[local_player_id].input.keys.up = window_key_down(WINDOW_KEY_UP);
-    	players[local_player_id].input.keys.down = window_key_down(WINDOW_KEY_DOWN);
-    	players[local_player_id].input.keys.left = window_key_down(WINDOW_KEY_LEFT);
-    	players[local_player_id].input.keys.right = window_key_down(WINDOW_KEY_RIGHT);
-        if(players[local_player_id].input.keys.crouch && !window_key_down(WINDOW_KEY_CROUCH) && player_uncrouch(&players[local_player_id])) {
-            players[local_player_id].input.keys.crouch = 0;
-        }
+	if(chat_input_mode==CHAT_NO_INPUT) {
+		players[local_player_id].input.keys.up = window_key_down(WINDOW_KEY_UP);
+		players[local_player_id].input.keys.down = window_key_down(WINDOW_KEY_DOWN);
+		players[local_player_id].input.keys.left = window_key_down(WINDOW_KEY_LEFT);
+		players[local_player_id].input.keys.right = window_key_down(WINDOW_KEY_RIGHT);
+		if(players[local_player_id].input.keys.crouch && !window_key_down(WINDOW_KEY_CROUCH) && player_uncrouch(&players[local_player_id])) {
+			players[local_player_id].input.keys.crouch = 0;
+		}
 
 		if(window_key_down(WINDOW_KEY_CROUCH)) {
 			//following if-statement disables smooth crouching on local player
@@ -84,45 +84,45 @@ void cameracontroller_fps(float dt) {
 		}
 	}
 
-    camera_x = players[local_player_id].physics.eye.x;
-    camera_y = players[local_player_id].physics.eye.y+player_height(&players[local_player_id]);
-    camera_z = players[local_player_id].physics.eye.z;
+	camera_x = players[local_player_id].physics.eye.x;
+	camera_y = players[local_player_id].physics.eye.y+player_height(&players[local_player_id]);
+	camera_z = players[local_player_id].physics.eye.z;
 
-    if(window_key_down(WINDOW_KEY_SPRINT)) {
-        players[local_player_id].item_disabled = window_time();
-    } else {
-        if(window_time()-players[local_player_id].item_disabled<0.4F && !players[local_player_id].items_show) {
-            players[local_player_id].items_show_start = window_time();
-            players[local_player_id].items_show = 1;
-        }
-    }
+	if(window_key_down(WINDOW_KEY_SPRINT) && chat_input_mode==CHAT_NO_INPUT) {
+		players[local_player_id].item_disabled = window_time();
+	} else {
+		if(window_time()-players[local_player_id].item_disabled<0.4F && !players[local_player_id].items_show) {
+			players[local_player_id].items_show_start = window_time();
+			players[local_player_id].items_show = 1;
+		}
+	}
 
-    players[local_player_id].input.buttons.lmb = button_map[0];
-    if(players[local_player_id].held_item!=TOOL_GUN) {
-        players[local_player_id].input.buttons.rmb = button_map[1];
-    }
+	players[local_player_id].input.buttons.lmb = button_map[0];
+	if(players[local_player_id].held_item!=TOOL_GUN) {
+		players[local_player_id].input.buttons.rmb = button_map[1];
+	}
 
-    if(chat_input_mode!=CHAT_NO_INPUT) {
-        players[local_player_id].input.keys.packed = 0;
-        players[local_player_id].input.buttons.packed = 0;
-    }
+	if(chat_input_mode!=CHAT_NO_INPUT) {
+		players[local_player_id].input.keys.packed = 0;
+		players[local_player_id].input.buttons.packed = 0;
+	}
 
 	float lx = players[local_player_id].orientation_smooth.x*pow(0.7F,dt*60.0F)+(sin(camera_rot_x)*sin(camera_rot_y))*pow(0.3F,dt*60.0F);
 	float ly = players[local_player_id].orientation_smooth.y*pow(0.7F,dt*60.0F)+(cos(camera_rot_y))*pow(0.3F,dt*60.0F);
 	float lz = players[local_player_id].orientation_smooth.z*pow(0.7F,dt*60.0F)+(cos(camera_rot_x)*sin(camera_rot_y))*pow(0.3F,dt*60.0F);
 
-    players[local_player_id].orientation_smooth.x = lx;
+	players[local_player_id].orientation_smooth.x = lx;
 	players[local_player_id].orientation_smooth.y = ly;
 	players[local_player_id].orientation_smooth.z = lz;
 
-    float len = sqrt(lx*lx+ly*ly+lz*lz);
-    players[local_player_id].orientation.x = lx/len;
+	float len = sqrt(lx*lx+ly*ly+lz*lz);
+	players[local_player_id].orientation.x = lx/len;
 	players[local_player_id].orientation.y = ly/len;
 	players[local_player_id].orientation.z = lz/len;
 
-    camera_vx = players[local_player_id].physics.velocity.x;
-    camera_vy = players[local_player_id].physics.velocity.y;
-    camera_vz = players[local_player_id].physics.velocity.z;
+	camera_vx = players[local_player_id].physics.velocity.x;
+	camera_vy = players[local_player_id].physics.velocity.y;
+	camera_vz = players[local_player_id].physics.velocity.z;
 }
 
 void cameracontroller_fps_render() {
@@ -130,11 +130,11 @@ void cameracontroller_fps_render() {
 }
 
 void cameracontroller_spectator(float dt) {
-    AABB camera = {0};
-    aabb_set_size(&camera,camera_size,camera_height,camera_size);
-    aabb_set_center(&camera,camera_x,camera_y-camera_eye_height,camera_z);
+	AABB camera = {0};
+	aabb_set_size(&camera,camera_size,camera_height,camera_size);
+	aabb_set_center(&camera,camera_x,camera_y-camera_eye_height,camera_z);
 
-    float x = 0.0F, y = 0.0F, z = 0.0F;
+	float x = 0.0F, y = 0.0F, z = 0.0F;
 
 	if(window_key_down(WINDOW_KEY_UP)) {
 		x += sin(camera_rot_x)*sin(camera_rot_y);
@@ -252,42 +252,42 @@ void cameracontroller_bodyview(float dt) {
 	AABB camera = {0};
 	aabb_set_size(&camera,0.4F,0.4F,0.4F);
 
-    float k;
-    float traverse_lengths[2] = {-1,-1};
-    for(k=0.0F;k<5.0F;k+=0.05F) {
-        aabb_set_center(&camera,
-            players[cameracontroller_bodyview_player].pos.x-sin(camera_rot_x)*sin(camera_rot_y)*k,
-            players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*k+player_height2(&players[cameracontroller_bodyview_player]),
-            players[cameracontroller_bodyview_player].pos.z-cos(camera_rot_x)*sin(camera_rot_y)*k
-        );
-        if(aabb_intersection_terrain(&camera,0) && traverse_lengths[0]<0) {
-            traverse_lengths[0] = max(k-0.1F,0);
-        }
-        aabb_set_center(&camera,
-            players[cameracontroller_bodyview_player].pos.x+sin(camera_rot_x)*sin(camera_rot_y)*k,
-            players[cameracontroller_bodyview_player].pos.y+cos(camera_rot_y)*k+player_height2(&players[cameracontroller_bodyview_player]),
-            players[cameracontroller_bodyview_player].pos.z+cos(camera_rot_x)*sin(camera_rot_y)*k
-        );
-        if(!aabb_intersection_terrain(&camera,0) && traverse_lengths[1]<0) {
-            traverse_lengths[1] = max(k-0.1F,0);
-        }
-    }
-    if(traverse_lengths[0]<0)
-        traverse_lengths[0] = 5.0F;
-    if(traverse_lengths[1]<0)
-        traverse_lengths[1] = 5.0F;
+	float k;
+	float traverse_lengths[2] = {-1,-1};
+	for(k=0.0F;k<5.0F;k+=0.05F) {
+		aabb_set_center(&camera,
+			players[cameracontroller_bodyview_player].pos.x-sin(camera_rot_x)*sin(camera_rot_y)*k,
+			players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*k+player_height2(&players[cameracontroller_bodyview_player]),
+			players[cameracontroller_bodyview_player].pos.z-cos(camera_rot_x)*sin(camera_rot_y)*k
+		);
+		if(aabb_intersection_terrain(&camera,0) && traverse_lengths[0]<0) {
+			traverse_lengths[0] = max(k-0.1F,0);
+		}
+		aabb_set_center(&camera,
+			players[cameracontroller_bodyview_player].pos.x+sin(camera_rot_x)*sin(camera_rot_y)*k,
+			players[cameracontroller_bodyview_player].pos.y+cos(camera_rot_y)*k+player_height2(&players[cameracontroller_bodyview_player]),
+			players[cameracontroller_bodyview_player].pos.z+cos(camera_rot_x)*sin(camera_rot_y)*k
+		);
+		if(!aabb_intersection_terrain(&camera,0) && traverse_lengths[1]<0) {
+			traverse_lengths[1] = max(k-0.1F,0);
+		}
+	}
+	if(traverse_lengths[0]<0)
+		traverse_lengths[0] = 5.0F;
+	if(traverse_lengths[1]<0)
+		traverse_lengths[1] = 5.0F;
 
 	float tmp = (traverse_lengths[0]<=0)?(-traverse_lengths[1]):traverse_lengths[0];
 
 	cameracontroller_bodyview_zoom = (tmp<cameracontroller_bodyview_zoom)?tmp:min(tmp,cameracontroller_bodyview_zoom+dt*8.0F);
 
-    //this is needed to determine which chunks need/can be rendered and for sound, minimap etc...
-    camera_x = players[cameracontroller_bodyview_player].pos.x-sin(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom;
-    camera_y = players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*cameracontroller_bodyview_zoom+player_height2(&players[cameracontroller_bodyview_player]);
-    camera_z = players[cameracontroller_bodyview_player].pos.z-cos(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom;
-    camera_vx = players[cameracontroller_bodyview_player].physics.velocity.x;
-    camera_vy = players[cameracontroller_bodyview_player].physics.velocity.y;
-    camera_vz = players[cameracontroller_bodyview_player].physics.velocity.z;
+	//this is needed to determine which chunks need/can be rendered and for sound, minimap etc...
+	camera_x = players[cameracontroller_bodyview_player].pos.x-sin(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom;
+	camera_y = players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*cameracontroller_bodyview_zoom+player_height2(&players[cameracontroller_bodyview_player]);
+	camera_z = players[cameracontroller_bodyview_player].pos.z-cos(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom;
+	camera_vx = players[cameracontroller_bodyview_player].physics.velocity.x;
+	camera_vy = players[cameracontroller_bodyview_player].physics.velocity.y;
+	camera_vz = players[cameracontroller_bodyview_player].physics.velocity.z;
 
 	if(cameracontroller_bodyview_mode && players[cameracontroller_bodyview_player].alive) {
 		struct Player* p = &players[cameracontroller_bodyview_player];
@@ -312,24 +312,24 @@ void cameracontroller_bodyview_render() {
 		matrix_lookAt(camera_x,camera_y,camera_z,camera_x+ox,camera_y+oy,camera_z+oz,0.0F,1.0F,0.0F);
 	} else {
 		matrix_lookAt(players[cameracontroller_bodyview_player].pos.x-sin(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom,
-					  players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*cameracontroller_bodyview_zoom+player_height2(&players[cameracontroller_bodyview_player]),
-					  players[cameracontroller_bodyview_player].pos.z-cos(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom,
-					  players[cameracontroller_bodyview_player].pos.x,
-					  players[cameracontroller_bodyview_player].pos.y+player_height2(&players[cameracontroller_bodyview_player]),
-					  players[cameracontroller_bodyview_player].pos.z,
-					  0.0F,1.0F,0.0F);
+			players[cameracontroller_bodyview_player].pos.y-cos(camera_rot_y)*cameracontroller_bodyview_zoom+player_height2(&players[cameracontroller_bodyview_player]),
+			players[cameracontroller_bodyview_player].pos.z-cos(camera_rot_x)*sin(camera_rot_y)*cameracontroller_bodyview_zoom,
+			players[cameracontroller_bodyview_player].pos.x,
+			players[cameracontroller_bodyview_player].pos.y+player_height2(&players[cameracontroller_bodyview_player]),
+			players[cameracontroller_bodyview_player].pos.z,
+			0.0F,1.0F,0.0F);
 	}
 }
 
 void cameracontroller_selection(float dt) {
-    camera_x = 256.0F;
-    camera_y = 79.0F;
-    camera_z = 256.0F;
-    camera_vx = 0.0F;
-    camera_vy = 0.0F;
-    camera_vz = 0.0F;
-    matrix_rotate(90.0F,1.0F,0.0F,0.0F);
-    matrix_translate(-camera_x,-camera_y,-camera_z);
+	camera_x = 256.0F;
+	camera_y = 79.0F;
+	camera_z = 256.0F;
+	camera_vx = 0.0F;
+	camera_vy = 0.0F;
+	camera_vz = 0.0F;
+	matrix_rotate(90.0F,1.0F,0.0F,0.0F);
+	matrix_translate(-camera_x,-camera_y,-camera_z);
 }
 
 void cameracontroller_selection_render() {
