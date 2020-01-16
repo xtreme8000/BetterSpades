@@ -70,6 +70,7 @@ void config_save() {
 	config_seti("client","force_displaylist",settings.force_displaylist);
 	config_seti("client","inverty",settings.invert_y);
 	config_seti("client","smooth_fog",settings.smooth_fog);
+	config_seti("client","scope_mode",settings.scope_mode);
 
 	for(int k=0;k<list_size(&config_keys);k++) {
 		struct config_key_pair* e = list_get(&config_keys,k);
@@ -149,6 +150,9 @@ static int config_read_key(void* user, const char* section, const char* name, co
 		}
 		if(!strcmp(name,"smooth_fog")) {
 			settings.smooth_fog = atoi(value);
+		}
+		if(!strcmp(name,"scope_mode")) {
+			settings.scope_mode = atoi(value);
 		}
     }
     if(!strcmp(section,"controls")) {
