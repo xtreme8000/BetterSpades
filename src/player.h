@@ -1,31 +1,31 @@
 /*
-	Copyright (c) 2017-2018 ByteBit
+	Copyright (c) 2017-2020 ByteBit
 
 	This file is part of BetterSpades.
 
-    BetterSpades is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	BetterSpades is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    BetterSpades is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	BetterSpades is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define PLAYERS_MAX		256 //just because 32 players are not enough
-#define TEAM_1			0
-#define TEAM_2			1
-#define TEAM_SPECTATOR	255
+#define PLAYERS_MAX 256 // just because 32 players are not enough
+#define TEAM_1 0
+#define TEAM_2 1
+#define TEAM_SPECTATOR 255
 
 extern struct GameState {
 	struct Team {
 		char name[11];
-		unsigned char red,green,blue;
+		unsigned char red, green, blue;
 	} team_1;
 	struct Team team_2;
 	unsigned char gamemode_type;
@@ -35,8 +35,8 @@ extern struct GameState {
 		float progress, rate, update;
 	} progressbar;
 } gamestate;
-#define GAMEMODE_CTF	0
-#define GAMEMODE_TC		1
+#define GAMEMODE_CTF 0
+#define GAMEMODE_TC 1
 
 extern unsigned char local_player_id;
 extern unsigned char local_player_health;
@@ -44,7 +44,7 @@ extern unsigned char local_player_blocks;
 extern unsigned char local_player_grenades;
 extern unsigned char local_player_ammo, local_player_ammo_reserved;
 extern unsigned char local_player_respawn_time;
-extern float		 local_player_death_time;
+extern float local_player_death_time;
 extern unsigned char local_player_respawn_cnt_last;
 extern unsigned char local_player_newteam;
 extern unsigned char local_player_lasttool;
@@ -88,10 +88,10 @@ float player_intersection_choose_dist(struct player_intersection* s);
 extern struct Player {
 	char name[17];
 	struct Position {
-		float x,y,z;
+		float x, y, z;
 	} pos;
 	struct Orientation {
-		float x,y,z;
+		float x, y, z;
 	} orientation;
 	AABB bb_2d;
 	struct Orientation orientation_smooth;
@@ -114,7 +114,7 @@ extern struct Player {
 	} block;
 	struct {
 		union {
-			unsigned char packed; //useful to load PacketInput quickly
+			unsigned char packed; // useful to load PacketInput quickly
 			struct {
 				unsigned char up : 1;
 				unsigned char down : 1;
@@ -136,14 +136,14 @@ extern struct Player {
 		} buttons;
 	} input;
 
-    struct {
-        unsigned char jump, airborne, wade;
-        float lastclimb;
-        struct Velocity {
-            float x,y,z;
-        } velocity;
-        struct Position eye;
-    } physics;
+	struct {
+		unsigned char jump, airborne, wade;
+		float lastclimb;
+		struct Velocity {
+			float x, y, z;
+		} velocity;
+		struct Position eye;
+	} physics;
 
 	struct {
 		struct Sound_source feet;
@@ -153,7 +153,7 @@ extern struct Player {
 		float tool_started;
 	} sound;
 } players[PLAYERS_MAX];
-//pyspades/pysnip/piqueserver sometimes uses ids that are out of range
+// pyspades/pysnip/piqueserver sometimes uses ids that are out of range
 
 int player_can_spectate(struct Player* p);
 float player_section_height(int section);

@@ -1,20 +1,20 @@
 /*
-	Copyright (c) 2017-2018 ByteBit
+	Copyright (c) 2017-2020 ByteBit
 
 	This file is part of BetterSpades.
 
-    BetterSpades is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	BetterSpades is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    BetterSpades is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	BetterSpades is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 extern float* matrix_current;
@@ -40,7 +40,8 @@ void matrix_pop(void);
 void matrix_vector(float* v);
 void matrix_ortho(float left, float right, float bottom, float top, float nearv, float farv);
 void matrix_perspective(float fovy, float aspect, float zNear, float zFar);
-void matrix_lookAt(double eyex, double eyey, double eyez, double centerx, double centery, double centerz, double upx, double upy, double upz);
+void matrix_lookAt(double eyex, double eyey, double eyez, double centerx, double centery, double centerz, double upx,
+				   double upy, double upz);
 void matrix_upload(void);
 void matrix_upload_p(void);
 void matrix_pointAt(float dx, float dy, float dz);

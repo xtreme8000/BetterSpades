@@ -1,24 +1,24 @@
 /*
-	Copyright (c) 2017-2018 ByteBit
+	Copyright (c) 2017-2020 ByteBit
 
 	This file is part of BetterSpades.
 
-    BetterSpades is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	BetterSpades is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    BetterSpades is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	BetterSpades is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define CHUNK_SIZE					16
-#define CHUNKS_PER_DIM				32
+#define CHUNK_SIZE 16
+#define CHUNKS_PER_DIM 32
 
 extern struct chunk {
 	struct glx_displaylist display_list;
@@ -26,23 +26,23 @@ extern struct chunk {
 	float last_update;
 	char created;
 	int vertex_count;
-} chunks[CHUNKS_PER_DIM*CHUNKS_PER_DIM];
+} chunks[CHUNKS_PER_DIM * CHUNKS_PER_DIM];
 
-extern int chunk_geometry_changed[CHUNKS_PER_DIM*CHUNKS_PER_DIM*2];
+extern int chunk_geometry_changed[CHUNKS_PER_DIM * CHUNKS_PER_DIM * 2];
 extern int chunk_geometry_changed_lenght;
 
-extern int chunk_lighting_changed[CHUNKS_PER_DIM*CHUNKS_PER_DIM*2];
+extern int chunk_lighting_changed[CHUNKS_PER_DIM * CHUNKS_PER_DIM * 2];
 extern int chunk_lighting_changed_lenght;
 
 extern int chunk_render_mode;
 
 extern int chunk_enabled_cores;
 
-#define CHUNK_WORKERS_MAX			16
+#define CHUNK_WORKERS_MAX 16
 
-#define CHUNK_WORKERSTATE_BUSY		0
-#define CHUNK_WORKERSTATE_IDLE		1
-#define CHUNK_WORKERSTATE_FINISHED	2
+#define CHUNK_WORKERSTATE_BUSY 0
+#define CHUNK_WORKERSTATE_IDLE 1
+#define CHUNK_WORKERSTATE_FINISHED 2
 
 extern struct chunk_worker {
 	int chunk_id;

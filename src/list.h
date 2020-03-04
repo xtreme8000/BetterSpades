@@ -1,6 +1,6 @@
 struct list {
-    void* data;
-    int elements, element_size, mem_size;
+	void* data;
+	int elements, element_size, mem_size;
 };
 
 int list_created(struct list* l);

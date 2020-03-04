@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2017-2019 ByteBit
+	Copyright (c) 2017-2020 ByteBit
 
 	This file is part of BetterSpades.
 
@@ -29,22 +29,22 @@ struct rpc {
 
 #ifdef USE_RPC
 static void rpc_joingame(const char* joinSecret) {
-	log_info("discord join %s!",joinSecret);
+	log_info("discord join %s!", joinSecret);
 }
 
 static void rpc_joinrequest(const DiscordUser* request) {
-	Discord_Respond(request->userId,DISCORD_REPLY_YES);
+	Discord_Respond(request->userId, DISCORD_REPLY_YES);
 }
 #endif
 
 void rpc_init() {
-	#ifdef USE_RPC
+#ifdef USE_RPC
 	DiscordEventHandlers handlers;
-	memset(&handlers,0,sizeof(handlers));
+	memset(&handlers, 0, sizeof(handlers));
 	handlers.joinGame = rpc_joingame;
 	handlers.joinRequest = rpc_joinrequest;
-	Discord_Initialize("DISCORD TOKEN HERE",&handlers,1,NULL);
-	#endif
+	Discord_Initialize("DISCORD TOKEN HERE", &handlers, 1, NULL);
+#endif
 	rpc_state.needs_update = 1;
 	rpc_state.players = 0;
 	rpc_state.slots = 0;
@@ -53,22 +53,22 @@ void rpc_init() {
 }
 
 void rpc_deinit() {
-	#ifdef USE_RPC
+#ifdef USE_RPC
 	Discord_Shutdown();
-	#endif
+#endif
 }
 
 void rpc_setv(enum RPC_VALUE v, char* x) {
 	switch(v) {
 		case RPC_VALUE_SERVERNAME:
-			if(strcmp(rpc_state.server_name,x)!=0) {
-				strncpy(rpc_state.server_name,x,sizeof(rpc_state.server_name)-1);
+			if(strcmp(rpc_state.server_name, x) != 0) {
+				strncpy(rpc_state.server_name, x, sizeof(rpc_state.server_name) - 1);
 				rpc_state.needs_update = 1;
 			}
 			break;
 		case RPC_VALUE_SERVERURL:
-			if(strcmp(rpc_state.server_url,x)!=0) {
-				strncpy(rpc_state.server_url,x,sizeof(rpc_state.server_url)-1);
+			if(strcmp(rpc_state.server_url, x) != 0) {
+				strncpy(rpc_state.server_url, x, sizeof(rpc_state.server_url) - 1);
 				rpc_state.needs_update = 1;
 			}
 			break;
@@ -78,13 +78,13 @@ void rpc_setv(enum RPC_VALUE v, char* x) {
 void rpc_seti(enum RPC_VALUE v, int x) {
 	switch(v) {
 		case RPC_VALUE_PLAYERS:
-			if(rpc_state.players!=x) {
+			if(rpc_state.players != x) {
 				rpc_state.players = x;
 				rpc_state.needs_update = 1;
 			}
 			break;
 		case RPC_VALUE_SLOTS:
-			if(rpc_state.slots!=x) {
+			if(rpc_state.slots != x) {
 				rpc_state.slots = x;
 				rpc_state.needs_update = 1;
 			}
@@ -93,26 +93,26 @@ void rpc_seti(enum RPC_VALUE v, int x) {
 }
 
 void rpc_update() {
-	#ifdef USE_RPC
+#ifdef USE_RPC
 
 	int online = 0;
-	for(int k=0;k<PLAYERS_MAX;k++) {
+	for(int k = 0; k < PLAYERS_MAX; k++) {
 		if(players[k].connected)
 			online++;
 	}
-	rpc_seti(RPC_VALUE_PLAYERS,online);
+	rpc_seti(RPC_VALUE_PLAYERS, online);
 
 	if(rpc_state.needs_update) {
 		DiscordRichPresence discordPresence;
-		memset(&discordPresence,0,sizeof(discordPresence));
+		memset(&discordPresence, 0, sizeof(discordPresence));
 		discordPresence.largeImageKey = "pic03";
 		discordPresence.smallImageKey = "logo";
 		discordPresence.smallImageText = BETTERSPADES_VERSION;
 		discordPresence.instance = 1;
-		if(rpc_state.slots>0) {
+		if(rpc_state.slots > 0) {
 			discordPresence.state = "Playing";
 			discordPresence.partyId = "42";
-			discordPresence.partySize = max(rpc_state.players,1);
+			discordPresence.partySize = max(rpc_state.players, 1);
 			discordPresence.partyMax = rpc_state.slots;
 			discordPresence.details = rpc_state.server_name;
 			discordPresence.joinSecret = rpc_state.server_url;
@@ -125,5 +125,5 @@ void rpc_update() {
 
 	Discord_UpdateConnection();
 	Discord_RunCallbacks();
-	#endif
+#endif
 }

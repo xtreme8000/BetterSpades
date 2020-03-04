@@ -1,22 +1,21 @@
 /*
-	Copyright (c) 2017-2018 ByteBit
+	Copyright (c) 2017-2020 ByteBit
 
 	This file is part of BetterSpades.
 
-    BetterSpades is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	BetterSpades is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    BetterSpades is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	BetterSpades is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
-
 
 struct window_instance {
 	void* impl;
@@ -24,13 +23,13 @@ struct window_instance {
 
 enum {
 	WINDOW_PRESS,
-	WINDOW_RELEASE
+	WINDOW_RELEASE,
 };
 
 enum {
 	TOUCH_DOWN,
 	TOUCH_MOVE,
-	TOUCH_UP
+	TOUCH_UP,
 };
 
 enum window_keys {
@@ -75,36 +74,36 @@ enum window_keys {
 	WINDOW_KEY_COMMAND,
 	WINDOW_KEY_HIDEHUD,
 	WINDOW_KEY_LASTTOOL,
-	WINDOW_KEY_NETWORKSTATS
+	WINDOW_KEY_NETWORKSTATS,
 };
 
 enum {
 	WINDOW_CURSOR_DISABLED,
-	WINDOW_CURSOR_ENABLED
+	WINDOW_CURSOR_ENABLED,
 };
 
 enum {
 	WINDOW_MOUSE_LMB,
 	WINDOW_MOUSE_MMB,
-	WINDOW_MOUSE_RMB
+	WINDOW_MOUSE_RMB,
 };
 
 struct window_finger {
-	#ifdef USE_SDL
+#ifdef USE_SDL
 	SDL_FingerID finger;
-	#else
+#else
 	int finger;
-	#endif
+#endif
 	float down_time;
 	int full;
 	struct {
-		float x,y;
+		float x, y;
 	} start;
 };
 
 extern int window_pressed_keys[64];
 
-#define WINDOW_NOMOUSELOC		-1
+#define WINDOW_NOMOUSELOC -1
 
 void window_textinput(int allow);
 float window_time(void);

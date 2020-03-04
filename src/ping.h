@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2017-2018 ByteBit
+	Copyright (c) 2017-2020 ByteBit
 
 	This file is part of BetterSpades.
 
@@ -28,6 +28,6 @@ void ping_init();
 void ping_deinit();
 void ping_check(char* addr, int port, void* user_data);
 void* ping_update(void* data);
-void ping_start(void (*finished) (),  void (*result) (void*, float, void*));
+void ping_start(void (*finished)(), void (*result)(void*, float, void*));
 void ping_lan();
 void ping_stop();

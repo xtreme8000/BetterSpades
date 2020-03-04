@@ -1,20 +1,20 @@
 /*
-	Copyright (c) 2017-2018 ByteBit
+	Copyright (c) 2017-2020 ByteBit
 
 	This file is part of BetterSpades.
 
-    BetterSpades is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	BetterSpades is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    BetterSpades is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	BetterSpades is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 extern unsigned int* map_colors;
@@ -29,13 +29,13 @@ extern float map_sun[4];
 extern unsigned char* map_minimap;
 
 extern struct DamagedVoxel {
-	int x,y,z;
+	int x, y, z;
 	char damage;
 	float timer;
 } map_damaged_voxels[8];
 
 struct Point {
-	int x,y,z;
+	int x, y, z;
 };
 
 int map_object_visible(float x, float y, float z);

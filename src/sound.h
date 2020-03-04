@@ -1,51 +1,51 @@
 /*
-	Copyright (c) 2017-2018 ByteBit
+	Copyright (c) 2017-2020 ByteBit
 
 	This file is part of BetterSpades.
 
-    BetterSpades is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	BetterSpades is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    BetterSpades is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	BetterSpades is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #ifdef USE_SOUND
-	#if __APPLE__
-		#include <OpenAL/al.h>
-		#include <OpenAL/alc.h>
-	#else
-		#include <AL/al.h>
-		#include <AL/alc.h>
-	#endif
+#if __APPLE__
+#include <OpenAL/al.h>
+#include <OpenAL/alc.h>
+#else
+#include <AL/al.h>
+#include <AL/alc.h>
+#endif
 #endif
 
-#define SOUND_SCALE         0.6F
+#define SOUND_SCALE 0.6F
 
-#define SOUND_VOICES_MAX    256
+#define SOUND_VOICES_MAX 256
 
-#define SOUND_WORLD         0
-#define SOUND_LOCAL         1
+#define SOUND_WORLD 0
+#define SOUND_LOCAL 1
 
 extern int sound_enabled;
 
 struct Sound_source {
-    int openal_handle;
-    char active;
-    char local;
-    int stick_to_player;
+	int openal_handle;
+	char active;
+	char local;
+	int stick_to_player;
 };
 
 struct Sound_wav {
-    int openal_buffer;
-    float min, max;
+	int openal_buffer;
+	float min, max;
 };
 
 extern struct Sound_source sound_sources[SOUND_VOICES_MAX];
@@ -105,7 +105,8 @@ extern struct Sound_wav sound_impact;
 
 void sound_volume(float vol);
 struct Sound_source* sound_create(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z);
-struct Sound_source* sound_createEx(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z, float vx, float vy, float vz);
+struct Sound_source* sound_createEx(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z,
+									float vx, float vy, float vz);
 void sound_velocity(struct Sound_source* s, float vx, float vy, float vz);
 void sound_position(struct Sound_source* s, float x, float y, float z);
 void sound_update();

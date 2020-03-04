@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2017-2019 ByteBit
+	Copyright (c) 2017-2020 ByteBit
 
 	This file is part of BetterSpades.
 
@@ -27,7 +27,7 @@
 #include "minheap.h"
 
 int int_cmp(void* first_key, void* second_key, size_t key_size) {
-	return (*(uint32_t*)first_key)!=(*(uint32_t*)second_key);
+	return (*(uint32_t*)first_key) != (*(uint32_t*)second_key);
 }
 
 size_t int_hash(void* raw_key, size_t key_size) {
@@ -44,15 +44,15 @@ static void nodes_swap(struct minheap* h, int a, int b) {
 	h->nodes[a] = h->nodes[b];
 	h->nodes[b] = tmp;
 
-	ht_insert(&h->contains,&h->nodes[a].pos,&a);
-	ht_insert(&h->contains,&h->nodes[b].pos,&b);
+	ht_insert(&h->contains, &h->nodes[a].pos, &a);
+	ht_insert(&h->contains, &h->nodes[b].pos, &b);
 }
 
 void minheap_create(struct minheap* h) {
 	h->index = 0;
 	h->length = 256;
-	h->nodes = malloc(sizeof(struct minheap_block)*h->length);
-	ht_setup(&h->contains,sizeof(uint32_t),sizeof(uint32_t),256);
+	h->nodes = malloc(sizeof(struct minheap_block) * h->length);
+	ht_setup(&h->contains, sizeof(uint32_t), sizeof(uint32_t), 256);
 	h->contains.compare = int_cmp;
 	h->contains.hash = int_hash;
 }
@@ -62,7 +62,7 @@ void minheap_clear(struct minheap* h) {
 	free(h->nodes);
 	h->index = 0;
 	h->length = 256;
-	h->nodes = malloc(sizeof(struct minheap_block)*h->length);
+	h->nodes = malloc(sizeof(struct minheap_block) * h->length);
 }
 
 void minheap_destroy(struct minheap* h) {
@@ -71,36 +71,40 @@ void minheap_destroy(struct minheap* h) {
 }
 
 int minheap_isempty(struct minheap* h) {
-	return h->index<=0;
+	return h->index <= 0;
 }
 
 struct minheap_block* minheap_get(struct minheap* h, short x, short y, short z) {
-	if(x<0 || y<0 || z<0)
+	if(x < 0 || y < 0 || z < 0)
 		return NULL;
 
-	uint32_t key = pos_key(x,y,z);
-	uint32_t* res = ht_lookup(&h->contains,&key);
-	return res?(h->nodes+*res):NULL;
+	uint32_t key = pos_key(x, y, z);
+	uint32_t* res = ht_lookup(&h->contains, &key);
+	return res ? (h->nodes + *res) : NULL;
 }
 
 struct minheap_block minheap_extract(struct minheap* h) {
 	struct minheap_block min = h->nodes[0];
 
-	ht_erase(&h->contains,&min.pos);
+	ht_erase(&h->contains, &min.pos);
 
 	h->nodes[0] = h->nodes[--h->index];
 
-	//now heapify at root node
+	// now heapify at root node
 	int k = 0;
 	while(1) {
 		int smallest = k;
-		if(k*2+1<h->index && pos_keyy(h->nodes[k*2+1].pos)<pos_keyy(h->nodes[smallest].pos)) //does left child exist and is less than parent?
-			smallest = k*2+1;
-		if(k*2+2<h->index && pos_keyy(h->nodes[k*2+2].pos)<pos_keyy(h->nodes[smallest].pos)) //does right child exist and is less than parent?
-			smallest = k*2+2;
-		if(smallest==k) //parent is smallest, finished!
+		if(k * 2 + 1 < h->index
+		   && pos_keyy(h->nodes[k * 2 + 1].pos)
+			   < pos_keyy(h->nodes[smallest].pos)) // does left child exist and is less than parent?
+			smallest = k * 2 + 1;
+		if(k * 2 + 2 < h->index
+		   && pos_keyy(h->nodes[k * 2 + 2].pos)
+			   < pos_keyy(h->nodes[smallest].pos)) // does right child exist and is less than parent?
+			smallest = k * 2 + 2;
+		if(smallest == k) // parent is smallest, finished!
 			break;
-		nodes_swap(h,k,smallest);
+		nodes_swap(h, k, smallest);
 		k = smallest;
 	}
 
@@ -108,30 +112,34 @@ struct minheap_block minheap_extract(struct minheap* h) {
 }
 
 static void minheap_increase(struct minheap* h, struct minheap_block* b, int value) {
-	b->pos = pos_key(pos_keyx(b->pos),value,pos_keyy(b->pos));
+	b->pos = pos_key(pos_keyx(b->pos), value, pos_keyy(b->pos));
 
-	int k = b-h->nodes;
+	int k = b - h->nodes;
 	while(1) {
 		int smallest = k;
-		if(k*2+1<h->index && pos_keyy(h->nodes[k*2+1].pos)<pos_keyy(h->nodes[smallest].pos)) //does left child exist and is less than parent?
-			smallest = k*2+1;
-		if(k*2+2<h->index && pos_keyy(h->nodes[k*2+2].pos)<pos_keyy(h->nodes[smallest].pos)) //does right child exist and is less than parent?
-			smallest = k*2+2;
-		if(smallest==k) //parent is smallest, finished!
+		if(k * 2 + 1 < h->index
+		   && pos_keyy(h->nodes[k * 2 + 1].pos)
+			   < pos_keyy(h->nodes[smallest].pos)) // does left child exist and is less than parent?
+			smallest = k * 2 + 1;
+		if(k * 2 + 2 < h->index
+		   && pos_keyy(h->nodes[k * 2 + 2].pos)
+			   < pos_keyy(h->nodes[smallest].pos)) // does right child exist and is less than parent?
+			smallest = k * 2 + 2;
+		if(smallest == k) // parent is smallest, finished!
 			break;
-		nodes_swap(h,k,smallest);
+		nodes_swap(h, k, smallest);
 		k = smallest;
 	}
 }
 
 static void minheap_decrease(struct minheap* h, struct minheap_block* b, int value) {
-	b->pos = pos_key(pos_keyx(b->pos),value,pos_keyy(b->pos));
+	b->pos = pos_key(pos_keyx(b->pos), value, pos_keyy(b->pos));
 
-	int k = b-h->nodes;
-	while(k>0) {
-		if(pos_keyy(h->nodes[k].pos)<pos_keyy(h->nodes[(k-1)/2].pos)) { //is child less than parent?
-			nodes_swap(h,k,(k-1)/2);
-			k = (k-1)/2; //continue at parent
+	int k = b - h->nodes;
+	while(k > 0) {
+		if(pos_keyy(h->nodes[k].pos) < pos_keyy(h->nodes[(k - 1) / 2].pos)) { // is child less than parent?
+			nodes_swap(h, k, (k - 1) / 2);
+			k = (k - 1) / 2; // continue at parent
 		} else {
 			break;
 		}
@@ -139,31 +147,31 @@ static void minheap_decrease(struct minheap* h, struct minheap_block* b, int val
 }
 
 void minheap_set(struct minheap* h, struct minheap_block* b, int value) {
-	if(value>pos_keyy(b->pos))
-		minheap_increase(h,b,value);
+	if(value > pos_keyy(b->pos))
+		minheap_increase(h, b, value);
 	else
-		minheap_decrease(h,b,value);
+		minheap_decrease(h, b, value);
 }
 
 struct minheap_block* minheap_put(struct minheap* h, struct minheap_block* b) {
-	if(h->index>=h->length) { //grow buffer
+	if(h->index >= h->length) { // grow buffer
 		h->length *= 2;
-		h->nodes = realloc(h->nodes,sizeof(struct minheap_block)*h->length);
+		h->nodes = realloc(h->nodes, sizeof(struct minheap_block) * h->length);
 	}
 
-	h->nodes[h->index++] = *b; //place new node at end of heap
+	h->nodes[h->index++] = *b; // place new node at end of heap
 
-	int k = h->index-1;
-	while(k>0) {
-		if(pos_keyy(h->nodes[k].pos)<pos_keyy(h->nodes[(k-1)/2].pos)) { //is child less than parent?
-			nodes_swap(h,k,(k-1)/2);
-			k = (k-1)/2; //continue at parent
+	int k = h->index - 1;
+	while(k > 0) {
+		if(pos_keyy(h->nodes[k].pos) < pos_keyy(h->nodes[(k - 1) / 2].pos)) { // is child less than parent?
+			nodes_swap(h, k, (k - 1) / 2);
+			k = (k - 1) / 2; // continue at parent
 		} else {
 			break;
 		}
 	}
 
-	ht_insert(&h->contains,&b->pos,&k);
+	ht_insert(&h->contains, &b->pos, &k);
 
-	return h->nodes+k;
+	return h->nodes + k;
 }

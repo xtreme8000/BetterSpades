@@ -1,20 +1,20 @@
 /*
-	Copyright (c) 2017-2018 ByteBit
+	Copyright (c) 2017-2020 ByteBit
 
 	This file is part of BetterSpades.
 
-    BetterSpades is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	BetterSpades is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    BetterSpades is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	BetterSpades is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 const char* network_reason_disconnect(int code);
@@ -63,7 +63,7 @@ void read_PacketProgressBar(void* data, int len);
 void read_PacketHandshakeInit(void* data, int len);
 void read_PacketVersionGet(void* data, int len);
 
-extern void (*packets[256]) (void* data, int len);
+extern void (*packets[256])(void* data, int len);
 extern int network_connected;
 extern int network_logged_in;
 extern int network_map_transfer;
@@ -75,8 +75,8 @@ extern unsigned char network_keys_last;
 extern unsigned char network_buttons_last;
 extern unsigned char network_tool_last;
 
-#define VERSION_075		3
-#define VERSION_076		4
+#define VERSION_075 3
+#define VERSION_076 4
 
 extern void* compressed_chunk_data;
 extern int compressed_chunk_data_size;
@@ -91,7 +91,7 @@ extern struct network_stat {
 
 extern float network_stats_last;
 
-#pragma pack(push,1)
+#pragma pack(push, 1)
 
 #define PACKET_HANDSHAKEINIT_ID 31
 struct PacketHandshakeInit {
@@ -116,24 +116,24 @@ struct PacketVersionSend {
 
 #define PACKET_POSITIONDATA_ID 0
 struct PacketPositionData {
-	float x,y,z;
+	float x, y, z;
 };
 
 #define PACKET_ORIENTATIONDATA_ID 1
 struct PacketOrientationData {
-	float x,y,z;
+	float x, y, z;
 };
 
 #define PACKET_WORLDUPDATE_ID 2
 struct PacketWorldUpdate075 {
-	float x,y,z;
-	float ox,oy,oz;
+	float x, y, z;
+	float ox, oy, oz;
 };
 
 struct PacketWorldUpdate076 {
 	unsigned char player_id;
-	float x,y,z;
-	float ox,oy,oz;
+	float x, y, z;
+	float ox, oy, oz;
 };
 
 #define PACKET_INPUTDATA_ID 3
@@ -153,12 +153,12 @@ struct PacketWeaponInput {
 struct PacketMoveObject {
 	unsigned char object_id;
 	unsigned char team;
-	float x,y,z;
+	float x, y, z;
 };
-#define TEAM_1_FLAG	0
-#define TEAM_2_FLAG	1
-#define TEAM_1_BASE	2
-#define TEAM_2_BASE	3
+#define TEAM_1_FLAG 0
+#define TEAM_2_FLAG 1
+#define TEAM_1_BASE 2
+#define TEAM_2_BASE 3
 
 #define PACKET_INTELPICKUP_ID 24
 struct PacketIntelPickup {
@@ -174,7 +174,7 @@ struct PacketIntelCapture {
 #define PACKET_INTELDROP_ID 25
 struct PacketIntelDrop {
 	unsigned char player_id;
-	float x,y,z;
+	float x, y, z;
 };
 
 #define PACKET_WEAPONRELOAD_ID 28
@@ -188,22 +188,21 @@ struct PacketWeaponReload {
 struct PacketSetHP {
 	unsigned char hp;
 	unsigned char type;
-	float x,y,z;
+	float x, y, z;
 };
-#define DAMAGE_SOURCE_FALL	0
-#define DAMAGE_SOURCE_GUN	1
+#define DAMAGE_SOURCE_FALL 0
+#define DAMAGE_SOURCE_GUN 1
 
 #define PACKET_HIT_ID 5
 struct PacketHit {
 	unsigned char player_id;
 	unsigned char hit_type;
 };
-#define HITTYPE_TORSO	0
-#define HITTYPE_HEAD	1
-#define HITTYPE_ARMS	2
-#define HITTYPE_LEGS	3
-#define HITTYPE_SPADE	4
-
+#define HITTYPE_TORSO 0
+#define HITTYPE_HEAD 1
+#define HITTYPE_ARMS 2
+#define HITTYPE_LEGS 3
+#define HITTYPE_SPADE 4
 
 #define PACKET_KILLACTION_ID 16
 struct PacketKillAction {
@@ -212,13 +211,13 @@ struct PacketKillAction {
 	unsigned char kill_type;
 	unsigned char respawn_time;
 };
-#define KILLTYPE_WEAPON			0
-#define KILLTYPE_HEADSHOT		1
-#define KILLTYPE_MELEE			2
-#define KILLTYPE_GRENADE		3
-#define KILLTYPE_FALL			4
-#define KILLTYPE_TEAMCHANGE		5
-#define KILLTYPE_CLASSCHANGE	6
+#define KILLTYPE_WEAPON 0
+#define KILLTYPE_HEADSHOT 1
+#define KILLTYPE_MELEE 2
+#define KILLTYPE_GRENADE 3
+#define KILLTYPE_FALL 4
+#define KILLTYPE_TEAMCHANGE 5
+#define KILLTYPE_CLASSCHANGE 6
 
 #define PACKET_RESTOCK_ID 26
 struct PacketRestock {
@@ -229,8 +228,8 @@ struct PacketRestock {
 struct PacketGrenade {
 	unsigned char player_id;
 	float fuse_length;
-	float x,y,z;
-	float vx,vy,vz;
+	float x, y, z;
+	float vx, vy, vz;
 };
 
 #define PACKET_MAPSTART_ID 18
@@ -260,19 +259,19 @@ struct PacketExistingPlayer {
 	unsigned char weapon;
 	unsigned char held_item;
 	unsigned int kills;
-	unsigned char blue,green,red;
+	unsigned char blue, green, red;
 	char name[17];
 };
-#define WEAPON_RIFLE	0
-#define WEAPON_SMG		1
-#define WEAPON_SHOTGUN	2
+#define WEAPON_RIFLE 0
+#define WEAPON_SMG 1
+#define WEAPON_SHOTGUN 2
 
 #define PACKET_CREATEPLAYER_ID 12
 struct PacketCreatePlayer {
 	unsigned char player_id;
 	unsigned char weapon;
 	unsigned char team;
-	float x,y,z;
+	float x, y, z;
 	char name[17];
 };
 
@@ -280,24 +279,24 @@ struct PacketCreatePlayer {
 struct PacketBlockAction {
 	unsigned char player_id;
 	unsigned char action_type;
-	int x,y,z;
+	int x, y, z;
 };
-#define ACTION_BUILD	0
-#define ACTION_DESTROY	1
-#define ACTION_SPADE	2
-#define ACTION_GRENADE	3
+#define ACTION_BUILD 0
+#define ACTION_DESTROY 1
+#define ACTION_SPADE 2
+#define ACTION_GRENADE 3
 
 #define PACKET_BLOCKLINE_ID 14
 struct PacketBlockLine {
 	unsigned char player_id;
-	int sx,sy,sz;
-	int ex,ey,ez;
+	int sx, sy, sz;
+	int ex, ey, ez;
 };
 
 #define PACKET_SETCOLOR_ID 8
 struct PacketSetColor {
 	unsigned char player_id;
-	unsigned char blue,green,red;
+	unsigned char blue, green, red;
 };
 
 #define PACKET_SHORTPLAYERDATA_ID 10
@@ -312,10 +311,10 @@ struct PacketSetTool {
 	unsigned char player_id;
 	unsigned char tool;
 };
-#define TOOL_SPADE		0
-#define TOOL_BLOCK		1
-#define TOOL_GUN		2
-#define TOOL_GRENADE	3
+#define TOOL_SPADE 0
+#define TOOL_BLOCK 1
+#define TOOL_GUN 2
+#define TOOL_GRENADE 3
 
 #define PACKET_CHATMESSAGE_ID 17
 struct PacketChatMessage {
@@ -323,17 +322,17 @@ struct PacketChatMessage {
 	unsigned char chat_type;
 	char message[255];
 };
-#define CHAT_ALL		0
-#define CHAT_TEAM		1
-#define CHAT_SYSTEM		2
-#define CHAT_BIG		3
-#define CHAT_INFO		4
-#define CHAT_WARNING	5
-#define CHAT_ERROR		6
+#define CHAT_ALL 0
+#define CHAT_TEAM 1
+#define CHAT_SYSTEM 2
+#define CHAT_BIG 3
+#define CHAT_INFO 4
+#define CHAT_WARNING 5
+#define CHAT_ERROR 6
 
 #define PACKET_FOGCOLOR_ID 27
 struct PacketFogColor {
-	unsigned char alpha,blue,green,red;
+	unsigned char alpha, blue, green, red;
 };
 
 #define PACKET_CHANGETEAM_ID 29
@@ -351,9 +350,9 @@ struct PacketChangeWeapon {
 #define PACKET_STATEDATA_ID 15
 struct PacketStateData {
 	unsigned char player_id;
-	unsigned char fog_blue,fog_green,fog_red;
-	unsigned char team_1_blue,team_1_green,team_1_red;
-	unsigned char team_2_blue,team_2_green,team_2_red;
+	unsigned char fog_blue, fog_green, fog_red;
+	unsigned char team_1_blue, team_1_green, team_1_red;
+	unsigned char team_2_blue, team_2_green, team_2_red;
 	char team_1_name[10];
 	char team_2_name[10];
 	unsigned char gamemode;
@@ -371,22 +370,22 @@ struct PacketStateData {
 					unsigned char padding[11];
 				} held;
 				struct {
-					float x,y,z;
+					float x, y, z;
 				} dropped;
 			} team_1_intel_location;
 			union intel_location team_2_intel_location;
 			struct {
-				float x,y,z;
+				float x, y, z;
 			} team_1_base;
 			struct {
-				float x,y,z;
+				float x, y, z;
 			} team_2_base;
 		} ctf;
 
 		struct GM_TC {
 			unsigned char territory_count;
 			struct {
-				float x,y,z;
+				float x, y, z;
 				unsigned char team;
 			} territory[16];
 		} tc;
@@ -416,9 +415,9 @@ struct PacketExtInfo {
 };
 
 enum Extension {
-	EXT_256PLAYERS		= 0xC0,
-	EXT_MESSAGES		= 0xC1,
-	EXT_KICKREASON		= 0xC2,
+	EXT_256PLAYERS = 0xC0,
+	EXT_MESSAGES = 0xC1,
+	EXT_KICKREASON = 0xC2,
 };
 
 #pragma pack(pop)

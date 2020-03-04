@@ -1,28 +1,28 @@
 /*
-	Copyright (c) 2017-2018 ByteBit
+	Copyright (c) 2017-2020 ByteBit
 
 	This file is part of BetterSpades.
 
-    BetterSpades is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+	BetterSpades is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
 
-    BetterSpades is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	BetterSpades is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
+	You should have received a copy of the GNU General Public License
+	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define CAMERAMODE_SELECTION    0
-#define CAMERAMODE_FPS          1
-#define CAMERAMODE_SPECTATOR    2
-#define CAMERAMODE_BODYVIEW     3
+#define CAMERAMODE_SELECTION 0
+#define CAMERAMODE_FPS 1
+#define CAMERAMODE_SPECTATOR 2
+#define CAMERAMODE_BODYVIEW 3
 
-#define CAMERA_DEFAULT_FOV      70.0F
+#define CAMERA_DEFAULT_FOV 70.0F
 
 extern unsigned char camera_mode;
 
@@ -39,17 +39,20 @@ extern float camera_speed;
 
 struct Camera_HitType {
 	char type;
-	float x,y,z,distance;
-	int xb,yb,zb;
+	float x, y, z, distance;
+	int xb, yb, zb;
 	unsigned char player_id, player_section;
 };
-#define CAMERA_HITTYPE_NONE		0
-#define CAMERA_HITTYPE_BLOCK	1
-#define CAMERA_HITTYPE_PLAYER	2
+
+#define CAMERA_HITTYPE_NONE 0
+#define CAMERA_HITTYPE_BLOCK 1
+#define CAMERA_HITTYPE_PLAYER 2
 
 void camera_hit_fromplayer(struct Camera_HitType* hit, int player_id, float range);
-void camera_hit(struct Camera_HitType* hit, int exclude_player, float x, float y, float z, float ray_x, float ray_y, float ray_z, float range);
-void camera_hit_mask(struct Camera_HitType* hit, int exclude_player, float x, float y, float z, float ray_x, float ray_y, float ray_z, float range);
+void camera_hit(struct Camera_HitType* hit, int exclude_player, float x, float y, float z, float ray_x, float ray_y,
+				float ray_z, float range);
+void camera_hit_mask(struct Camera_HitType* hit, int exclude_player, float x, float y, float z, float ray_x,
+					 float ray_y, float ray_z, float range);
 
 float camera_fov_scaled();
 void camera_ExtractFrustum(void);

@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2017-2019 ByteBit
+	Copyright (c) 2017-2020 ByteBit
 
 	This file is part of BetterSpades.
 
@@ -22,13 +22,13 @@
 
 #include "hashtable.h"
 
-#define pos_key(x,y,z)			(((z)<<20) | ((x)<<8) | (y))
-#define pos_keyx(key)			(((key)>>8)&0xFFF)
-#define pos_keyy(key)			((key)&0xFF)
-#define pos_keyz(key)			(((key)>>20)&0xFFF)
+#define pos_key(x, y, z) (((z) << 20) | ((x) << 8) | (y))
+#define pos_keyx(key) (((key) >> 8) & 0xFFF)
+#define pos_keyy(key) ((key)&0xFF)
+#define pos_keyz(key) (((key) >> 20) & 0xFFF)
 
 struct path_vec {
-	short x,y,z;
+	short x, y, z;
 };
 
 struct minheap_block {
