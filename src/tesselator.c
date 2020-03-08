@@ -20,6 +20,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "common.h"
 #include "tesselator.h"
 
 void tesselator_create(struct tesselator* t, enum tesselator_type type) {
@@ -31,12 +32,16 @@ void tesselator_create(struct tesselator* t, enum tesselator_type type) {
 
 	if(t->type == TESSELATE_QUADS) {
 		t->vertices = malloc(t->quad_space * sizeof(int16_t) * 3 * 4);
+		CHECK_ALLOCATION_ERROR(t->vertices)
 		t->colors = malloc(t->quad_space * sizeof(uint32_t) * 4);
+		CHECK_ALLOCATION_ERROR(t->colors)
 	}
 
 	if(t->type == TESSELATE_TRIANGLES) {
 		t->vertices = malloc(t->quad_space * sizeof(int16_t) * 3 * 6);
+		CHECK_ALLOCATION_ERROR(t->vertices)
 		t->colors = malloc(t->quad_space * sizeof(uint32_t) * 6);
+		CHECK_ALLOCATION_ERROR(t->colors)
 	}
 }
 
@@ -68,12 +73,16 @@ void tesselator_add(struct tesselator* t, int16_t* coords, uint32_t* colors) {
 
 		if(t->type == TESSELATE_QUADS) {
 			t->vertices = realloc(t->vertices, t->quad_space * sizeof(int16_t) * 3 * 4);
+			CHECK_ALLOCATION_ERROR(t->vertices)
 			t->colors = realloc(t->colors, t->quad_space * sizeof(uint32_t) * 4);
+			CHECK_ALLOCATION_ERROR(t->colors)
 		}
 
 		if(t->type == TESSELATE_TRIANGLES) {
 			t->vertices = realloc(t->vertices, t->quad_space * sizeof(int16_t) * 3 * 6);
+			CHECK_ALLOCATION_ERROR(t->vertices)
 			t->colors = realloc(t->colors, t->quad_space * sizeof(uint32_t) * 6);
+			CHECK_ALLOCATION_ERROR(t->colors)
 		}
 	}
 
@@ -85,13 +94,11 @@ void tesselator_add(struct tesselator* t, int16_t* coords, uint32_t* colors) {
 	if(t->type == TESSELATE_TRIANGLES) {
 		memcpy(t->vertices + t->quad_count * 3 * 6 + 3 * 0, coords, sizeof(int16_t) * 3 * 3);
 		memcpy(t->vertices + t->quad_count * 3 * 6 + 3 * 3, coords + 3 * 0, sizeof(int16_t) * 3);
-		memcpy(t->vertices + t->quad_count * 3 * 6 + 3 * 4, coords + 3 * 2, sizeof(int16_t) * 3);
-		memcpy(t->vertices + t->quad_count * 3 * 6 + 3 * 5, coords + 3 * 3, sizeof(int16_t) * 3);
+		memcpy(t->vertices + t->quad_count * 3 * 6 + 3 * 4, coords + 3 * 2, sizeof(int16_t) * 3 * 2);
 
 		memcpy(t->colors + t->quad_count * 6, colors, sizeof(uint32_t) * 3);
 		t->colors[t->quad_count * 6 + 3] = colors[0];
-		t->colors[t->quad_count * 6 + 4] = colors[2];
-		t->colors[t->quad_count * 6 + 5] = colors[3];
+		memcpy(t->colors + t->quad_count * 6 + 4, colors + 2, sizeof(uint32_t) * 2);
 	}
 
 	t->quad_count++;
