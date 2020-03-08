@@ -96,6 +96,7 @@ void glClearDepth(float x);
 #define len2D(x, y) sqrt(pow(x, 2) + pow(y, 2))
 #define len3D(x, y, z) sqrt(pow(x, 2) + pow(y, 2) + pow(z, 2))
 
+#define rgba(r, g, b, a) (((int)(a) << 24) | ((int)(b) << 16) | ((int)(g) << 8) | (int)(r))
 #define rgb(r, g, b) (((b) << 16) | ((g) << 8) | (r))
 #define red(col) ((col)&0xFF)
 #define green(col) (((col) >> 8) & 0xFF)

@@ -19,6 +19,9 @@
 
 // for future opengl es abstraction layer
 
+#ifndef GLX_H
+#define GLX_H
+
 extern int glx_version;
 extern int glx_fog;
 
@@ -46,3 +49,5 @@ void glx_displaylist_create(struct glx_displaylist* x);
 void glx_displaylist_destroy(struct glx_displaylist* x);
 void glx_displaylist_update(struct glx_displaylist* x, int size, int type, void* color, void* vertex, void* normal);
 void glx_displaylist_draw(struct glx_displaylist* x, int type);
+
+#endif

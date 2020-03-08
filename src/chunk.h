@@ -17,6 +17,8 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "tesselator.h"
+
 #define CHUNK_SIZE 16
 #define CHUNKS_PER_DIM 32
 
@@ -24,8 +26,7 @@ extern struct chunk {
 	struct glx_displaylist display_list;
 	int max_height;
 	float last_update;
-	char created;
-	int vertex_count;
+	int created;
 } chunks[CHUNKS_PER_DIM * CHUNKS_PER_DIM];
 
 extern int chunk_geometry_changed[CHUNKS_PER_DIM * CHUNKS_PER_DIM * 2];
@@ -51,23 +52,20 @@ extern struct chunk_worker {
 	pthread_cond_t can_work;
 	int state;
 	pthread_t thread;
-	short* vertex_data;
-	unsigned char* color_data;
-	int data_size;
 	int max_height;
-	int mem_size;
+	struct tesselator tesselator;
+	uint32_t minimap_data[CHUNK_SIZE * CHUNK_SIZE];
 } chunk_workers[CHUNK_WORKERS_MAX];
-extern pthread_rwlock_t* chunk_map_locks;
 
-extern pthread_mutex_t chunk_minimap_lock;
+extern pthread_rwlock_t* chunk_map_locks;
 
 void chunk_init(void);
 
 void chunk_block_update(int x, int y, int z);
 void chunk_update_all(void);
 void* chunk_generate(void* data);
-void chunk_generate_greedy(struct chunk_worker* worker);
-void chunk_generate_naive(struct chunk_worker* worker);
+void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, int* max_height);
+void chunk_generate_naive(int start_x, int start_z, struct tesselator* tess, int* max_height, int ao);
 void chunk_render(int x, int y);
 void chunk_rebuild_all(void);
 void chunk_set_render_mode(int r);

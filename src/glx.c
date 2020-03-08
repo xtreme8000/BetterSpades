@@ -105,7 +105,7 @@ void glx_displaylist_update(struct glx_displaylist* x, int size, int type, void*
 		if(size > 0) {
 			switch(type) {
 				case GLX_DISPLAYLIST_NORMAL:
-					glColorPointer(3, GL_UNSIGNED_BYTE, 0, color);
+					glColorPointer(4, GL_UNSIGNED_BYTE, 0, color);
 					glVertexPointer(3, GL_SHORT, 0, vertex);
 					break;
 				case GLX_DISPLAYLIST_POINTS:
@@ -131,11 +131,7 @@ void glx_displaylist_update(struct glx_displaylist* x, int size, int type, void*
 			case GLX_DISPLAYLIST_NORMAL:
 				glBufferData(GL_ARRAY_BUFFER, x->size * 3 * sizeof(short), vertex, GL_DYNAMIC_DRAW);
 				glBindBuffer(GL_ARRAY_BUFFER, x->modern[1]);
-#ifdef OPENGL_ES
 				glBufferData(GL_ARRAY_BUFFER, x->size * 4, color, GL_DYNAMIC_DRAW);
-#else
-			glBufferData(GL_ARRAY_BUFFER, x->size * 3, color, GL_DYNAMIC_DRAW);
-#endif
 				break;
 			case GLX_DISPLAYLIST_POINTS:
 			case GLX_DISPLAYLIST_ENHANCED:
@@ -169,11 +165,7 @@ void glx_displaylist_draw(struct glx_displaylist* x, int type) {
 			case GLX_DISPLAYLIST_NORMAL:
 				glVertexPointer(3, GL_SHORT, 0, NULL);
 				glBindBuffer(GL_ARRAY_BUFFER, x->modern[1]);
-#ifdef OPENGL_ES
 				glColorPointer(4, GL_UNSIGNED_BYTE, 0, NULL);
-#else
-			glColorPointer(3, GL_UNSIGNED_BYTE, 0, NULL);
-#endif
 				break;
 			case GLX_DISPLAYLIST_POINTS:
 			case GLX_DISPLAYLIST_ENHANCED:

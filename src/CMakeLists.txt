@@ -63,6 +63,7 @@ list(APPEND CLIENT_SOURCES log.c)
 list(APPEND CLIENT_SOURCES minheap.c)
 list(APPEND CLIENT_SOURCES hashtable.c)
 list(APPEND CLIENT_SOURCES rpc.c)
+list(APPEND CLIENT_SOURCES tesselator.c)
 list(APPEND CLIENT_SOURCES ${BetterSpades_SOURCE_DIR}/resources/icon.rc)
 
 add_executable(client ${CLIENT_SOURCES})

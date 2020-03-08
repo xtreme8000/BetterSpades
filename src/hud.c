@@ -1699,7 +1699,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 			if(key == WINDOW_KEY_V && mods) {
 				const char* clipboard = window_clipboard();
 				if(clipboard)
-					strcpy(chat[0][0] + strlen(chat[0][0]), clipboard);
+					strcat(chat[0][0], clipboard);
 			}
 			if(key == WINDOW_KEY_ESCAPE || key == WINDOW_KEY_ENTER) {
 				if(key == WINDOW_KEY_ENTER && strlen(chat[0][0]) > 0) {
@@ -2151,16 +2151,23 @@ static void hud_serverlist_render(float scalex, float scaley) {
 
 	serverlist_scroll -= hud_serverlist_news_height(scaley);
 
+	glDisable(GL_SCISSOR_TEST);
+
 	if(serverlist_hover >= 0) {
 		pthread_mutex_lock(&serverlist_lock);
-		if(serverlist[serverlist_hover].current >= serverlist[serverlist_hover].max)
-			render_tooltip("Server full!", xpos, settings.window_height - ypos, scaley);
-		if(serverlist[serverlist_hover].current == 0)
-			render_tooltip("Server empty!", xpos, settings.window_height - ypos, scaley);
+		if(serverlist[serverlist_hover].ping < 0) {
+			render_tooltip("Server unreachable!", xpos, settings.window_height - ypos, scaley);
+		} else {
+			if(serverlist[serverlist_hover].current >= serverlist[serverlist_hover].max) {
+				render_tooltip("Server full!", xpos, settings.window_height - ypos, scaley);
+			} else {
+				if(serverlist[serverlist_hover].current == 0) {
+					render_tooltip("Server empty!", xpos, settings.window_height - ypos, scaley);
+				}
+			}
+		}
 		pthread_mutex_unlock(&serverlist_lock);
 	}
-
-	glDisable(GL_SCISSOR_TEST);
 
 	if(serverlist_is_outdated) {
 		glColor4f(0.0F, 0.0F, 0.0F, 0.9F);

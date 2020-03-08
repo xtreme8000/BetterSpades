@@ -26,9 +26,9 @@ endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	if(CMAKE_BUILD_TYPE STREQUAL "Release")
-		add_compile_options(-O3)
+		add_compile_options(-Ofast)
 	else()
-		add_compile_options(-O3 -g -march=native)
+		add_compile_options(-Ofast -g -march=native)
 	endif()
 endif()
 
