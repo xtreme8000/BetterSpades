@@ -17,6 +17,9 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef GRENADE_H
+#define GRENADE_H
+
 #define GRENADES_MAX PLAYERS_MAX * 3
 // each can throw all their grenades all at once
 
@@ -33,3 +36,5 @@ struct Grenade* grenade_add(void);
 void grenade_update(float dt);
 void grenade_render(void);
 int grenade_inwater(struct Grenade* g);
+
+#endif

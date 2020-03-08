@@ -17,7 +17,25 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <enet/enet.h>
+#include <math.h>
+
+#include "libdeflate.h"
+#include "texture.h"
 #include "common.h"
+#include "sound.h"
+#include "weapon.h"
+#include "grenade.h"
+#include "camera.h"
+#include "cameracontroller.h"
+#include "file.h"
+#include "hud.h"
+#include "map.h"
+#include "player.h"
+#include "network.h"
+#include "particle.h"
+#include "texture.h"
+#include "chunk.h"
 
 void (*packets[256])(void* data, int len) = {NULL};
 

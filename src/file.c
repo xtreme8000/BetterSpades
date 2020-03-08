@@ -17,7 +17,14 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <dirent.h>
+
 #include "common.h"
+#include "log.h"
+#include "file.h"
 
 struct file_handle {
 	void* internal;

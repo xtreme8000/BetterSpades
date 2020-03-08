@@ -17,7 +17,13 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <float.h>
+#include <stdlib.h>
+#include <math.h>
+
 #include "common.h"
+#include "map.h"
+#include "aabb.h"
 
 void aabb_render(AABB* a) {}
 
@@ -28,8 +34,8 @@ float aabb_intersection_ray(AABB* a, Ray* r) {
 		float t_A = (a->min[coord] - r->origin.coords[coord]) / r->direction.coords[coord];
 		float t_B = (a->max[coord] - r->origin.coords[coord]) / r->direction.coords[coord];
 
-		float range_min = min(t_A, t_B);
-		float range_max = max(t_A, t_B);
+		float range_min = fmin(t_A, t_B);
+		float range_max = fmax(t_A, t_B);
 
 		// test if intervals don't intersect
 		if(total_max <= range_min && total_min <= range_min)
@@ -38,14 +44,14 @@ float aabb_intersection_ray(AABB* a, Ray* r) {
 			return -1;
 
 		// now calculate overlap of intervals/ranges
-		total_min = max(range_min, total_min);
-		total_max = min(range_max, total_max);
+		total_min = fmax(range_min, total_min);
+		total_max = fmin(range_max, total_max);
 	}
 
 	if(total_min < 0)
 		return -1;
 
-	return absf(total_min) * len3D(r->direction.x, r->direction.y, r->direction.z);
+	return fabs(total_min) * len3D(r->direction.x, r->direction.y, r->direction.z);
 }
 
 void aabb_set_center(AABB* a, float x, float y, float z) {

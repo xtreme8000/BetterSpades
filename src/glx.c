@@ -17,7 +17,16 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
+#include <math.h>
+
 #include "common.h"
+#include "camera.h"
+#include "config.h"
+#include "map.h"
+#include "matrix.h"
+#include "texture.h"
+#include "glx.h"
 
 // for future opengl-es abstraction layer
 

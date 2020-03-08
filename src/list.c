@@ -1,4 +1,8 @@
+#include <stdlib.h>
+#include <string.h>
+
 #include "common.h"
+#include "list.h"
 
 int list_created(struct list* l) {
 	return l->element_size > 0;

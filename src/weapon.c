@@ -17,7 +17,15 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "common.h"
+#include <math.h>
+
+#include "window.h"
+#include "weapon.h"
+#include "camera.h"
+#include "particle.h"
+#include "map.h"
+#include "tracer.h"
+#include "hud.h"
 
 float weapon_reload_start, weapon_last_shot;
 unsigned char weapon_reload_inprogress = 0;

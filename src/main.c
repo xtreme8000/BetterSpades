@@ -17,7 +17,35 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <time.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
+#include "lodepng/lodepng.h"
 #include "common.h"
+#include "file.h"
+#include "font.h"
+#include "weapon.h"
+#include "window.h"
+#include "rpc.h"
+#include "network.h"
+#include "sound.h"
+#include "map.h"
+#include "particle.h"
+#include "tracer.h"
+#include "camera.h"
+#include "cameracontroller.h"
+#include "grenade.h"
+#include "player.h"
+#include "hud.h"
+#include "config.h"
+#include "log.h"
+#include "ping.h"
+#include "matrix.h"
+#include "texture.h"
+#include "chunk.h"
+#include "main.h"
 
 #ifdef OPENGL_ES
 void glColor3f(float r, float g, float b) {

@@ -17,17 +17,16 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef COMMON_H
+#define COMMON_H
+
 #ifndef OPENGL_ES
 #define GLEW_STATIC
 #include <GL/glew.h>
-
-#include <enet/enet.h>
 #else
 #ifdef USE_SDL
 #include <SDL2/SDL_opengles.h>
 #endif
-#include <enet/enet.h>
-
 void glColor3f(float r, float g, float b);
 void glColor3ub(unsigned char r, unsigned char g, unsigned char b);
 void glDepthRange(float near, float far);
@@ -42,30 +41,9 @@ void glClearDepth(float x);
 #include <SDL2/SDL.h>
 #endif
 
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include <math.h>
-#include <float.h>
-#include <stdio.h>
-#include <assert.h>
-#include <signal.h>
-#include <unistd.h>
-#include <time.h>
-#include <pthread.h>
-#include <limits.h>
-#include <dirent.h>
-
 #ifdef USE_RPC
 #include <discord_rpc.h>
 #endif
-
-#include "lodepng/lodepng.h"
-#include "libdeflate.h"
-#include "ini.h"
-#include "log.h"
-#include "hashtable.h"
-#include "minheap.h"
 
 #ifdef _WIN32
 #define OS_WINDOWS
@@ -110,44 +88,6 @@ void glClearDepth(float x);
 
 #define MOUSE_SENSITIVITY 0.002F
 
-#include "utils.h"
-#include "ping.h"
-#include "glx.h"
-#include "list.h"
-#include "window.h"
-#include "sound.h"
-#include "texture.h"
-#include "chunk.h"
-#include "map.h"
-#include "aabb.h"
-#include "model.h"
-#include "file.h"
-#include "camera.h"
-#include "network.h"
-#include "player.h"
-#include "particle.h"
-#include "grenade.h"
-#include "cameracontroller.h"
-#include "font.h"
-#include "weapon.h"
-#include "matrix.h"
-#include "tracer.h"
-#include "config.h"
-#include "hud.h"
-#include "rpc.h"
-
-void reshape(struct window_instance* window, int width, int height);
-void text_input(struct window_instance* window, unsigned int codepoint);
-void keys(struct window_instance* window, int key, int scancode, int action, int mods);
-void mouse_click(struct window_instance* window, int button, int action, int mods);
-void mouse(struct window_instance* window, double x, double y);
-void mouse_scroll(struct window_instance* window, double xoffset, double yoffset);
-void on_error(int i, const char* s);
-
-unsigned char key_map[512];
-unsigned char button_map[3];
-unsigned char draw_outline;
-
 #define CHAT_NO_INPUT 0
 #define CHAT_ALL_INPUT 1
 #define CHAT_TEAM_INPUT 2
@@ -175,8 +115,13 @@ const char* reason_disconnect(int code);
 extern int ms_seed;
 int ms_rand(void);
 
+#include <stdlib.h>
+#include "log.h"
+
 #define CHECK_ALLOCATION_ERROR(ret)                                                                                    \
 	if(!ret) {                                                                                                         \
 		log_fatal("Critical error: memory allocation failed (%s:%d)", __func__, __LINE__);                             \
 		exit(1);                                                                                                       \
 	}
+
+#endif

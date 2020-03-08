@@ -17,7 +17,16 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <math.h>
+#include <string.h>
+#include <float.h>
+
 #include "common.h"
+#include "cameracontroller.h"
+#include "player.h"
+#include "map.h"
+#include "matrix.h"
+#include "camera.h"
 
 unsigned char camera_mode = CAMERAMODE_SPECTATOR;
 

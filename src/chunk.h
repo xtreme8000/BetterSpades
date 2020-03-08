@@ -17,6 +17,13 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef CHUNK_H
+#define CHUNK_H
+
+#include <stdint.h>
+#include <pthread.h>
+
+#include "glx.h"
 #include "tesselator.h"
 
 #define CHUNK_SIZE 16
@@ -74,3 +81,5 @@ void chunk_draw_visible(void);
 void chunk_draw_shadow_volume(float* data, int max);
 float chunk_face_light(float* data, int k, float lx, float ly, float lz);
 int chunk_find_edge(float* data, int length, int exclude, float x1, float y1, float z1, float x2, float y2, float z2);
+
+#endif

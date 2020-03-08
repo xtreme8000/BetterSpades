@@ -17,9 +17,35 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+#include <stdio.h>
+#include <float.h>
+
+#include "lodepng/lodepng.h"
+#include "main.h"
+#include "file.h"
 #include "common.h"
+#include "list.h"
+#include "matrix.h"
+#include "texture.h"
+#include "hud.h"
 #include "http.h"
 #include "parson.h"
+#include "config.h"
+#include "network.h"
+#include "rpc.h"
+#include "map.h"
+#include "player.h"
+#include "camera.h"
+#include "cameracontroller.h"
+#include "ping.h"
+#include "chunk.h"
+#include "utils.h"
+#include "weapon.h"
+#include "tracer.h"
+#include "font.h"
 
 struct hud hud_mapload;
 

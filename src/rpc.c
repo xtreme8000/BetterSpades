@@ -17,7 +17,9 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "common.h"
+#include <string.h>
+
+#include "rpc.h"
 
 struct rpc {
 	int needs_update;

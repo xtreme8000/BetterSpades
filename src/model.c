@@ -17,7 +17,19 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
 #include "common.h"
+#include "player.h"
+#include "file.h"
+#include "camera.h"
+#include "matrix.h"
+#include "log.h"
+#include "map.h"
+#include "config.h"
+#include "model.h"
 #include "model_normals.h"
 
 struct kv6_t model_playerdead;

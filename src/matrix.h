@@ -17,6 +17,9 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef MATRIX_H
+#define MATRIX_H
+
 extern float* matrix_current;
 
 extern float matrix_view[16];
@@ -45,3 +48,5 @@ void matrix_lookAt(double eyex, double eyey, double eyez, double centerx, double
 void matrix_upload(void);
 void matrix_upload_p(void);
 void matrix_pointAt(float dx, float dy, float dz);
+
+#endif

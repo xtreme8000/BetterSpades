@@ -17,7 +17,13 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "common.h"
+#include "file.h"
+#include "list.h"
+#include "font.h"
 #include "stb_truetype.h"
 
 short* font_vertex_buffer;

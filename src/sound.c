@@ -17,7 +17,16 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
 #include "common.h"
+#include "sound.h"
+#include "config.h"
+#include "log.h"
+#include "player.h"
+#include "camera.h"
 
 #ifdef USE_SOUND
 int sound_enabled = 1;

@@ -17,7 +17,14 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "common.h"
+#include <math.h>
+
+#include "window.h"
+#include "map.h"
+#include "player.h"
+#include "camera.h"
+#include "matrix.h"
+#include "cameracontroller.h"
 
 int cameracontroller_bodyview_mode = 0;
 int cameracontroller_bodyview_player = 0;
@@ -276,7 +283,7 @@ void cameracontroller_bodyview(float dt) {
 							+ player_height2(&players[cameracontroller_bodyview_player]),
 						players[cameracontroller_bodyview_player].pos.z - cos(camera_rot_x) * sin(camera_rot_y) * k);
 		if(aabb_intersection_terrain(&camera, 0) && traverse_lengths[0] < 0) {
-			traverse_lengths[0] = max(k - 0.1F, 0);
+			traverse_lengths[0] = fmax(k - 0.1F, 0);
 		}
 		aabb_set_center(&camera,
 						players[cameracontroller_bodyview_player].pos.x + sin(camera_rot_x) * sin(camera_rot_y) * k,
@@ -284,7 +291,7 @@ void cameracontroller_bodyview(float dt) {
 							+ player_height2(&players[cameracontroller_bodyview_player]),
 						players[cameracontroller_bodyview_player].pos.z + cos(camera_rot_x) * sin(camera_rot_y) * k);
 		if(!aabb_intersection_terrain(&camera, 0) && traverse_lengths[1] < 0) {
-			traverse_lengths[1] = max(k - 0.1F, 0);
+			traverse_lengths[1] = fmax(k - 0.1F, 0);
 		}
 	}
 	if(traverse_lengths[0] < 0)
@@ -295,7 +302,7 @@ void cameracontroller_bodyview(float dt) {
 	float tmp = (traverse_lengths[0] <= 0) ? (-traverse_lengths[1]) : traverse_lengths[0];
 
 	cameracontroller_bodyview_zoom
-		= (tmp < cameracontroller_bodyview_zoom) ? tmp : min(tmp, cameracontroller_bodyview_zoom + dt * 8.0F);
+		= (tmp < cameracontroller_bodyview_zoom) ? tmp : fmin(tmp, cameracontroller_bodyview_zoom + dt * 8.0F);
 
 	// this is needed to determine which chunks need/can be rendered and for sound, minimap etc...
 	camera_x = players[cameracontroller_bodyview_player].pos.x

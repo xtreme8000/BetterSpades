@@ -17,6 +17,13 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef PLAYER_H
+#define PLAYER_H
+
+#include "sound.h"
+#include "aabb.h"
+#include "network.h"
+
 #define PLAYERS_MAX 256 // just because 32 players are not enough
 #define TEAM_1 0
 #define TEAM_2 1
@@ -35,8 +42,11 @@ extern struct GameState {
 		float progress, rate, update;
 	} progressbar;
 } gamestate;
+
 #define GAMEMODE_CTF 0
 #define GAMEMODE_TC 1
+
+extern int button_map[3];
 
 extern unsigned char local_player_id;
 extern unsigned char local_player_health;
@@ -167,3 +177,5 @@ void player_render(struct Player* p, int id, Ray* ray, char render, struct playe
 void player_reset(struct Player* p);
 int player_move(struct Player* p, float fsynctics, int id);
 int player_uncrouch(struct Player* p);
+
+#endif

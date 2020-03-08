@@ -17,6 +17,11 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef WINDOW_H
+#define WINDOW_H
+
+#include "common.h"
+
 struct window_instance {
 	void* impl;
 };
@@ -122,3 +127,5 @@ void window_update(void);
 int window_closed(void);
 int window_cpucores();
 void window_title(char* suffix);
+
+#endif

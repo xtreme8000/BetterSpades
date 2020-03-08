@@ -17,7 +17,22 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
+#include <string.h>
+
 #include "common.h"
+#include "main.h"
+#include "window.h"
+#include "config.h"
+#include "hud.h"
+
+#ifdef OS_WINDOWS
+#include <sysinfoapi.h>
+#endif
+
+#ifdef OS_LINUX
+#include <unistd.h>
+#endif
 
 #ifdef USE_GLFW
 

@@ -17,6 +17,9 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef TEXTURE_H
+#define TEXTURE_H
+
 struct texture {
 	int width, height;
 	int texture_id;
@@ -81,3 +84,5 @@ void texture_draw_rotated(struct texture* t, float x, float y, float w, float h,
 void texture_resize_pow2(struct texture* t, int min_size);
 unsigned int texture_block_color(int x, int y);
 void texture_gradient_fog(unsigned int* gradient);
+
+#endif

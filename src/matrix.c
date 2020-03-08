@@ -17,7 +17,12 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include "common.h"
+#include "matrix.h"
 
 float* matrix_current = matrix_view;
 float matrix_view[16];

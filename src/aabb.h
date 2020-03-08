@@ -17,6 +17,9 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef AABB_H
+#define AABB_H
+
 typedef struct {
 	union {
 		struct {
@@ -53,3 +56,5 @@ unsigned char aabb_intersection_terrain(AABB* a, int miny);
 void aabb_set_size(AABB* a, float x, float y, float z);
 void aabb_set_center(AABB* a, float x, float y, float z);
 void aabb_render(AABB* a);
+
+#endif

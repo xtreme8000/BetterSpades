@@ -17,7 +17,24 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
+#include <math.h>
+#include <pthread.h>
+#include <string.h>
+#include <stdint.h>
+
+#include "window.h"
+#include "hashtable.h"
+#include "minheap.h"
+#include "sound.h"
+#include "matrix.h"
+#include "glx.h"
+#include "chunk.h"
 #include "common.h"
+#include "map.h"
+#include "camera.h"
+#include "log.h"
+#include "particle.h"
 
 unsigned int* map_colors;
 uint8_t* map_heights;

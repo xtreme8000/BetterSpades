@@ -17,6 +17,11 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef FONT_H
+#define FONT_H
+
+#include "list.h"
+
 #define FONT_FIXEDSYS 0
 #define FONT_SMALLFNT 1
 
@@ -32,3 +37,5 @@ float font_length(float h, char* text);
 void font_render(float x, float y, float h, char* text);
 void font_centered(float x, float y, float h, char* text);
 void font_select(char type);
+
+#endif

@@ -17,6 +17,11 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#include "list.h"
+
 struct config_file_entry {
 	char section[32];
 	char name[32];
@@ -32,7 +37,7 @@ extern struct RENDER_OPTIONS {
 	float render_distance;
 	int window_width;
 	int window_height;
-	unsigned char multisamples;
+	int multisamples;
 	int player_arms;
 	int fullscreen;
 	int greedy_meshing;
@@ -81,3 +86,5 @@ struct config_key_pair* config_key(int key);
 void config_key_reset_togglestates();
 void config_reload(void);
 void config_save(void);
+
+#endif

@@ -17,7 +17,13 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <math.h>
+
 #include "common.h"
+#include "texture.h"
+#include "map.h"
+#include "log.h"
+#include "file.h"
 
 #include "lodepng/lodepng.c"
 

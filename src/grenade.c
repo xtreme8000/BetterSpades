@@ -17,7 +17,16 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "common.h"
+#include <math.h>
+
+#include "window.h"
+#include "particle.h"
+#include "matrix.h"
+#include "player.h"
+#include "model.h"
+#include "sound.h"
+#include "grenade.h"
+#include "map.h"
 
 struct Grenade grenades[GRENADES_MAX];
 

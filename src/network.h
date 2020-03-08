@@ -17,6 +17,9 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef NETWORK_H
+#define NETWORK_H
+
 const char* network_reason_disconnect(int code);
 
 unsigned int network_ping(void);
@@ -421,3 +424,5 @@ enum Extension {
 };
 
 #pragma pack(pop)
+
+#endif

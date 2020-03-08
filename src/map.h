@@ -17,6 +17,11 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef MAP_H
+#define MAP_H
+
+#include <stdint.h>
+
 extern unsigned int* map_colors;
 extern uint8_t* map_heights;
 extern int map_size_x;
@@ -57,3 +62,5 @@ int map_placedblock_color(int color);
 void map_vxl_load(unsigned char* v, unsigned int* map);
 void map_collapsing_render(void);
 void map_collapsing_update(float dt);
+
+#endif

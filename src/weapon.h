@@ -17,6 +17,13 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef WEAPON_H
+#define WEAPON_H
+
+#include "player.h"
+#include "sound.h"
+#include "model.h"
+
 void weapon_update(void);
 void weapon_set(void);
 void weapon_reload(void);
@@ -37,3 +44,5 @@ void weapon_recoil(int gun, double* horiz_recoil, double* vert_recoil);
 
 extern float weapon_reload_start, weapon_last_shot;
 extern unsigned char weapon_reload_inprogress;
+
+#endif

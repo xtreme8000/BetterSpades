@@ -17,10 +17,23 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "tesselator.h"
-#include "common.h"
 #include <pthread.h>
 #include <signal.h>
+#include <math.h>
+#include <stdlib.h>
+#include <float.h>
+#include <string.h>
+
+#include "common.h"
+#include "window.h"
+#include "config.h"
+#include "texture.h"
+#include "log.h"
+#include "matrix.h"
+#include "map.h"
+#include "camera.h"
+#include "tesselator.h"
+#include "chunk.h"
 
 struct chunk chunks[CHUNKS_PER_DIM * CHUNKS_PER_DIM] = {0};
 

@@ -17,6 +17,9 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef SOUND_H
+#define SOUND_H
+
 #ifdef USE_SOUND
 #if __APPLE__
 #include <OpenAL/al.h>
@@ -112,3 +115,5 @@ void sound_position(struct Sound_source* s, float x, float y, float z);
 void sound_update();
 void sound_load(struct Sound_wav* wav, char* name, float min, float max);
 void sound_init(void);
+
+#endif

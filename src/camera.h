@@ -17,6 +17,9 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef CAMERA_H
+#define CAMERA_H
+
 #define CAMERAMODE_SELECTION 0
 #define CAMERAMODE_FPS 1
 #define CAMERAMODE_SPECTATOR 2
@@ -63,3 +66,5 @@ int* camera_terrain_pickEx(unsigned char mode, float x, float y, float z, float 
 void camera_overflow_adjust(void);
 void camera_apply(void);
 void camera_update(float dt);
+
+#endif

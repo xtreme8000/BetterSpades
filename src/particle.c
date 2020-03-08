@@ -17,7 +17,19 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+
 #include "common.h"
+#include "window.h"
+#include "camera.h"
+#include "map.h"
+#include "matrix.h"
+#include "particle.h"
+#include "model.h"
+#include "weapon.h"
+#include "config.h"
 
 struct Particle* particles;
 float* particles_vertices;

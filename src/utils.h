@@ -17,4 +17,9 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef UTILS_H
+#define UTILS_H
+
 int base64_decode(char* data, int len);
+
+#endif

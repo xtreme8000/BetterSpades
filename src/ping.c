@@ -17,8 +17,17 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <enet/enet.h>
+#include <pthread.h>
+#include <math.h>
+#include <unistd.h>
+
+#include "window.h"
+#include "ping.h"
 #include "common.h"
 #include "parson.h"
+#include "list.h"
+#include "hud.h"
 
 struct list list_pings;
 ENetSocket sock, lan;

@@ -17,6 +17,11 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef HUD_H
+#define HUD_H
+
+#include "window.h"
+
 struct hud {
 	void (*init)();
 	void (*render_3D)();
@@ -54,3 +59,5 @@ extern struct window_instance* hud_window;
 void hud_change(struct hud* new);
 void hud_init();
 void hud_mousemode(int mode);
+
+#endif

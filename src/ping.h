@@ -17,6 +17,11 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef PING_H
+#define PING_H
+
+#include <enet/enet.h>
+
 struct ping_entry {
 	ENetAddress addr;
 	float time_start;
@@ -31,3 +36,5 @@ void* ping_update(void* data);
 void ping_start(void (*finished)(), void (*result)(void*, float, void*));
 void ping_lan();
 void ping_stop();
+
+#endif

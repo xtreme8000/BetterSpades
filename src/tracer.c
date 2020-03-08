@@ -17,7 +17,16 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
+#include <math.h>
+#include <string.h>
+
 #include "common.h"
+#include "matrix.h"
+#include "window.h"
+#include "tracer.h"
+#include "model.h"
+#include "camera.h"
 
 struct Tracer* tracers;
 

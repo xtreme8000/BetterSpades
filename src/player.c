@@ -17,9 +17,27 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <stdlib.h>
+#include <math.h>
+
 #include "common.h"
+#include "camera.h"
+#include "player.h"
+#include "sound.h"
+#include "map.h"
+#include "matrix.h"
+#include "model.h"
+#include "font.h"
+#include "cameracontroller.h"
+#include "config.h"
+#include "tracer.h"
+#include "weapon.h"
+#include "window.h"
+#include "particle.h"
 
 struct GameState gamestate;
+
+int button_map[3];
 
 unsigned char local_player_id = 0;
 unsigned char local_player_health = 100;

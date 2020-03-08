@@ -17,6 +17,12 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#ifndef MODEL_H
+#define MODEL_H
+
+#include "aabb.h"
+#include "glx.h"
+
 struct kv6_voxel {
 	short x, y, z;
 	unsigned char visfaces;
@@ -75,3 +81,5 @@ void kv6_init(void);
 void mul_matrix_vector(float* out, double* m, float* v);
 
 extern float kv6_normals[256][3];
+
+#endif

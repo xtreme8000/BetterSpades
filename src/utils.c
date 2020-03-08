@@ -17,7 +17,7 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "common.h"
+#include "utils.h"
 
 static int base64_map(char c) {
 	if(c >= '0' && c <= '9')
