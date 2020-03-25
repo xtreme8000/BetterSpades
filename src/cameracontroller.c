@@ -30,6 +30,52 @@ int cameracontroller_bodyview_mode = 0;
 int cameracontroller_bodyview_player = 0;
 float cameracontroller_bodyview_zoom = 0.0F;
 
+float cameracontroller_death_velocity_x, cameracontroller_death_velocity_y, cameracontroller_death_velocity_z;
+
+void cameracontroller_death_init(int player, float x, float y, float z) {
+	camera_mode = CAMERAMODE_DEATH;
+	float len = len3D(camera_x - x, camera_y - y, camera_z - z);
+	cameracontroller_death_velocity_x = (camera_x - x) / len * 3;
+	cameracontroller_death_velocity_y = (camera_y - y) / len * 3;
+	cameracontroller_death_velocity_z = (camera_z - z) / len * 3;
+
+	cameracontroller_bodyview_player = player;
+	cameracontroller_bodyview_zoom = 0.0F;
+}
+
+void cameracontroller_death(float dt) {
+	cameracontroller_death_velocity_y -= dt * 32.0F;
+
+	AABB box;
+	aabb_set_size(&box, camera_size, camera_height, camera_size);
+	aabb_set_center(&box, camera_x + cameracontroller_death_velocity_x * dt,
+					camera_y + cameracontroller_death_velocity_y * dt,
+					camera_z + cameracontroller_death_velocity_z * dt);
+
+	if(!aabb_intersection_terrain(&box, 0)) {
+		cameracontroller_death_velocity_y -= dt * 32.0F;
+		camera_x += cameracontroller_death_velocity_x * dt;
+		camera_y += cameracontroller_death_velocity_y * dt;
+		camera_z += cameracontroller_death_velocity_z * dt;
+	} else {
+		cameracontroller_death_velocity_x *= 0.5F;
+		cameracontroller_death_velocity_y *= -0.5F;
+		cameracontroller_death_velocity_z *= 0.5F;
+
+		if(len3D(cameracontroller_death_velocity_x, cameracontroller_death_velocity_y,
+				 cameracontroller_death_velocity_z)
+		   < 0.05F) {
+			camera_mode = CAMERAMODE_BODYVIEW;
+		}
+	}
+}
+
+void cameracontroller_death_render() {
+	matrix_lookAt(camera_x, camera_y, camera_z, camera_x + players[local_player_id].orientation.x,
+				  camera_y + players[local_player_id].orientation.y, camera_z + players[local_player_id].orientation.z,
+				  0.0F, 1.0F, 0.0F);
+}
+
 float last_cy;
 void cameracontroller_fps(float dt) {
 	players[local_player_id].connected = 1;

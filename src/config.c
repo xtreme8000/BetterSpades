@@ -21,6 +21,7 @@
 #include <float.h>
 #include <stdlib.h>
 #include <string.h>
+#include <limits.h>
 
 #include "window.h"
 #include "file.h"

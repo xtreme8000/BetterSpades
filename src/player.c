@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <limits.h>
 
 #include "common.h"
 #include "camera.h"
@@ -498,7 +499,7 @@ void player_render(struct Player* p, int id, Ray* ray, char render, struct playe
 	float oz = p->orientation_smooth.z / l;
 
 	if(!p->alive) {
-		if(render) {
+		if(render && (id != local_player_id || camera_mode != CAMERAMODE_DEATH)) {
 			matrix_push();
 			matrix_translate(p->pos.x, p->pos.y + 0.25F, p->pos.z);
 			matrix_pointAt(ox, 0.0F, oz);

@@ -28,6 +28,8 @@ download_file_if_it_doesnt_exist(hashtable.c https://raw.githubusercontent.com/g
 download_file_if_it_doesnt_exist(hashtable.h https://raw.githubusercontent.com/goldsborough/hashtable/master/hashtable.h)
 download_file_if_it_doesnt_exist(../deps/libdeflate.h https://raw.githubusercontent.com/ebiggers/libdeflate/master/libdeflate.h)
 download_file_if_it_doesnt_exist(../bsresources.zip http://aos.party/bsresources.zip)
+download_file_if_it_doesnt_exist(libvxl.c https://raw.githubusercontent.com/xtreme8000/libvxl/master/libvxl.c)
+download_file_if_it_doesnt_exist(libvxl.h https://raw.githubusercontent.com/xtreme8000/libvxl/master/libvxl.h)
 
 list(APPEND CLIENT_SOURCES aabb.c)
 list(APPEND CLIENT_SOURCES camera.c)
@@ -64,6 +66,7 @@ list(APPEND CLIENT_SOURCES minheap.c)
 list(APPEND CLIENT_SOURCES hashtable.c)
 list(APPEND CLIENT_SOURCES rpc.c)
 list(APPEND CLIENT_SOURCES tesselator.c)
+list(APPEND CLIENT_SOURCES libvxl.c)
 list(APPEND CLIENT_SOURCES ${BetterSpades_SOURCE_DIR}/resources/icon.rc)
 
 add_executable(client ${CLIENT_SOURCES})

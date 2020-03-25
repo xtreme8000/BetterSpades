@@ -305,7 +305,7 @@ void read_PacketStateData(void* data, int len) {
 				CHECK_ALLOCATION_ERROR(decompressed)
 			}
 			if(r == LIBDEFLATE_SUCCESS) {
-				map_vxl_load(decompressed, map_colors);
+				map_vxl_load(decompressed, decompressed_size);
 #ifndef USE_TOUCH
 				char filename[128];
 				sprintf(filename, "cache/%08X.vxl", libdeflate_crc32(0, decompressed, decompressed_size));
@@ -438,7 +438,7 @@ void read_PacketMapStart(void* data, int len) {
 		if(file_exists(filename)) {
 			network_map_cached = 1;
 			void* mapd = file_load(filename);
-			map_vxl_load(mapd, map_colors);
+			map_vxl_load(mapd, file_size(filename));
 			free(mapd);
 			chunk_rebuild_all();
 		}
@@ -552,9 +552,6 @@ void read_PacketKillAction(void* data, int len) {
 	struct PacketKillAction* p = (struct PacketKillAction*)data;
 	if(p->player_id < PLAYERS_MAX && p->killer_id < PLAYERS_MAX && p->kill_type >= 0 && p->kill_type < 7) {
 		if(p->player_id == local_player_id) {
-			camera_mode = CAMERAMODE_BODYVIEW;
-			cameracontroller_bodyview_player = local_player_id;
-			cameracontroller_bodyview_zoom = 0.0F;
 			local_player_death_time = window_time();
 			local_player_respawn_time = p->respawn_time;
 			local_player_respawn_cnt_last = 255;
@@ -565,6 +562,10 @@ void read_PacketKillAction(void* data, int len) {
 				local_player_last_damage_x = players[p->killer_id].pos.x;
 				local_player_last_damage_y = players[p->killer_id].pos.y;
 				local_player_last_damage_z = players[p->killer_id].pos.z;
+				cameracontroller_death_init(local_player_id, players[p->killer_id].pos.x, players[p->killer_id].pos.y,
+											players[p->killer_id].pos.z);
+			} else {
+				cameracontroller_death_init(local_player_id, 0, 0, 0);
 			}
 		}
 		players[p->player_id].alive = 0;

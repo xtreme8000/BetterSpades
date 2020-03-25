@@ -22,6 +22,8 @@
 #include <string.h>
 #include <stdio.h>
 #include <float.h>
+#include <limits.h>
+#include <ctype.h>
 
 #include "lodepng/lodepng.h"
 #include "main.h"
@@ -2389,7 +2391,7 @@ static void hud_serverlist_scroll(double yoffset) {
 
 static void server_c(char* address, char* name) {
 	if(file_exists(address)) {
-		map_vxl_load(file_load(address), map_colors);
+		map_vxl_load(file_load(address), file_size(address));
 		chunk_rebuild_all();
 		camera_mode = CAMERAMODE_FPS;
 		players[local_player_id].pos.x = map_size_x / 2.0F;

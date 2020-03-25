@@ -19,6 +19,13 @@
 
 #include <string.h>
 
+#ifdef USE_RPC
+#include <discord_rpc.h>
+#endif
+
+#include "common.h"
+#include "log.h"
+#include "player.h"
 #include "rpc.h"
 
 struct rpc {

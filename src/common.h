@@ -76,6 +76,7 @@ void glClearDepth(float x);
 
 #define rgba(r, g, b, a) (((int)(a) << 24) | ((int)(b) << 16) | ((int)(g) << 8) | (int)(r))
 #define rgb(r, g, b) (((b) << 16) | ((g) << 8) | (r))
+#define rgb2bgr(col) rgb(blue(col), green(col), red(col))
 #define red(col) ((col)&0xFF)
 #define green(col) (((col) >> 8) & 0xFF)
 #define blue(col) (((col) >> 16) & 0xFF)

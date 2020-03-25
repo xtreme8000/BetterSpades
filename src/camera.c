@@ -28,7 +28,7 @@
 #include "matrix.h"
 #include "camera.h"
 
-unsigned char camera_mode = CAMERAMODE_SPECTATOR;
+enum camera_mode camera_mode = CAMERAMODE_SPECTATOR;
 
 float frustum[6][4];
 float camera_rot_x = 2.04F, camera_rot_y = 1.79F;
@@ -77,6 +77,7 @@ void camera_apply() {
 		case CAMERAMODE_BODYVIEW: cameracontroller_bodyview_render(); break;
 		case CAMERAMODE_SPECTATOR: cameracontroller_spectator_render(); break;
 		case CAMERAMODE_SELECTION: cameracontroller_selection_render(); break;
+		case CAMERAMODE_DEATH: cameracontroller_death_render(); break;
 	}
 }
 
@@ -86,6 +87,7 @@ void camera_update(float dt) {
 		case CAMERAMODE_BODYVIEW: cameracontroller_bodyview(dt); break;
 		case CAMERAMODE_SPECTATOR: cameracontroller_spectator(dt); break;
 		case CAMERAMODE_SELECTION: cameracontroller_selection(dt); break;
+		case CAMERAMODE_DEATH: cameracontroller_death(dt); break;
 	}
 }
 

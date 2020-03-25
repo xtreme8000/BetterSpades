@@ -25,6 +25,7 @@
 
 #include "glx.h"
 #include "tesselator.h"
+#include "libvxl.h"
 
 #define CHUNK_SIZE 16
 #define CHUNKS_PER_DIM 32
@@ -34,37 +35,39 @@ extern struct chunk {
 	int max_height;
 	float last_update;
 	int created;
+	int x, y;
 } chunks[CHUNKS_PER_DIM * CHUNKS_PER_DIM];
-
-extern int chunk_geometry_changed[CHUNKS_PER_DIM * CHUNKS_PER_DIM * 2];
-extern int chunk_geometry_changed_lenght;
-
-extern int chunk_lighting_changed[CHUNKS_PER_DIM * CHUNKS_PER_DIM * 2];
-extern int chunk_lighting_changed_lenght;
-
-extern int chunk_render_mode;
 
 extern int chunk_enabled_cores;
 
 #define CHUNK_WORKERS_MAX 16
 
-#define CHUNK_WORKERSTATE_BUSY 0
-#define CHUNK_WORKERSTATE_IDLE 1
-#define CHUNK_WORKERSTATE_FINISHED 2
+enum chunk_worker_state {
+	CHUNK_WORKERSTATE_BUSY,
+	CHUNK_WORKERSTATE_IDLE,
+	CHUNK_WORKERSTATE_FINISHED,
+};
 
 extern struct chunk_worker {
-	int chunk_id;
+	struct chunk* chunk;
 	int chunk_x, chunk_y;
 	pthread_mutex_t state_lock;
 	pthread_cond_t can_work;
-	int state;
+	enum chunk_worker_state state;
 	pthread_t thread;
 	int max_height;
 	struct tesselator tesselator;
+	struct libvxl_block* blocks;
+	uint32_t blocks_count;
+	uint32_t* blocks_solid;
 	uint32_t minimap_data[CHUNK_SIZE * CHUNK_SIZE];
 } chunk_workers[CHUNK_WORKERS_MAX];
 
-extern pthread_rwlock_t* chunk_map_locks;
+struct chunk_render_call {
+	struct chunk* chunk;
+	int mirror_x;
+	int mirror_y;
+};
 
 void chunk_init(void);
 
@@ -72,10 +75,10 @@ void chunk_block_update(int x, int y, int z);
 void chunk_update_all(void);
 void* chunk_generate(void* data);
 void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, int* max_height);
-void chunk_generate_naive(int start_x, int start_z, struct tesselator* tess, int* max_height, int ao);
-void chunk_render(int x, int y);
+void chunk_generate_naive(int sx, int sz, struct libvxl_block* blocks, int count, uint32_t* solid,
+						  struct tesselator* tess, int* max_height, int ao);
+void chunk_render(struct chunk_render_call* c);
 void chunk_rebuild_all(void);
-void chunk_set_render_mode(int r);
 void chunk_draw_visible(void);
 
 void chunk_draw_shadow_volume(float* data, int max);

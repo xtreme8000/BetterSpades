@@ -455,12 +455,7 @@ void init() {
 	glShadeModel(GL_SMOOTH);
 	glDisable(GL_FOG);
 
-	map_colors = malloc(map_size_x * map_size_y * map_size_z * sizeof(unsigned int));
-	CHECK_ALLOCATION_ERROR(map_colors)
-	memset(map_colors, (unsigned int)0xFFFFFFFF, map_size_x * map_size_y * map_size_z);
-
-	map_heights = malloc(map_size_x * map_size_z * sizeof(uint8_t));
-	CHECK_ALLOCATION_ERROR(map_heights)
+	map_init();
 
 	map_minimap = malloc(map_size_x * map_size_z * sizeof(unsigned char) * 4);
 	CHECK_ALLOCATION_ERROR(map_minimap)

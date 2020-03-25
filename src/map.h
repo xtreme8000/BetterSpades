@@ -22,8 +22,9 @@
 
 #include <stdint.h>
 
-extern unsigned int* map_colors;
-extern uint8_t* map_heights;
+#include "libvxl.h"
+#undef pos_key
+
 extern int map_size_x;
 extern int map_size_y;
 extern int map_size_z;
@@ -43,6 +44,7 @@ struct Point {
 	int x, y, z;
 };
 
+void map_init();
 int map_object_visible(float x, float y, float z);
 int map_damage(int x, int y, int z, int damage);
 int map_damage_get(int x, int y, int z);
@@ -51,16 +53,17 @@ void map_update_physics(int x, int y, int z);
 float map_sunblock(int x, int y, int z);
 int map_isair(int x, int y, int z);
 unsigned int map_get(int x, int y, int z);
-unsigned int map_get_unblocked(int x, int y, int z);
-int map_height(int x, int z);
 void map_set(int x, int y, int z, unsigned int color);
 int map_cube_line(int x1, int y1, int z1, int x2, int y2, int z2, struct Point* cube_array);
 void map_vxl_setgeom(int x, int y, int z, unsigned int t, unsigned int* map);
 void map_vxl_setcolor(int x, int y, int z, unsigned int t, unsigned int* map);
 int map_dirt_color(int x, int y, int z);
 int map_placedblock_color(int color);
-void map_vxl_load(unsigned char* v, unsigned int* map);
+void map_vxl_load(void* v, size_t size);
 void map_collapsing_render(void);
 void map_collapsing_update(float dt);
+int map_height_at(int x, int z);
+struct libvxl_block* map_copy_blocks(int chunk_x, int chunk_y, uint32_t* count);
+uint32_t* map_copy_solids(void);
 
 #endif

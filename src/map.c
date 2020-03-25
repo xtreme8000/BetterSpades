@@ -25,7 +25,6 @@
 
 #include "window.h"
 #include "hashtable.h"
-#include "minheap.h"
 #include "sound.h"
 #include "matrix.h"
 #include "glx.h"
@@ -35,12 +34,16 @@
 #include "camera.h"
 #include "log.h"
 #include "particle.h"
+#include "minheap.h"
 
-unsigned int* map_colors;
+pthread_rwlock_t map_lock;
+
 uint8_t* map_heights;
 int map_size_x = 512;
 int map_size_y = 64;
 int map_size_z = 512;
+
+struct libvxl_map map;
 
 float fog_color[4] = {0.5F, 0.9098F, 1.0F, 1.0F};
 
@@ -115,7 +118,7 @@ void map_damaged_voxels_render() {
 	glDepthFunc(GL_EQUAL);
 	glEnable(GL_BLEND);
 	for(int k = 0; k < 8; k++) {
-		if(map_get(map_damaged_voxels[k].x, map_damaged_voxels[k].y, map_damaged_voxels[k].z) == 0xFFFFFFFF) {
+		if(map_isair(map_damaged_voxels[k].x, map_damaged_voxels[k].y, map_damaged_voxels[k].z)) {
 			map_damaged_voxels[k].timer = 0;
 		} else {
 			if(window_time() - map_damaged_voxels[k].timer <= 10.0F) {
@@ -652,61 +655,49 @@ float map_sunblock(int x, int y, int z) {
 	return (float)i / 127.0F;
 }
 
+void map_init() {
+	libvxl_create(&map, 512, 512, 64, NULL, 0);
+	pthread_rwlock_init(&map_lock, NULL);
+}
+
+int map_height_at(int x, int z) {
+	int result[2];
+	pthread_rwlock_rdlock(&map_lock);
+	libvxl_map_gettop(&map, x, z, result);
+	pthread_rwlock_unlock(&map_lock);
+	return map_size_y - 1 - result[1];
+}
+
 int map_isair(int x, int y, int z) {
-	return map_get(x, y, z) == 0xFFFFFFFF;
+	pthread_rwlock_rdlock(&map_lock);
+	int result = libvxl_map_issolid(&map, x, z, map_size_y - 1 - y);
+	pthread_rwlock_unlock(&map_lock);
+	return !result;
 }
 
 unsigned int map_get(int x, int y, int z) {
-	if(x < 0 || y < 0 || z < 0 || x >= map_size_x || y >= map_size_y || z >= map_size_z)
-		return 0xFFFFFFFF;
-
-	pthread_rwlock_rdlock(&chunk_map_locks[x + z * map_size_x]);
-	unsigned int ret = map_colors[x + (y * map_size_z + z) * map_size_x];
-	pthread_rwlock_unlock(&chunk_map_locks[x + z * map_size_x]);
-	return ret;
-}
-
-int map_height(int x, int z) {
-	if(x < 0 || z < 0 || x >= map_size_x || z >= map_size_z)
-		return 0;
-	pthread_rwlock_rdlock(&chunk_map_locks[x + z * map_size_x]);
-	int ret = map_heights[x + z * map_size_x];
-	pthread_rwlock_unlock(&chunk_map_locks[x + z * map_size_x]);
-	return ret;
-}
-
-unsigned int map_get_unblocked(int x, int y, int z) {
-	if(x < 0 || y < 0 || z < 0 || x >= map_size_x || y >= map_size_y || z >= map_size_z)
-		return 0xFFFFFFFF;
-
-	return map_colors[x + (y * map_size_z + z) * map_size_x];
+	pthread_rwlock_rdlock(&map_lock);
+	unsigned int result = libvxl_map_get(&map, x, z, map_size_y - 1 - y);
+	pthread_rwlock_unlock(&map_lock);
+	return rgb2bgr(result);
 }
 
 void map_set(int x, int y, int z, unsigned int color) {
 	if(x < 0 || y < 0 || z < 0 || x >= map_size_x || y >= map_size_y || z >= map_size_z)
 		return;
 
-	int offset = x + z * map_size_x;
-	pthread_rwlock_wrlock(&chunk_map_locks[offset]);
-	map_colors[x + (y * map_size_z + z) * map_size_x] = color;
-	if(color != 0xFFFFFFFF) {
-		map_heights[offset] = max(map_heights[offset], y);
+	pthread_rwlock_wrlock(&map_lock);
+	if(color == 0xFFFFFFFF) {
+		libvxl_map_setair(&map, x, z, map_size_y - 1 - y);
 	} else {
-		if(map_heights[offset] == y) {
-			for(int k = y - 1; k >= 0; k--) {
-				if(map_get_unblocked(x, k, z) != 0xFFFFFFFF || k == 0) {
-					map_heights[offset] = k;
-					break;
-				}
-			}
-		}
+		libvxl_map_set(&map, x, z, map_size_y - 1 - y, rgb2bgr(color));
 	}
-	pthread_rwlock_unlock(&chunk_map_locks[offset]);
+	pthread_rwlock_unlock(&map_lock);
 
 	chunk_block_update(x, y, z);
 
-	unsigned char x_off = x % CHUNK_SIZE;
-	unsigned char z_off = z % CHUNK_SIZE;
+	int x_off = x % CHUNK_SIZE;
+	int z_off = z % CHUNK_SIZE;
 
 	if(x > 0 && x_off == 0)
 		chunk_block_update(x - 1, y, z);
@@ -733,22 +724,6 @@ void map_set(int x, int y, int z, unsigned int color) {
 		chunk_block_update(x, y, map_size_z - 1);
 	if(z == map_size_z - 1)
 		chunk_block_update(x, y, 0);
-}
-
-void map_vxl_setgeom(int x, int y, int z, unsigned int t, unsigned int* map) {
-	if(x < 0 || y < 0 || z < 0 || x >= map_size_x || y >= map_size_z || z >= map_size_y)
-		return;
-
-	map[x + ((map_size_y - 1 - z) * map_size_z + y) * map_size_x] = t;
-}
-
-void map_vxl_setcolor(int x, int y, int z, unsigned int t, unsigned int* map) {
-	if(x < 0 || y < 0 || z < 0 || x >= map_size_x || y >= map_size_z || z >= map_size_y)
-		return;
-	unsigned char r = t & 255;
-	unsigned char g = (t >> 8) & 255;
-	unsigned char b = (t >> 16) & 255;
-	map[x + ((map_size_y - 1 - z) * map_size_z + y) * map_size_x] = (r << 16) | (g << 8) | b;
 }
 
 // Copyright (c) Mathias Kaerlev 2011-2012 (but might be original code by Ben himself)
@@ -872,61 +847,37 @@ int map_placedblock_color(int color) {
 	return color ^ (gkrand & 0x70707);
 }
 
-void map_vxl_load(unsigned char* v, unsigned int* map) {
-	for(int k = 0; k < map_size_x * map_size_z; k++)
-		pthread_rwlock_wrlock(&chunk_map_locks[k]);
-	for(int y = 0; y < map_size_z; y++) {
-		for(int x = 0; x < map_size_x; x++) {
-			int z;
-			for(z = 0; z < map_size_y; z++) {
-				map_vxl_setgeom(x, y, z, map_dirt_color(x, map_size_y - 1 - z, y), map);
-			}
-			z = 0;
-			map_heights[x + y * map_size_x] = map_size_y - 1 - v[1];
-			while(1) {
-				unsigned int* color;
-				int i;
-				int number_4byte_chunks = v[0];
-				int top_color_start = v[1];
-				int top_color_end = v[2]; // inclusive
-				int bottom_color_start;
-				int bottom_color_end; // exclusive
-				int len_top;
-				int len_bottom;
+void map_vxl_load(void* v, size_t size) {
+	pthread_rwlock_wrlock(&map_lock);
+	libvxl_free(&map);
+	libvxl_create(&map, 512, 512, 64, v, size);
+	pthread_rwlock_unlock(&map_lock);
+}
 
-				for(i = z; i < top_color_start; i++) {
-					map_vxl_setgeom(x, y, i, 0xFFFFFFFF, map);
-				}
+struct libvxl_block* map_copy_blocks(int chunk_x, int chunk_y, uint32_t* count) {
+	struct libvxl_chunk* chunk
+		= map.chunks + chunk_x + chunk_y * ((map_size_x + LIBVXL_CHUNK_SIZE - 1) / LIBVXL_CHUNK_SIZE);
 
-				color = (unsigned int*)(v + 4);
-				for(z = top_color_start; z <= top_color_end; z++) {
-					map_vxl_setcolor(x, y, z, *color++, map);
-				}
+	pthread_rwlock_rdlock(&map_lock);
+	struct libvxl_block* blocks = malloc(chunk->index * sizeof(struct libvxl_block));
+	CHECK_ALLOCATION_ERROR(blocks)
+	memcpy(blocks, chunk->blocks, chunk->index * sizeof(struct libvxl_block));
+	pthread_rwlock_unlock(&map_lock);
 
-				len_bottom = top_color_end - top_color_start + 1;
+	if(count)
+		*count = chunk->index;
 
-				// check for end of data marker
-				if(number_4byte_chunks == 0) {
-					// infer ACTUAL number of 4-byte chunks from the length of the color data
-					v += 4 * (len_bottom + 1);
-					break;
-				}
+	return blocks;
+}
 
-				// infer the number of bottom colors in next span from chunk length
-				len_top = (number_4byte_chunks - 1) - len_bottom;
+uint32_t* map_copy_solids() {
+	pthread_rwlock_rdlock(&map_lock);
+	size_t sg
+		= (map.width * map.height * map.depth + (sizeof(uint32_t) * 8 - 1)) / (sizeof(uint32_t) * 8) * sizeof(uint32_t);
+	uint32_t* blocks = malloc(sg);
+	CHECK_ALLOCATION_ERROR(blocks)
+	memcpy(blocks, map.geometry, sg);
+	pthread_rwlock_unlock(&map_lock);
 
-				// now skip the v pointer past the data to the beginning of the next span
-				v += v[0] * 4;
-
-				bottom_color_end = v[3]; // aka air start
-				bottom_color_start = bottom_color_end - len_top;
-
-				for(z = bottom_color_start; z < bottom_color_end; z++) {
-					map_vxl_setcolor(x, y, z, *color++, map);
-				}
-			}
-		}
-	}
-	for(int k = 0; k < map_size_x * map_size_z; k++)
-		pthread_rwlock_unlock(&chunk_map_locks[k]);
+	return blocks;
 }

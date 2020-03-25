@@ -20,14 +20,17 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#define CAMERAMODE_SELECTION 0
-#define CAMERAMODE_FPS 1
-#define CAMERAMODE_SPECTATOR 2
-#define CAMERAMODE_BODYVIEW 3
+enum camera_mode {
+	CAMERAMODE_SELECTION,
+	CAMERAMODE_FPS,
+	CAMERAMODE_SPECTATOR,
+	CAMERAMODE_BODYVIEW,
+	CAMERAMODE_DEATH,
+};
 
 #define CAMERA_DEFAULT_FOV 70.0F
 
-extern unsigned char camera_mode;
+extern enum camera_mode camera_mode;
 
 extern float frustum[6][4];
 extern float camera_rot_x, camera_rot_y;
