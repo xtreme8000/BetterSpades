@@ -648,12 +648,24 @@ static void hud_ingame_render(float scalex, float scalef) {
 					case WEAPON_SHOTGUN: zoom = &texture_zoom_shotgun; break;
 				}
 				float last_shot = is_local ? weapon_last_shot : players[local_id].gun_shoot_timer;
-				float zoom_factor = max(
+				float zoom_factor = fmax(
 					0.25F * (1.0F - ((window_time() - last_shot) / weapon_delay(players[local_id].weapon))) + 1.0F,
 					1.0F);
-				texture_draw(zoom, (settings.window_width - settings.window_height * 4.0F / 3.0F * zoom_factor) / 2.0F,
+				float aspect_ratio = (float)zoom->width / (float)zoom->height;
+
+				texture_draw(zoom, (settings.window_width - settings.window_height * aspect_ratio * zoom_factor) / 2.0F,
 							 settings.window_height * (zoom_factor * 0.5F + 0.5F),
-							 settings.window_height * 4.0F / 3.0F * zoom_factor, settings.window_height * zoom_factor);
+							 settings.window_height * aspect_ratio * zoom_factor, settings.window_height * zoom_factor);
+				texture_draw_sector(zoom, 0, settings.window_height * (zoom_factor * 0.5F + 0.5F),
+									(settings.window_width - settings.window_height * aspect_ratio * zoom_factor)
+										/ 2.0F,
+									settings.window_height * zoom_factor, 0.0F, 0.0F, 1.0F / (float)zoom->width, 1.0F);
+				texture_draw_sector(
+					zoom, (settings.window_width + settings.window_height * aspect_ratio * zoom_factor) / 2.0F,
+					settings.window_height * (zoom_factor * 0.5F + 0.5F),
+					(settings.window_width - settings.window_height * aspect_ratio * zoom_factor) / 2.0F,
+					settings.window_height * zoom_factor, (float)(zoom->width - 1) / (float)zoom->width, 0.0F,
+					1.0F / (float)zoom->width, 1.0F);
 			} else {
 				texture_draw(&texture_target, (settings.window_width - 16) / 2.0F, (settings.window_height + 16) / 2.0F,
 							 16, 16);
