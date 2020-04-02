@@ -271,7 +271,7 @@ void particle_create_casing(struct Player* p) {
 void particle_create(unsigned int color, float x, float y, float z, float velocity, float velocity_y, int amount,
 					 float min_size, float max_size) {
 	for(int k = 0; k < amount; k++) {
-		struct Particle* pp = &particles[particle_insert];
+		struct Particle* pp = particles + particle_insert;
 		particle_insert = (particle_insert + 1) % PARTICLES_MAX;
 		if(particle_insert == particle_remove)
 			particle_remove = (particle_remove + 1) % PARTICLES_MAX;

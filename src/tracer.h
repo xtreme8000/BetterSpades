@@ -22,20 +22,22 @@
 
 #include "aabb.h"
 #include "player.h"
+#include "camera.h"
 
-#define TRACER_MAX PLAYERS_MAX * 5
+#define TRACER_MAX (PLAYERS_MAX * 5)
 
 struct Tracer {
+	struct Camera_HitType hit;
+	float x, y, z;
 	Ray r;
-	unsigned char type;
+	int type;
 	float created;
-	unsigned char used;
+	int used;
 };
 
-extern struct Tracer* tracers;
-
+void tracer_minimap(int large, float scalef, float minimap_x, float minimap_y);
 void tracer_pvelocity(float* o, struct Player* p);
-void tracer_add(unsigned char type, float x, float y, float z, float dx, float dy, float dz);
+void tracer_add(int type, float x, float y, float z, float dx, float dy, float dz);
 void tracer_update(float dt);
 void tracer_render(void);
 void tracer_init(void);

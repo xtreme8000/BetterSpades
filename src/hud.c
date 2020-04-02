@@ -855,13 +855,7 @@ static void hud_ingame_render(float scalex, float scalef) {
 				}
 				font_select(FONT_FIXEDSYS);
 
-				for(int k = 0; k < TRACER_MAX; k++) {
-					if(tracers[k].used) {
-						float ang = -atan2(tracers[k].r.direction.z, tracers[k].r.direction.x) - HALFPI;
-						texture_draw_rotated(&texture_tracer, minimap_x + tracers[k].r.origin.x * scalef,
-											 minimap_y - tracers[k].r.origin.z * scalef, 15 * scalef, 15 * scalef, ang);
-					}
-				}
+				tracer_minimap(1, scalef, minimap_x, minimap_y);
 
 				if(gamestate.gamemode_type == GAMEMODE_CTF) {
 					if(!gamestate.gamemode.ctf.team_1_intel) {
@@ -969,18 +963,7 @@ static void hud_ingame_render(float scalex, float scalef) {
 									128 * scalef, (camera_x - 64.0F) / 512.0F, (camera_z - 64.0F) / 512.0F, 0.25F,
 									0.25F);
 
-				for(int k = 0; k < TRACER_MAX; k++) {
-					if(tracers[k].used) {
-						float tracer_x = tracers[k].r.origin.x - view_x;
-						float tracer_y = tracers[k].r.origin.z - view_z;
-						if(tracer_x > 0.0F && tracer_x < 128.0F && tracer_y > 0.0F && tracer_y < 128.0F) {
-							float ang = -atan2(tracers[k].r.direction.z, tracers[k].r.direction.x) - HALFPI;
-							texture_draw_rotated(&texture_tracer,
-												 settings.window_width - 143 * scalef + tracer_x * scalef,
-												 (585 - tracer_y) * scalef, 15 * scalef, 15 * scalef, ang);
-						}
-					}
-				}
+				tracer_minimap(0, scalef, view_x, view_z);
 
 				if(gamestate.gamemode_type == GAMEMODE_CTF) {
 					float tent1_x = min(max(gamestate.gamemode.ctf.team_1_base.x, view_x), view_x + 128.0F) - view_x;
