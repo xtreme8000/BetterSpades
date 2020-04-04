@@ -21,6 +21,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <dirent.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
 
 #include "common.h"
 #include "log.h"
@@ -31,7 +34,10 @@ struct file_handle {
 	int type;
 };
 
-enum { FILE_STD, FILE_SDL };
+enum {
+	FILE_STD,
+	FILE_SDL,
+};
 
 void file_url(char* url) {
 	char cmd[strlen(url) + 16];
@@ -63,7 +69,11 @@ int file_dir_exists(const char* path) {
 
 int file_dir_create(const char* path) {
 #ifndef USE_ANDROID_FILE
+#ifdef OS_WINDOWS
 	mkdir(path);
+#else
+	mkdir(path, 0755);
+#endif
 #else
 	char str[256];
 	sprintf(str, "/sdcard/BetterSpades/%s", path);

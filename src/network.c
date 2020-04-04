@@ -19,6 +19,7 @@
 
 #include <enet/enet.h>
 #include <math.h>
+#include <string.h>
 
 #include "libdeflate.h"
 #include "texture.h"

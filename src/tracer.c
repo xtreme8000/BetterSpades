@@ -41,14 +41,12 @@ void tracer_pvelocity(float* o, struct Player* p) {
 }
 
 static void tracer_minimap_single(struct Tracer* t, int large, float scalef, float minimap_x, float minimap_y) {
-	if(large) {
-		if(t->used) {
+	if(t->used) {
+		if(large) {
 			float ang = -atan2(t->r.direction.z, t->r.direction.x) - HALFPI;
 			texture_draw_rotated(&texture_tracer, minimap_x + t->r.origin.x * scalef,
 								 minimap_y - t->r.origin.z * scalef, 15 * scalef, 15 * scalef, ang);
-		}
-	} else {
-		if(t->used) {
+		} else {
 			float tracer_x = t->r.origin.x - minimap_x;
 			float tracer_y = t->r.origin.z - minimap_y;
 			if(tracer_x > 0.0F && tracer_x < 128.0F && tracer_y > 0.0F && tracer_y < 128.0F) {

@@ -21,6 +21,7 @@
 #include <pthread.h>
 #include <math.h>
 #include <unistd.h>
+#include <string.h>
 
 #include "window.h"
 #include "ping.h"

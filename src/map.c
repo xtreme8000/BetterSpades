@@ -19,7 +19,6 @@
 
 #include <stdlib.h>
 #include <math.h>
-#include <pthread.h>
 #include <string.h>
 #include <stdint.h>
 
@@ -35,8 +34,6 @@
 #include "log.h"
 #include "particle.h"
 #include "minheap.h"
-
-pthread_rwlock_t map_lock;
 
 uint8_t* map_heights;
 int map_size_x = 512;
@@ -657,28 +654,20 @@ float map_sunblock(int x, int y, int z) {
 
 void map_init() {
 	libvxl_create(&map, 512, 512, 64, NULL, 0);
-	pthread_rwlock_init(&map_lock, NULL);
 }
 
 int map_height_at(int x, int z) {
 	int result[2];
-	pthread_rwlock_rdlock(&map_lock);
 	libvxl_map_gettop(&map, x, z, result);
-	pthread_rwlock_unlock(&map_lock);
 	return map_size_y - 1 - result[1];
 }
 
 int map_isair(int x, int y, int z) {
-	pthread_rwlock_rdlock(&map_lock);
-	int result = libvxl_map_issolid(&map, x, z, map_size_y - 1 - y);
-	pthread_rwlock_unlock(&map_lock);
-	return !result;
+	return !libvxl_map_issolid(&map, x, z, map_size_y - 1 - y);
 }
 
 unsigned int map_get(int x, int y, int z) {
-	pthread_rwlock_rdlock(&map_lock);
 	unsigned int result = libvxl_map_get(&map, x, z, map_size_y - 1 - y);
-	pthread_rwlock_unlock(&map_lock);
 	return rgb2bgr(result);
 }
 
@@ -686,13 +675,11 @@ void map_set(int x, int y, int z, unsigned int color) {
 	if(x < 0 || y < 0 || z < 0 || x >= map_size_x || y >= map_size_y || z >= map_size_z)
 		return;
 
-	pthread_rwlock_wrlock(&map_lock);
 	if(color == 0xFFFFFFFF) {
 		libvxl_map_setair(&map, x, z, map_size_y - 1 - y);
 	} else {
 		libvxl_map_set(&map, x, z, map_size_y - 1 - y, rgb2bgr(color));
 	}
-	pthread_rwlock_unlock(&map_lock);
 
 	chunk_block_update(x, y, z);
 
@@ -848,21 +835,17 @@ int map_placedblock_color(int color) {
 }
 
 void map_vxl_load(void* v, size_t size) {
-	pthread_rwlock_wrlock(&map_lock);
 	libvxl_free(&map);
 	libvxl_create(&map, 512, 512, 64, v, size);
-	pthread_rwlock_unlock(&map_lock);
 }
 
 struct libvxl_block* map_copy_blocks(int chunk_x, int chunk_y, uint32_t* count) {
 	struct libvxl_chunk* chunk
 		= map.chunks + chunk_x + chunk_y * ((map_size_x + LIBVXL_CHUNK_SIZE - 1) / LIBVXL_CHUNK_SIZE);
 
-	pthread_rwlock_rdlock(&map_lock);
 	struct libvxl_block* blocks = malloc(chunk->index * sizeof(struct libvxl_block));
 	CHECK_ALLOCATION_ERROR(blocks)
 	memcpy(blocks, chunk->blocks, chunk->index * sizeof(struct libvxl_block));
-	pthread_rwlock_unlock(&map_lock);
 
 	if(count)
 		*count = chunk->index;
@@ -871,13 +854,11 @@ struct libvxl_block* map_copy_blocks(int chunk_x, int chunk_y, uint32_t* count) 
 }
 
 uint32_t* map_copy_solids() {
-	pthread_rwlock_rdlock(&map_lock);
 	size_t sg
 		= (map.width * map.height * map.depth + (sizeof(uint32_t) * 8 - 1)) / (sizeof(uint32_t) * 8) * sizeof(uint32_t);
 	uint32_t* blocks = malloc(sg);
 	CHECK_ALLOCATION_ERROR(blocks)
 	memcpy(blocks, map.geometry, sg);
-	pthread_rwlock_unlock(&map_lock);
 
 	return blocks;
 }
