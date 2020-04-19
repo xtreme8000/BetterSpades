@@ -24,25 +24,50 @@
 
 #include "glx.h"
 
-enum tesselator_type {
-	TESSELATE_QUADS,
-	TESSELATE_TRIANGLES,
+#ifdef OPENGL_ES
+#define TESSELATE_TRIANGLES
+#else
+#define TESSELATE_QUADS
+#endif
+
+enum tesselator_vertex_type {
+	VERTEX_INT,
+	VERTEX_FLOAT,
 };
 
 struct tesselator {
-	int16_t* vertices;
+	void* vertices;
+	int8_t* normals;
 	uint32_t* colors;
 	uint32_t quad_count;
 	uint32_t quad_space;
+	int has_normal;
 	uint32_t color;
-	enum tesselator_type type;
+	int8_t normal[3];
+	enum tesselator_vertex_type vertex_type;
 };
 
-void tesselator_create(struct tesselator* t, enum tesselator_type type);
+enum tesselator_cube_face {
+	CUBE_FACE_X_N,
+	CUBE_FACE_X_P,
+	CUBE_FACE_Y_N,
+	CUBE_FACE_Y_P,
+	CUBE_FACE_Z_N,
+	CUBE_FACE_Z_P,
+};
+
+void tesselator_create(struct tesselator* t, enum tesselator_vertex_type type, int has_normal);
+void tesselator_clear(struct tesselator* t);
 void tesselator_free(struct tesselator* t);
+void tesselator_draw(struct tesselator* t, int with_color);
 void tesselator_glx(struct tesselator* t, struct glx_displaylist* x);
 void tesselator_set_color(struct tesselator* t, uint32_t color);
-void tesselator_add(struct tesselator* t, int16_t* coords, uint32_t* colors);
-void tesselator_add_simple(struct tesselator* t, int16_t* coords);
+void tesselator_set_normal(struct tesselator* t, int8_t x, int8_t y, int8_t z);
+void tesselator_addi(struct tesselator* t, int16_t* coords, uint32_t* colors, int8_t* normals);
+void tesselator_addf(struct tesselator* t, float* coords, uint32_t* colors, int8_t* normals);
+void tesselator_addi_simple(struct tesselator* t, int16_t* coords);
+void tesselator_addf_simple(struct tesselator* t, float* coords);
+void tesselator_addi_cube_face(struct tesselator* t, enum tesselator_cube_face face, int16_t x, int16_t y, int16_t z);
+void tesselator_addf_cube_face(struct tesselator* t, enum tesselator_cube_face face, float x, float y, float z);
 
 #endif

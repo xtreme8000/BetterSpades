@@ -78,9 +78,11 @@ void chunk_draw_visible() {
 	struct chunk_render_call chunks_draw[CHUNKS_PER_DIM * CHUNKS_PER_DIM * 2];
 	int index = 0;
 
+	int overshoot = (settings.render_distance + CHUNK_SIZE - 1) / CHUNK_SIZE + 1;
+
 	// go through all possible chunks and store all in range and view
-	for(int y = -9; y < CHUNKS_PER_DIM + 9; y++) {
-		for(int x = -9; x < CHUNKS_PER_DIM + 9; x++) {
+	for(int y = -overshoot; y < CHUNKS_PER_DIM + overshoot; y++) {
+		for(int x = -overshoot; x < CHUNKS_PER_DIM + overshoot; x++) {
 			if(distance2D((x + 0.5F) * CHUNK_SIZE, (y + 0.5F) * CHUNK_SIZE, camera_x, camera_z)
 			   <= pow(settings.render_distance + 1.414F * CHUNK_SIZE, 2)) {
 				uint32_t tmp_x = ((uint32_t)x) % CHUNKS_PER_DIM;
@@ -114,7 +116,7 @@ void chunk_render(struct chunk_render_call* c) {
 
 		// glPolygonMode(GL_FRONT, GL_LINE);
 
-		glx_displaylist_draw(&c->chunk->display_list, GLX_DISPLAYLIST_NORMAL);
+		glx_displaylist_draw(&c->chunk->display_list, GLX_DISPLAYLIST_NORMAL, 1);
 
 		// glPolygonMode(GL_FRONT, GL_FILL);
 
@@ -138,7 +140,7 @@ static __attribute__((always_inline)) inline float solid_sunblock(uint32_t* arra
 	int dec = 18;
 	int i = 127;
 
-	while(dec && y < 64) {
+	while(dec && y < map_size_y) {
 		if(!solid_array_isair(array, x, ++y, --z))
 			i -= dec;
 		dec -= 2;
@@ -253,7 +255,7 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 									checked_voxels2[0][y + a + (x + b - start_x) * map_size_y] = 1;
 
 							tesselator_set_color(tess, rgba(r * 0.875F, g * 0.875F, b * 0.875F, 255));
-							tesselator_add_simple(
+							tesselator_addi_simple(
 								tess, (int16_t[]) {x, y, z, x, y + len_y, z, x + len_x, y + len_y, z, x + len_x, y, z});
 						}
 					}
@@ -293,9 +295,9 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 									checked_voxels2[1][y + a + (x + b - start_x) * map_size_y] = 1;
 
 							tesselator_set_color(tess, rgba(r * 0.625F, g * 0.625F, b * 0.625F, 255));
-							tesselator_add_simple(tess,
-												  (int16_t[]) {x, y, z + 1, x + len_x, y, z + 1, x + len_x, y + len_y,
-															   z + 1, x, y + len_y, z + 1});
+							tesselator_addi_simple(tess,
+												   (int16_t[]) {x, y, z + 1, x + len_x, y, z + 1, x + len_x, y + len_y,
+																z + 1, x, y + len_y, z + 1});
 						}
 					}
 				}
@@ -354,7 +356,7 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 									checked_voxels2[0][y + a + (z + b - start_z) * map_size_y] = 1;
 
 							tesselator_set_color(tess, rgba(r * 0.75F, g * 0.75F, b * 0.75F, 255));
-							tesselator_add_simple(
+							tesselator_addi_simple(
 								tess, (int16_t[]) {x, y, z, x, y, z + len_z, x, y + len_y, z + len_z, x, y + len_y, z});
 						}
 					}
@@ -394,9 +396,9 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 									checked_voxels2[1][y + a + (z + b - start_z) * map_size_y] = 1;
 
 							tesselator_set_color(tess, rgba(r * 0.75F, g * 0.75F, b * 0.75F, 255));
-							tesselator_add_simple(tess,
-												  (int16_t[]) {x + 1, y, z, x + 1, y + len_y, z, x + 1, y + len_y,
-															   z + len_z, x + 1, y, z + len_z});
+							tesselator_addi_simple(tess,
+												   (int16_t[]) {x + 1, y, z, x + 1, y + len_y, z, x + 1, y + len_y,
+																z + len_z, x + 1, y, z + len_z});
 						}
 					}
 				}
@@ -453,9 +455,9 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 									checked_voxels[0][(x + a - start_x) + (z + b - start_z) * CHUNK_SIZE] = 1;
 
 							tesselator_set_color(tess, rgba(r, g, b, 255));
-							tesselator_add_simple(tess,
-												  (int16_t[]) {x, y + 1, z, x, y + 1, z + len_z, x + len_x, y + 1,
-															   z + len_z, x + len_x, y + 1, z});
+							tesselator_addi_simple(tess,
+												   (int16_t[]) {x, y + 1, z, x, y + 1, z + len_z, x + len_x, y + 1,
+																z + len_z, x + len_x, y + 1, z});
 						}
 					}
 
@@ -492,7 +494,7 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 									checked_voxels[1][(x + a - start_x) + (z + b - start_z) * CHUNK_SIZE] = 1;
 
 							tesselator_set_color(tess, rgba(r * 0.5F, g * 0.5F, b * 0.5F, 255));
-							tesselator_add_simple(
+							tesselator_addi_simple(
 								tess, (int16_t[]) {x, y, z, x + len_x, y, z, x + len_x, y, z + len_z, x, y, z + len_z});
 						}
 					}
@@ -556,16 +558,17 @@ void chunk_generate_naive(struct libvxl_block* blocks, int count, uint32_t* soli
 				float D = vertexAO(solid_array_isair(solid, x + 1, y, z - 1), solid_array_isair(solid, x, y - 1, z - 1),
 								   solid_array_isair(solid, x + 1, y - 1, z - 1));
 
-				tesselator_add(tess, (int16_t[]) {x, y, z, x, y + 1, z, x + 1, y + 1, z, x + 1, y, z},
-							   (uint32_t[]) {
-								   rgba(r * 0.875F * A, g * 0.875F * A, b * 0.875F * A, 255),
-								   rgba(r * 0.875F * B, g * 0.875F * B, b * 0.875F * B, 255),
-								   rgba(r * 0.875F * C, g * 0.875F * C, b * 0.875F * C, 255),
-								   rgba(r * 0.875F * D, g * 0.875F * D, b * 0.875F * D, 255),
-							   });
+				tesselator_addi(tess, (int16_t[]) {x, y, z, x, y + 1, z, x + 1, y + 1, z, x + 1, y, z},
+								(uint32_t[]) {
+									rgba(r * 0.875F * A, g * 0.875F * A, b * 0.875F * A, 255),
+									rgba(r * 0.875F * B, g * 0.875F * B, b * 0.875F * B, 255),
+									rgba(r * 0.875F * C, g * 0.875F * C, b * 0.875F * C, 255),
+									rgba(r * 0.875F * D, g * 0.875F * D, b * 0.875F * D, 255),
+								},
+								NULL);
 			} else {
 				tesselator_set_color(tess, rgba(r * 0.875F, g * 0.875F, b * 0.875F, 255));
-				tesselator_add_simple(tess, (int16_t[]) {x, y, z, x, y + 1, z, x + 1, y + 1, z, x + 1, y, z});
+				tesselator_addi_cube_face(tess, CUBE_FACE_Z_N, x, y, z);
 			}
 		}
 
@@ -579,17 +582,17 @@ void chunk_generate_naive(struct libvxl_block* blocks, int count, uint32_t* soli
 								   solid_array_isair(solid, x + 1, y + 1, z + 1));
 				float D = vertexAO(solid_array_isair(solid, x - 1, y, z + 1), solid_array_isair(solid, x, y + 1, z + 1),
 								   solid_array_isair(solid, x - 1, y + 1, z + 1));
-				tesselator_add(tess, (int16_t[]) {x, y, z + 1, x + 1, y, z + 1, x + 1, y + 1, z + 1, x, y + 1, z + 1},
-							   (uint32_t[]) {
-								   rgba(r * 0.625F * A, g * 0.625F * A, b * 0.625F * A, 255),
-								   rgba(r * 0.625F * B, g * 0.625F * B, b * 0.625F * B, 255),
-								   rgba(r * 0.625F * C, g * 0.625F * C, b * 0.625F * C, 255),
-								   rgba(r * 0.625F * D, g * 0.625F * D, b * 0.625F * D, 255),
-							   });
+				tesselator_addi(tess, (int16_t[]) {x, y, z + 1, x + 1, y, z + 1, x + 1, y + 1, z + 1, x, y + 1, z + 1},
+								(uint32_t[]) {
+									rgba(r * 0.625F * A, g * 0.625F * A, b * 0.625F * A, 255),
+									rgba(r * 0.625F * B, g * 0.625F * B, b * 0.625F * B, 255),
+									rgba(r * 0.625F * C, g * 0.625F * C, b * 0.625F * C, 255),
+									rgba(r * 0.625F * D, g * 0.625F * D, b * 0.625F * D, 255),
+								},
+								NULL);
 			} else {
 				tesselator_set_color(tess, rgba(r * 0.625F, g * 0.625F, b * 0.625F, 255));
-				tesselator_add_simple(tess,
-									  (int16_t[]) {x, y, z + 1, x + 1, y, z + 1, x + 1, y + 1, z + 1, x, y + 1, z + 1});
+				tesselator_addi_cube_face(tess, CUBE_FACE_Z_P, x, y, z);
 			}
 		}
 
@@ -604,16 +607,17 @@ void chunk_generate_naive(struct libvxl_block* blocks, int count, uint32_t* soli
 				float D = vertexAO(solid_array_isair(solid, x - 1, y + 1, z), solid_array_isair(solid, x - 1, y, z - 1),
 								   solid_array_isair(solid, x - 1, y + 1, z - 1));
 
-				tesselator_add(tess, (int16_t[]) {x, y, z, x, y, z + 1, x, y + 1, z + 1, x, y + 1, z},
-							   (uint32_t[]) {
-								   rgba(r * 0.75F * A, g * 0.75F * A, b * 0.75F * A, 255),
-								   rgba(r * 0.75F * B, g * 0.75F * B, b * 0.75F * B, 255),
-								   rgba(r * 0.75F * C, g * 0.75F * C, b * 0.75F * C, 255),
-								   rgba(r * 0.75F * D, g * 0.75F * D, b * 0.75F * D, 255),
-							   });
+				tesselator_addi(tess, (int16_t[]) {x, y, z, x, y, z + 1, x, y + 1, z + 1, x, y + 1, z},
+								(uint32_t[]) {
+									rgba(r * 0.75F * A, g * 0.75F * A, b * 0.75F * A, 255),
+									rgba(r * 0.75F * B, g * 0.75F * B, b * 0.75F * B, 255),
+									rgba(r * 0.75F * C, g * 0.75F * C, b * 0.75F * C, 255),
+									rgba(r * 0.75F * D, g * 0.75F * D, b * 0.75F * D, 255),
+								},
+								NULL);
 			} else {
 				tesselator_set_color(tess, rgba(r * 0.75F, g * 0.75F, b * 0.75F, 255));
-				tesselator_add_simple(tess, (int16_t[]) {x, y, z, x, y, z + 1, x, y + 1, z + 1, x, y + 1, z});
+				tesselator_addi_cube_face(tess, CUBE_FACE_X_N, x, y, z);
 			}
 		}
 
@@ -628,17 +632,17 @@ void chunk_generate_naive(struct libvxl_block* blocks, int count, uint32_t* soli
 				float D = vertexAO(solid_array_isair(solid, x + 1, y - 1, z), solid_array_isair(solid, x + 1, y, z + 1),
 								   solid_array_isair(solid, x + 1, y - 1, z + 1));
 
-				tesselator_add(tess, (int16_t[]) {x + 1, y, z, x + 1, y + 1, z, x + 1, y + 1, z + 1, x + 1, y, z + 1},
-							   (uint32_t[]) {
-								   rgba(r * 0.75F * A, g * 0.75F * A, b * 0.75F * A, 255),
-								   rgba(r * 0.75F * B, g * 0.75F * B, b * 0.75F * B, 255),
-								   rgba(r * 0.75F * C, g * 0.75F * C, b * 0.75F * C, 255),
-								   rgba(r * 0.75F * D, g * 0.75F * D, b * 0.75F * D, 255),
-							   });
+				tesselator_addi(tess, (int16_t[]) {x + 1, y, z, x + 1, y + 1, z, x + 1, y + 1, z + 1, x + 1, y, z + 1},
+								(uint32_t[]) {
+									rgba(r * 0.75F * A, g * 0.75F * A, b * 0.75F * A, 255),
+									rgba(r * 0.75F * B, g * 0.75F * B, b * 0.75F * B, 255),
+									rgba(r * 0.75F * C, g * 0.75F * C, b * 0.75F * C, 255),
+									rgba(r * 0.75F * D, g * 0.75F * D, b * 0.75F * D, 255),
+								},
+								NULL);
 			} else {
 				tesselator_set_color(tess, rgba(r * 0.75F, g * 0.75F, b * 0.75F, 255));
-				tesselator_add_simple(tess,
-									  (int16_t[]) {x + 1, y, z, x + 1, y + 1, z, x + 1, y + 1, z + 1, x + 1, y, z + 1});
+				tesselator_addi_cube_face(tess, CUBE_FACE_X_P, x, y, z);
 			}
 		}
 
@@ -653,17 +657,17 @@ void chunk_generate_naive(struct libvxl_block* blocks, int count, uint32_t* soli
 				float D = vertexAO(solid_array_isair(solid, x + 1, y + 1, z), solid_array_isair(solid, x, y + 1, z - 1),
 								   solid_array_isair(solid, x + 1, y + 1, z - 1));
 
-				tesselator_add(tess, (int16_t[]) {x, y + 1, z, x, y + 1, z + 1, x + 1, y + 1, z + 1, x + 1, y + 1, z},
-							   (uint32_t[]) {
-								   rgba(r * A, g * A, b * A, 255),
-								   rgba(r * B, g * B, b * B, 255),
-								   rgba(r * C, g * C, b * C, 255),
-								   rgba(r * D, g * D, b * D, 255),
-							   });
+				tesselator_addi(tess, (int16_t[]) {x, y + 1, z, x, y + 1, z + 1, x + 1, y + 1, z + 1, x + 1, y + 1, z},
+								(uint32_t[]) {
+									rgba(r * A, g * A, b * A, 255),
+									rgba(r * B, g * B, b * B, 255),
+									rgba(r * C, g * C, b * C, 255),
+									rgba(r * D, g * D, b * D, 255),
+								},
+								NULL);
 			} else {
 				tesselator_set_color(tess, rgba(r, g, b, 255));
-				tesselator_add_simple(tess,
-									  (int16_t[]) {x, y + 1, z, x, y + 1, z + 1, x + 1, y + 1, z + 1, x + 1, y + 1, z});
+				tesselator_addi_cube_face(tess, CUBE_FACE_Y_P, x, y, z);
 			}
 		}
 
@@ -678,16 +682,17 @@ void chunk_generate_naive(struct libvxl_block* blocks, int count, uint32_t* soli
 				float D = vertexAO(solid_array_isair(solid, x - 1, y - 1, z), solid_array_isair(solid, x, y - 1, z + 1),
 								   solid_array_isair(solid, x - 1, y - 1, z + 1));
 
-				tesselator_add(tess, (int16_t[]) {x, y, z, x + 1, y, z, x + 1, y, z + 1, x, y, z + 1},
-							   (uint32_t[]) {
-								   rgba(r * 0.5F * A, g * 0.5F * A, b * 0.5F * A, 255),
-								   rgba(r * 0.5F * B, g * 0.5F * B, b * 0.5F * B, 255),
-								   rgba(r * 0.5F * C, g * 0.5F * C, b * 0.5F * C, 255),
-								   rgba(r * 0.5F * D, g * 0.5F * D, b * 0.5F * D, 255),
-							   });
+				tesselator_addi(tess, (int16_t[]) {x, y, z, x + 1, y, z, x + 1, y, z + 1, x, y, z + 1},
+								(uint32_t[]) {
+									rgba(r * 0.5F * A, g * 0.5F * A, b * 0.5F * A, 255),
+									rgba(r * 0.5F * B, g * 0.5F * B, b * 0.5F * B, 255),
+									rgba(r * 0.5F * C, g * 0.5F * C, b * 0.5F * C, 255),
+									rgba(r * 0.5F * D, g * 0.5F * D, b * 0.5F * D, 255),
+								},
+								NULL);
 			} else {
 				tesselator_set_color(tess, rgba(r * 0.5F, g * 0.5F, b * 0.5F, 255));
-				tesselator_add_simple(tess, (int16_t[]) {x, y, z, x + 1, y, z, x + 1, y, z + 1, x, y, z + 1});
+				tesselator_addi_cube_face(tess, CUBE_FACE_Y_N, x, y, z);
 			}
 		}
 	}
@@ -773,11 +778,7 @@ void chunk_update_all() {
 				worker->blocks = map_copy_blocks(c->x, c->y, &worker->blocks_count);
 				worker->blocks_solid = map_copy_solids();
 
-#ifdef OPENGL_ES
-				tesselator_create(&worker->tesselator, TESSELATE_TRIANGLES);
-#else
-				tesselator_create(&worker->tesselator, TESSELATE_QUADS);
-#endif
+				tesselator_create(&worker->tesselator, VERTEX_INT, 0);
 
 				pthread_cond_signal(&worker->can_work);
 			}

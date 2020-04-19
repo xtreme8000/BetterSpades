@@ -2386,7 +2386,9 @@ static void hud_serverlist_scroll(double yoffset) {
 
 static void server_c(char* address, char* name) {
 	if(file_exists(address)) {
-		map_vxl_load(file_load(address), file_size(address));
+		void* data = file_load(address);
+		map_vxl_load(data, file_size(address));
+		free(data);
 		chunk_rebuild_all();
 		camera_mode = CAMERAMODE_FPS;
 		players[local_player_id].pos.x = map_size_x / 2.0F;

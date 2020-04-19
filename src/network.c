@@ -325,8 +325,6 @@ void read_PacketStateData(void* data, int len) {
 		free(compressed_chunk_data);
 		libdeflate_free_decompressor(d);
 	}
-
-	kv6_rebuild_all();
 }
 
 void read_PacketFogColor(void* data, int len) {
@@ -731,11 +729,18 @@ void read_PacketIntelCapture(void* data, int len) {
 		players[p->player_id].score += 10;
 		chat_add(0, 0x0000FF, capture_str);
 		if(p->winning) {
+			char* name = NULL;
+
 			switch(players[p->player_id].team) {
-				case TEAM_1: sprintf(capture_str, "%s Team Wins!", gamestate.team_1.name); break;
-				case TEAM_2: sprintf(capture_str, "%s Team Wins!", gamestate.team_2.name); break;
+				case TEAM_1: name = gamestate.team_1.name; break;
+				case TEAM_2: name = gamestate.team_2.name; break;
 			}
+
+			sprintf(capture_str, "%s Team Wins!", name);
 			chat_showpopup(capture_str, 5.0F, rgb(255, 0, 0));
+
+			gamestate.gamemode.ctf.team_1_score = 0;
+			gamestate.gamemode.ctf.team_2_score = 0;
 		}
 	}
 }
@@ -832,19 +837,19 @@ void read_PacketVersionGet(void* data, int len) {
 	ver.revision = BETTERSPADES_PATCH;
 #ifndef OPENGL_ES
 #ifdef OS_WINDOWS
-	char* os = "BetterSpades (Windows)";
+	char* os = "BetterSpades (Windows) " GIT_COMMIT_HASH;
 #endif
 #ifdef OS_LINUX
-	char* os = "BetterSpades (Linux)";
+	char* os = "BetterSpades (Linux) " GIT_COMMIT_HASH;
 #endif
 #ifdef OS_APPLE
-	char* os = "BetterSpades (Apple)";
+	char* os = "BetterSpades (Apple) " GIT_COMMIT_HASH;
 #endif
 #else
 #ifdef USE_TOUCH
-	char* os = "BetterSpades (Android)";
+	char* os = "BetterSpades (Android) " GIT_COMMIT_HASH;
 #else
-	char* os = "BetterSpades (Embedded)";
+	char* os = "BetterSpades (Embedded) " GIT_COMMIT_HASH;
 #endif
 #endif
 	strcpy(ver.operatingsystem, os);
@@ -854,11 +859,15 @@ void read_PacketVersionGet(void* data, int len) {
 void read_PacketExtInfo(void* data, int len) {
 	struct PacketExtInfo* p = (struct PacketExtInfo*)data;
 	if(len >= p->length * sizeof(struct PacketExtInfoEntry) + 1) {
-		log_info("Server supports the following extensions:");
-		for(int k = 0; k < p->length; k++) {
-			log_info("Extension 0x%02X of version %i", p->entries[k].id, p->entries[k].version);
-			if(p->entries[k].id >= 192)
-				log_info("(which is packetless)");
+		if(p->length > 0) {
+			log_info("Server supports the following extensions:");
+			for(int k = 0; k < p->length; k++) {
+				log_info("Extension 0x%02X of version %i", p->entries[k].id, p->entries[k].version);
+				if(p->entries[k].id >= 192)
+					log_info("(which is packetless)");
+			}
+		} else {
+			log_info("Server does not support extensions");
 		}
 
 		struct PacketExtInfo reply;

@@ -22,6 +22,7 @@
 
 #include "aabb.h"
 #include "glx.h"
+#include "tesselator.h"
 
 struct kv6_voxel {
 	short x, y, z;
@@ -33,14 +34,10 @@ struct kv6_t {
 	unsigned short xsiz, ysiz, zsiz;
 	float xpiv, ypiv, zpiv;
 	unsigned char has_display_list, colorize;
-	struct glx_displaylist display_list[3];
+	struct glx_displaylist display_list[2];
 	struct kv6_voxel* voxels;
 	int voxel_count;
 	float scale;
-	unsigned char* colors_final;
-	float* vertices_final;
-	char* normals_final;
-	int size;
 	float red, green, blue;
 };
 
@@ -72,7 +69,6 @@ extern struct kv6_t model_shotgun_casing;
 void kv6_calclight(int x, int y, int z);
 void kv6_boundingbox(struct kv6_t* kv6, AABB* bb);
 float kv6_intersection(struct kv6_t* kv6, Ray* r);
-void kv6_rebuild_all(void);
 void kv6_rebuild_complete(void);
 void kv6_rebuild(struct kv6_t* kv6);
 void kv6_render(struct kv6_t* kv6, unsigned char team);

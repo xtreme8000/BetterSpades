@@ -32,14 +32,6 @@ extern int map_size_z;
 extern float fog_color[4];
 extern float map_sun[4];
 
-extern unsigned char* map_minimap;
-
-extern struct DamagedVoxel {
-	int x, y, z;
-	char damage;
-	float timer;
-} map_damaged_voxels[8];
-
 struct Point {
 	int x, y, z;
 };

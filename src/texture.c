@@ -261,6 +261,9 @@ void texture_resize_pow2(struct texture* t, int min_size) {
 
 	log_info("texture original: %i:%i now: %i:%i limit: %i", t->width, t->height, w, h, max_size);
 
+	if(!t->pixels)
+		return;
+
 	unsigned int* pixels_new = malloc(w * h * sizeof(unsigned int));
 	CHECK_ALLOCATION_ERROR(pixels_new)
 	for(int y = 0; y < h; y++) {
@@ -368,9 +371,9 @@ void texture_init() {
 	texture_filter(&texture_ui_joystick, TEXTURE_FILTER_LINEAR);
 #endif
 
-	unsigned int* pixels = malloc(64 * 64 * sizeof(unsigned int));
-	CHECK_ALLOCATION_ERROR(pixels)
-	memset(pixels, 0, 64 * 64 * sizeof(unsigned int));
+	unsigned int pixels[64 * 64];
+	memset(pixels, 0, sizeof(pixels));
+
 	for(int y = 0; y < 8; y++) {
 		for(int x = 0; x < 8; x++) {
 			for(int ys = 0; ys < 6; ys++) {
@@ -380,9 +383,10 @@ void texture_init() {
 			}
 		}
 	}
+
 	texture_create_buffer(&texture_color_selection, 64, 64, (unsigned char*)pixels, 1);
 
-	texture_create_buffer(&texture_minimap, map_size_x, map_size_z, map_minimap, 1);
+	texture_create_buffer(&texture_minimap, map_size_x, map_size_z, NULL, 1);
 
 	unsigned int* gradient = malloc(512 * 512 * sizeof(unsigned int));
 	CHECK_ALLOCATION_ERROR(gradient)

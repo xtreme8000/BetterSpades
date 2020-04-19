@@ -457,11 +457,6 @@ void init() {
 
 	map_init();
 
-	map_minimap = malloc(map_size_x * map_size_z * sizeof(unsigned char) * 4);
-	CHECK_ALLOCATION_ERROR(map_minimap)
-	// set minimap borders (white on 64x64 chunks, black map border)
-	memset(map_minimap, 0xCCCCCCFF, map_size_x * map_size_z * sizeof(unsigned char) * 4);
-
 	glx_init();
 
 	font_init();

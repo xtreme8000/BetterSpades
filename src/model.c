@@ -57,37 +57,42 @@ struct kv6_t model_semi_casing;
 struct kv6_t model_smg_casing;
 struct kv6_t model_shotgun_casing;
 
-void kv6_init() {
-	kv6_load(&model_playerdead, file_load("kv6/playerdead.kv6"), 0.1F);
-	kv6_load(&model_playerhead, file_load("kv6/playerhead.kv6"), 0.1F);
-	kv6_load(&model_playertorso, file_load("kv6/playertorso.kv6"), 0.1F);
-	kv6_load(&model_playertorsoc, file_load("kv6/playertorsoc.kv6"), 0.1F);
-	kv6_load(&model_playerarms, file_load("kv6/playerarms.kv6"), 0.1F);
-	kv6_load(&model_playerleg, file_load("kv6/playerleg.kv6"), 0.1F);
-	kv6_load(&model_playerlegc, file_load("kv6/playerlegc.kv6"), 0.1F);
-
-	kv6_load(&model_intel, file_load("kv6/intel.kv6"), 0.2F);
-	kv6_load(&model_tent, file_load("kv6/cp.kv6"), 0.278F);
-
-	kv6_load(&model_semi, file_load("kv6/semi.kv6"), 0.05F);
-	kv6_load(&model_smg, file_load("kv6/smg.kv6"), 0.05F);
-	kv6_load(&model_shotgun, file_load("kv6/shotgun.kv6"), 0.05F);
-	kv6_load(&model_spade, file_load("kv6/spade.kv6"), 0.05F);
-	kv6_load(&model_block, file_load("kv6/block.kv6"), 0.05F);
-	model_block.colorize = 1;
-	kv6_load(&model_grenade, file_load("kv6/grenade.kv6"), 0.05F);
-
-	kv6_load(&model_semi_tracer, file_load("kv6/semitracer.kv6"), 0.05F);
-	kv6_load(&model_smg_tracer, file_load("kv6/smgtracer.kv6"), 0.05F);
-	kv6_load(&model_shotgun_tracer, file_load("kv6/shotguntracer.kv6"), 0.05F);
-
-	kv6_load(&model_semi_casing, file_load("kv6/semicasing.kv6"), 0.0125F);
-	kv6_load(&model_smg_casing, file_load("kv6/smgcasing.kv6"), 0.0125F);
-	kv6_load(&model_shotgun_casing, file_load("kv6/shotguncasing.kv6"), 0.0125F);
+static void kv6_load_file(struct kv6_t* kv6, char* filename, float scale) {
+	void* data = file_load(filename);
+	kv6_load(kv6, data, scale);
+	free(data);
 }
 
-void kv6_rebuild_all() {
-	// only needed for models that contain team colors
+void kv6_init() {
+	kv6_load_file(&model_playerdead, "kv6/playerdead.kv6", 0.1F);
+	kv6_load_file(&model_playerhead, "kv6/playerhead.kv6", 0.1F);
+	kv6_load_file(&model_playertorso, "kv6/playertorso.kv6", 0.1F);
+	kv6_load_file(&model_playertorsoc, "kv6/playertorsoc.kv6", 0.1F);
+	kv6_load_file(&model_playerarms, "kv6/playerarms.kv6", 0.1F);
+	kv6_load_file(&model_playerleg, "kv6/playerleg.kv6", 0.1F);
+	kv6_load_file(&model_playerlegc, "kv6/playerlegc.kv6", 0.1F);
+
+	kv6_load_file(&model_intel, "kv6/intel.kv6", 0.2F);
+	kv6_load_file(&model_tent, "kv6/cp.kv6", 0.278F);
+
+	kv6_load_file(&model_semi, "kv6/semi.kv6", 0.05F);
+	kv6_load_file(&model_smg, "kv6/smg.kv6", 0.05F);
+	kv6_load_file(&model_shotgun, "kv6/shotgun.kv6", 0.05F);
+	kv6_load_file(&model_spade, "kv6/spade.kv6", 0.05F);
+	kv6_load_file(&model_block, "kv6/block.kv6", 0.05F);
+	model_block.colorize = 1;
+	kv6_load_file(&model_grenade, "kv6/grenade.kv6", 0.05F);
+
+	kv6_load_file(&model_semi_tracer, "kv6/semitracer.kv6", 0.05F);
+	kv6_load_file(&model_smg_tracer, "kv6/smgtracer.kv6", 0.05F);
+	kv6_load_file(&model_shotgun_tracer, "kv6/shotguntracer.kv6", 0.05F);
+
+	kv6_load_file(&model_semi_casing, "kv6/semicasing.kv6", 0.0125F);
+	kv6_load_file(&model_smg_casing, "kv6/smgcasing.kv6", 0.0125F);
+	kv6_load_file(&model_shotgun_casing, "kv6/shotguncasing.kv6", 0.0125F);
+}
+
+void kv6_rebuild_complete() {
 	kv6_rebuild(&model_playerdead);
 	kv6_rebuild(&model_playerhead);
 	kv6_rebuild(&model_playertorso);
@@ -97,10 +102,6 @@ void kv6_rebuild_all() {
 	kv6_rebuild(&model_playerlegc);
 	kv6_rebuild(&model_intel);
 	kv6_rebuild(&model_tent);
-}
-
-void kv6_rebuild_complete() {
-	kv6_rebuild_all();
 	kv6_rebuild(&model_semi);
 	kv6_rebuild(&model_smg);
 	kv6_rebuild(&model_shotgun);
@@ -228,24 +229,21 @@ float kv6_intersection(struct kv6_t* kv6, Ray* r) {
 
 void kv6_rebuild(struct kv6_t* kv6) {
 	if(kv6->has_display_list) {
-		glx_displaylist_destroy(&kv6->display_list[0]);
-		glx_displaylist_destroy(&kv6->display_list[1]);
-		glx_displaylist_destroy(&kv6->display_list[2]);
-		if(kv6->colorize) {
-			free(kv6->vertices_final);
-			free(kv6->colors_final);
-			free(kv6->normals_final);
-		}
+		glx_displaylist_destroy(kv6->display_list + 0);
+		glx_displaylist_destroy(kv6->display_list + 1);
 		kv6->has_display_list = 0;
 	}
 }
 
 void kv6_calclight(int x, int y, int z) {
 	float f = 1.0F;
+
 	if(x >= 0 && y >= 0 && z >= 0)
 		f = map_sunblock(x, y, z);
+
 	float lambient[4] = {0.5F * f, 0.5F * f, 0.5F * f, 1.0F};
 	float ldiffuse[4] = {0.5F * f, 0.5F * f, 0.5F * f, 1.0F};
+
 	glLightfv(GL_LIGHT0, GL_AMBIENT, lambient);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, ldiffuse);
 }
@@ -258,286 +256,92 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		team = 2;
 	if(!settings.voxlap_models) {
 		if(!kv6->has_display_list) {
-			int size = kv6->voxel_count * 6;
+			struct tesselator tess_color;
+			tesselator_create(&tess_color, VERTEX_FLOAT, 1);
+			struct tesselator tess_team;
+			tesselator_create(&tess_team, VERTEX_FLOAT, 1);
 
-#ifdef OPENGL_ES
-			kv6->vertices_final = malloc(size * 3 * 6 * sizeof(float));
-			CHECK_ALLOCATION_ERROR(kv6->vertices_final)
-			kv6->colors_final = malloc(size * 4 * 6 * sizeof(unsigned char) * 2);
-			CHECK_ALLOCATION_ERROR(kv6->colors_final)
-			kv6->normals_final = malloc(size * 3 * 6 * sizeof(unsigned char));
-			CHECK_ALLOCATION_ERROR(kv6->normals_final)
-#else
-			kv6->vertices_final = malloc(size * 3 * 4 * sizeof(float));
-			CHECK_ALLOCATION_ERROR(kv6->vertices_final)
-			kv6->colors_final = malloc(size * 4 * 4 * sizeof(unsigned char) * 2);
-			CHECK_ALLOCATION_ERROR(kv6->colors_final)
-			kv6->normals_final = malloc(size * 3 * 4 * sizeof(unsigned char));
-			CHECK_ALLOCATION_ERROR(kv6->normals_final)
-#endif
+			glx_displaylist_create(kv6->display_list + 0);
+			glx_displaylist_create(kv6->display_list + 1);
 
-			if(!kv6->colorize) {
-				glx_displaylist_create(&kv6->display_list[0]);
-				glx_displaylist_create(&kv6->display_list[1]);
-				glx_displaylist_create(&kv6->display_list[2]);
-			}
+			for(int k = 0; k < kv6->voxel_count; k++) {
+				int x = kv6->voxels[k].x;
+				int y = kv6->voxels[k].y;
+				int z = kv6->voxels[k].z;
+				int b = red(kv6->voxels[k].color);
+				int g = green(kv6->voxels[k].color);
+				int r = blue(kv6->voxels[k].color);
+				int a = alpha(kv6->voxels[k].color);
 
-			int v, c, n;
-			for(int t = 0; t < 3; t++) {
-				v = c = n = 0;
-				for(int k = 0; k < kv6->voxel_count; k++) {
-					int x = kv6->voxels[k].x;
-					int y = kv6->voxels[k].y;
-					int z = kv6->voxels[k].z;
-					int b = kv6->voxels[k].color & 0xFF;
-					int g = (kv6->voxels[k].color >> 8) & 0xFF;
-					int r = (kv6->voxels[k].color >> 16) & 0xFF;
-					int a = (kv6->voxels[k].color >> 24) & 0xFF;
-					if(r == 0 && g == 0 && b == 0) {
-						switch(t) {
-							case TEAM_1:
-								r = gamestate.team_1.red * 0.75F;
-								g = gamestate.team_1.green * 0.75F;
-								b = gamestate.team_1.blue * 0.75F;
-								break;
-							case TEAM_2:
-								r = gamestate.team_2.red * 0.75F;
-								g = gamestate.team_2.green * 0.75F;
-								b = gamestate.team_2.blue * 0.75F;
-								break;
-						}
-					}
+				struct tesselator* tess = &tess_color;
 
-					float p[3]
-						= {(x - kv6->xpiv) * kv6->scale, (z - kv6->zpiv) * kv6->scale, (y - kv6->ypiv) * kv6->scale};
+				if((r | g | b) == 0)
+					tess = &tess_team;
 
-					int i = 0;
-					float alpha[12];
+				float p[3] = {(x - kv6->xpiv) * kv6->scale, (z - kv6->zpiv) * kv6->scale, (y - kv6->ypiv) * kv6->scale};
 
-					// negative y
-					if(kv6->voxels[k].visfaces & 16) {
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2];
+				tesselator_set_normal(tess, kv6_normals[a][0] * 128, -kv6_normals[a][2] * 128, kv6_normals[a][1] * 128);
 
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-
-#ifdef OPENGL_ES
-						alpha[i++] = 1.0F;
-
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2];
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-#endif
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2];
-						alpha[i++] = 1.0F;
-					}
-
-					// positive y
-					if(kv6->voxels[k].visfaces & 32) {
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2];
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2];
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-
-#ifdef OPENGL_ES
-						alpha[i++] = 0.6F;
-
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2];
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-#endif
-
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-						alpha[i++] = 0.6F;
-					}
-
-					// negative z
-					if(kv6->voxels[k].visfaces & 4) {
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2];
-
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2];
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2];
-
-#ifdef OPENGL_ES
-						alpha[i++] = 0.95F;
-
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2];
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2];
-#endif
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2];
-						alpha[i++] = 0.95F;
-					}
-
-					// positive z
-					if(kv6->voxels[k].visfaces & 8) {
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-
-#ifdef OPENGL_ES
-						alpha[i++] = 0.9F;
-
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-#endif
-
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-						alpha[i++] = 0.9F;
-					}
-
-					// negative x
-					if(kv6->voxels[k].visfaces & 1) {
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2];
-
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-
-#ifdef OPENGL_ES
-						alpha[i++] = 0.85F;
-
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2];
-
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-#endif
-
-						kv6->vertices_final[v++] = p[0];
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2];
-						alpha[i++] = 0.85F;
-					}
-
-					// positive x
-					if(kv6->voxels[k].visfaces & 2) {
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2];
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2];
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-
-#ifdef OPENGL_ES
-						alpha[i++] = 0.8F;
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2];
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1] + kv6->scale;
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-#endif
-
-						kv6->vertices_final[v++] = p[0] + kv6->scale;
-						kv6->vertices_final[v++] = p[1];
-						kv6->vertices_final[v++] = p[2] + kv6->scale;
-						alpha[i++] = 0.8F;
-					}
-
-#ifdef OPENGL_ES
-					for(int k = 0; k < i * 3; k++) {
-						kv6->colors_final[c++] = r * alpha[k / 3];
-						kv6->colors_final[c++] = g * alpha[k / 3];
-						kv6->colors_final[c++] = b * alpha[k / 3];
-						kv6->colors_final[c++] = 255;
-#else
-					for(int k = 0; k < i * 4; k++) {
-						kv6->colors_final[c++] = r * alpha[k / 4];
-						kv6->colors_final[c++] = g * alpha[k / 4];
-						kv6->colors_final[c++] = b * alpha[k / 4];
-						kv6->colors_final[c++] = 255;
-#endif
-						kv6->normals_final[n++] = kv6_normals[a][0] * 128;
-						kv6->normals_final[n++] = -kv6_normals[a][2] * 128;
-						kv6->normals_final[n++] = kv6_normals[a][1] * 128;
-					}
+				// negative y
+				if(kv6->voxels[k].visfaces & 16) {
+					tesselator_set_color(tess, rgba(r, g, b, 255));
+					tesselator_addf_simple(tess,
+										   (float[]) {p[0], p[1] + kv6->scale, p[2], p[0], p[1] + kv6->scale,
+													  p[2] + kv6->scale, p[0] + kv6->scale, p[1] + kv6->scale,
+													  p[2] + kv6->scale, p[0] + kv6->scale, p[1] + kv6->scale, p[2]});
 				}
 
-				if(!kv6->colorize)
-					glx_displaylist_update(&kv6->display_list[t], v / 3, GLX_DISPLAYLIST_ENHANCED, kv6->colors_final,
-										   kv6->vertices_final, kv6->normals_final);
+				// positive y
+				if(kv6->voxels[k].visfaces & 32) {
+					tesselator_set_color(tess, rgba(r * 0.6F, g * 0.6F, b * 0.6F, 255));
+					tesselator_addf_simple(tess,
+										   (float[]) {p[0], p[1], p[2], p[0] + kv6->scale, p[1], p[2],
+													  p[0] + kv6->scale, p[1], p[2] + kv6->scale, p[0], p[1],
+													  p[2] + kv6->scale});
+				}
+
+				// negative z
+				if(kv6->voxels[k].visfaces & 4) {
+					tesselator_set_color(tess, rgba(r * 0.95F, g * 0.95F, b * 0.95F, 255));
+					tesselator_addf_simple(tess,
+										   (float[]) {p[0], p[1], p[2], p[0], p[1] + kv6->scale, p[2],
+													  p[0] + kv6->scale, p[1] + kv6->scale, p[2], p[0] + kv6->scale,
+													  p[1], p[2]});
+				}
+
+				// positive z
+				if(kv6->voxels[k].visfaces & 8) {
+					tesselator_set_color(tess, rgba(r * 0.9F, g * 0.9F, b * 0.9F, 255));
+					tesselator_addf_simple(tess,
+										   (float[]) {p[0], p[1], p[2] + kv6->scale, p[0] + kv6->scale, p[1],
+													  p[2] + kv6->scale, p[0] + kv6->scale, p[1] + kv6->scale,
+													  p[2] + kv6->scale, p[0], p[1] + kv6->scale, p[2] + kv6->scale});
+				}
+
+				// negative x
+				if(kv6->voxels[k].visfaces & 1) {
+					tesselator_set_color(tess, rgba(r * 0.85F, g * 0.85F, b * 0.85F, 255));
+					tesselator_addf_simple(tess,
+										   (float[]) {p[0], p[1], p[2], p[0], p[1], p[2] + kv6->scale, p[0],
+													  p[1] + kv6->scale, p[2] + kv6->scale, p[0], p[1] + kv6->scale,
+													  p[2]});
+				}
+
+				// positive x
+				if(kv6->voxels[k].visfaces & 2) {
+					tesselator_set_color(tess, rgba(r * 0.8F, g * 0.8F, b * 0.8F, 255));
+					tesselator_addf_simple(tess,
+										   (float[]) {p[0] + kv6->scale, p[1], p[2], p[0] + kv6->scale,
+													  p[1] + kv6->scale, p[2], p[0] + kv6->scale, p[1] + kv6->scale,
+													  p[2] + kv6->scale, p[0] + kv6->scale, p[1], p[2] + kv6->scale});
+				}
 			}
 
-			if(!kv6->colorize) {
-				free(kv6->vertices_final);
-				free(kv6->colors_final);
-				free(kv6->normals_final);
-			} else {
-				memcpy(kv6->colors_final + c * sizeof(unsigned char), kv6->colors_final, c * sizeof(unsigned char));
-				kv6->size = v / 3;
-			}
+			tesselator_glx(&tess_color, kv6->display_list + 0);
+			tesselator_glx(&tess_team, kv6->display_list + 1);
+
+			tesselator_free(&tess_color);
+			tesselator_free(&tess_team);
 
 			kv6->has_display_list = 1;
 		} else {
@@ -548,108 +352,73 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 			glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 #endif
 			glEnable(GL_NORMALIZE);
-			if(!kv6->colorize) {
-				glx_displaylist_draw(&kv6->display_list[team % 3], GLX_DISPLAYLIST_ENHANCED);
-			} else {
-				for(int k = 0; k < kv6->size * 4; k += 4) {
-					kv6->colors_final[k + 0] = min(
-						((float)kv6->colors_final[k + 0 + kv6->size * 4 * sizeof(unsigned char)]) / 0.4335F * kv6->red,
-						255);
-					kv6->colors_final[k + 1]
-						= min(((float)kv6->colors_final[k + 1 + kv6->size * 4 * sizeof(unsigned char)]) / 0.4335F
-								  * kv6->green,
-							  255);
-					kv6->colors_final[k + 2] = min(
-						((float)kv6->colors_final[k + 2 + kv6->size * 4 * sizeof(unsigned char)]) / 0.4335F * kv6->blue,
-						255);
-				}
-				glEnableClientState(GL_VERTEX_ARRAY);
-				glEnableClientState(GL_COLOR_ARRAY);
-				glEnableClientState(GL_NORMAL_ARRAY);
-				glVertexPointer(3, GL_FLOAT, 0, kv6->vertices_final);
-				glColorPointer(4, GL_UNSIGNED_BYTE, 0, kv6->colors_final);
-				glNormalPointer(GL_BYTE, 0, kv6->normals_final);
-#ifdef OPENGL_ES
-				glDrawArrays(GL_TRIANGLES, 0, kv6->size);
-#else
-				glDrawArrays(GL_QUADS, 0, kv6->size);
-#endif
-				glDisableClientState(GL_NORMAL_ARRAY);
-				glDisableClientState(GL_COLOR_ARRAY);
-				glDisableClientState(GL_VERTEX_ARRAY);
+
+			if(kv6->colorize)
+				glColor3f(kv6->red, kv6->green, kv6->blue);
+
+			glx_displaylist_draw(kv6->display_list + 0, GLX_DISPLAYLIST_ENHANCED, !kv6->colorize);
+
+			switch(team) {
+				case TEAM_1:
+					glColor3ub(gamestate.team_1.red * 0.75F, gamestate.team_1.green * 0.75F,
+							   gamestate.team_1.blue * 0.75F);
+					break;
+				case TEAM_2:
+					glColor3ub(gamestate.team_2.red * 0.75F, gamestate.team_2.green * 0.75F,
+							   gamestate.team_2.blue * 0.75F);
+					break;
+				default: glColor3ub(0, 0, 0);
 			}
+
+			glx_displaylist_draw(kv6->display_list + 1, GLX_DISPLAYLIST_ENHANCED, 0);
+
 			glDisable(GL_NORMALIZE);
 			glDisable(GL_COLOR_MATERIAL);
 			glDisable(GL_LIGHT0);
 			glDisable(GL_LIGHTING);
 		}
 	} else {
-		// render like in voxlap
+		// render like on voxlap
 		if(!kv6->has_display_list) {
-			kv6->vertices_final = malloc(kv6->voxel_count * 3 * sizeof(float));
-			CHECK_ALLOCATION_ERROR(kv6->vertices_final)
-			kv6->colors_final = malloc(kv6->voxel_count * 4 * sizeof(unsigned char) * 2);
-			CHECK_ALLOCATION_ERROR(kv6->colors_final)
-			kv6->normals_final = malloc(kv6->voxel_count * 3 * sizeof(unsigned char));
-			CHECK_ALLOCATION_ERROR(kv6->normals_final)
+			float vertices[2][kv6->voxel_count * 3];
+			uint8_t colors[2][kv6->voxel_count * 4];
+			int8_t normals[2][kv6->voxel_count * 3];
 			kv6->has_display_list = 1;
 
-			for(int t = 0; t < 3; t++) {
-				int k = 0;
-				glx_displaylist_create(&kv6->display_list[t]);
-				for(int i = 0; i < kv6->voxel_count; i++) {
-					int b = kv6->voxels[i].color & 0xFF;
-					int g = (kv6->voxels[i].color >> 8) & 0xFF;
-					int r = (kv6->voxels[i].color >> 16) & 0xFF;
-					int a = (kv6->voxels[i].color >> 24) & 0xFF;
-					if((r | g | b) == 0) {
-						switch(t) {
-							case TEAM_1:
-								r = gamestate.team_1.red * 0.75F;
-								g = gamestate.team_1.green * 0.75F;
-								b = gamestate.team_1.blue * 0.75F;
-								break;
-							case TEAM_2:
-								r = gamestate.team_2.red * 0.75F;
-								g = gamestate.team_2.green * 0.75F;
-								b = gamestate.team_2.blue * 0.75F;
-								break;
-						}
-					}
+			int cnt[2] = {0, 0};
 
-					float v[3]
-						= {(kv6->voxels[i].x - kv6->xpiv) * kv6->scale, (kv6->voxels[i].z - kv6->zpiv) * kv6->scale,
-						   (kv6->voxels[i].y - kv6->ypiv) * kv6->scale};
+			glx_displaylist_create(kv6->display_list + 0);
+			glx_displaylist_create(kv6->display_list + 1);
 
-					kv6->colors_final[k * 4 + 0] = r;
-					kv6->colors_final[k * 4 + 1] = g;
-					kv6->colors_final[k * 4 + 2] = b;
-					kv6->colors_final[k * 4 + 3] = 255;
+			for(int i = 0; i < kv6->voxel_count; i++) {
+				int b = red(kv6->voxels[i].color);
+				int g = green(kv6->voxels[i].color);
+				int r = blue(kv6->voxels[i].color);
+				int a = alpha(kv6->voxels[i].color);
 
-					kv6->normals_final[k * 3 + 0] = kv6_normals[a][0] * 128;
-					kv6->normals_final[k * 3 + 1] = -kv6_normals[a][2] * 128;
-					kv6->normals_final[k * 3 + 2] = kv6_normals[a][1] * 128;
+				int ind = ((r | g | b) == 0) ? 1 : 0;
 
-					kv6->vertices_final[k * 3 + 0] = v[0] + kv6->scale * 0.5F;
-					kv6->vertices_final[k * 3 + 1] = v[1] + kv6->scale * 0.5F;
-					kv6->vertices_final[k * 3 + 2] = v[2] + kv6->scale * 0.5F;
+				colors[ind][cnt[ind] * 4 + 0] = r;
+				colors[ind][cnt[ind] * 4 + 1] = g;
+				colors[ind][cnt[ind] * 4 + 2] = b;
+				colors[ind][cnt[ind] * 4 + 3] = 255;
 
-					k++;
-				}
+				normals[ind][cnt[ind] * 3 + 0] = kv6_normals[a][0] * 128;
+				normals[ind][cnt[ind] * 3 + 1] = -kv6_normals[a][2] * 128;
+				normals[ind][cnt[ind] * 3 + 2] = kv6_normals[a][1] * 128;
 
-				glx_displaylist_update(&kv6->display_list[t], k, GLX_DISPLAYLIST_POINTS, kv6->colors_final,
-									   kv6->vertices_final, kv6->normals_final);
-				kv6->size = k;
+				vertices[ind][cnt[ind] * 3 + 0] = (kv6->voxels[i].x - kv6->xpiv + 0.5F) * kv6->scale;
+				vertices[ind][cnt[ind] * 3 + 1] = (kv6->voxels[i].z - kv6->zpiv + 0.5F) * kv6->scale;
+				vertices[ind][cnt[ind] * 3 + 2] = (kv6->voxels[i].y - kv6->ypiv + 0.5F) * kv6->scale;
+
+				cnt[ind]++;
 			}
 
-			if(!kv6->colorize) {
-				free(kv6->colors_final);
-				free(kv6->vertices_final);
-				free(kv6->normals_final);
-			} else {
-				memcpy(kv6->colors_final + kv6->size * 4 * sizeof(unsigned char), kv6->colors_final,
-					   kv6->size * 4 * sizeof(unsigned char));
-			}
+			glx_displaylist_update(kv6->display_list + 0, cnt[0], GLX_DISPLAYLIST_POINTS, colors[0], vertices[0],
+								   normals[0]);
+
+			glx_displaylist_update(kv6->display_list + 1, cnt[1], GLX_DISPLAYLIST_POINTS, colors[1], vertices[1],
+								   normals[1]);
 
 			if(kv6_program < 0) {
 				kv6_program
@@ -684,8 +453,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		if(!glx_version)
 #endif
 		{
-			float params[3] = {0.0F, 0.0F, 1.0F};
-			glPointParameterfv(GL_POINT_DISTANCE_ATTENUATION, params);
+			glPointParameterfv(GL_POINT_DISTANCE_ATTENUATION, (float[]) {0.0F, 0.0F, 1.0F});
 			glPointSize(1.414F * near_plane_height * kv6->scale * (len_x + len_y + len_z) / 3.0F);
 			glEnable(GL_LIGHTING);
 			glEnable(GL_LIGHT0);
@@ -712,31 +480,22 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		if(settings.multisamples)
 			glDisable(GL_MULTISAMPLE);
 
-		if(kv6->colorize) {
-			for(int k = 0; k < kv6->size * 4; k += 4) {
-				kv6->colors_final[k + 0] = min(((float)kv6->colors_final[k + 0 + kv6->size * 4 * sizeof(unsigned char)])
-												   / 0.4335F * kv6->red,
-											   255);
-				kv6->colors_final[k + 1] = min(((float)kv6->colors_final[k + 1 + kv6->size * 4 * sizeof(unsigned char)])
-												   / 0.4335F * kv6->green,
-											   255);
-				kv6->colors_final[k + 2] = min(((float)kv6->colors_final[k + 2 + kv6->size * 4 * sizeof(unsigned char)])
-												   / 0.4335F * kv6->blue,
-											   255);
-			}
-			glEnableClientState(GL_VERTEX_ARRAY);
-			glEnableClientState(GL_COLOR_ARRAY);
-			glEnableClientState(GL_NORMAL_ARRAY);
-			glVertexPointer(3, GL_FLOAT, 0, kv6->vertices_final);
-			glColorPointer(4, GL_UNSIGNED_BYTE, 0, kv6->colors_final);
-			glNormalPointer(GL_BYTE, 0, kv6->normals_final);
-			glDrawArrays(GL_POINTS, 0, kv6->size);
-			glDisableClientState(GL_NORMAL_ARRAY);
-			glDisableClientState(GL_VERTEX_ARRAY);
-			glDisableClientState(GL_COLOR_ARRAY);
-		} else {
-			glx_displaylist_draw(&kv6->display_list[team % 3], GLX_DISPLAYLIST_POINTS);
+		if(kv6->colorize)
+			glColor3f(kv6->red, kv6->green, kv6->blue);
+
+		glx_displaylist_draw(kv6->display_list + 0, GLX_DISPLAYLIST_POINTS, !kv6->colorize);
+
+		switch(team) {
+			case TEAM_1:
+				glColor3ub(gamestate.team_1.red * 0.75F, gamestate.team_1.green * 0.75F, gamestate.team_1.blue * 0.75F);
+				break;
+			case TEAM_2:
+				glColor3ub(gamestate.team_2.red * 0.75F, gamestate.team_2.green * 0.75F, gamestate.team_2.blue * 0.75F);
+				break;
+			default: glColor3ub(0, 0, 0);
 		}
+
+		glx_displaylist_draw(kv6->display_list + 1, GLX_DISPLAYLIST_POINTS, 0);
 
 		if(settings.multisamples)
 			glEnable(GL_MULTISAMPLE);

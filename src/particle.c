@@ -30,187 +30,129 @@
 #include "model.h"
 #include "weapon.h"
 #include "config.h"
+#include "tesselator.h"
 
 struct Particle* particles;
-float* particles_vertices;
-unsigned char* particles_colors;
 static int particle_insert = 0;
 static int particle_remove = 0;
+static struct tesselator particle_tesselator;
 
 void particle_init() {
-	particles = malloc(sizeof(struct Particle) * PARTICLES_MAX);
+	particles = calloc(PARTICLES_MAX, sizeof(struct Particle));
 	CHECK_ALLOCATION_ERROR(particles)
-	memset(particles, 0, sizeof(struct Particle) * PARTICLES_MAX);
 
-	particles_vertices = malloc(sizeof(float) * 72 * PARTICLES_MAX);
-	CHECK_ALLOCATION_ERROR(particles_vertices)
-	particles_colors = malloc(sizeof(unsigned char) * 72 * PARTICLES_MAX);
-	CHECK_ALLOCATION_ERROR(particles_colors)
+	tesselator_create(&particle_tesselator, VERTEX_FLOAT, 0);
 }
 
-static void particle_update_single(int k, float dt) {
-	float size = particles[k].size * (1.0F - ((float)(window_time() - particles[k].fade) / 2.0F));
+static void particle_update_single(struct Particle* p, float dt) {
+	float size = p->size * (1.0F - ((float)(window_time() - p->fade) / 2.0F));
 
 	if(size < 0.01F) {
 		particle_remove = (particle_remove + 1) % PARTICLES_MAX; // allowed, particles are sorted by creation time
 	} else {
 		float acc_y = -32.0F * dt;
-		if(map_isair(particles[k].x, particles[k].y + acc_y * dt - particles[k].size / 2.0F, particles[k].z)
-		   && !particles[k].y + acc_y * dt < 0.0F) {
-			particles[k].vy += acc_y;
+		if(map_isair(p->x, p->y + acc_y * dt - p->size / 2.0F, p->z) && !p->y + acc_y * dt < 0.0F) {
+			p->vy += acc_y;
 		}
-		float movement_x = particles[k].vx * dt;
-		float movement_y = particles[k].vy * dt;
-		float movement_z = particles[k].vz * dt;
+		float movement_x = p->vx * dt;
+		float movement_y = p->vy * dt;
+		float movement_z = p->vz * dt;
 		int on_ground = 0;
-		if(!map_isair(particles[k].x + movement_x, particles[k].y, particles[k].z)) {
+		if(!map_isair(p->x + movement_x, p->y, p->z)) {
 			movement_x = 0.0F;
-			particles[k].vx = -particles[k].vx * 0.6F;
+			p->vx = -p->vx * 0.6F;
 			on_ground = 1;
 		}
-		if(!map_isair(particles[k].x + movement_x, particles[k].y + movement_y, particles[k].z)) {
+		if(!map_isair(p->x + movement_x, p->y + movement_y, p->z)) {
 			movement_y = 0.0F;
-			particles[k].vy = -particles[k].vy * 0.6F;
+			p->vy = -p->vy * 0.6F;
 			on_ground = 1;
 		}
-		if(!map_isair(particles[k].x + movement_x, particles[k].y + movement_y, particles[k].z + movement_z)) {
+		if(!map_isair(p->x + movement_x, p->y + movement_y, p->z + movement_z)) {
 			movement_z = 0.0F;
-			particles[k].vz = -particles[k].vz * 0.6F;
+			p->vz = -p->vz * 0.6F;
 			on_ground = 1;
 		}
 		// air and ground friction
 		if(on_ground) {
-			particles[k].vx *= pow(0.1F, dt);
-			particles[k].vy *= pow(0.1F, dt);
-			particles[k].vz *= pow(0.1F, dt);
-			if(abs(particles[k].vx) < 0.1F)
-				particles[k].vx = 0.0F;
-			if(abs(particles[k].vy) < 0.1F)
-				particles[k].vy = 0.0F;
-			if(abs(particles[k].vz) < 0.1F)
-				particles[k].vz = 0.0F;
+			p->vx *= pow(0.1F, dt);
+			p->vy *= pow(0.1F, dt);
+			p->vz *= pow(0.1F, dt);
+			if(abs(p->vx) < 0.1F)
+				p->vx = 0.0F;
+			if(abs(p->vy) < 0.1F)
+				p->vy = 0.0F;
+			if(abs(p->vz) < 0.1F)
+				p->vz = 0.0F;
 		} else {
-			particles[k].vx *= pow(0.4F, dt);
-			particles[k].vy *= pow(0.4F, dt);
-			particles[k].vz *= pow(0.4F, dt);
+			p->vx *= pow(0.4F, dt);
+			p->vy *= pow(0.4F, dt);
+			p->vz *= pow(0.4F, dt);
 		}
-		particles[k].x += movement_x;
-		particles[k].y += movement_y;
-		particles[k].z += movement_z;
+		p->x += movement_x;
+		p->y += movement_y;
+		p->z += movement_z;
 	}
 }
 
 void particle_update(float dt) {
 	if(particle_remove <= particle_insert) {
 		for(int k = particle_remove; k < particle_insert; k++)
-			particle_update_single(k, dt);
+			particle_update_single(particles + k, dt);
 	} else {
 		for(int k = particle_remove; k < PARTICLES_MAX; k++)
-			particle_update_single(k, dt);
+			particle_update_single(particles + k, dt);
 		for(int k = 0; k < particle_insert; k++)
-			particle_update_single(k, dt);
+			particle_update_single(particles + k, dt);
 	}
 }
 
-static void particle_render_single(int k, int* vertex_index, int* color_index) {
-	if(distance2D(camera_x, camera_z, particles[k].x, particles[k].z) > pow(settings.render_distance, 2.0F))
+static void particle_render_single(struct tesselator* tess, struct Particle* p) {
+	if(distance2D(camera_x, camera_z, p->x, p->z) > pow(settings.render_distance, 2.0F))
 		return;
 
-	float size = particles[k].size / 2.0F * (1.0F - ((float)(window_time() - particles[k].fade) / 2.0F));
+	float size = p->size / 2.0F * (1.0F - ((float)(window_time() - p->fade) / 2.0F));
 
-	if(particles[k].type == 255) {
-		for(int i = 0; i < 24; i++) {
-			particles_colors[(*color_index)++] = particles[k].color & 0xFF;
-			particles_colors[(*color_index)++] = (particles[k].color >> 8) & 0xFF;
-			particles_colors[(*color_index)++] = (particles[k].color >> 16) & 0xFF;
-		}
+	if(p->type == 255) {
+		tesselator_set_color(tess, p->color);
 
-		particles_vertices[(*vertex_index)++] = particles[k].x - size;
-		particles_vertices[(*vertex_index)++] = particles[k].y - size;
-		particles_vertices[(*vertex_index)++] = particles[k].z - size;
-		particles_vertices[(*vertex_index)++] = particles[k].x + size;
-		particles_vertices[(*vertex_index)++] = particles[k].y - size;
-		particles_vertices[(*vertex_index)++] = particles[k].z - size;
-		particles_vertices[(*vertex_index)++] = particles[k].x + size;
-		particles_vertices[(*vertex_index)++] = particles[k].y - size;
-		particles_vertices[(*vertex_index)++] = particles[k].z + size;
-		particles_vertices[(*vertex_index)++] = particles[k].x - size;
-		particles_vertices[(*vertex_index)++] = particles[k].y - size;
-		particles_vertices[(*vertex_index)++] = particles[k].z + size;
+		tesselator_addf_simple(tess,
+							   (float[]) {p->x - size, p->y - size, p->z - size, p->x + size, p->y - size, p->z - size,
+										  p->x + size, p->y - size, p->z + size, p->x - size, p->y - size,
+										  p->z + size});
 
-		particles_vertices[(*vertex_index)++] = particles[k].x - size;
-		particles_vertices[(*vertex_index)++] = particles[k].y + size;
-		particles_vertices[(*vertex_index)++] = particles[k].z - size;
-		particles_vertices[(*vertex_index)++] = particles[k].x - size;
-		particles_vertices[(*vertex_index)++] = particles[k].y + size;
-		particles_vertices[(*vertex_index)++] = particles[k].z + size;
-		particles_vertices[(*vertex_index)++] = particles[k].x + size;
-		particles_vertices[(*vertex_index)++] = particles[k].y + size;
-		particles_vertices[(*vertex_index)++] = particles[k].z + size;
-		particles_vertices[(*vertex_index)++] = particles[k].x + size;
-		particles_vertices[(*vertex_index)++] = particles[k].y + size;
-		particles_vertices[(*vertex_index)++] = particles[k].z - size;
+		tesselator_addf_simple(tess,
+							   (float[]) {p->x - size, p->y + size, p->z - size, p->x - size, p->y + size, p->z + size,
+										  p->x + size, p->y + size, p->z + size, p->x + size, p->y + size,
+										  p->z - size});
 
-		particles_vertices[(*vertex_index)++] = particles[k].x - size;
-		particles_vertices[(*vertex_index)++] = particles[k].y - size;
-		particles_vertices[(*vertex_index)++] = particles[k].z - size;
-		particles_vertices[(*vertex_index)++] = particles[k].x - size;
-		particles_vertices[(*vertex_index)++] = particles[k].y - size;
-		particles_vertices[(*vertex_index)++] = particles[k].z + size;
-		particles_vertices[(*vertex_index)++] = particles[k].x - size;
-		particles_vertices[(*vertex_index)++] = particles[k].y + size;
-		particles_vertices[(*vertex_index)++] = particles[k].z + size;
-		particles_vertices[(*vertex_index)++] = particles[k].x - size;
-		particles_vertices[(*vertex_index)++] = particles[k].y + size;
-		particles_vertices[(*vertex_index)++] = particles[k].z - size;
+		tesselator_addf_simple(tess,
+							   (float[]) {p->x - size, p->y - size, p->z - size, p->x - size, p->y - size, p->z + size,
+										  p->x - size, p->y + size, p->z + size, p->x - size, p->y + size,
+										  p->z - size});
 
-		particles_vertices[(*vertex_index)++] = particles[k].x + size;
-		particles_vertices[(*vertex_index)++] = particles[k].y - size;
-		particles_vertices[(*vertex_index)++] = particles[k].z - size;
-		particles_vertices[(*vertex_index)++] = particles[k].x + size;
-		particles_vertices[(*vertex_index)++] = particles[k].y + size;
-		particles_vertices[(*vertex_index)++] = particles[k].z - size;
-		particles_vertices[(*vertex_index)++] = particles[k].x + size;
-		particles_vertices[(*vertex_index)++] = particles[k].y + size;
-		particles_vertices[(*vertex_index)++] = particles[k].z + size;
-		particles_vertices[(*vertex_index)++] = particles[k].x + size;
-		particles_vertices[(*vertex_index)++] = particles[k].y - size;
-		particles_vertices[(*vertex_index)++] = particles[k].z + size;
+		tesselator_addf_simple(tess,
+							   (float[]) {p->x + size, p->y - size, p->z - size, p->x + size, p->y + size, p->z - size,
+										  p->x + size, p->y + size, p->z + size, p->x + size, p->y - size,
+										  p->z + size});
 
-		particles_vertices[(*vertex_index)++] = particles[k].x - size;
-		particles_vertices[(*vertex_index)++] = particles[k].y - size;
-		particles_vertices[(*vertex_index)++] = particles[k].z - size;
-		particles_vertices[(*vertex_index)++] = particles[k].x - size;
-		particles_vertices[(*vertex_index)++] = particles[k].y + size;
-		particles_vertices[(*vertex_index)++] = particles[k].z - size;
-		particles_vertices[(*vertex_index)++] = particles[k].x + size;
-		particles_vertices[(*vertex_index)++] = particles[k].y + size;
-		particles_vertices[(*vertex_index)++] = particles[k].z - size;
-		particles_vertices[(*vertex_index)++] = particles[k].x + size;
-		particles_vertices[(*vertex_index)++] = particles[k].y - size;
-		particles_vertices[(*vertex_index)++] = particles[k].z - size;
+		tesselator_addf_simple(tess,
+							   (float[]) {p->x - size, p->y - size, p->z - size, p->x - size, p->y + size, p->z - size,
+										  p->x + size, p->y + size, p->z - size, p->x + size, p->y - size,
+										  p->z - size});
 
-		particles_vertices[(*vertex_index)++] = particles[k].x - size;
-		particles_vertices[(*vertex_index)++] = particles[k].y - size;
-		particles_vertices[(*vertex_index)++] = particles[k].z + size;
-		particles_vertices[(*vertex_index)++] = particles[k].x + size;
-		particles_vertices[(*vertex_index)++] = particles[k].y - size;
-		particles_vertices[(*vertex_index)++] = particles[k].z + size;
-		particles_vertices[(*vertex_index)++] = particles[k].x + size;
-		particles_vertices[(*vertex_index)++] = particles[k].y + size;
-		particles_vertices[(*vertex_index)++] = particles[k].z + size;
-		particles_vertices[(*vertex_index)++] = particles[k].x - size;
-		particles_vertices[(*vertex_index)++] = particles[k].y + size;
-		particles_vertices[(*vertex_index)++] = particles[k].z + size;
+		tesselator_addf_simple(tess,
+							   (float[]) {p->x - size, p->y - size, p->z + size, p->x + size, p->y - size, p->z + size,
+										  p->x + size, p->y + size, p->z + size, p->x - size, p->y + size,
+										  p->z + size});
 	} else {
-		struct kv6_t* casing = weapon_casing(particles[k].type);
+		struct kv6_t* casing = weapon_casing(p->type);
+
 		if(casing) {
 			matrix_push();
 			matrix_identity();
-			matrix_translate(particles[k].x, particles[k].y, particles[k].z);
-			matrix_pointAt(particles[k].ox,
-						   particles[k].oy * max(1.0F - (window_time() - particles[k].fade) / 0.5F, 0.0F),
-						   particles[k].oz);
+			matrix_translate(p->x, p->y, p->z);
+			matrix_pointAt(p->ox, p->oy * max(1.0F - (window_time() - p->fade) / 0.5F, 0.0F), p->oz);
 			matrix_rotate(90.0F, 0.0F, 1.0F, 0.0F);
 			matrix_upload();
 			kv6_render(casing, TEAM_SPECTATOR);
@@ -219,38 +161,25 @@ static void particle_render_single(int k, int* vertex_index, int* color_index) {
 	}
 }
 
-int particle_render() {
-	int color_index = 0;
-	int vertex_index = 0;
+void particle_render() {
+	tesselator_clear(&particle_tesselator);
 
-#ifndef OPENGL_ES
 	if(particle_remove <= particle_insert) {
 		for(int k = particle_remove; k < particle_insert; k++)
-			particle_render_single(k, &vertex_index, &color_index);
+			particle_render_single(&particle_tesselator, particles + k);
 	} else {
 		for(int k = particle_remove; k < PARTICLES_MAX; k++)
-			particle_render_single(k, &vertex_index, &color_index);
+			particle_render_single(&particle_tesselator, particles + k);
 		for(int k = 0; k < particle_insert; k++)
-			particle_render_single(k, &vertex_index, &color_index);
+			particle_render_single(&particle_tesselator, particles + k);
 	}
 
-	if(vertex_index > 0) {
-		matrix_upload();
-		glEnableClientState(GL_COLOR_ARRAY);
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glVertexPointer(3, GL_FLOAT, 0, particles_vertices);
-		glColorPointer(3, GL_UNSIGNED_BYTE, 0, particles_colors);
-		glDrawArrays(GL_QUADS, 0, vertex_index / 3);
-		glDisableClientState(GL_COLOR_ARRAY);
-		glDisableClientState(GL_VERTEX_ARRAY);
-	}
-#endif
-
-	return vertex_index / 72;
+	matrix_upload();
+	tesselator_draw(&particle_tesselator, 1);
 }
 
 void particle_create_casing(struct Player* p) {
-	struct Particle* pp = &particles[particle_insert];
+	struct Particle* pp = particles + particle_insert;
 	particle_insert = (particle_insert + 1) % PARTICLES_MAX;
 
 	pp->size = 0.1F;

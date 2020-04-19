@@ -70,6 +70,17 @@ list(APPEND CLIENT_SOURCES libvxl.c)
 list(APPEND CLIENT_SOURCES ${BetterSpades_SOURCE_DIR}/resources/icon.rc)
 
 add_executable(client ${CLIENT_SOURCES})
+
+set(GIT_COMMIT_HASH "?")
+
+execute_process(
+  COMMAND git log -1 --format=%h
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_COMMIT_HASH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+target_compile_definitions(client PRIVATE GIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 target_compile_definitions(client PRIVATE DR_WAV_IMPLEMENTATION)
 target_compile_definitions(client PRIVATE LOG_USE_COLOR)
 
