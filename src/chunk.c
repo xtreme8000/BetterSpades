@@ -116,7 +116,7 @@ void chunk_render(struct chunk_render_call* c) {
 
 		// glPolygonMode(GL_FRONT, GL_LINE);
 
-		glx_displaylist_draw(&c->chunk->display_list, GLX_DISPLAYLIST_NORMAL, 1);
+		glx_displaylist_draw(&c->chunk->display_list, GLX_DISPLAYLIST_NORMAL);
 
 		// glPolygonMode(GL_FRONT, GL_FILL);
 
@@ -766,7 +766,7 @@ void chunk_update_all() {
 				chunk_geometry_changed[closest_index] = chunk_geometry_changed[--chunk_geometry_changed_lenght];
 
 				if(!c->created) {
-					glx_displaylist_create(&c->display_list);
+					glx_displaylist_create(&c->display_list, true, false);
 					c->created = 1;
 				}
 

@@ -261,8 +261,8 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 			struct tesselator tess_team;
 			tesselator_create(&tess_team, VERTEX_FLOAT, 1);
 
-			glx_displaylist_create(kv6->display_list + 0);
-			glx_displaylist_create(kv6->display_list + 1);
+			glx_displaylist_create(kv6->display_list + 0, !kv6->colorize, true);
+			glx_displaylist_create(kv6->display_list + 1, false, true);
 
 			for(int k = 0; k < kv6->voxel_count; k++) {
 				int x = kv6->voxels[k].x;
@@ -284,7 +284,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 
 				// negative y
 				if(kv6->voxels[k].visfaces & 16) {
-					tesselator_set_color(tess, rgba(r, g, b, 255));
+					tesselator_set_color(tess, rgba(r, g, b, 0));
 					tesselator_addf_simple(tess,
 										   (float[]) {p[0], p[1] + kv6->scale, p[2], p[0], p[1] + kv6->scale,
 													  p[2] + kv6->scale, p[0] + kv6->scale, p[1] + kv6->scale,
@@ -293,7 +293,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 
 				// positive y
 				if(kv6->voxels[k].visfaces & 32) {
-					tesselator_set_color(tess, rgba(r * 0.6F, g * 0.6F, b * 0.6F, 255));
+					tesselator_set_color(tess, rgba(r * 0.6F, g * 0.6F, b * 0.6F, 0));
 					tesselator_addf_simple(tess,
 										   (float[]) {p[0], p[1], p[2], p[0] + kv6->scale, p[1], p[2],
 													  p[0] + kv6->scale, p[1], p[2] + kv6->scale, p[0], p[1],
@@ -302,7 +302,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 
 				// negative z
 				if(kv6->voxels[k].visfaces & 4) {
-					tesselator_set_color(tess, rgba(r * 0.95F, g * 0.95F, b * 0.95F, 255));
+					tesselator_set_color(tess, rgba(r * 0.95F, g * 0.95F, b * 0.95F, 0));
 					tesselator_addf_simple(tess,
 										   (float[]) {p[0], p[1], p[2], p[0], p[1] + kv6->scale, p[2],
 													  p[0] + kv6->scale, p[1] + kv6->scale, p[2], p[0] + kv6->scale,
@@ -311,7 +311,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 
 				// positive z
 				if(kv6->voxels[k].visfaces & 8) {
-					tesselator_set_color(tess, rgba(r * 0.9F, g * 0.9F, b * 0.9F, 255));
+					tesselator_set_color(tess, rgba(r * 0.9F, g * 0.9F, b * 0.9F, 0));
 					tesselator_addf_simple(tess,
 										   (float[]) {p[0], p[1], p[2] + kv6->scale, p[0] + kv6->scale, p[1],
 													  p[2] + kv6->scale, p[0] + kv6->scale, p[1] + kv6->scale,
@@ -320,7 +320,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 
 				// negative x
 				if(kv6->voxels[k].visfaces & 1) {
-					tesselator_set_color(tess, rgba(r * 0.85F, g * 0.85F, b * 0.85F, 255));
+					tesselator_set_color(tess, rgba(r * 0.85F, g * 0.85F, b * 0.85F, 0));
 					tesselator_addf_simple(tess,
 										   (float[]) {p[0], p[1], p[2], p[0], p[1], p[2] + kv6->scale, p[0],
 													  p[1] + kv6->scale, p[2] + kv6->scale, p[0], p[1] + kv6->scale,
@@ -329,7 +329,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 
 				// positive x
 				if(kv6->voxels[k].visfaces & 2) {
-					tesselator_set_color(tess, rgba(r * 0.8F, g * 0.8F, b * 0.8F, 255));
+					tesselator_set_color(tess, rgba(r * 0.8F, g * 0.8F, b * 0.8F, 0));
 					tesselator_addf_simple(tess,
 										   (float[]) {p[0] + kv6->scale, p[1], p[2], p[0] + kv6->scale,
 													  p[1] + kv6->scale, p[2], p[0] + kv6->scale, p[1] + kv6->scale,
@@ -356,7 +356,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 			if(kv6->colorize)
 				glColor3f(kv6->red, kv6->green, kv6->blue);
 
-			glx_displaylist_draw(kv6->display_list + 0, GLX_DISPLAYLIST_ENHANCED, !kv6->colorize);
+			glx_displaylist_draw(kv6->display_list + 0, GLX_DISPLAYLIST_ENHANCED);
 
 			switch(team) {
 				case TEAM_1:
@@ -370,7 +370,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 				default: glColor3ub(0, 0, 0);
 			}
 
-			glx_displaylist_draw(kv6->display_list + 1, GLX_DISPLAYLIST_ENHANCED, 0);
+			glx_displaylist_draw(kv6->display_list + 1, GLX_DISPLAYLIST_ENHANCED);
 
 			glDisable(GL_NORMALIZE);
 			glDisable(GL_COLOR_MATERIAL);
@@ -387,8 +387,8 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 
 			int cnt[2] = {0, 0};
 
-			glx_displaylist_create(kv6->display_list + 0);
-			glx_displaylist_create(kv6->display_list + 1);
+			glx_displaylist_create(kv6->display_list + 0, !kv6->colorize, true);
+			glx_displaylist_create(kv6->display_list + 1, false, true);
 
 			for(int i = 0; i < kv6->voxel_count; i++) {
 				int b = red(kv6->voxels[i].color);
@@ -483,7 +483,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		if(kv6->colorize)
 			glColor3f(kv6->red, kv6->green, kv6->blue);
 
-		glx_displaylist_draw(kv6->display_list + 0, GLX_DISPLAYLIST_POINTS, !kv6->colorize);
+		glx_displaylist_draw(kv6->display_list + 0, GLX_DISPLAYLIST_POINTS);
 
 		switch(team) {
 			case TEAM_1:
@@ -495,7 +495,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 			default: glColor3ub(0, 0, 0);
 		}
 
-		glx_displaylist_draw(kv6->display_list + 1, GLX_DISPLAYLIST_POINTS, 0);
+		glx_displaylist_draw(kv6->display_list + 1, GLX_DISPLAYLIST_POINTS);
 
 		if(settings.multisamples)
 			glEnable(GL_MULTISAMPLE);

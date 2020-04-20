@@ -77,14 +77,28 @@ int glx_shader(const char* vertex, const char* fragment) {
 #endif
 }
 
-void glx_displaylist_create(struct glx_displaylist* x) {
+void glx_displaylist_create(struct glx_displaylist* x, bool has_color, bool has_normal) {
+	x->has_color = has_color;
+	x->has_normal = has_normal;
+
 #ifndef OPENGL_ES
-	if(!glx_version || settings.force_displaylist)
+	if(!glx_version || settings.force_displaylist) {
 		x->legacy = glGenLists(1);
-	else
-		glGenBuffers(3, x->modern);
+	} else {
+		glGenBuffers(1, x->modern + 0);
+
+		if(has_color)
+			glGenBuffers(1, x->modern + 1);
+		if(has_normal)
+			glGenBuffers(1, x->modern + 2);
+	}
 #else
-	glGenBuffers(3, x->modern);
+	glGenBuffers(1, x->modern + 0);
+
+	if(has_color)
+		glGenBuffers(1, x->modern + 1);
+	if(has_normal)
+		glGenBuffers(1, x->modern + 2);
 #endif
 	x->buffer_size = 0;
 }
@@ -94,10 +108,20 @@ void glx_displaylist_destroy(struct glx_displaylist* x) {
 	if(!glx_version || settings.force_displaylist) {
 		glDeleteLists(x->legacy, 1);
 	} else {
-		glDeleteBuffers(3, x->modern);
+		glDeleteBuffers(1, x->modern + 0);
+
+		if(x->has_color)
+			glDeleteBuffers(1, x->modern + 1);
+		if(x->has_normal)
+			glDeleteBuffers(1, x->modern + 2);
 	}
 #else
-	glDeleteBuffers(3, x->modern);
+	glDeleteBuffers(1, x->modern + 0);
+
+	if(x->has_color)
+		glDeleteBuffers(1, x->modern + 1);
+	if(x->has_normal)
+		glDeleteBuffers(1, x->modern + 2);
 #endif
 }
 
@@ -105,33 +129,36 @@ void glx_displaylist_update(struct glx_displaylist* x, size_t size, int type, vo
 	int grow_buffer = size > x->buffer_size;
 	x->buffer_size = max(x->buffer_size, size);
 	x->size = size;
-	x->has_normal = normal != NULL;
 #ifndef OPENGL_ES
 	if(!glx_version || settings.force_displaylist) {
-		glEnableClientState(GL_COLOR_ARRAY);
 		glEnableClientState(GL_VERTEX_ARRAY);
+		if(x->has_color)
+			glEnableClientState(GL_COLOR_ARRAY);
 		if(x->has_normal)
 			glEnableClientState(GL_NORMAL_ARRAY);
 
 		glNewList(x->legacy, GL_COMPILE);
 		if(size > 0) {
-			glColorPointer(4, GL_UNSIGNED_BYTE, 0, color);
+			if(x->has_color)
+				glColorPointer(4, GL_UNSIGNED_BYTE, 0, color);
 
 			switch(type) {
 				case GLX_DISPLAYLIST_NORMAL: glVertexPointer(3, GL_SHORT, 0, vertex); break;
 				case GLX_DISPLAYLIST_POINTS:
 				case GLX_DISPLAYLIST_ENHANCED: glVertexPointer(3, GL_FLOAT, 0, vertex); break;
 			}
+
 			if(x->has_normal)
 				glNormalPointer(GL_BYTE, 0, normal);
 			glDrawArrays((type == GLX_DISPLAYLIST_POINTS) ? GL_POINTS : GL_QUADS, 0, x->size);
 		}
 		glEndList();
 
+		glDisableClientState(GL_VERTEX_ARRAY);
+		if(x->has_color)
+			glDisableClientState(GL_COLOR_ARRAY);
 		if(x->has_normal)
 			glDisableClientState(GL_NORMAL_ARRAY);
-		glDisableClientState(GL_COLOR_ARRAY);
-		glDisableClientState(GL_VERTEX_ARRAY);
 	} else {
 #endif
 		glBindBuffer(GL_ARRAY_BUFFER, x->modern[0]);
@@ -142,11 +169,14 @@ void glx_displaylist_update(struct glx_displaylist* x, size_t size, int type, vo
 				} else {
 					glBufferSubData(GL_ARRAY_BUFFER, 0, x->size * 3 * sizeof(short), vertex);
 				}
-				glBindBuffer(GL_ARRAY_BUFFER, x->modern[1]);
-				if(grow_buffer) {
-					glBufferData(GL_ARRAY_BUFFER, x->size * 4, color, GL_DYNAMIC_DRAW);
-				} else {
-					glBufferSubData(GL_ARRAY_BUFFER, 0, x->size * 4, color);
+
+				if(x->has_color) {
+					glBindBuffer(GL_ARRAY_BUFFER, x->modern[1]);
+					if(grow_buffer) {
+						glBufferData(GL_ARRAY_BUFFER, x->size * 4, color, GL_DYNAMIC_DRAW);
+					} else {
+						glBufferSubData(GL_ARRAY_BUFFER, 0, x->size * 4, color);
+					}
 				}
 				break;
 			case GLX_DISPLAYLIST_POINTS:
@@ -156,11 +186,14 @@ void glx_displaylist_update(struct glx_displaylist* x, size_t size, int type, vo
 				} else {
 					glBufferSubData(GL_ARRAY_BUFFER, 0, x->size * 3 * sizeof(float), vertex);
 				}
-				glBindBuffer(GL_ARRAY_BUFFER, x->modern[1]);
-				if(grow_buffer) {
-					glBufferData(GL_ARRAY_BUFFER, x->size * 4, color, GL_DYNAMIC_DRAW);
-				} else {
-					glBufferSubData(GL_ARRAY_BUFFER, 0, x->size * 4, color);
+
+				if(x->has_color) {
+					glBindBuffer(GL_ARRAY_BUFFER, x->modern[1]);
+					if(grow_buffer) {
+						glBufferData(GL_ARRAY_BUFFER, x->size * 4, color, GL_DYNAMIC_DRAW);
+					} else {
+						glBufferSubData(GL_ARRAY_BUFFER, 0, x->size * 4, color);
+					}
 				}
 				break;
 		}
@@ -178,31 +211,35 @@ void glx_displaylist_update(struct glx_displaylist* x, size_t size, int type, vo
 #endif
 }
 
-void glx_displaylist_draw(struct glx_displaylist* x, int type, int with_color) {
+void glx_displaylist_draw(struct glx_displaylist* x, int type) {
 #ifndef OPENGL_ES
 	if(!glx_version || settings.force_displaylist) {
 		glCallList(x->legacy);
 	} else {
 #endif
-		if(with_color) {
+		glEnableClientState(GL_VERTEX_ARRAY);
+
+		if(x->has_color) {
 			glEnableClientState(GL_COLOR_ARRAY);
 			glBindBuffer(GL_ARRAY_BUFFER, x->modern[1]);
 			glColorPointer(4, GL_UNSIGNED_BYTE, 0, NULL);
 		}
-		glEnableClientState(GL_VERTEX_ARRAY);
-		if(x->has_normal)
+
+		if(x->has_normal) {
 			glEnableClientState(GL_NORMAL_ARRAY);
+			glBindBuffer(GL_ARRAY_BUFFER, x->modern[2]);
+			glNormalPointer(GL_BYTE, 0, NULL);
+		}
+
 		glBindBuffer(GL_ARRAY_BUFFER, x->modern[0]);
 		switch(type) {
 			case GLX_DISPLAYLIST_NORMAL: glVertexPointer(3, GL_SHORT, 0, NULL); break;
 			case GLX_DISPLAYLIST_POINTS:
 			case GLX_DISPLAYLIST_ENHANCED: glVertexPointer(3, GL_FLOAT, 0, NULL); break;
 		}
-		if(x->has_normal) {
-			glBindBuffer(GL_ARRAY_BUFFER, x->modern[2]);
-			glNormalPointer(GL_BYTE, 0, NULL);
-		}
+
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 		if(type == GLX_DISPLAYLIST_POINTS) {
 			glDrawArrays(GL_POINTS, 0, x->size);
 		} else {
@@ -212,9 +249,10 @@ void glx_displaylist_draw(struct glx_displaylist* x, int type, int with_color) {
 		glDrawArrays(GL_QUADS, 0, x->size);
 #endif
 		}
+
 		if(x->has_normal)
 			glDisableClientState(GL_NORMAL_ARRAY);
-		if(with_color)
+		if(x->has_color)
 			glDisableClientState(GL_COLOR_ARRAY);
 		glDisableClientState(GL_VERTEX_ARRAY);
 #ifndef OPENGL_ES

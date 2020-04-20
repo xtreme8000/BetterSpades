@@ -271,7 +271,7 @@ void map_collapsing_render() {
 			matrix_upload();
 			if(!collapsing->has_displaylist) {
 				collapsing->has_displaylist = 1;
-				glx_displaylist_create(&collapsing->displaylist);
+				glx_displaylist_create(&collapsing->displaylist, true, false);
 
 				tesselator_clear(&tess);
 
@@ -332,9 +332,9 @@ void map_collapsing_render() {
 			}
 
 			glColorMask(0, 0, 0, 0);
-			glx_displaylist_draw(&collapsing->displaylist, GLX_DISPLAYLIST_ENHANCED, 1);
+			glx_displaylist_draw(&collapsing->displaylist, GLX_DISPLAYLIST_ENHANCED);
 			glColorMask(1, 1, 1, 1);
-			glx_displaylist_draw(&collapsing->displaylist, GLX_DISPLAYLIST_ENHANCED, 1);
+			glx_displaylist_draw(&collapsing->displaylist, GLX_DISPLAYLIST_ENHANCED);
 
 			matrix_pop();
 		}
