@@ -105,6 +105,7 @@ void map_damaged_voxels_render() {
 	// glPolygonOffset(0.0F,-100.0F);
 	glDepthFunc(GL_EQUAL);
 	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	tesselator_clear(&map_damaged_tesselator);
 
@@ -258,6 +259,7 @@ void map_collapsing_render() {
 	tesselator_create(&tess, VERTEX_FLOAT, 0);
 
 	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	for(int k = 0; k < 32; k++) {
 		struct map_collapsing* collapsing = map_collapsing_structures + k;

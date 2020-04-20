@@ -2000,6 +2000,7 @@ static void hud_serverlist_render(float scalex, float scaley) {
 
 	glColor4f(0.0F, 0.0F, 0.0F, 0.66F);
 	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	texture_draw_empty((settings.window_width - 640 * scaley) / 2.0F, 550 * scaley, 640 * scaley, 600 * scaley);
 	glDisable(GL_BLEND);
 
@@ -2078,6 +2079,7 @@ static void hud_serverlist_render(float scalex, float scaley) {
 
 			glColor4f(0.0F, 0.0F, 0.0F, 0.5F);
 			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			texture_draw_empty(news_offset, 420 * scaley - serverlist_scroll - (128 - 6 - 18 * lines) * scaley, width,
 							   (18 * lines + 6) * scaley);
 			glDisable(GL_BLEND);
@@ -2122,6 +2124,7 @@ static void hud_serverlist_render(float scalex, float scaley) {
 		   && ypos >= 50 * scaley) {
 			glColor4f(1.0F, 1.0F, 1.0F, 0.5F);
 			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 			texture_draw_empty((settings.window_width - 600 * scaley) / 2.0F,
 							   450 * scaley - 20 * scaley * (k + 0.9F) - serverlist_scroll, 600 * scaley, 20 * scaley);
 			glDisable(GL_BLEND);
@@ -2195,6 +2198,7 @@ static void hud_serverlist_render(float scalex, float scaley) {
 	if(serverlist_is_outdated) {
 		glColor4f(0.0F, 0.0F, 0.0F, 0.9F);
 		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		texture_draw_empty((settings.window_width - 350 * scaley) / 2.0F,
 						   (settings.window_height - 200 * scaley) / 2.0F + 200 * scaley, 350 * scaley, 200 * scaley);
 		glDisable(GL_BLEND);
@@ -2217,6 +2221,7 @@ static void hud_serverlist_render(float scalex, float scaley) {
 		float fade = 1.0F - (window_time() - chat_popup_timer) / chat_popup_duration;
 		glColor4f(1.0F, 0.0F, 0.0F, (fade > 0.25F) ? 0.9F : fade / 0.25F * 0.9F);
 		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		texture_draw_empty((settings.window_width - 350 * scaley) / 2.0F,
 						   (settings.window_height - 100 * scaley) / 2.0F + 100 * scaley, 350 * scaley, 100 * scaley);
 		glDisable(GL_BLEND);
@@ -2568,6 +2573,7 @@ static void hud_settings_render(float scalex, float scaley) {
 
 	glColor4f(0.0F, 0.0F, 0.0F, 0.66F);
 	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	texture_draw_empty((settings.window_width - 640 * scaley) / 2.0F, 550 * scaley, 640 * scaley, 600 * scaley);
 	glDisable(GL_BLEND);
 
@@ -2868,6 +2874,7 @@ static void hud_controls_render(float scalex, float scaley) {
 
 	glColor4f(0.0F, 0.0F, 0.0F, 0.66F);
 	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	texture_draw_empty((settings.window_width - 640 * scaley) / 2.0F, 550 * scaley, 640 * scaley, 600 * scaley);
 	glDisable(GL_BLEND);
 
