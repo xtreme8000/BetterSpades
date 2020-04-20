@@ -261,8 +261,8 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 			struct tesselator tess_team;
 			tesselator_create(&tess_team, VERTEX_FLOAT, 1);
 
-			glx_displaylist_create(kv6->display_list + 0, !kv6->colorize, true);
-			glx_displaylist_create(kv6->display_list + 1, false, true);
+			glx_displaylist_create(kv6->display_list + 0, true, true);
+			glx_displaylist_create(kv6->display_list + 1, true, true);
 
 			for(int k = 0; k < kv6->voxel_count; k++) {
 				int x = kv6->voxels[k].x;
@@ -275,8 +275,12 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 
 				struct tesselator* tess = &tess_color;
 
-				if((r | g | b) == 0)
+				if((r | g | b) == 0) {
 					tess = &tess_team;
+					r = g = b = 255;
+				} else if(kv6->colorize) {
+					r = g = b = 255;
+				}
 
 				float p[3] = {(x - kv6->xpiv) * kv6->scale, (z - kv6->zpiv) * kv6->scale, (y - kv6->ypiv) * kv6->scale};
 
@@ -352,26 +356,34 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 			glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 #endif
 			glEnable(GL_NORMALIZE);
+			glBlendFunc(GL_CONSTANT_COLOR, GL_ZERO);
 
-			if(kv6->colorize)
-				glColor3f(kv6->red, kv6->green, kv6->blue);
+			if(kv6->colorize) {
+				glEnable(GL_BLEND);
+				glBlendColor(kv6->red, kv6->green, kv6->blue, 1.0F);
+			}
 
 			glx_displaylist_draw(kv6->display_list + 0, GLX_DISPLAYLIST_ENHANCED);
 
+			if(!kv6->colorize) {
+				glEnable(GL_BLEND);
+			}
+
 			switch(team) {
 				case TEAM_1:
-					glColor3ub(gamestate.team_1.red * 0.75F, gamestate.team_1.green * 0.75F,
-							   gamestate.team_1.blue * 0.75F);
+					glBlendColor(gamestate.team_1.red * 0.75F / 255.0F, gamestate.team_1.green * 0.75F / 255.0F,
+								 gamestate.team_1.blue * 0.75F / 255.0F, 1.0F);
 					break;
 				case TEAM_2:
-					glColor3ub(gamestate.team_2.red * 0.75F, gamestate.team_2.green * 0.75F,
-							   gamestate.team_2.blue * 0.75F);
+					glBlendColor(gamestate.team_2.red * 0.75F / 255.0F, gamestate.team_2.green * 0.75F / 255.0F,
+								 gamestate.team_2.blue * 0.75F / 255.0F, 1.0F);
 					break;
-				default: glColor3ub(0, 0, 0);
+				default: glBlendColor(0, 0, 0, 1);
 			}
 
 			glx_displaylist_draw(kv6->display_list + 1, GLX_DISPLAYLIST_ENHANCED);
 
+			glDisable(GL_BLEND);
 			glDisable(GL_NORMALIZE);
 			glDisable(GL_COLOR_MATERIAL);
 			glDisable(GL_LIGHT0);
