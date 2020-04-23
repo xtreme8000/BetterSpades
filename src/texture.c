@@ -30,6 +30,7 @@
 struct texture texture_splash;
 struct texture texture_minimap;
 struct texture texture_gradient;
+struct texture texture_dummy;
 
 struct texture texture_health;
 struct texture texture_block;
@@ -319,8 +320,7 @@ void texture_gradient_fog(unsigned int* gradient) {
 	for(int y = 0; y < size; y++) {
 		for(int x = 0; x < size; x++) {
 			int d = min(sqrt(distance2D(size / 2, size / 2, x, y)) / (float)size * 2.0F * 255.0F, 255);
-			gradient[x + y * size] = (d << 24)
-				| rgb((int)(fog_color[0] * 255.0F), (int)(fog_color[1] * 255.0F), (int)(fog_color[2] * 255.0F));
+			gradient[x + y * size] = rgba(d, d, d, 255);
 		}
 	}
 }
@@ -392,4 +392,6 @@ void texture_init() {
 	CHECK_ALLOCATION_ERROR(gradient)
 	texture_gradient_fog(gradient);
 	texture_create_buffer(&texture_gradient, 512, 512, (unsigned char*)gradient, 1);
+
+	texture_create_buffer(&texture_dummy, 1, 1, (unsigned char[]) {0, 0, 0, 0}, 1);
 }

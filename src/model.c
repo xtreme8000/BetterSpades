@@ -31,6 +31,7 @@
 #include "config.h"
 #include "model.h"
 #include "model_normals.h"
+#include "texture.h"
 
 struct kv6_t model_playerdead;
 struct kv6_t model_playerhead;
@@ -356,34 +357,53 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 			glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
 #endif
 			glEnable(GL_NORMALIZE);
-			glBlendFunc(GL_CONSTANT_COLOR, GL_ZERO);
+
+			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_COMBINE);
+			glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_RGB, GL_MODULATE);
+			glTexEnvi(GL_TEXTURE_ENV, GL_COMBINE_ALPHA, GL_MODULATE);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_RGB, GL_CONSTANT);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SRC0_ALPHA, GL_CONSTANT);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_RGB, GL_PREVIOUS);
+			glTexEnvi(GL_TEXTURE_ENV, GL_SRC1_ALPHA, GL_PREVIOUS);
+			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_RGB, GL_SRC_COLOR);
+			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND0_ALPHA, GL_SRC_ALPHA);
+			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_RGB, GL_SRC_COLOR);
+			glTexEnvi(GL_TEXTURE_ENV, GL_OPERAND1_ALPHA, GL_SRC_ALPHA);
+			glBindTexture(GL_TEXTURE_2D, texture_dummy.texture_id);
 
 			if(kv6->colorize) {
-				glEnable(GL_BLEND);
-				glBlendColor(kv6->red, kv6->green, kv6->blue, 1.0F);
+				glEnable(GL_TEXTURE_2D);
+				glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, (float[]) {kv6->red, kv6->green, kv6->blue, 1.0F});
 			}
 
 			glx_displaylist_draw(kv6->display_list + 0, GLX_DISPLAYLIST_ENHANCED);
 
 			if(!kv6->colorize) {
-				glEnable(GL_BLEND);
+				glEnable(GL_TEXTURE_2D);
 			}
 
 			switch(team) {
 				case TEAM_1:
-					glBlendColor(gamestate.team_1.red * 0.75F / 255.0F, gamestate.team_1.green * 0.75F / 255.0F,
-								 gamestate.team_1.blue * 0.75F / 255.0F, 1.0F);
+					glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR,
+							   (float[]) {gamestate.team_1.red * 0.75F / 255.0F,
+										  gamestate.team_1.green * 0.75F / 255.0F,
+										  gamestate.team_1.blue * 0.75F / 255.0F, 1.0F});
 					break;
 				case TEAM_2:
-					glBlendColor(gamestate.team_2.red * 0.75F / 255.0F, gamestate.team_2.green * 0.75F / 255.0F,
-								 gamestate.team_2.blue * 0.75F / 255.0F, 1.0F);
+					glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR,
+							   (float[]) {gamestate.team_2.red * 0.75F / 255.0F,
+										  gamestate.team_2.green * 0.75F / 255.0F,
+										  gamestate.team_2.blue * 0.75F / 255.0F, 1.0F});
 					break;
-				default: glBlendColor(0, 0, 0, 1);
+				default: glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, (float[]) {0, 0, 0, 1});
 			}
 
 			glx_displaylist_draw(kv6->display_list + 1, GLX_DISPLAYLIST_ENHANCED);
 
-			glDisable(GL_BLEND);
+			glBindTexture(GL_TEXTURE_2D, 0);
+			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+			glDisable(GL_TEXTURE_2D);
+
 			glDisable(GL_NORMALIZE);
 			glDisable(GL_COLOR_MATERIAL);
 			glDisable(GL_LIGHT0);
