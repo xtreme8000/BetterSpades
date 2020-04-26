@@ -36,6 +36,7 @@
 #include "particle.h"
 #include "minheap.h"
 #include "tesselator.h"
+#include "utils.h"
 
 uint8_t* map_heights;
 int map_size_x = 512;
@@ -294,36 +295,36 @@ void map_collapsing_render() {
 						if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2, y2 - 1, z2)})) {
 							tesselator_set_color(
 								&tess, rgba(red(color) * 0.5F, green(color) * 0.5F, blue(color) * 0.5F, 0xCC));
-							tesselator_addf_cube_face(&tess, CUBE_FACE_Y_N, x, y, z);
+							tesselator_addf_cube_face(&tess, CUBE_FACE_Y_N, x, y, z, 1.0F);
 						}
 
 						if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2, y2 + 1, z2)})) {
 							tesselator_set_color(&tess, rgba(red(color), green(color), blue(color), 0xCC));
-							tesselator_addf_cube_face(&tess, CUBE_FACE_Y_P, x, y, z);
+							tesselator_addf_cube_face(&tess, CUBE_FACE_Y_P, x, y, z, 1.0F);
 						}
 
 						if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2, y2, z2 - 1)})) {
 							tesselator_set_color(
 								&tess, rgba(red(color) * 0.7F, green(color) * 0.7F, blue(color) * 0.7F, 0xCC));
-							tesselator_addf_cube_face(&tess, CUBE_FACE_Z_N, x, y, z);
+							tesselator_addf_cube_face(&tess, CUBE_FACE_Z_N, x, y, z, 1.0F);
 						}
 
 						if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2, y2, z2 + 1)})) {
 							tesselator_set_color(
 								&tess, rgba(red(color) * 0.6F, green(color) * 0.6F, blue(color) * 0.6F, 0xCC));
-							tesselator_addf_cube_face(&tess, CUBE_FACE_Z_P, x, y, z);
+							tesselator_addf_cube_face(&tess, CUBE_FACE_Z_P, x, y, z, 1.0F);
 						}
 
 						if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2 - 1, y2, z2)})) {
 							tesselator_set_color(
 								&tess, rgba(red(color) * 0.9F, green(color) * 0.9F, blue(color) * 0.9F, 0xCC));
-							tesselator_addf_cube_face(&tess, CUBE_FACE_X_N, x, y, z);
+							tesselator_addf_cube_face(&tess, CUBE_FACE_X_N, x, y, z, 1.0F);
 						}
 
 						if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2 + 1, y2, z2)})) {
 							tesselator_set_color(
 								&tess, rgba(red(color) * 0.8F, green(color) * 0.8F, blue(color) * 0.8F, 0xCC));
-							tesselator_addf_cube_face(&tess, CUBE_FACE_X_P, x, y, z);
+							tesselator_addf_cube_face(&tess, CUBE_FACE_X_P, x, y, z, 1.0F);
 						}
 
 						node = node->next;

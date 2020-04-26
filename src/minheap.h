@@ -20,8 +20,6 @@
 #ifndef MINHEAP_H
 #define MINHEAP_H
 
-#include "hashtable.h"
-
 #define pos_key(x, y, z) (((z) << 20) | ((x) << 8) | (y))
 #define pos_keyx(key) (((key) >> 8) & 0xFFF)
 #define pos_keyy(key) ((key)&0xFF)
@@ -38,7 +36,6 @@ struct minheap_block {
 struct minheap {
 	int index;
 	int length;
-	HashTable contains;
 	struct minheap_block* nodes;
 };
 
@@ -49,7 +46,6 @@ void minheap_create(struct minheap* h);
 void minheap_clear(struct minheap* h);
 void minheap_destroy(struct minheap* h);
 int minheap_isempty(struct minheap* h);
-struct minheap_block* minheap_get(struct minheap* h, short x, short y, short z);
 struct minheap_block minheap_extract(struct minheap* h);
 void minheap_set(struct minheap* h, struct minheap_block* b, int value);
 struct minheap_block* minheap_put(struct minheap* h, struct minheap_block* b);

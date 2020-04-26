@@ -68,6 +68,7 @@ void tesselator_addf(struct tesselator* t, float* coords, uint32_t* colors, int8
 void tesselator_addi_simple(struct tesselator* t, int16_t* coords);
 void tesselator_addf_simple(struct tesselator* t, float* coords);
 void tesselator_addi_cube_face(struct tesselator* t, enum tesselator_cube_face face, int16_t x, int16_t y, int16_t z);
-void tesselator_addf_cube_face(struct tesselator* t, enum tesselator_cube_face face, float x, float y, float z);
+void tesselator_addf_cube_face(struct tesselator* t, enum tesselator_cube_face face, float x, float y, float z,
+							   float sz);
 
 #endif

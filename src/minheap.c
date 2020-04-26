@@ -23,42 +23,22 @@
 #include <float.h>
 #include <stdint.h>
 
-#include "hashtable.h"
 #include "minheap.h"
-
-int int_cmp(void* first_key, void* second_key, size_t key_size) {
-	return (*(uint32_t*)first_key) != (*(uint32_t*)second_key);
-}
-
-size_t int_hash(void* raw_key, size_t key_size) {
-	uint32_t x = *(uint32_t*)raw_key;
-	x = ((x >> 16) ^ x) * 0x45d9f3b;
-	x = ((x >> 16) ^ x) * 0x45d9f3b;
-	x = (x >> 16) ^ x;
-	return x;
-}
 
 static void nodes_swap(struct minheap* h, int a, int b) {
 	struct minheap_block tmp;
 	tmp = h->nodes[a];
 	h->nodes[a] = h->nodes[b];
 	h->nodes[b] = tmp;
-
-	ht_insert(&h->contains, &h->nodes[a].pos, &a);
-	ht_insert(&h->contains, &h->nodes[b].pos, &b);
 }
 
 void minheap_create(struct minheap* h) {
 	h->index = 0;
 	h->length = 256;
 	h->nodes = malloc(sizeof(struct minheap_block) * h->length);
-	ht_setup(&h->contains, sizeof(uint32_t), sizeof(uint32_t), 256);
-	h->contains.compare = int_cmp;
-	h->contains.hash = int_hash;
 }
 
 void minheap_clear(struct minheap* h) {
-	ht_clear(&h->contains);
 	free(h->nodes);
 	h->index = 0;
 	h->length = 256;
@@ -67,26 +47,14 @@ void minheap_clear(struct minheap* h) {
 
 void minheap_destroy(struct minheap* h) {
 	free(h->nodes);
-	ht_destroy(&h->contains);
 }
 
 int minheap_isempty(struct minheap* h) {
 	return h->index <= 0;
 }
 
-struct minheap_block* minheap_get(struct minheap* h, short x, short y, short z) {
-	if(x < 0 || y < 0 || z < 0)
-		return NULL;
-
-	uint32_t key = pos_key(x, y, z);
-	uint32_t* res = ht_lookup(&h->contains, &key);
-	return res ? (h->nodes + *res) : NULL;
-}
-
 struct minheap_block minheap_extract(struct minheap* h) {
 	struct minheap_block min = h->nodes[0];
-
-	ht_erase(&h->contains, &min.pos);
 
 	h->nodes[0] = h->nodes[--h->index];
 
@@ -170,8 +138,6 @@ struct minheap_block* minheap_put(struct minheap* h, struct minheap_block* b) {
 			break;
 		}
 	}
-
-	ht_insert(&h->contains, &b->pos, &k);
 
 	return h->nodes + k;
 }

@@ -272,12 +272,12 @@ void glx_enable_sphericalfog() {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTexGeni(GL_T, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
 		glTexGeni(GL_S, GL_TEXTURE_GEN_MODE, GL_EYE_LINEAR);
-		float t_plane[4]
-			= {1.0F / settings.render_distance / 2.0F, 0.0F, 0.0F, -camera_x / settings.render_distance / 2.0F + 0.5F};
-		float s_plane[4]
-			= {0.0F, 0.0F, 1.0F / settings.render_distance / 2.0F, -camera_z / settings.render_distance / 2.0F + 0.5F};
-		glTexGenfv(GL_T, GL_EYE_PLANE, t_plane);
-		glTexGenfv(GL_S, GL_EYE_PLANE, s_plane);
+		glTexGenfv(GL_T, GL_EYE_PLANE,
+				   (float[]) {1.0F / settings.render_distance / 2.0F, 0.0F, 0.0F,
+							  -camera_x / settings.render_distance / 2.0F + 0.5F});
+		glTexGenfv(GL_S, GL_EYE_PLANE,
+				   (float[]) {0.0F, 0.0F, 1.0F / settings.render_distance / 2.0F,
+							  -camera_z / settings.render_distance / 2.0F + 0.5F});
 		glEnable(GL_TEXTURE_GEN_T);
 		glEnable(GL_TEXTURE_GEN_S);
 		glActiveTexture(GL_TEXTURE0);

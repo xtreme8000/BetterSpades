@@ -673,18 +673,19 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	float last_frame_start = 0.0F;
+	double last_frame_start = 0.0F;
 	double physics_time_fixed = 0.0F;
 	double physics_time_fast = 0.0F;
+
 	while(!window_closed()) {
-		float dt = window_time() - last_frame_start;
+		double dt = window_time() - last_frame_start;
 		last_frame_start = window_time();
 
 		physics_time_fast += dt;
 		physics_time_fixed += dt;
 
 // these run at exactly ~60fps
-#define PHYSICS_STEP_TIME 0.016
+#define PHYSICS_STEP_TIME (1.0 / 60.0)
 		while(physics_time_fixed >= PHYSICS_STEP_TIME) {
 			physics_time_fixed -= PHYSICS_STEP_TIME;
 			player_update(PHYSICS_STEP_TIME, 1); // just physics tick
@@ -693,7 +694,7 @@ int main(int argc, char** argv) {
 
 		// these run at min. ~60fps but as fast as possible
 		while(physics_time_fast > 0) {
-			double step = min(dt, PHYSICS_STEP_TIME);
+			double step = fmin(dt, PHYSICS_STEP_TIME);
 			physics_time_fast -= step;
 			player_update(step, 0); // smooth orientation update
 			camera_update(step);
@@ -710,13 +711,14 @@ int main(int argc, char** argv) {
 
 		rpc_update();
 
-		if(settings.vsync > 1 && (window_time() - last_frame_start) < (1.0F / settings.vsync)) {
-			double sleep_s = 1.0F / settings.vsync - (window_time() - last_frame_start);
+		if(settings.vsync > 1 && (window_time() - last_frame_start) < (1.0 / settings.vsync)) {
+			double sleep_s = 1.0 / settings.vsync - (window_time() - last_frame_start);
 			struct timespec ts;
 			ts.tv_sec = (int)sleep_s;
 			ts.tv_nsec = (sleep_s - ts.tv_sec) * 1000000000.0;
 			nanosleep(&ts, NULL);
 		}
+
 		fps = 1.0F / (window_time() - last_frame_start);
 	}
 }

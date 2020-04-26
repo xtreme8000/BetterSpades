@@ -266,13 +266,12 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 			glx_displaylist_create(kv6->display_list + 1, true, true);
 
 			for(int k = 0; k < kv6->voxel_count; k++) {
-				int x = kv6->voxels[k].x;
-				int y = kv6->voxels[k].y;
-				int z = kv6->voxels[k].z;
-				int b = red(kv6->voxels[k].color);
-				int g = green(kv6->voxels[k].color);
-				int r = blue(kv6->voxels[k].color);
-				int a = alpha(kv6->voxels[k].color);
+				struct kv6_voxel* voxel = kv6->voxels + k;
+
+				int b = red(voxel->color);
+				int g = green(voxel->color);
+				int r = blue(voxel->color);
+				int a = alpha(voxel->color);
 
 				struct tesselator* tess = &tess_color;
 
@@ -283,62 +282,45 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 					r = g = b = 255;
 				}
 
-				float p[3] = {(x - kv6->xpiv) * kv6->scale, (z - kv6->zpiv) * kv6->scale, (y - kv6->ypiv) * kv6->scale};
+				float p[3] = {(voxel->x - kv6->xpiv) * kv6->scale, (voxel->z - kv6->zpiv) * kv6->scale,
+							  (voxel->y - kv6->ypiv) * kv6->scale};
 
 				tesselator_set_normal(tess, kv6_normals[a][0] * 128, -kv6_normals[a][2] * 128, kv6_normals[a][1] * 128);
 
-				// negative y
-				if(kv6->voxels[k].visfaces & 16) {
+				// positive y
+				if(voxel->visfaces & 16) {
 					tesselator_set_color(tess, rgba(r, g, b, 0));
-					tesselator_addf_simple(tess,
-										   (float[]) {p[0], p[1] + kv6->scale, p[2], p[0], p[1] + kv6->scale,
-													  p[2] + kv6->scale, p[0] + kv6->scale, p[1] + kv6->scale,
-													  p[2] + kv6->scale, p[0] + kv6->scale, p[1] + kv6->scale, p[2]});
+					tesselator_addf_cube_face(tess, CUBE_FACE_Y_P, p[0], p[1], p[2], kv6->scale);
 				}
 
-				// positive y
-				if(kv6->voxels[k].visfaces & 32) {
+				// negative y
+				if(voxel->visfaces & 32) {
 					tesselator_set_color(tess, rgba(r * 0.6F, g * 0.6F, b * 0.6F, 0));
-					tesselator_addf_simple(tess,
-										   (float[]) {p[0], p[1], p[2], p[0] + kv6->scale, p[1], p[2],
-													  p[0] + kv6->scale, p[1], p[2] + kv6->scale, p[0], p[1],
-													  p[2] + kv6->scale});
+					tesselator_addf_cube_face(tess, CUBE_FACE_Y_N, p[0], p[1], p[2], kv6->scale);
 				}
 
 				// negative z
-				if(kv6->voxels[k].visfaces & 4) {
+				if(voxel->visfaces & 4) {
 					tesselator_set_color(tess, rgba(r * 0.95F, g * 0.95F, b * 0.95F, 0));
-					tesselator_addf_simple(tess,
-										   (float[]) {p[0], p[1], p[2], p[0], p[1] + kv6->scale, p[2],
-													  p[0] + kv6->scale, p[1] + kv6->scale, p[2], p[0] + kv6->scale,
-													  p[1], p[2]});
+					tesselator_addf_cube_face(tess, CUBE_FACE_Z_N, p[0], p[1], p[2], kv6->scale);
 				}
 
 				// positive z
-				if(kv6->voxels[k].visfaces & 8) {
+				if(voxel->visfaces & 8) {
 					tesselator_set_color(tess, rgba(r * 0.9F, g * 0.9F, b * 0.9F, 0));
-					tesselator_addf_simple(tess,
-										   (float[]) {p[0], p[1], p[2] + kv6->scale, p[0] + kv6->scale, p[1],
-													  p[2] + kv6->scale, p[0] + kv6->scale, p[1] + kv6->scale,
-													  p[2] + kv6->scale, p[0], p[1] + kv6->scale, p[2] + kv6->scale});
+					tesselator_addf_cube_face(tess, CUBE_FACE_Z_P, p[0], p[1], p[2], kv6->scale);
 				}
 
 				// negative x
-				if(kv6->voxels[k].visfaces & 1) {
+				if(voxel->visfaces & 1) {
 					tesselator_set_color(tess, rgba(r * 0.85F, g * 0.85F, b * 0.85F, 0));
-					tesselator_addf_simple(tess,
-										   (float[]) {p[0], p[1], p[2], p[0], p[1], p[2] + kv6->scale, p[0],
-													  p[1] + kv6->scale, p[2] + kv6->scale, p[0], p[1] + kv6->scale,
-													  p[2]});
+					tesselator_addf_cube_face(tess, CUBE_FACE_X_N, p[0], p[1], p[2], kv6->scale);
 				}
 
 				// positive x
-				if(kv6->voxels[k].visfaces & 2) {
+				if(voxel->visfaces & 2) {
 					tesselator_set_color(tess, rgba(r * 0.8F, g * 0.8F, b * 0.8F, 0));
-					tesselator_addf_simple(tess,
-										   (float[]) {p[0] + kv6->scale, p[1], p[2], p[0] + kv6->scale,
-													  p[1] + kv6->scale, p[2], p[0] + kv6->scale, p[1] + kv6->scale,
-													  p[2] + kv6->scale, p[0] + kv6->scale, p[1], p[2] + kv6->scale});
+					tesselator_addf_cube_face(tess, CUBE_FACE_X_P, p[0], p[1], p[2], kv6->scale);
 				}
 			}
 

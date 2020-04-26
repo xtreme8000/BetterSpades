@@ -20,6 +20,11 @@
 #ifndef UTILS_H
 #define UTILS_H
 
+#include <stdint.h>
+
 int base64_decode(char* data, int len);
+
+int int_cmp(void* first_key, void* second_key, size_t key_size);
+size_t int_hash(void* raw_key, size_t key_size);
 
 #endif

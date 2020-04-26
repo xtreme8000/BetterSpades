@@ -291,25 +291,29 @@ void tesselator_addi_cube_face(struct tesselator* t, enum tesselator_cube_face f
 	}
 }
 
-void tesselator_addf_cube_face(struct tesselator* t, enum tesselator_cube_face face, float x, float y, float z) {
+void tesselator_addf_cube_face(struct tesselator* t, enum tesselator_cube_face face, float x, float y, float z,
+							   float sz) {
 	switch(face) {
 		case CUBE_FACE_Z_N:
-			tesselator_addf_simple(t, (float[]) {x, y, z, x, y + 1, z, x + 1, y + 1, z, x + 1, y, z});
+			tesselator_addf_simple(t, (float[]) {x, y, z, x, y + sz, z, x + sz, y + sz, z, x + sz, y, z});
 			break;
 		case CUBE_FACE_Z_P:
-			tesselator_addf_simple(t, (float[]) {x, y, z + 1, x + 1, y, z + 1, x + 1, y + 1, z + 1, x, y + 1, z + 1});
+			tesselator_addf_simple(
+				t, (float[]) {x, y, z + sz, x + sz, y, z + sz, x + sz, y + sz, z + sz, x, y + sz, z + sz});
 			break;
 		case CUBE_FACE_X_N:
-			tesselator_addf_simple(t, (float[]) {x, y, z, x, y, z + 1, x, y + 1, z + 1, x, y + 1, z});
+			tesselator_addf_simple(t, (float[]) {x, y, z, x, y, z + sz, x, y + sz, z + sz, x, y + sz, z});
 			break;
 		case CUBE_FACE_X_P:
-			tesselator_addf_simple(t, (float[]) {x + 1, y, z, x + 1, y + 1, z, x + 1, y + 1, z + 1, x + 1, y, z + 1});
+			tesselator_addf_simple(
+				t, (float[]) {x + sz, y, z, x + sz, y + sz, z, x + sz, y + sz, z + sz, x + sz, y, z + sz});
 			break;
 		case CUBE_FACE_Y_P:
-			tesselator_addf_simple(t, (float[]) {x, y + 1, z, x, y + 1, z + 1, x + 1, y + 1, z + 1, x + 1, y + 1, z});
+			tesselator_addf_simple(
+				t, (float[]) {x, y + sz, z, x, y + sz, z + sz, x + sz, y + sz, z + sz, x + sz, y + sz, z});
 			break;
 		case CUBE_FACE_Y_N:
-			tesselator_addf_simple(t, (float[]) {x, y, z, x + 1, y, z, x + 1, y, z + 1, x, y, z + 1});
+			tesselator_addf_simple(t, (float[]) {x, y, z, x + sz, y, z, x + sz, y, z + sz, x, y, z + sz});
 			break;
 	}
 }
