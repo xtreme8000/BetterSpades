@@ -454,43 +454,32 @@ static float foot_function(struct Player* p) {
 void player_render(struct Player* p, int id, Ray* ray, char render, struct player_intersection* intersects) {
 	p->bb_2d = (AABB) {.min_x = INT_MAX, .min_y = INT_MAX, .max_x = -INT_MAX, .max_y = -INT_MAX};
 
-	if(render)
+	if(render) {
 		kv6_calclight(p->pos.x, p->pos.y, p->pos.z);
 
-	if(camera_mode == CAMERAMODE_SPECTATOR && p->team != TEAM_SPECTATOR && render && !cameracontroller_bodyview_mode) {
-		int old_state = glx_fog;
-		if(old_state)
-			glx_disable_sphericalfog();
-		matrix_push();
-		matrix_translate(p->pos.x, p->physics.eye.y + player_height(p) + 1.25F, p->pos.z);
-		matrix_rotate(camera_rot_x / PI * 180.0F + 180.0F, 0.0F, 1.0F, 0.0F);
-		matrix_rotate(-camera_rot_y / PI * 180.0F + 90.0F, 1.0F, 0.0F, 0.0F);
-		matrix_scale(1.0F / 92.0F, 1.0F / 92.0F, 1.0F / 92.0F);
-		matrix_upload();
-		float a = sqrt(distance2D(p->pos.x, p->pos.z, camera_x, camera_z)) / settings.render_distance;
-		switch(p->team) {
-			case TEAM_1:
-				glColor3f(fog_color[0] * a + gamestate.team_1.red / 255.0F * (1.0F - a),
-						  fog_color[1] * a + gamestate.team_1.green / 255.0F * (1.0F - a),
-						  fog_color[2] * a + gamestate.team_1.blue / 255.0F * (1.0F - a));
-				break;
-			case TEAM_2:
-				glColor3f(fog_color[0] * a + gamestate.team_2.red / 255.0F * (1.0F - a),
-						  fog_color[1] * a + gamestate.team_2.green / 255.0F * (1.0F - a),
-						  fog_color[2] * a + gamestate.team_2.blue / 255.0F * (1.0F - a));
-				break;
+		if(camera_mode == CAMERAMODE_SPECTATOR && p->team != TEAM_SPECTATOR && !cameracontroller_bodyview_mode) {
+			matrix_push();
+			matrix_translate(p->pos.x, p->physics.eye.y + player_height(p) + 1.25F, p->pos.z);
+			matrix_rotate(camera_rot_x / PI * 180.0F + 180.0F, 0.0F, 1.0F, 0.0F);
+			matrix_rotate(-camera_rot_y / PI * 180.0F + 90.0F, 1.0F, 0.0F, 0.0F);
+			matrix_scale(1.0F / 92.0F, 1.0F / 92.0F, 1.0F / 92.0F);
+			matrix_upload();
+
+			switch(p->team) {
+				case TEAM_1: glColor3ub(gamestate.team_1.red, gamestate.team_1.green, gamestate.team_1.blue); break;
+				case TEAM_2: glColor3ub(gamestate.team_2.red, gamestate.team_2.green, gamestate.team_2.blue); break;
+			}
+
+			font_select(FONT_FIXEDSYS);
+			glEnable(GL_ALPHA_TEST);
+			glAlphaFunc(GL_GREATER, 0.5F);
+			glDisable(GL_DEPTH_TEST);
+			font_centered(0, 0, 64, p->name);
+			glEnable(GL_DEPTH_TEST);
+			glDisable(GL_ALPHA_TEST);
+			matrix_pop();
+			matrix_upload();
 		}
-		font_select(FONT_FIXEDSYS);
-		glEnable(GL_ALPHA_TEST);
-		glAlphaFunc(GL_GREATER, 0.5F);
-		glDisable(GL_DEPTH_TEST);
-		font_centered(0, 0, 64, p->name);
-		glEnable(GL_DEPTH_TEST);
-		glDisable(GL_ALPHA_TEST);
-		matrix_pop();
-		matrix_upload();
-		if(old_state)
-			glx_enable_sphericalfog();
 	}
 
 	float l = sqrt(distance3D(p->orientation_smooth.x, p->orientation_smooth.y, p->orientation_smooth.z, 0, 0, 0));
