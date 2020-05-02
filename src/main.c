@@ -693,8 +693,8 @@ int main(int argc, char** argv) {
 		}
 
 		// these run at min. ~60fps but as fast as possible
-		while(physics_time_fast > 0) {
-			double step = fmin(dt, PHYSICS_STEP_TIME);
+		double step = fmin(dt, PHYSICS_STEP_TIME);
+		while(physics_time_fast >= step) {
 			physics_time_fast -= step;
 			player_update(step, 0); // smooth orientation update
 			camera_update(step);
@@ -719,6 +719,6 @@ int main(int argc, char** argv) {
 			nanosleep(&ts, NULL);
 		}
 
-		fps = 1.0F / (window_time() - last_frame_start);
+		fps = 1.0F / dt;
 	}
 }
