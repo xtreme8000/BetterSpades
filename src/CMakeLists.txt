@@ -17,7 +17,7 @@ download_file_if_it_doesnt_exist(ini.c https://raw.githubusercontent.com/benhoyt
 download_file_if_it_doesnt_exist(ini.h https://raw.githubusercontent.com/benhoyt/inih/master/ini.h)
 download_file_if_it_doesnt_exist(lodepng/lodepng.c https://raw.githubusercontent.com/lvandeve/lodepng/master/lodepng.cpp)
 download_file_if_it_doesnt_exist(lodepng/lodepng.h https://raw.githubusercontent.com/lvandeve/lodepng/master/lodepng.h)
-download_file_if_it_doesnt_exist(dr_wav.c https://raw.githubusercontent.com/mackron/dr_libs/14707e8ee5aec7620781bcc3b484b8b1607aba50/dr_wav.h)
+download_file_if_it_doesnt_exist(dr_wav.c https://raw.githubusercontent.com/mackron/dr_libs/master/dr_wav.h)
 download_file_if_it_doesnt_exist(stb_truetype.h https://raw.githubusercontent.com/nothings/stb/master/stb_truetype.h)
 download_file_if_it_doesnt_exist(parson.c https://raw.githubusercontent.com/kgabis/parson/master/parson.c)
 download_file_if_it_doesnt_exist(parson.h https://raw.githubusercontent.com/kgabis/parson/master/parson.h)
