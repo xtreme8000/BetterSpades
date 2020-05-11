@@ -52,6 +52,7 @@ extern struct hud hud_mapload;
 extern struct hud hud_serverlist;
 extern struct hud hud_settings;
 extern struct hud hud_controls;
+extern struct hud hud_soundtest;
 
 extern struct hud* hud_active;
 extern struct window_instance* hud_window;
