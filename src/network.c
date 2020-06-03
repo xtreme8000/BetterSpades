@@ -584,7 +584,7 @@ void read_PacketKillAction(void* data, int len) {
 			case KILLTYPE_GRENADE:
 				sprintf(m, "%s killed %s (Grenade)", players[p->killer_id].name, players[p->player_id].name);
 				break;
-			case KILLTYPE_FALL: sprintf(m, "%s fell to far", players[p->player_id].name); break;
+			case KILLTYPE_FALL: sprintf(m, "%s fell too far", players[p->player_id].name); break;
 			case KILLTYPE_TEAMCHANGE: sprintf(m, "%s changed teams", players[p->player_id].name); break;
 			case KILLTYPE_CLASSCHANGE: sprintf(m, "%s changed weapons", players[p->player_id].name); break;
 		}
