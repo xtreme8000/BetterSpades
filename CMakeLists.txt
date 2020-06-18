@@ -24,6 +24,9 @@ if(NOT ENABLE_SDL AND NOT ENABLE_GLFW)
 	message(FATAL_ERROR "Enable SDL or GLFW")
 endif()
 
+message(STATUS "Compiler is ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "Build type is ${CMAKE_BUILD_TYPE}")
+
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 	if(CMAKE_BUILD_TYPE STREQUAL "Release")
 		add_compile_options(-Ofast)
