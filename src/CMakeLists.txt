@@ -21,7 +21,7 @@ download_file_if_it_doesnt_exist(dr_wav.c https://raw.githubusercontent.com/mack
 download_file_if_it_doesnt_exist(stb_truetype.h https://raw.githubusercontent.com/nothings/stb/master/stb_truetype.h)
 download_file_if_it_doesnt_exist(parson.c https://raw.githubusercontent.com/kgabis/parson/master/parson.c)
 download_file_if_it_doesnt_exist(parson.h https://raw.githubusercontent.com/kgabis/parson/master/parson.h)
-download_file_if_it_doesnt_exist(http.h https://raw.githubusercontent.com/mattiasgustavsson/libs/master/http.h)
+download_file_if_it_doesnt_exist(http.h https://raw.githubusercontent.com/mattiasgustavsson/libs/main/http.h)
 download_file_if_it_doesnt_exist(log.h https://raw.githubusercontent.com/xtreme8000/log.c/master/src/log.h)
 download_file_if_it_doesnt_exist(log.c https://raw.githubusercontent.com/xtreme8000/log.c/master/src/log.c)
 download_file_if_it_doesnt_exist(hashtable.c https://raw.githubusercontent.com/goldsborough/hashtable/master/hashtable.c)
