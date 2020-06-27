@@ -116,9 +116,9 @@ Or connect directly to localhost:
 
 The same instructions for Linux work on macOS aside from some minor differences. First, use Homebrew or MacPorts to grab dependencies:
 ```
-brew install glfw enet
+brew install glfw enet glew libdeflate
 ```
-The development headers for OpenAL and OpenGL don't have to be installed since they come with macOS by default. [libdeflate](https://github.com/ebiggers/libdeflate) should be installed and placed manually in a way similar to Linux. See [_Wiki/Building_](https://github.com/xtreme8000/BetterSpades/wiki/Building) for more details.
+The development headers for OpenAL and OpenGL don't have to be installed since they come with macOS by default.
 
 ## Gallery
 
