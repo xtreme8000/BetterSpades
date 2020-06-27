@@ -13,3 +13,17 @@ Desktop.ini
 *.kv6
 *.lib
 *.dll
+
+/src/ini.c
+/src/ini.h
+/src/dr_wav.c
+/src/stb_truetype.h
+/src/parson.c
+/src/parson.h
+/src/http.h
+/src/log.c
+/src/log.h
+/src/hashtable.c
+/src/hashtable.h
+/src/libvxl.c
+/src/libvxl.h
