@@ -166,11 +166,11 @@ void cameracontroller_fps(float dt) {
 	}
 
 	float lx = players[local_player_id].orientation_smooth.x * pow(0.7F, dt * 60.0F)
-		+ (sin(camera_rot_x) * sin(camera_rot_y)) * pow(0.3F, dt * 60.0F);
+		+ (sin(camera_rot_x) * sin(camera_rot_y)) * (1.0F - pow(0.7F, dt * 60.0F));
 	float ly = players[local_player_id].orientation_smooth.y * pow(0.7F, dt * 60.0F)
-		+ (cos(camera_rot_y)) * pow(0.3F, dt * 60.0F);
+		+ (cos(camera_rot_y)) * (1.0F - pow(0.7F, dt * 60.0F));
 	float lz = players[local_player_id].orientation_smooth.z * pow(0.7F, dt * 60.0F)
-		+ (cos(camera_rot_x) * sin(camera_rot_y)) * pow(0.3F, dt * 60.0F);
+		+ (cos(camera_rot_x) * sin(camera_rot_y)) * (1.0F - pow(0.7F, dt * 60.0F));
 
 	players[local_player_id].orientation_smooth.x = lx;
 	players[local_player_id].orientation_smooth.y = ly;

@@ -142,6 +142,9 @@ void grenade_render() {
 			   || fabs(grenades[k].velocity.z) > 0.05F)
 				matrix_rotate(-window_time() * 720.0F, -grenades[k].velocity.z, 0.0F, grenades[k].velocity.x);
 			matrix_upload();
+
+			kv6_calclight(grenades[k].pos.x, grenades[k].pos.y, grenades[k].pos.z);
+
 			kv6_render(&model_grenade, TEAM_1);
 			matrix_pop();
 		}

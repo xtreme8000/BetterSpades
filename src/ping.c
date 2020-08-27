@@ -127,7 +127,7 @@ void* ping_update(void* data) {
 
 			strcpy(e.country, "LAN");
 			e.ping = ceil((window_time() - ping_start) * 1000.0F);
-			snprintf(e.identifier, sizeof(e.identifier) - 1, "aos://%i:%i", from.host, from.port);
+			snprintf(e.identifier, sizeof(e.identifier) - 1, "aos://%u:%u", from.host, from.port);
 
 			JSON_Value* js = json_parse_string(tmp);
 			JSON_Object* root = json_value_get_object(js);

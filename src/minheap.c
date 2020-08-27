@@ -39,10 +39,9 @@ void minheap_create(struct minheap* h) {
 }
 
 void minheap_clear(struct minheap* h) {
-	free(h->nodes);
 	h->index = 0;
 	h->length = 256;
-	h->nodes = malloc(sizeof(struct minheap_block) * h->length);
+	h->nodes = realloc(h->nodes, sizeof(struct minheap_block) * h->length);
 }
 
 void minheap_destroy(struct minheap* h) {

@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "common.h"
 #include "tesselator.h"
@@ -217,6 +218,8 @@ static void tesselator_emit_normals(struct tesselator* t, int8_t* normals) {
 }
 
 void tesselator_addi(struct tesselator* t, int16_t* coords, uint32_t* colors, int8_t* normals) {
+	assert(t->vertex_type == VERTEX_INT);
+
 	tesselator_check_space(t);
 	tesselator_emit_color(t, colors);
 	tesselator_emit_normals(t, normals);
@@ -235,6 +238,8 @@ void tesselator_addi(struct tesselator* t, int16_t* coords, uint32_t* colors, in
 }
 
 void tesselator_addf(struct tesselator* t, float* coords, uint32_t* colors, int8_t* normals) {
+	assert(t->vertex_type == VERTEX_FLOAT);
+
 	tesselator_check_space(t);
 	tesselator_emit_color(t, colors);
 	tesselator_emit_normals(t, normals);

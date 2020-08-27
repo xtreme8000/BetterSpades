@@ -502,6 +502,7 @@ void player_render(struct Player* p, int id, Ray* ray, char render, struct playe
 			kv6_boundingbox(&model_playerdead, &p->bb_2d);
 			matrix_pop();
 		}
+
 		return;
 	}
 

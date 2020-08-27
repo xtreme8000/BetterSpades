@@ -211,7 +211,7 @@ void display() {
 			matrix_select(matrix_projection);
 			matrix_identity();
 			matrix_perspective(camera_fov_scaled(), ((float)settings.window_width) / ((float)settings.window_height),
-							   0.1F, settings.render_distance + CHUNK_SIZE * 4.0F + 128.0F);
+							   0.1F, settings.render_distance + CHUNK_SIZE * 4.0F);
 			matrix_upload_p();
 
 			matrix_select(matrix_view);
