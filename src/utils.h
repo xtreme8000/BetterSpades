@@ -21,6 +21,7 @@
 #define UTILS_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 int base64_decode(char* data, int len);
 

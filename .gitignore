@@ -13,3 +13,4 @@ Desktop.ini
 *.kv6
 *.lib
 *.dll
+.ycm_extra_conf.py

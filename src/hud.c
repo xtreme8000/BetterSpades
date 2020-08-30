@@ -26,6 +26,7 @@
 #include <ctype.h>
 
 #include "lodepng/lodepng.h"
+#include "log.h"
 #include "main.h"
 #include "file.h"
 #include "common.h"
@@ -48,6 +49,7 @@
 #include "weapon.h"
 #include "tracer.h"
 #include "font.h"
+#include "soundtest.h"
 
 struct hud hud_mapload;
 
@@ -2580,7 +2582,12 @@ static void hud_settings_render(float scalex, float scaley) {
 	glColor3f(1.0F, 1.0F, 0.0F);
 	font_render((settings.window_width - 600 * scaley) / 2.0F + 0 * scaley, 535 * scaley, 36 * scaley, "Settings");
 	font_centered((settings.window_width - 600 * scaley) / 2.0F + 174 * scaley, 70 * scaley, 30 * scaley, "Apply");
+#ifdef USE_SOUNDTEST
+#ifdef USE_SOUND
+	font_centered((settings.window_width - 600 * scaley) / 2.0F + 500 * scaley, 70 * scaley, 30 * scaley, "Soundtest");
 	glColor3f(0.5F, 0.5F, 0.5F);
+#endif
+#endif
 	font_centered((settings.window_width - 600 * scaley) / 2.0F + 210 * scaley, 535 * scaley - 12 * scaley, 20 * scaley,
 				  "Controls");
 	font_centered((settings.window_width - 600 * scaley) / 2.0F + 320 * scaley, 535 * scaley - 12 * scaley, 20 * scaley,
@@ -2677,6 +2684,15 @@ static void hud_settings_render(float scalex, float scaley) {
 			break;
 		}
 	}
+#ifdef USE_SOUNDTEST
+#ifdef USE_SOUND
+	if (is_inside(x, settings.window_height - y,
+				((settings.window_width - 600 - font_length(32 * scaley, "Soundtest")) * scaley) / 2.0F + 500,
+				40 * scaley, font_length(32 * scaley, "Soundtest"), 30 * scaley)) {
+		render_tooltip("Run soundtest", x, y, scaley);
+	}
+#endif
+#endif
 }
 
 static int is_int(const char* x) {
@@ -2767,6 +2783,16 @@ static void hud_settings_mouseclick(double x, double y, int button, int action, 
 			sound_volume(settings.volume / 10.0F);
 			config_save();
 		}
+#ifdef USE_SOUNDTEST
+#ifdef USE_SOUND
+		if(x >= (settings.window_width - 600 * scaley) / 2.0F + 500 * scaley - font_length(30 * scaley, "Soundtest") / 2
+		   && x < (settings.window_width - 600 * scaley) / 2.0F + 500 * scaley + font_length(30 * scaley, "Soundtest") / 2
+		   && y >= 40 * scaley && y < 70 * scaley) {
+			log_info("SOUNDTEST");
+			hud_change(&hud_soundtest);
+		}
+#endif
+#endif
 
 		for(int k = 0; k < list_size(&config_settings); k++) {
 			struct config_setting* a = list_get(&config_settings, k);
@@ -2992,3 +3018,109 @@ struct hud hud_controls = {
 	0,
 	0,
 };
+
+#ifdef USE_SOUNDTEST
+#ifdef USE_SOUND
+
+/* HUD SOUNDTEST START */
+static char tmp[32] = "0";
+static void hud_soundtest_init()
+{
+	strcpy(tmp, "0");
+	st_ctx.init(&st_ctx);
+}
+
+static void hud_soundtest_render(float scalex, float scaley)
+{
+	glColor3f(0.5F, 0.5F, 0.5F);
+	float t = window_time() * 0.03125F;
+	texture_draw_sector(&texture_ui_bg, 0.0F, settings.window_height, settings.window_width, settings.window_height, t,
+						t, settings.window_width / 512.0F, settings.window_height / 512.0F);
+
+	glColor4f(0.0F, 0.0F, 0.0F, 0.66F);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	texture_draw_empty((settings.window_width - 640 * scaley) / 2.0F, 550 * scaley, 640 * scaley, 600 * scaley);
+	glDisable(GL_BLEND);
+
+	glColor3f(1.0F, 1.0F, 0.0F);
+	font_render((settings.window_width - 600 * scaley) / 2.0F + 0 * scaley, 535 * scaley, 36 * scaley, "Soundtest");
+	font_centered((settings.window_width * scaley) / 2.0F * scaley, 70 * scaley, 30 * scaley, "Back");
+	font_centered((settings.window_width * scaley) / 2.0F * scaley, 300 * scaley, 30 * scaley, "Play");
+	
+	glColor3f(1.0F, 1.0F, 1.0F);
+	font_centered((settings.window_width * scaley) / 2.0F * scaley,
+			(settings.window_height + 300 * scaley) / 2.0f * scaley, 30 * scaley, tmp);
+
+	float size = 32.0F;
+	float button_y = (settings.window_height + (300 - size) * scaley) / 2.0F * scaley;
+
+	texture_draw_rotated(&texture_ui_arrow,
+						 (settings.window_width + 200 * scaley) / 2.0F * scaley,
+						 button_y, size * scaley, size * scaley, 0.0F);
+	texture_draw_rotated(&texture_ui_arrow,
+						 (settings.window_width - 200 * scaley) / 2.0F * scaley,
+						 button_y, size * scaley, size * scaley, PI);
+
+}
+
+static void hud_soundtest_mouseclick(double x, double y, int button, int action, int mods)
+{
+	if (action == WINDOW_PRESS) {
+		float scaley = settings.window_height / 600.0F;
+		y = settings.window_height - y;
+
+		float button_size = 32.0F;
+		float button_y = (settings.window_height + (300 - button_size) * scaley) / 2.0F * scaley;
+
+		float play_size = font_length(30 * scaley, "Play");
+		float play_x = (settings.window_width * scaley) / 2.0F * scaley;
+		float play_y = 300 * scaley;
+
+		// Back button
+		if(x >= (settings.window_width * scaley) / 2.0F * scaley - font_length(30 * scaley, "Back") / 2
+		   && x < (settings.window_width * scaley) / 2.0F * scaley + font_length(30 * scaley, "Back") / 2
+		   && y >= 40 * scaley && y < 70 * scaley) {
+			st_ctx.clean(&st_ctx);
+			hud_change(&hud_settings);
+		}
+
+		// Play button
+		if (x >= play_x - (play_size/2.0F) && x < play_x + (play_size/2.0F)
+				&& y >= play_y - (play_size/2.0F) && y < play_y) {
+			st_ctx.play_current(&st_ctx);
+		}
+
+
+		// Arrow right
+		if (x >= (settings.window_width + 200 * scaley) / 2.0F * scaley - 16
+				&& x < (settings.window_width + 200 + (button_size) * scaley) / 2.0F * scaley
+				&& y >= button_y - 16 && y < button_y + button_size - 16) {
+			st_ctx.next_sound(&st_ctx);
+			sprintf(tmp, "%d", st_ctx.current_sound);
+		}
+
+		// Arrow left
+		if (x >= (settings.window_width - 200 * scaley) / 2.0F * scaley - 16
+				&& x < (settings.window_width - 200 + (button_size) * scaley) / 2.0F * scaley
+				&& y >= button_y - 16 && y < button_y + button_size - 16) {
+			st_ctx.prev_sound(&st_ctx);
+			sprintf(tmp, "%d", st_ctx.current_sound);
+		}
+	}
+}
+
+struct hud hud_soundtest = {
+	hud_soundtest_init,
+	(void*)NULL,
+	hud_soundtest_render,
+	(void*)NULL,
+	(void*)NULL,
+	hud_soundtest_mouseclick,
+	(void*)NULL,
+	(void*)NULL,
+	0,
+	0,
+};
+#endif
+#endif
