@@ -20,19 +20,25 @@
 #ifndef HUD_H
 #define HUD_H
 
+#include <stdbool.h>
+
+#include "microui.h"
+#include "texture.h"
 #include "window.h"
 
 struct hud {
 	void (*init)();
 	void (*render_3D)();
-	void (*render_2D)(float scalex, float scaley);
+	void (*render_2D)(mu_Context* ctx, float scalex, float scaley);
 	void (*input_keyboard)(int key, int action, int mods, int internal);
 	void (*input_mouselocation)(double x, double y);
 	void (*input_mouseclick)(double x, double y, int button, int action, int mods);
 	void (*input_mousescroll)(double yoffset);
 	void (*input_touch)(void* finger, int action, float x, float y, float dx, float dy);
+	struct texture* (*ui_images)(int icon_id, bool* resize);
 	char render_world;
 	char render_localplayer;
+	mu_Context* ctx;
 };
 
 struct serverlist_entry {

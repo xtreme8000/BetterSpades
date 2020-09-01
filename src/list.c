@@ -60,6 +60,12 @@ void* list_find(struct list* l, void* ref, enum list_traverse_direction dir, int
 	return NULL;
 }
 
+void list_sort(struct list* l, int (*cmp)(const void* a, const void* b)) {
+	assert(l != NULL && cmp != NULL);
+
+	qsort(l->data, l->elements, l->element_size, cmp);
+}
+
 void* list_get(struct list* l, size_t i) {
 	assert(l != NULL && i < l->elements);
 

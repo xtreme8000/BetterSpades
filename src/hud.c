@@ -49,8 +49,6 @@
 #include "tracer.h"
 #include "font.h"
 
-struct hud hud_mapload;
-
 struct hud* hud_active;
 struct window_instance* hud_window;
 
@@ -63,12 +61,49 @@ static int is_inside(double mx, double my, int x, int y, int w, int h) {
 }
 
 void hud_init() {
+	hud_serverlist.ctx = malloc(sizeof(mu_Context));
+	hud_settings.ctx = malloc(sizeof(mu_Context));
+	hud_controls.ctx = malloc(sizeof(mu_Context));
+
 	hud_change(&hud_serverlist);
+}
+
+static int mu_text_height(mu_Font font) {
+	return round(settings.window_height / 600.0F * 16.0F);
+}
+
+static int mu_text_width(mu_Font font, const char* text, int len) {
+	if(len <= 0) {
+		return ceil(font_length(mu_text_height(font), (char*)text));
+	} else {
+		char tmp[len + 1];
+		memcpy(tmp, text, len);
+		tmp[len] = 0;
+		return ceil(font_length(mu_text_height(font), tmp));
+	}
+}
+
+static void mu_text_color(mu_Context* ctx, int red, int green, int blue) {
+	ctx->style->colors[MU_COLOR_TEXT] = mu_color(red, green, blue, 255);
+}
+
+static void mu_text_color_default(mu_Context* ctx) {
+	ctx->style->colors[MU_COLOR_TEXT] = mu_color(230, 230, 230, 255);
 }
 
 void hud_change(struct hud* new) {
 	config_key_reset_togglestates();
 	hud_active = new;
+
+	if(hud_active->ctx) {
+		mu_init(hud_active->ctx);
+		hud_active->ctx->text_width = mu_text_width;
+		hud_active->ctx->text_height = mu_text_height;
+		hud_active->ctx->style->colors[MU_COLOR_BUTTONHOVER] = mu_color(95, 95, 70, 255);
+		hud_active->ctx->style->colors[MU_COLOR_PANELBG] = mu_color(10, 10, 10, 192);
+		hud_active->ctx->style->colors[MU_COLOR_SCROLLTHUMB] = mu_color(128, 128, 128, 255);
+	}
+
 	if(hud_active->init)
 		hud_active->init();
 }
@@ -409,7 +444,7 @@ static int hud_ingame_onscreencontrol(int index, char* str, int activate) {
 	return 0;
 }
 
-static void hud_ingame_render(float scalex, float scalef) {
+static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 	// window_mousemode(camera_mode==CAMERAMODE_SELECTION?WINDOW_CURSOR_ENABLED:WINDOW_CURSOR_DISABLED);
 	hud_active->render_localplayer = players[local_player_id].team != TEAM_SPECTATOR
 		&& (screen_current == SCREEN_NONE || camera_mode != CAMERAMODE_FPS);
@@ -1359,18 +1394,11 @@ static const char* hud_ingame_completeword(const char* s) {
 	int candidates_cnt = 0;
 
 	for(int k = 0; k < PLAYERS_MAX; k++) {
-		if(players[k].connected) {
+		if(players[k].connected)
 			candidates[candidates_cnt++] = (struct autocomplete_type) {
 				players[k].name,
 				0,
 			};
-			char nmbr[8];
-			sprintf(nmbr, "#%i", k);
-			candidates[candidates_cnt++] = (struct autocomplete_type) {
-				nmbr,
-				0,
-			};
-		}
 	}
 
 	candidates[candidates_cnt++] = (struct autocomplete_type) {
@@ -1445,7 +1473,6 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 					players[local_player_id].pos.z = 256.0F;
 				}
 				if(key == WINDOW_KEY_CROUCH) {
-					// particle_create(0xFF00FF,players[local_player_id].pos.x,players[local_player_id].pos.y,players[local_player_id].pos.z,2.0F,1.0F,1024,0.1F,0.25F);
 					players[local_player_id].alive = !players[local_player_id].alive;
 				}
 			}
@@ -1863,8 +1890,10 @@ struct hud hud_ingame = {
 	hud_ingame_mouseclick,
 	hud_ingame_scroll,
 	hud_ingame_touch,
+	NULL,
 	1,
 	0,
+	NULL,
 };
 
 /*         HUD_SERVERLIST START        */
@@ -1875,25 +1904,21 @@ static http_t* request_news = NULL;
 static int server_count = 0;
 static int player_count = 0;
 static struct serverlist_entry* serverlist;
-static float serverlist_scroll;
-static float serverlist_news_scroll;
-static int serverlist_hover;
 static int serverlist_is_outdated;
 static int serverlist_con_established;
 static pthread_mutex_t serverlist_lock;
-static int hud_serverlist_drag = 0;
 
 static struct serverlist_news_entry {
 	struct texture image;
-	char caption[33];
+	char caption[65];
 	char url[129];
 	float tile_size;
 	int color;
 	struct serverlist_news_entry* next;
 } serverlist_news;
 
-static struct serverlist_news_entry* serverlist_news_hover;
 static int serverlist_news_exists = 0;
+static char serverlist_input[128];
 
 static void hud_serverlist_init() {
 	ping_stop();
@@ -1903,22 +1928,16 @@ static void hud_serverlist_init() {
 
 	window_mousemode(WINDOW_CURSOR_ENABLED);
 
-	hud_serverlist_drag = 0;
 	player_count = 0;
 	server_count = 0;
-	serverlist_scroll = 0.0F;
-	serverlist_news_scroll = 0.0F;
-	serverlist_news_hover = NULL;
-	serverlist_hover = -1;
+	serverlist_is_outdated = 0;
 	request_serverlist = http_get("http://services.buildandshoot.com/serverlist.json", NULL);
 	request_version = http_get("http://aos.party/bs/version/", NULL);
 	if(!serverlist_news_exists)
 		request_news = http_get("http://aos.party/bs/news/", NULL);
 
-	chat_input_mode = CHAT_ALL_INPUT;
-	chat[0][0][0] = 0;
-	serverlist_is_outdated = 0;
 	serverlist_con_established = request_serverlist != NULL;
+	*serverlist_input = 0;
 
 	pthread_mutex_init(&serverlist_lock, NULL);
 	window_textinput(1);
@@ -1944,6 +1963,41 @@ static int hud_serverlist_sort(const void* a, const void* b) {
 	return bb->current - aa->current;
 }
 
+static int hud_serverlist_sort_players(const void* a, const void* b) {
+	struct serverlist_entry* aa = (struct serverlist_entry*)a;
+	struct serverlist_entry* bb = (struct serverlist_entry*)b;
+
+	return bb->current - aa->current;
+}
+
+static int hud_serverlist_sort_name(const void* a, const void* b) {
+	struct serverlist_entry* aa = (struct serverlist_entry*)a;
+	struct serverlist_entry* bb = (struct serverlist_entry*)b;
+
+	return strcmp(aa->name, bb->name);
+}
+
+static int hud_serverlist_sort_map(const void* a, const void* b) {
+	struct serverlist_entry* aa = (struct serverlist_entry*)a;
+	struct serverlist_entry* bb = (struct serverlist_entry*)b;
+
+	return strcmp(aa->map, bb->map);
+}
+
+static int hud_serverlist_sort_mode(const void* a, const void* b) {
+	struct serverlist_entry* aa = (struct serverlist_entry*)a;
+	struct serverlist_entry* bb = (struct serverlist_entry*)b;
+
+	return strcmp(aa->gamemode, bb->gamemode);
+}
+
+static int hud_serverlist_sort_ping(const void* a, const void* b) {
+	struct serverlist_entry* aa = (struct serverlist_entry*)a;
+	struct serverlist_entry* bb = (struct serverlist_entry*)b;
+
+	return aa->ping - bb->ping;
+}
+
 static void hud_serverlist_pingupdate(void* e, float time_delta, void* user_data) {
 	pthread_mutex_lock(&serverlist_lock);
 	if(!e) {
@@ -1966,272 +2020,241 @@ static void hud_serverlist_pingcomplete() {
 	pthread_mutex_unlock(&serverlist_lock);
 }
 
-static int render_tooltip(char* str, float x, float y, float scaley) {
-	if(*str) {
-		glColor3f(1.0F, 1.0F, 1.0F);
-		texture_draw_empty(x + 5 * scaley, settings.window_height - y + 5 * scaley,
-						   font_length(16 * scaley, str) + 10 * scaley, 26 * scaley);
-		glColor3f(0.0F, 0.0F, 0.0F);
-		font_render(x + 10 * scaley, settings.window_height - y, 16 * scaley, str);
+static void server_c(char* address, char* name) {
+	if(file_exists(address)) {
+		void* data = file_load(address);
+		map_vxl_load(data, file_size(address));
+		free(data);
+		chunk_rebuild_all();
+		camera_mode = CAMERAMODE_FPS;
+		players[local_player_id].pos.x = map_size_x / 2.0F;
+		players[local_player_id].pos.y = map_size_y - 1.0F;
+		players[local_player_id].pos.z = map_size_z / 2.0F;
+		window_title(address);
+		hud_change(&hud_ingame);
+	} else {
+		window_title(name);
+		if(name && address) {
+			rpc_setv(RPC_VALUE_SERVERNAME, name);
+			rpc_setv(RPC_VALUE_SERVERURL, address);
+			rpc_seti(RPC_VALUE_SLOTS, 32);
+		} else {
+			rpc_seti(RPC_VALUE_SLOTS, 0);
+		}
+		if(network_connect_string(address))
+			hud_change(&hud_ingame);
 	}
 }
 
-static float hud_serverlist_news_height(float scaley) {
-	return serverlist_news_exists ? 150 * scaley : 0.0F;
-}
-
-static float hud_serverlist_news_width() {
-	float width = 0.0F;
-	if(serverlist_news_exists) {
+static struct texture* hud_serverlist_ui_images(int icon_id, bool* resize) {
+	if(icon_id >= 32) {
 		struct serverlist_news_entry* current = &serverlist_news;
+		int index = 32;
 		while(current) {
-			width += current->tile_size * 128 + 10;
+			if(index == icon_id)
+				return &current->image;
+
+			index++;
 			current = current->next;
 		}
 	}
-	return width;
+
+	switch(icon_id) {
+		case MU_ICON_CHECK: return &texture_ui_box_check;
+		case MU_ICON_EXPANDED: return &texture_ui_expanded;
+		case MU_ICON_COLLAPSED: return &texture_ui_collapsed;
+		case 16: *resize = true; return &texture_ui_join;
+		case 17: *resize = true; return &texture_ui_wait;
+		default: return NULL;
+	}
 }
 
-static void hud_serverlist_render(float scalex, float scaley) {
+static void hud_serverlist_render(mu_Context* ctx, float scalex, float scaley) {
 	glColor3f(0.5F, 0.5F, 0.5F);
 	float t = window_time() * 0.03125F;
 	texture_draw_sector(&texture_ui_bg, 0.0F, settings.window_height, settings.window_width, settings.window_height, t,
 						t, settings.window_width / 512.0F, settings.window_height / 512.0F);
 
-	glColor4f(0.0F, 0.0F, 0.0F, 0.66F);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	texture_draw_empty((settings.window_width - 640 * scaley) / 2.0F, 550 * scaley, 640 * scaley, 600 * scaley);
-	glDisable(GL_BLEND);
+	mu_Rect frame = mu_rect(settings.window_width * 0.125F, 0, settings.window_width * 0.75F, settings.window_height);
 
-	glColor3f(1.0F, 1.0F, 0.0F);
-	font_render((settings.window_width - 600 * scaley) / 2.0F + 0 * scaley, 535 * scaley, 36 * scaley, "Server list");
-	glColor3f(0.5F, 0.5F, 0.5F);
-	font_centered((settings.window_width - 600 * scaley) / 2.0F + 250 * scaley, 535 * scaley - 12 * scaley, 20 * scaley,
-				  "Settings");
-	font_centered((settings.window_width - 600 * scaley) / 2.0F + 250 * scaley + 90 * scaley,
-				  535 * scaley - 12 * scaley, 20 * scaley, "Controls");
+	if(mu_begin_window_ex(ctx, "Main", frame, MU_OPT_NOFRAME | MU_OPT_NOTITLE | MU_OPT_NORESIZE)) {
+		mu_Container* cnt = mu_get_current_container(ctx);
+		cnt->rect = frame;
 
-	glColor3f(1.0F, 1.0F, 0.0F);
-	char total_str[128];
-	sprintf(total_str, "%i players", player_count);
-	font_render(settings.window_width / 2.0F + 300 * scaley - font_length(36 * scaley, total_str), 535 * scaley,
-				36 * scaley, total_str);
-	sprintf(total_str, "on %i servers", server_count);
-	font_render(settings.window_width / 2.0F + 300 * scaley - font_length(18 * scaley, total_str), (535 - 36) * scaley,
-				18 * scaley, total_str);
+		int A = ctx->text_width(ctx->style->font, "Servers", 0) * 1.5F;
+		int B = ctx->text_width(ctx->style->font, "Settings", 0) * 1.5F;
+		int C = ctx->text_width(ctx->style->font, "Controls", 0) * 1.5F;
+		mu_layout_row(ctx, 4, (int[]) {A, B, C, -1}, 0);
+		mu_text_color(ctx, 255, 255, 0);
+		mu_button_ex(ctx, "Servers", 0, MU_OPT_NOINTERACT | MU_OPT_ALIGNCENTER);
+		mu_text_color_default(ctx);
+		if(mu_button(ctx, "Settings"))
+			hud_change(&hud_settings);
+		if(mu_button(ctx, "Controls"))
+			hud_change(&hud_controls);
 
-	glColor3f(1.0F, 1.0F, 1.0F);
-	texture_draw_sector(&texture_ui_input, settings.window_width / 2.0F - 300 * scaley, 485 * scaley, 8 * scaley,
-						32 * scaley, 0.0F, 0.0F, 0.25F, 1.0F);
-	texture_draw_sector(&texture_ui_input, settings.window_width / 2.0F - 300 * scaley + 8 * scaley, 485 * scaley,
-						(400 - 32) * scaley, 32 * scaley, 0.25F, 0.0F, 0.5F, 1.0F);
-	texture_draw_sector(&texture_ui_input, settings.window_width / 2.0F - 300 * scaley + (400 - 32 + 8) * scaley,
-						485 * scaley, 8 * scaley, 32 * scaley, 0.75F, 0.0F, 0.25F, 1.0F);
+		char total_str[128];
+		sprintf(total_str, (server_count > 0) ? "%i players on %i servers" : "No servers", player_count, server_count);
+		mu_button_ex(ctx, total_str, 0, MU_OPT_ALIGNRIGHT | MU_OPT_NOINTERACT);
 
-	texture_draw(&texture_ui_join, settings.window_width / 2.0F + 90 * scaley, 485 * scaley, 32 * scaley, 32 * scaley);
-	texture_draw(&texture_ui_reload, settings.window_width / 2.0F + 130 * scaley, 485 * scaley, 32 * scaley,
-				 32 * scaley);
+		mu_layout_row(ctx, 1, (int[]) {-1}, settings.window_height * 0.3F);
 
-	int a = strlen(chat[0][0]);
-	chat[0][0][a] = '_';
-	chat[0][0][a + 1] = 0;
-	font_render((settings.window_width - 600 * scaley) / 2.0F + font_length(24 * scaley, " "), 481 * scaley,
-				24 * scaley, chat[0][0]);
-	chat[0][0][a] = 0;
+		if(serverlist_news_exists) {
+			mu_begin_panel(ctx, "News");
+			mu_layout_row(ctx, 0, NULL, 0);
 
-	font_render((settings.window_width - 600 * scaley) / 2.0F + 0 * scaley, 450 * scaley, 18 * scaley, "Players");
-	font_render((settings.window_width - 600 * scaley) / 2.0F + 75 * scaley, 450 * scaley, 18 * scaley, "Name");
-	font_render((settings.window_width - 600 * scaley) / 2.0F + 335 * scaley, 450 * scaley, 18 * scaley, "Map");
-	font_render((settings.window_width - 600 * scaley) / 2.0F + 490 * scaley, 450 * scaley, 18 * scaley, "Mode");
-	font_render((settings.window_width - 600 * scaley) / 2.0F + 560 * scaley, 450 * scaley, 18 * scaley, "Ping");
-
-	if(serverlist_scroll > 0)
-		serverlist_scroll = 0;
-	if(serverlist_scroll < -(server_count * 20 - 430 + 50) * scaley - hud_serverlist_news_height(scaley))
-		serverlist_scroll = -(server_count * 20 - 430 + 50) * scaley - hud_serverlist_news_height(scaley);
-
-	float progress
-		= serverlist_scroll / (-(server_count * 20 - 430 + 50) * scaley - hud_serverlist_news_height(scaley));
-	texture_draw_empty((settings.window_width - 600 * scaley) / 2.0F - 20 * scaley,
-					   450 * scaley - (430 - 50) * scaley * progress, 10 * scaley, 20 * scaley);
-
-	glEnable(GL_SCISSOR_TEST);
-	glScissor((settings.window_width - 600 * scaley) / 2.0F, 50 * scaley, 600 * scaley, (430 - 50) * scaley);
-
-	double xpos, ypos;
-	window_mouseloc(&xpos, &ypos);
-	ypos = settings.window_height - ypos;
-
-	if(serverlist_news_exists) {
-		struct serverlist_news_entry* current = &serverlist_news;
-		float news_offset = (settings.window_width - 600 * scaley) / 2.0F + serverlist_news_scroll * scaley;
-		serverlist_news_hover = NULL;
-		while(current) {
-			float width = current->tile_size * 128 * scaley;
-			glColor3f(1.0F, 1.0F, 1.0F);
-			texture_draw(&current->image, news_offset, 420 * scaley - serverlist_scroll, width, 128 * scaley);
-
-			int lines = 1;
-			for(int k = 0; k < strlen(current->caption); k++)
-				if(current->caption[k] == '\n')
-					lines++;
-
-			glColor4f(0.0F, 0.0F, 0.0F, 0.5F);
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			texture_draw_empty(news_offset, 420 * scaley - serverlist_scroll - (128 - 6 - 18 * lines) * scaley, width,
-							   (18 * lines + 6) * scaley);
-			glDisable(GL_BLEND);
-
-			char* line = strtok(current->caption, "\n");
-			for(int k = 0; line; k++) {
-				if(k == 0)
-					glColor3ub(red(current->color), green(current->color), blue(current->color));
-				else
-					glColor3f(1.0F, 1.0F, 1.0F);
-				font_render(news_offset + 8 * scaley,
-							420 * scaley - serverlist_scroll - (128 - 18 * (lines - k) - 4) * scaley, 18 * scaley,
-							line);
-				char* line_old = line;
-				line = strtok(NULL, "\n");
-				// repair string after usage of strtok
-				if(line)
-					line_old[strlen(line_old)] = '\n';
+			struct serverlist_news_entry* current = &serverlist_news;
+			int index = 0;
+			while(current) {
+				mu_layout_begin_column(ctx);
+				float size = settings.window_height * 0.3F - ctx->text_height(ctx->style->font) * 4.125F;
+				mu_layout_row(ctx, 1, (int[]) {size * current->tile_size}, size);
+				if(mu_button_ex(ctx, NULL, 32 + index, MU_OPT_NOFRAME)) {
+					if(!strncmp("aos://", current->url, 6))
+						server_c(current->url, current->caption);
+					else
+						file_url(current->url);
+				}
+				mu_layout_height(ctx, 0);
+				mu_text_color(ctx, red(current->color), green(current->color), blue(current->color));
+				mu_text(ctx, current->caption);
+				mu_text_color_default(ctx);
+				mu_layout_end_column(ctx);
+				index++;
+				current = current->next;
 			}
 
-			if(is_inside(xpos, ypos, news_offset, 420 * scaley - serverlist_scroll - 128 * scaley, width, 128 * scaley))
-				serverlist_news_hover = current;
-
-			news_offset += width + 10 * scaley;
-			current = current->next;
+			mu_end_panel(ctx);
 		}
 
-		glColor3f(1.0F, 1.0F, 1.0F);
-		texture_draw_rotated(&texture_ui_arrow2, (settings.window_width - 600 * scaley) / 2.0F + 16 * scaley,
-							 420 * scaley - serverlist_scroll - 64 * scaley, 32 * scaley, 32 * scaley, 0.0F);
-		texture_draw_rotated(&texture_ui_arrow2, (settings.window_width - 600 * scaley) / 2.0F + (600 - 32) * scaley,
-							 420 * scaley - serverlist_scroll - 64 * scaley, 32 * scaley, 32 * scaley, PI);
-	}
+		int a = ctx->text_width(ctx->style->font, "Refresh", 0) * 1.6F;
+		int b = ctx->text_width(ctx->style->font, "Join", 0) * 2.0F;
+		mu_layout_row(ctx, 3, (int[]) {-a - b, -a, -1}, 0);
+		if(mu_textbox(ctx, serverlist_input, sizeof(serverlist_input)) & MU_RES_SUBMIT)
+			server_c(serverlist_input, NULL);
+		if(mu_button_ex(ctx, "Join", 16, MU_OPT_ALIGNRIGHT))
+			server_c(serverlist_input, NULL);
 
-	serverlist_scroll += hud_serverlist_news_height(scaley);
+		if(mu_button_ex(ctx, "Refresh", 17, MU_OPT_ALIGNRIGHT) && !request_serverlist)
+			hud_serverlist_init();
 
-	int tmp = -1;
-	for(int k = 0; k < server_count; k++) {
-		if(xpos >= (settings.window_width - 600 * scaley) / 2.0F && xpos < (settings.window_width + 600 * scaley) / 2.0F
-		   && ypos < 450 * scaley - 20 * scaley * (k + 0.9F) - serverlist_scroll
-		   && ypos >= 450 * scaley - 20 * scaley * (k + 1.9F) - serverlist_scroll && ypos < 430 * scaley
-		   && ypos >= 50 * scaley) {
-			glColor4f(1.0F, 1.0F, 1.0F, 0.5F);
-			glEnable(GL_BLEND);
-			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-			texture_draw_empty((settings.window_width - 600 * scaley) / 2.0F,
-							   450 * scaley - 20 * scaley * (k + 0.9F) - serverlist_scroll, 600 * scaley, 20 * scaley);
-			glDisable(GL_BLEND);
-			tmp = k;
+		mu_layout_row(ctx, 1, (int[]) {-1}, -1);
+
+		mu_begin_panel(ctx, "Servers");
+		int width = mu_get_current_container(ctx)->body.w;
+
+		mu_layout_row(ctx, 5, (int[]) {0.12F * width, 0.418F * width, 0.22F * width, 0.117F * width, -1}, 0);
+
+		if(mu_button(ctx, "Players")) {
+			pthread_mutex_lock(&serverlist_lock);
+			qsort(serverlist, server_count, sizeof(struct serverlist_entry), hud_serverlist_sort_players);
+			pthread_mutex_unlock(&serverlist_lock);
+		}
+		if(mu_button(ctx, "Name")) {
+			pthread_mutex_lock(&serverlist_lock);
+			qsort(serverlist, server_count, sizeof(struct serverlist_entry), hud_serverlist_sort_name);
+			pthread_mutex_unlock(&serverlist_lock);
+		}
+		if(mu_button(ctx, "Map")) {
+			pthread_mutex_lock(&serverlist_lock);
+			qsort(serverlist, server_count, sizeof(struct serverlist_entry), hud_serverlist_sort_map);
+			pthread_mutex_unlock(&serverlist_lock);
+		}
+		if(mu_button(ctx, "Mode")) {
+			pthread_mutex_lock(&serverlist_lock);
+			qsort(serverlist, server_count, sizeof(struct serverlist_entry), hud_serverlist_sort_mode);
+			pthread_mutex_unlock(&serverlist_lock);
+		}
+		if(mu_button(ctx, "Ping")) {
+			pthread_mutex_lock(&serverlist_lock);
+			qsort(serverlist, server_count, sizeof(struct serverlist_entry), hud_serverlist_sort_ping);
+			pthread_mutex_unlock(&serverlist_lock);
 		}
 
 		pthread_mutex_lock(&serverlist_lock);
+		if(server_count > 0) {
+			for(int k = 0; k < server_count; k++) {
+				if(strstr(serverlist[k].name, serverlist_input) || strstr(serverlist[k].identifier, serverlist_input)
+				   || strstr(serverlist[k].map, serverlist_input) || strstr(serverlist[k].gamemode, serverlist_input)) {
+					if(serverlist[k].current >= 0)
+						sprintf(total_str, "%i/%i", serverlist[k].current, serverlist[k].max);
+					else
+						strcpy(total_str, "-");
 
-		float f = ((serverlist[k].current && serverlist[k].current < serverlist[k].max) || tmp == k
-				   || serverlist[k].current < 0) ?
-			1.0F :
-			0.5F;
-		glColor3f(f, f, f);
+					int f = ((serverlist[k].current && serverlist[k].current < serverlist[k].max)
+							 || serverlist[k].current < 0) ?
+						1 :
+						2;
 
-		if(serverlist[k].current >= 0)
-			sprintf(total_str, "%i/%i", serverlist[k].current, serverlist[k].max);
-		else
-			strcpy(total_str, "-");
-		font_render((settings.window_width - 600 * scaley) / 2.0F + 0 * scaley,
-					450 * scaley - 20 * scaley * (k + 1) - serverlist_scroll, 16 * scaley, total_str);
-		font_render((settings.window_width - 600 * scaley) / 2.0F + 75 * scaley,
-					450 * scaley - 20 * scaley * (k + 1) - serverlist_scroll, 16 * scaley, serverlist[k].name);
-		font_render((settings.window_width - 600 * scaley) / 2.0F + 335 * scaley,
-					450 * scaley - 20 * scaley * (k + 1) - serverlist_scroll, 16 * scaley, serverlist[k].map);
-		font_render((settings.window_width - 600 * scaley) / 2.0F + 490 * scaley,
-					450 * scaley - 20 * scaley * (k + 1) - serverlist_scroll, 16 * scaley, serverlist[k].gamemode);
+					mu_text_color(ctx, 230 / f, 230 / f, 230 / f);
+					bool join = false;
+					if(mu_button_ex(ctx, total_str, 0, MU_OPT_NOFRAME | MU_OPT_ALIGNCENTER))
+						join = true;
+					if(mu_button_ex(ctx, serverlist[k].name, 0, MU_OPT_NOFRAME))
+						join = true;
+					if(mu_button_ex(ctx, serverlist[k].map, 0, MU_OPT_NOFRAME))
+						join = true;
+					if(mu_button_ex(ctx, serverlist[k].gamemode, 0, MU_OPT_NOFRAME | MU_OPT_ALIGNCENTER))
+						join = true;
 
-		float u, v;
-		texture_flag_offset(serverlist[k].country, &u, &v);
-		texture_draw_sector(&texture_ui_flags, (settings.window_width - 600 * scaley) / 2.0F + 55 * scaley,
-							448 * scaley - 20 * scaley * (k + 1) - serverlist_scroll, 18 * scaley, 12 * scaley, u, v,
-							18.0F / 256.0F, 12.0F / 256.0F);
+					if(serverlist[k].ping < 110)
+						mu_text_color(ctx, 0, 255 / f, 0);
+					else if(serverlist[k].ping < 200)
+						mu_text_color(ctx, 255 / f, 255 / f, 0);
+					else
+						mu_text_color(ctx, 255 / f, 0, 0);
 
-		if(serverlist[k].ping < 110)
-			glColor3f(0.0F, 1.0F * f, 0.0F);
-		else if(serverlist[k].ping < 200)
-			glColor3f(1.0F * f, 1.0F * f, 0.0F);
-		else
-			glColor3f(1.0F * f, 0.0F, 0.0F);
+					sprintf(total_str, "%ims", serverlist[k].ping);
+					if(mu_button_ex(ctx, (serverlist[k].ping >= 0) ? total_str : "?", 0,
+									MU_OPT_NOFRAME | MU_OPT_ALIGNCENTER))
+						join = true;
 
-		sprintf(total_str, "%ims", serverlist[k].ping);
-		font_render((settings.window_width - 600 * scaley) / 2.0F + 560 * scaley,
-					450 * scaley - 20 * scaley * (k + 1) - serverlist_scroll, 16 * scaley,
-					(serverlist[k].ping >= 0) ? total_str : "?");
-		glColor3f(1.0F, 1.0F, 1.0F);
-
-		pthread_mutex_unlock(&serverlist_lock);
-	}
-	serverlist_hover = tmp;
-
-	serverlist_scroll -= hud_serverlist_news_height(scaley);
-
-	glDisable(GL_SCISSOR_TEST);
-
-	if(serverlist_hover >= 0) {
-		pthread_mutex_lock(&serverlist_lock);
-		if(serverlist[serverlist_hover].ping < 0) {
-			render_tooltip("Server unreachable!", xpos, settings.window_height - ypos, scaley);
-		} else {
-			if(serverlist[serverlist_hover].current >= serverlist[serverlist_hover].max) {
-				render_tooltip("Server full!", xpos, settings.window_height - ypos, scaley);
-			} else {
-				if(serverlist[serverlist_hover].current == 0) {
-					render_tooltip("Server empty!", xpos, settings.window_height - ypos, scaley);
+					if(join) {
+						server_c(serverlist[k].identifier, serverlist[k].name);
+						break;
+					}
 				}
 			}
+		} else {
+			mu_layout_row(ctx, 1, (int[]) {-1}, 0);
+			mu_button_ex(ctx, "Fetching servers...", 0, MU_OPT_NOFRAME | MU_OPT_ALIGNCENTER);
 		}
 		pthread_mutex_unlock(&serverlist_lock);
+		mu_text_color_default(ctx);
+		mu_end_panel(ctx);
+
+		mu_end_window(ctx);
 	}
 
-	if(serverlist_is_outdated) {
-		glColor4f(0.0F, 0.0F, 0.0F, 0.9F);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		texture_draw_empty((settings.window_width - 350 * scaley) / 2.0F,
-						   (settings.window_height - 200 * scaley) / 2.0F + 200 * scaley, 350 * scaley, 200 * scaley);
-		glDisable(GL_BLEND);
-		glColor3f(1.0F, 1.0F, 0.0F);
-		font_centered(settings.window_width / 2.0F, (settings.window_height - 200 * scaley) / 2.0F + 150 * scaley,
-					  22 * scaley, "NEW CLIENT VERSION AVAILABLE!");
-		glColor3f(1.0F, 1.0F, 1.0F);
-		font_centered(settings.window_width / 2.0F,
-					  (settings.window_height - 200 * scaley) / 2.0F + (100 - 22) * scaley, 16 * scaley,
-					  "Your game is outdated and should be");
-		font_centered(settings.window_width / 2.0F,
-					  (settings.window_height - 200 * scaley) / 2.0F + (100 - 22 - 16) * scaley, 16 * scaley,
-					  "updated immediately.");
-		font_centered(settings.window_width / 2.0F,
-					  (settings.window_height - 200 * scaley) / 2.0F + (100 - 22 - 32) * scaley, 16 * scaley,
-					  "Head over to https://aos.party/bs or click");
+	if(serverlist_is_outdated
+	   && mu_begin_window_ex(ctx, "NEW CLIENT VERSION AVAILABLE!", mu_rect(300, 200, 350, 200),
+							 MU_OPT_HOLDFOCUS | MU_OPT_NORESIZE | MU_OPT_NOCLOSE)) {
+		mu_Container* cnt = mu_get_current_container(ctx);
+		mu_bring_to_front(ctx, cnt);
+		cnt->rect = mu_rect((settings.window_width - 350 * scaley) / 2, 200 * scaley, 350 * scaley, 200 * scaley);
+		mu_layout_row(ctx, 1, (int[]) {-1}, -ctx->text_height(ctx->style->font) * 1.75F);
+		mu_text(ctx,
+				"Your game is outdated and should be updated immediately.\n\n"
+				"Head over to https://aos.party/bs.");
+		int A = ctx->text_width(ctx->style->font, "Close", 0) * 1.6F;
+		mu_layout_row(ctx, 2, (int[]) {-A, -1}, 0);
+		if(mu_button(ctx, "Go to website"))
+			file_url("https://aos.party/bs");
+		if(mu_button(ctx, "Close"))
+			cnt->open = 0;
+		mu_end_window(ctx);
 	}
 
-	if(window_time() - chat_popup_timer < chat_popup_duration) {
-		float fade = 1.0F - (window_time() - chat_popup_timer) / chat_popup_duration;
-		glColor4f(1.0F, 0.0F, 0.0F, (fade > 0.25F) ? 0.9F : fade / 0.25F * 0.9F);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		texture_draw_empty((settings.window_width - 350 * scaley) / 2.0F,
-						   (settings.window_height - 100 * scaley) / 2.0F + 100 * scaley, 350 * scaley, 100 * scaley);
-		glDisable(GL_BLEND);
-		glColor4f(1.0F, 1.0F, 1.0F, (fade > 0.25F) ? 1.0F : fade / 0.25F);
-		char reason_str[32];
-		sprintf(reason_str, "Reason: %s.", chat_popup);
-		font_centered(settings.window_width / 2.0F, (settings.window_height - 100 * scaley) / 2.0F + 80 * scaley,
-					  22 * scaley, "Disconnected from server");
-		font_centered(settings.window_width / 2.0F, (settings.window_height - 100 * scaley) / 2.0F + (80 - 40) * scaley,
-					  22 * scaley, reason_str);
+	if(window_time() - chat_popup_timer < chat_popup_duration
+	   && mu_begin_window_ex(ctx, "Disconnected from server", mu_rect(200, 250, 300, 100),
+							 MU_OPT_HOLDFOCUS | MU_OPT_NORESIZE | MU_OPT_NOCLOSE)) {
+		mu_Container* cnt = mu_get_current_container(ctx);
+		mu_bring_to_front(ctx, cnt);
+		cnt->rect = mu_rect((settings.window_width - 300 * scaley) / 2, 250 * scaley, 300 * scaley, 100 * scaley);
+		mu_layout_row(ctx, 2, (int[]) {ctx->text_width(ctx->style->font, "Reason:", 0) * 1.5F, -1}, 0);
+		mu_text(ctx, "Reason:");
+		mu_text(ctx, chat_popup);
+		mu_end_window(ctx);
 	}
 
 	if(request_news) {
@@ -2351,625 +2374,277 @@ static void hud_serverlist_render(float scalex, float scaley) {
 				break;
 		}
 	}
-
-	double x, y;
-	window_mouseloc(&x, &y);
-	if(is_inside(x, settings.window_height - y, settings.window_width / 2.0F + 90 * scaley, (485 - 32) * scaley,
-				 32 * scaley, 32 * scaley))
-		render_tooltip("Join address", x, y, scaley);
-
-	if(is_inside(x, settings.window_height - y, settings.window_width / 2.0F + 130 * scaley, (485 - 32) * scaley,
-				 32 * scaley, 32 * scaley))
-		render_tooltip("Refresh", x, y, scaley);
-
-	if(render_status_icon) {
-		glColor3f(1.0F, 1.0F, 1.0F);
-		texture_draw_rotated(serverlist_con_established ? &texture_ui_wait : &texture_ui_alert,
-							 settings.window_width / 2.0F, settings.window_height / 2.0F, 48 * scaley, 48 * scaley,
-							 serverlist_con_established ? -window_time() * 5.0F : 0.0F);
-		font_centered(settings.window_width / 2.0F, settings.window_height / 2.0F - 24 * scaley, 18 * scaley,
-					  serverlist_con_established ? "Please wait..." : "No connection");
-	}
-}
-
-static void hud_serverlist_scroll(double yoffset) {
-	if(!hud_serverlist_drag) {
-		double x, y;
-		window_mouseloc(&x, &y);
-		float scaley = settings.window_height / 600.0F;
-
-		if(serverlist_news_exists
-		   && is_inside(x, settings.window_height - y, (settings.window_width - 600 * scaley) / 2.0F,
-						420 * scaley - serverlist_scroll - 128 * scaley, 600 * scaley, 128 * scaley)) {
-			serverlist_news_scroll
-				= max(min(serverlist_news_scroll + yoffset * 10.0F, 0.0F), -hud_serverlist_news_width() + 600);
-		} else {
-			serverlist_scroll += yoffset * 20.0F;
-		}
-	}
-}
-
-static void server_c(char* address, char* name) {
-	if(file_exists(address)) {
-		void* data = file_load(address);
-		map_vxl_load(data, file_size(address));
-		free(data);
-		chunk_rebuild_all();
-		camera_mode = CAMERAMODE_FPS;
-		players[local_player_id].pos.x = map_size_x / 2.0F;
-		players[local_player_id].pos.y = map_size_y - 1.0F;
-		players[local_player_id].pos.z = map_size_z / 2.0F;
-		window_title(address);
-		hud_change(&hud_ingame);
-	} else {
-		window_title(name);
-		if(name && address) {
-			rpc_setv(RPC_VALUE_SERVERNAME, name);
-			rpc_setv(RPC_VALUE_SERVERURL, address);
-			rpc_seti(RPC_VALUE_SLOTS, 32);
-		} else {
-			rpc_seti(RPC_VALUE_SLOTS, 0);
-		}
-		hud_change(network_connect_string(address) ? &hud_ingame : &hud_serverlist);
-	}
-}
-
-static void hud_serverlist_mouseclick(double x, double y, int button, int action, int mods) {
-	float scaley = settings.window_height / 600.0F;
-
-	if(action == WINDOW_PRESS) {
-		if(serverlist_is_outdated) {
-			serverlist_is_outdated = 0;
-			file_url("https://aos.party/bs");
-			return;
-		}
-		if(serverlist_hover >= 0) {
-			pthread_mutex_lock(&serverlist_lock);
-			server_c(serverlist[serverlist_hover].identifier, serverlist[serverlist_hover].name);
-			pthread_mutex_unlock(&serverlist_lock);
-		}
-
-		if(x >= (settings.window_width - 600 * scaley) / 2.0F + 250 * scaley - font_length(20 * scaley, "Settings") / 2
-		   && x
-			   < (settings.window_width - 600 * scaley) / 2.0F + 250 * scaley + font_length(20 * scaley, "Settings") / 2
-		   && y >= 77 * scaley && y < 97 * scaley) {
-			hud_change(&hud_settings);
-		}
-
-		if(x >= (settings.window_width - 600 * scaley) / 2.0F + 340 * scaley - font_length(20 * scaley, "Controls") / 2
-		   && x
-			   < (settings.window_width - 600 * scaley) / 2.0F + 340 * scaley + font_length(20 * scaley, "Controls") / 2
-		   && y >= 77 * scaley && y < 97 * scaley) {
-			hud_change(&hud_controls);
-		}
-
-		// inside progress bar thingy
-		float progress
-			= serverlist_scroll / (-(server_count * 20 - 430 + 50) * scaley - hud_serverlist_news_height(scaley));
-		if(x >= (settings.window_width - 600 * scaley) / 2.0F - 20 * scaley
-		   && x <= (settings.window_width - 600 * scaley) / 2.0F - 20 * scaley + 10 * scaley
-		   && y <= settings.window_height - (450 * scaley - (430 - 50) * scaley * progress - 20 * scaley)
-		   && y >= settings.window_height - (450 * scaley - (430 - 50) * scaley * progress)) {
-			hud_serverlist_drag = 1;
-		}
-
-		// texture_draw(&texture_ui_join,settings.window_width/2.0F+90*scaley,485*scaley,32*scaley,32*scaley);
-		if(is_inside(x, settings.window_height - y, settings.window_width / 2.0F + 90 * scaley, (485 - 32) * scaley,
-					 32 * scaley, 32 * scaley)
-		   && strlen(chat[0][0]) > 0)
-			server_c(chat[0][0], NULL);
-
-		if(is_inside(x, settings.window_height - y, settings.window_width / 2.0F + 130 * scaley, (485 - 32) * scaley,
-					 32 * scaley, 32 * scaley))
-			hud_change(&hud_serverlist);
-
-		if(serverlist_news_exists) {
-			float news_offset = 0.0F;
-			float prev_loc = 0.0F, next_loc = 0.0F;
-			struct serverlist_news_entry* current = &serverlist_news;
-			while(current) {
-				if(-serverlist_news_scroll >= news_offset
-				   && -serverlist_news_scroll < news_offset + current->tile_size * 128 + 10) {
-					next_loc = news_offset + current->tile_size * 128 + 10;
-					break;
-				}
-
-				prev_loc = news_offset;
-				news_offset += current->tile_size * 128 + 10;
-				current = current->next;
-			}
-
-			if(is_inside_centered(x, settings.window_height - y,
-								  (settings.window_width - 600 * scaley) / 2.0F + 16 * scaley,
-								  420 * scaley - serverlist_scroll - 64 * scaley, 32 * scaley, 32 * scaley)
-			   && serverlist_news_scroll <= 0.0F) {
-				serverlist_news_scroll = -prev_loc;
-			}
-			if(is_inside_centered(x, settings.window_height - y,
-								  (settings.window_width - 600 * scaley) / 2.0F + (600 - 32) * scaley,
-								  420 * scaley - serverlist_scroll - 64 * scaley, 32 * scaley, 32 * scaley)
-			   && current->next) {
-				serverlist_news_scroll = max(-next_loc, -hud_serverlist_news_width() + 600);
-			}
-
-			if(serverlist_news_hover) {
-				if(!strncmp("aos://", serverlist_news_hover->url, 6))
-					server_c(serverlist_news_hover->url, serverlist_news_hover->caption);
-				else
-					file_url(serverlist_news_hover->url);
-			}
-		}
-	}
-
-	if(hud_serverlist_drag && action == WINDOW_RELEASE)
-		hud_serverlist_drag = 0;
-}
-
-void hud_serverlist_mouselocation(double x, double y) {
-	if(hud_serverlist_drag) {
-		float scaley = settings.window_height / 600.0F;
-		serverlist_scroll
-			= -((y - 160 * scaley) * (20 * server_count * scaley - 380 * scaley + hud_serverlist_news_height(scaley)))
-			/ (380 * scaley);
-		return;
-	}
 }
 
 static void hud_serverlist_touch(void* finger, int action, float x, float y, float dx, float dy) {
 	window_setmouseloc(x, y);
-	switch(action) {
+	/*switch(action) {
 		case TOUCH_DOWN: hud_serverlist_mouseclick(x, y, WINDOW_MOUSE_LMB, WINDOW_PRESS, 0); break;
 		case TOUCH_MOVE: hud_serverlist_mouselocation(x, y); break;
 		case TOUCH_UP: hud_serverlist_mouseclick(x, y, WINDOW_MOUSE_LMB, WINDOW_RELEASE, 0); break;
-	}
-}
-
-static void hud_serverlist_keyboard(int key, int action, int mods, int internal) {
-	if(action != WINDOW_RELEASE) {
-		if(!hud_serverlist_drag) {
-			if(key == WINDOW_KEY_UP || key == WINDOW_KEY_CURSOR_UP)
-				serverlist_scroll += 20.0F;
-			if(key == WINDOW_KEY_DOWN || key == WINDOW_KEY_CURSOR_DOWN)
-				serverlist_scroll -= 20.0F;
-		}
-		if(key == WINDOW_KEY_BACKSPACE) {
-			size_t text_len = strlen(chat[0][0]);
-			if(text_len > 0)
-				chat[0][0][text_len - 1] = 0;
-		}
-		if(key == WINDOW_KEY_ENTER && strlen(chat[0][0]) > 0)
-			server_c(chat[0][0], NULL);
-	}
+	}*/
 }
 
 struct hud hud_serverlist = {
 	hud_serverlist_init,
-	(void*)NULL,
+	NULL,
 	hud_serverlist_render,
-	hud_serverlist_keyboard,
-	hud_serverlist_mouselocation,
-	hud_serverlist_mouseclick,
-	hud_serverlist_scroll,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
 	hud_serverlist_touch,
+	hud_serverlist_ui_images,
 	0,
 	0,
+	NULL,
 };
 
 /*         HUD_SETTINGS START        */
 
-static struct config_setting* hud_settings_edit = NULL;
-
 static void hud_settings_init() {
 	memcpy(&settings_tmp, &settings, sizeof(struct RENDER_OPTIONS));
-	chat_input_mode = CHAT_ALL_INPUT;
-	chat[0][0][0] = 0;
 }
 
-static void hud_settings_render(float scalex, float scaley) {
+static int int_slider(mu_Context* ctx, int* value, int low, int high) {
+	float tmp = *value;
+	mu_push_id(ctx, &value, sizeof(value));
+	int res = mu_slider_ex(ctx, &tmp, low, high, 0, "%.0f", MU_OPT_ALIGNCENTER);
+	mu_pop_id(ctx);
+	*value = round(tmp);
+	return res;
+}
+
+static int int_number(mu_Context* ctx, int* value) {
+	float tmp = *value;
+	mu_push_id(ctx, &value, sizeof(value));
+	int res = mu_number_ex(ctx, &tmp, 1, "%.0f", MU_OPT_ALIGNCENTER);
+	mu_pop_id(ctx);
+	*value = max(round(tmp), 0);
+	return res;
+}
+
+static struct texture* hud_settings_ui_images(int icon_id, bool* resize) {
+	switch(icon_id) {
+		case MU_ICON_CHECK: return &texture_ui_box_check;
+		case MU_ICON_EXPANDED: return &texture_ui_expanded;
+		case MU_ICON_COLLAPSED: return &texture_ui_collapsed;
+		default: return NULL;
+	}
+}
+
+static void hud_settings_render(mu_Context* ctx, float scalex, float scaley) {
 	glColor3f(0.5F, 0.5F, 0.5F);
 	float t = window_time() * 0.03125F;
 	texture_draw_sector(&texture_ui_bg, 0.0F, settings.window_height, settings.window_width, settings.window_height, t,
 						t, settings.window_width / 512.0F, settings.window_height / 512.0F);
 
-	glColor4f(0.0F, 0.0F, 0.0F, 0.66F);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	texture_draw_empty((settings.window_width - 640 * scaley) / 2.0F, 550 * scaley, 640 * scaley, 600 * scaley);
-	glDisable(GL_BLEND);
+	mu_Rect frame = mu_rect(settings.window_width * 0.125F, 0, settings.window_width * 0.75F, settings.window_height);
 
-	glColor3f(1.0F, 1.0F, 0.0F);
-	font_render((settings.window_width - 600 * scaley) / 2.0F + 0 * scaley, 535 * scaley, 36 * scaley, "Settings");
-	font_centered((settings.window_width - 600 * scaley) / 2.0F + 174 * scaley, 70 * scaley, 30 * scaley, "Apply");
-	glColor3f(0.5F, 0.5F, 0.5F);
-	font_centered((settings.window_width - 600 * scaley) / 2.0F + 210 * scaley, 535 * scaley - 12 * scaley, 20 * scaley,
-				  "Controls");
-	font_centered((settings.window_width - 600 * scaley) / 2.0F + 320 * scaley, 535 * scaley - 12 * scaley, 20 * scaley,
-				  "Server list");
+	if(mu_begin_window_ex(ctx, "Main", frame, MU_OPT_NOFRAME | MU_OPT_NOTITLE | MU_OPT_NORESIZE)) {
+		mu_Container* cnt = mu_get_current_container(ctx);
+		cnt->rect = frame;
 
-	for(int k = 0; k < list_size(&config_settings); k++) {
-		struct config_setting* a = list_get(&config_settings, k);
+		int A = ctx->text_width(ctx->style->font, "Servers", 0) * 1.5F;
+		int B = ctx->text_width(ctx->style->font, "Settings", 0) * 1.5F;
+		int C = ctx->text_width(ctx->style->font, "Controls", 0) * 1.5F;
+		mu_layout_row(ctx, 4, (int[]) {A, B, C, -1}, 0);
+		if(mu_button(ctx, "Servers"))
+			hud_change(&hud_serverlist);
+		mu_text_color(ctx, 255, 255, 0);
+		mu_button_ex(ctx, "Settings", 0, MU_OPT_NOINTERACT | MU_OPT_ALIGNCENTER);
+		mu_text_color_default(ctx);
+		if(mu_button(ctx, "Controls"))
+			hud_change(&hud_controls);
 
-		float row_offset = (k + 1) / 2;
-		float col_offset = 0.0F;
-		if(k > 0)
-			col_offset = ((k + 1) & 1) ? 314 * scaley : 0;
+		mu_button_ex(ctx, "", 0, MU_OPT_ALIGNRIGHT | MU_OPT_NOINTERACT);
 
-		glColor3f(1.0F, 1.0F, 1.0F);
-		font_render((settings.window_width - 600 * scaley) / 2.0F + col_offset, (460 - 40 * row_offset) * scaley,
-					16 * scaley, a->name);
+		mu_layout_row(ctx, 1, (int[]) {-1}, -1);
 
-		char tmp[32];
-		switch(a->type) {
-			case CONFIG_TYPE_STRING:
-				glColor3f(1.0F, 1.0F, 1.0F);
-				texture_draw_sector(&texture_ui_input,
-									(settings.window_width - 600 * scaley) / 2.0F + 154 * scaley + col_offset,
-									(466 - 40 * row_offset) * scaley, 8 * scaley, 32 * scaley, 0.0F, 0.0F, 0.25F, 1.0F);
-				texture_draw_sector(
-					&texture_ui_input, (settings.window_width - 600 * scaley) / 2.0F + 162 * scaley + col_offset,
-					(466 - 40 * row_offset) * scaley, 200 * scaley, 32 * scaley, 0.25F, 0.0F, 0.5F, 1.0F);
-				texture_draw_sector(
-					&texture_ui_input, settings.window_width / 2.0F - 300 * scaley + 362 * scaley + col_offset,
-					(466 - 40 * row_offset) * scaley, 8 * scaley, 32 * scaley, 0.75F, 0.0F, 0.25F, 1.0F);
-				if(hud_settings_edit == a)
-					glColor3f(1.0F, 0.0F, 0.0F);
-				font_render((settings.window_width - 600 * scaley) / 2.0F + 162 * scaley + col_offset,
-							(460 - 40 * row_offset) * scaley, 20 * scaley,
-							(hud_settings_edit == a) ? chat[0][0] : a->value);
-				break;
-			case CONFIG_TYPE_INT:
-				glColor3f(1.0F, 1.0F, 1.0F);
-				if(hud_settings_edit == a)
-					strcpy(tmp, chat[0][0]);
-				else
-					sprintf(tmp, "%i", *(int*)a->value);
-				if(a->max == 1) {
-					texture_draw_rotated(*(int*)a->value ? &texture_ui_box_check : &texture_ui_box_empty,
-										 (settings.window_width - 600 * scaley) / 2.0F + 220 * scaley + col_offset,
-										 (450 - 40 * row_offset) * scaley, 32 * scaley, 32 * scaley, 0.0F);
-				} else {
-					texture_draw_rotated(&texture_ui_arrow,
-										 (settings.window_width - 600 * scaley) / 2.0F + 270 * scaley + col_offset,
-										 (450 - 40 * row_offset) * scaley, 32 * scaley, 32 * scaley, 0.0F);
-					texture_draw_rotated(&texture_ui_arrow,
-										 (settings.window_width - 600 * scaley) / 2.0F + 170 * scaley + col_offset,
-										 (450 - 40 * row_offset) * scaley, 32 * scaley, 32 * scaley, PI);
-					if(hud_settings_edit == a)
-						glColor3f(1.0F, 0.0F, 0.0F);
-					font_centered((settings.window_width - 600 * scaley) / 2.0F + 220 * scaley + col_offset,
-								  (460 - 40 * row_offset) * scaley, 20 * scaley, tmp);
-				}
-				break;
-			case CONFIG_TYPE_FLOAT:
-				glColor3f(1.0F, 1.0F, 1.0F);
-				texture_draw_rotated(&texture_ui_arrow,
-									 (settings.window_width - 600 * scaley) / 2.0F + 270 * scaley + col_offset,
-									 (450 - 40 * row_offset) * scaley, 32 * scaley, 32 * scaley, 0.0F);
-				texture_draw_rotated(&texture_ui_arrow,
-									 (settings.window_width - 600 * scaley) / 2.0F + 170 * scaley + col_offset,
-									 (450 - 40 * row_offset) * scaley, 32 * scaley, 32 * scaley, PI);
-				if(hud_settings_edit == a) {
-					glColor3f(1.0F, 0.0F, 0.0F);
-					strcpy(tmp, chat[0][0]);
-				} else {
-					sprintf(tmp, "%0.2f", *(float*)a->value);
-				}
-				font_centered((settings.window_width - 600 * scaley) / 2.0F + 220 * scaley + col_offset,
-							  (460 - 40 * row_offset) * scaley, 20 * scaley, tmp);
-				break;
-		}
-	}
+		mu_begin_panel(ctx, "Content");
 
-	// now find the correct help str and draw it above everything else
-	double x, y;
-	window_mouseloc(&x, &y);
-	for(int k = 0; k < list_size(&config_settings); k++) {
-		struct config_setting* a = list_get(&config_settings, k);
+		if(mu_header_ex(ctx, "All settings", MU_OPT_EXPANDED)) {
+			int width = mu_get_current_container(ctx)->body.w;
 
-		float row_offset = (k + 1) / 2;
-		float col_offset = 0.0F;
-		if(k > 0)
-			col_offset = ((k + 1) & 1) ? 314 * scaley : 0;
+			for(int k = 0; k < list_size(&config_settings); k++) {
+				struct config_setting* a = list_get(&config_settings, k);
 
-		if(is_inside(x, settings.window_height - y, (settings.window_width - 600 * scaley) / 2.0F + col_offset,
-					 (435 - 40 * row_offset) * scaley, 300 * scaley, 32 * scaley)) {
-			render_tooltip(a->help, x, y, scaley);
-			break;
-		}
-	}
-}
+				mu_layout_row(ctx, 3, (int[]) {0.65F * width, -0.05F * width, -1}, 0);
 
-static int is_int(const char* x) {
-	while(*x) {
-		if(!(*x >= '0' && *x <= '9'))
-			return 0;
-		x++;
-	}
-	return 1;
-}
-
-static int is_float(char* x) {
-	char* decimalpoint = strchr(x, '.');
-	if(!decimalpoint) {
-		return is_int(x);
-	} else {
-		*decimalpoint = 0;
-		if(is_int(x)) {
-			if(is_int(decimalpoint + 1)) {
-				*decimalpoint = '.';
-				return 1;
-			} else {
-				return 0;
-			}
-		} else {
-			return 0;
-		}
-	}
-}
-
-static void hud_settings_keyboard(int key, int action, int mods, int internal) {
-	if(hud_settings_edit && action != WINDOW_RELEASE && key == WINDOW_KEY_BACKSPACE) {
-		size_t text_len = strlen(chat[0][0]);
-		if(text_len > 0) {
-			chat[0][0][text_len - 1] = 0;
-		}
-	}
-}
-
-static void hud_settings_mouseclick(double x, double y, int button, int action, int mods) {
-	if(action == WINDOW_PRESS) {
-		if(hud_settings_edit) {
-			if(strlen(chat[0][0])) {
-				switch(hud_settings_edit->type) {
+				switch(a->type) {
+					case CONFIG_TYPE_STRING:
+						mu_text(ctx, a->name);
+						mu_textbox(ctx, a->value, a->max + 1);
+						break;
 					case CONFIG_TYPE_INT:
-						if(is_int(chat[0][0]))
-							*(int*)hud_settings_edit->value
-								= max(min(strtol(chat[0][0], NULL, 10), hud_settings_edit->max), 0);
+						if(a->max == 1) {
+							mu_text(ctx, a->name);
+							mu_checkbox(ctx, "", a->value);
+						} else if(a->max == INT_MAX) {
+							mu_text(ctx, a->name);
+							int_number(ctx, a->value);
+						} else {
+							mu_text(ctx, a->name);
+							int_slider(ctx, a->value, 0, a->max);
+						}
 						break;
 					case CONFIG_TYPE_FLOAT:
-						if(is_float(chat[0][0]))
-							*(float*)hud_settings_edit->value
-								= max(min(strtod(chat[0][0], NULL), hud_settings_edit->max), 0);
-						break;
-					case CONFIG_TYPE_STRING:
-						strncpy(hud_settings_edit->value, chat[0][0], hud_settings_edit->max);
+						mu_text(ctx, a->name);
+						if(a->max == INT_MAX) {
+							mu_number(ctx, a->value, 0.1F);
+							*(float*)a->value = max(0, *(float*)a->value);
+						} else {
+							mu_slider(ctx, a->value, 0, a->max);
+						}
 						break;
 				}
-			}
-			window_textinput(0);
-			hud_settings_edit = NULL;
-		}
 
-		float scaley = settings.window_height / 600.0F;
+				if(*a->help) {
+					mu_push_id(ctx, &a->value, sizeof(a->value));
+					if(mu_begin_popup(ctx, "Help")) {
+						mu_layout_row(ctx, 1, (int[]) {ctx->text_width(ctx->style->font, a->help, 0)}, 0);
+						mu_text(ctx, a->help);
+						mu_end_popup(ctx);
+					}
 
-		if(x >= (settings.window_width - 600 * scaley) / 2.0F + 320 * scaley
-				   - font_length(20 * scaley, "Server list") / 2
-		   && x < (settings.window_width - 600 * scaley) / 2.0F + 320 * scaley
-				   + font_length(20 * scaley, "Server list") / 2
-		   && y >= 77 * scaley && y < 97 * scaley) {
-			hud_change(&hud_serverlist);
-		}
-
-		if(x >= (settings.window_width - 600 * scaley) / 2.0F + 210 * scaley - font_length(20 * scaley, "Controls") / 2
-		   && x
-			   < (settings.window_width - 600 * scaley) / 2.0F + 210 * scaley + font_length(20 * scaley, "Controls") / 2
-		   && y >= 77 * scaley && y < 97 * scaley) {
-			hud_change(&hud_controls);
-		}
-
-		y = settings.window_height - y;
-
-		if(x >= (settings.window_width - 600 * scaley) / 2.0F + 174 * scaley - font_length(30 * scaley, "Apply") / 2
-		   && x < (settings.window_width - 600 * scaley) / 2.0F + 174 * scaley + font_length(30 * scaley, "Apply") / 2
-		   && y >= 40 * scaley && y < 70 * scaley) {
-			memcpy(&settings, &settings_tmp, sizeof(struct RENDER_OPTIONS));
-			window_fromsettings();
-			sound_volume(settings.volume / 10.0F);
-			config_save();
-		}
-
-		for(int k = 0; k < list_size(&config_settings); k++) {
-			struct config_setting* a = list_get(&config_settings, k);
-
-			float row_offset = (k + 1) / 2;
-			float col_offset = 0.0F;
-			if(k > 0)
-				col_offset = ((k + 1) & 1) ? 314 * scaley : 0;
-
-			if(is_inside_centered(x, y, (settings.window_width - 600 * scaley) / 2.0F + 220 * scaley + col_offset,
-								  (450 - 40 * row_offset) * scaley, 68 * scaley, 32 * scaley)
-			   && !(a->type == CONFIG_TYPE_INT && a->max == 1)) {
-				hud_settings_edit = a;
-				switch(a->type) {
-					case CONFIG_TYPE_INT: sprintf(chat[0][0], "%i", *(int*)a->value); break;
-					case CONFIG_TYPE_FLOAT: sprintf(chat[0][0], "%0.2f", *(float*)a->value); break;
-					case CONFIG_TYPE_STRING: strcpy(chat[0][0], a->value); break;
+					if(mu_button(ctx, "?"))
+						mu_open_popup(ctx, "Help");
+					mu_pop_id(ctx);
+				} else {
+					mu_layout_next(ctx);
 				}
-				window_textinput(1);
 			}
-			switch(a->type) {
-				case CONFIG_TYPE_INT:
-					if(a->max == 1) {
-						if(is_inside_centered(
-							   x, y, (settings.window_width - 600 * scaley) / 2.0F + 220 * scaley + col_offset,
-							   (450 - 40 * row_offset) * scaley, 32 * scaley, 32 * scaley)) { // checkbox pressed
-							*(int*)a->value = !*(int*)a->value;
-						}
-					} else {
-						if(is_inside_centered(
-							   x, y, (settings.window_width - 600 * scaley) / 2.0F + 270 * scaley + col_offset,
-							   (450 - 40 * row_offset) * scaley, 32 * scaley, 32 * scaley)) { // right arrow pressed
-							int next = a->defaults_length ? (*(int*)a->value) : ((*(int*)a->value) + 1);
-							int diff = INT_MAX;
-							for(int l = 0; l < a->defaults_length; l++) {
-								if(a->defaults[l] > *(int*)a->value && a->defaults[l] - *(int*)a->value < diff) {
-									diff = a->defaults[l] - *(int*)a->value;
-									next = a->defaults[l];
-								}
-							}
-							*(int*)a->value = min(next, a->max);
-						}
-						if(is_inside_centered(
-							   x, y, (settings.window_width - 600 * scaley) / 2.0F + 170 * scaley + col_offset,
-							   (450 - 40 * row_offset) * scaley, 32 * scaley, 32 * scaley)) { // left arrow pressed
-							int next = a->defaults_length ? (*(int*)a->value) : ((*(int*)a->value) - 1);
-							int diff = INT_MAX;
-							for(int l = 0; l < a->defaults_length; l++) {
-								if(a->defaults[l] < *(int*)a->value && *(int*)a->value - a->defaults[l] < diff) {
-									diff = *(int*)a->value - a->defaults[l];
-									next = a->defaults[l];
-								}
-							}
-							*(int*)a->value = max(next, 0);
-						}
-					}
-					break;
-				case CONFIG_TYPE_FLOAT:
-					if(is_inside_centered(
-						   x, y, (settings.window_width - 600 * scaley) / 2.0F + 270 * scaley + col_offset,
-						   (450 - 40 * row_offset) * scaley, 32 * scaley, 32 * scaley)) { // right arrow pressed
-						*(float*)a->value = min((*(float*)a->value) + 0.1F, a->max);
-					}
-					if(is_inside_centered(
-						   x, y, (settings.window_width - 600 * scaley) / 2.0F + 170 * scaley + col_offset,
-						   (450 - 40 * row_offset) * scaley, 32 * scaley, 32 * scaley)) { // left arrow pressed
-						*(float*)a->value = max((*(float*)a->value) - 0.1F, 0);
-					}
-					break;
+
+			mu_layout_row(ctx, 3, (int[]) {0.65F * width, -0.05F * width, -1}, 0);
+			mu_layout_next(ctx);
+
+			if(mu_button(ctx, "Apply changes")) {
+				memcpy(&settings, &settings_tmp, sizeof(struct RENDER_OPTIONS));
+				window_fromsettings();
+				sound_volume(settings.volume / 10.0F);
+				config_save();
 			}
 		}
+
+		if(mu_header_ex(ctx, "Help", MU_OPT_EXPANDED)) {
+			mu_layout_row(ctx, 1, (int[]) {-1}, -1);
+			mu_text(ctx,
+					"To edit a value directly, [SHIFT]+LMB on its container to change it using the keyboard. You can "
+					"also drag on a container to modify its value relative to its current one.\n\nWhen finished click "
+					"[Apply changes] so that your settings are not lost.");
+		}
+
+		mu_end_panel(ctx);
+
+		mu_end_window(ctx);
 	}
 }
 
 static void hud_settings_touch(void* finger, int action, float x, float y, float dx, float dy) {
 	window_setmouseloc(x, y);
-	switch(action) {
-		case TOUCH_DOWN: hud_settings_mouseclick(x, y, WINDOW_MOUSE_LMB, WINDOW_PRESS, 0); break;
-		case TOUCH_UP: hud_settings_mouseclick(x, y, WINDOW_MOUSE_LMB, WINDOW_RELEASE, 0); break;
-	}
 }
 
 struct hud hud_settings = {
 	hud_settings_init,
-	(void*)NULL,
+	NULL,
 	hud_settings_render,
-	hud_settings_keyboard,
-	(void*)NULL,
-	hud_settings_mouseclick,
-	(void*)NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
 	hud_settings_touch,
+	hud_settings_ui_images,
 	0,
 	0,
+	NULL,
 };
 
 /*         HUD_CONTROLS START        */
 
-static struct config_key_pair* hud_controls_edit = NULL;
+static struct config_key_pair* hud_controls_edit;
 
-static void hud_controls_render(float scalex, float scaley) {
+static void hud_controls_init() {
+	hud_controls_edit = NULL;
+}
+
+static void hud_controls_render(mu_Context* ctx, float scalex, float scaley) {
 	glColor3f(0.5F, 0.5F, 0.5F);
 	float t = window_time() * 0.03125F;
 	texture_draw_sector(&texture_ui_bg, 0.0F, settings.window_height, settings.window_width, settings.window_height, t,
 						t, settings.window_width / 512.0F, settings.window_height / 512.0F);
 
-	glColor4f(0.0F, 0.0F, 0.0F, 0.66F);
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-	texture_draw_empty((settings.window_width - 640 * scaley) / 2.0F, 550 * scaley, 640 * scaley, 600 * scaley);
-	glDisable(GL_BLEND);
+	mu_Rect frame = mu_rect(settings.window_width * 0.125F, 0, settings.window_width * 0.75F, settings.window_height);
 
-	glColor3f(1.0F, 1.0F, 0.0F);
-	font_render((settings.window_width - 600 * scaley) / 2.0F + 0 * scaley, 535 * scaley, 36 * scaley, "Controls");
-	glColor3f(0.5F, 0.5F, 0.5F);
-	font_centered((settings.window_width - 600 * scaley) / 2.0F + 225 * scaley, 535 * scaley - 12 * scaley, 20 * scaley,
-				  "Server list");
-	font_centered((settings.window_width - 600 * scaley) / 2.0F + 340 * scaley, 535 * scaley - 12 * scaley, 20 * scaley,
-				  "Settings");
+	if(mu_begin_window_ex(ctx, "Main", frame, MU_OPT_NOFRAME | MU_OPT_NOTITLE | MU_OPT_NORESIZE)) {
+		mu_Container* cnt = mu_get_current_container(ctx);
+		cnt->rect = frame;
 
-	int x_off = 0;
-	int y_off = 0;
-	for(int k = 0; k < list_size(&config_keys); k++) {
-		struct config_key_pair* a = list_get(&config_keys, k);
-		if(*a->display) {
-			glColor3f(1.0F, 1.0F, 1.0F);
-			font_render((settings.window_width - 600 * scaley) / 2.0F + 200 * x_off * scaley,
-						(460 - 40 * y_off) * scaley, 16 * scaley, a->display);
-
-			texture_draw_sector(&texture_ui_input,
-								(settings.window_width - 600 * scaley) / 2.0F + (200 * x_off + 110) * scaley,
-								(466 - 40 * y_off) * scaley, 8 * scaley, 32 * scaley, 0.0F, 0.0F, 0.25F, 1.0F);
-			texture_draw_sector(&texture_ui_input,
-								(settings.window_width - 600 * scaley) / 2.0F + (200 * x_off + 118) * scaley,
-								(466 - 40 * y_off) * scaley, 64 * scaley, 32 * scaley, 0.25F, 0.0F, 0.5F, 1.0F);
-			texture_draw_sector(&texture_ui_input,
-								(settings.window_width - 600 * scaley) / 2.0F + (200 * x_off + 182) * scaley,
-								(466 - 40 * y_off) * scaley, 8 * scaley, 32 * scaley, 0.75F, 0.0F, 0.25F, 1.0F);
-
-			if(hud_controls_edit == a)
-				glColor3f(1.0F, 0.0F, 0.0F);
-			font_centered((settings.window_width - 600 * scaley) / 2.0F + (200 * x_off + 150) * scaley,
-						  (460 - 40 * y_off) * scaley, 20 * scaley, window_keyname(a->def));
-
-			y_off++;
-			if(y_off > 10) {
-				y_off = 0;
-				x_off++;
-			}
-		}
-	}
-}
-
-static void hud_controls_mouseclick(double x, double y, int button, int action, int mods) {
-	if(action == WINDOW_PRESS) {
-		if(hud_controls_edit)
-			hud_controls_edit = NULL;
-
-		float scaley = settings.window_height / 600.0F;
-
-		if(x >= (settings.window_width - 600 * scaley) / 2.0F + 225 * scaley
-				   - font_length(20 * scaley, "Server list") / 2
-		   && x < (settings.window_width - 600 * scaley) / 2.0F + 225 * scaley
-				   + font_length(20 * scaley, "Server list") / 2
-		   && y >= 77 * scaley && y < 97 * scaley) {
+		int A = ctx->text_width(ctx->style->font, "Servers", 0) * 1.5F;
+		int B = ctx->text_width(ctx->style->font, "Settings", 0) * 1.5F;
+		int C = ctx->text_width(ctx->style->font, "Controls", 0) * 1.5F;
+		mu_layout_row(ctx, 4, (int[]) {A, B, C, -1}, 0);
+		if(mu_button(ctx, "Servers"))
 			hud_change(&hud_serverlist);
-		}
-
-		if(x >= (settings.window_width - 600 * scaley) / 2.0F + 340 * scaley - font_length(20 * scaley, "Settings") / 2
-		   && x
-			   < (settings.window_width - 600 * scaley) / 2.0F + 340 * scaley + font_length(20 * scaley, "Settings") / 2
-		   && y >= 77 * scaley && y < 97 * scaley) {
+		if(mu_button(ctx, "Settings"))
 			hud_change(&hud_settings);
-		}
+		mu_text_color(ctx, 255, 255, 0);
+		mu_button_ex(ctx, "Controls", 0, MU_OPT_NOINTERACT | MU_OPT_ALIGNCENTER);
+		mu_text_color_default(ctx);
+		mu_button_ex(ctx, "", 0, MU_OPT_ALIGNRIGHT | MU_OPT_NOINTERACT);
 
-		y = settings.window_height - y;
+		mu_layout_row(ctx, 1, (int[]) {-1}, -1);
 
-		int x_off = 0;
-		int y_off = 0;
+		mu_begin_panel(ctx, "Content");
+
+		char* category = NULL;
+		int open = 0;
 		for(int k = 0; k < list_size(&config_keys); k++) {
 			struct config_key_pair* a = list_get(&config_keys, k);
+
 			if(*a->display) {
-				if(is_inside(x, y, (settings.window_width - 600 * scaley) / 2.0F + (200 * x_off + 110) * scaley,
-							 (434 - 40 * y_off) * scaley, 80 * scaley, 32 * scaley)) {
-					hud_controls_edit = a;
-					break;
+				if(!category || strcmp(category, a->category)) {
+					category = a->category;
+
+					open = mu_header_ex(ctx, a->category, MU_OPT_EXPANDED);
+					int width = mu_get_current_container(ctx)->body.w;
+					mu_layout_row(ctx, 3, (int[]) {0.65F * width, -0.05F * width, -1}, 0);
 				}
 
-				y_off++;
-				if(y_off > 10) {
-					y_off = 0;
-					x_off++;
+				if(open) {
+					mu_push_id(ctx, a->display, sizeof(a->display));
+					mu_text(ctx, a->display);
+					char name[32];
+					window_keyname(a->def, name, sizeof(name));
+
+					if(hud_controls_edit == a)
+						mu_text_color(ctx, 255, 0, 0);
+					if(mu_button(ctx, name))
+						hud_controls_edit = (hud_controls_edit == a) ? NULL : a;
+					mu_text_color_default(ctx);
+					mu_pop_id(ctx);
+
+					mu_push_id(ctx, a->name, sizeof(a->name));
+					if(mu_begin_popup(ctx, "Help")) {
+						mu_layout_row(ctx, 1, (int[]) {ctx->text_width(ctx->style->font, a->name, 0)}, 0);
+						mu_text(ctx, a->name);
+						mu_end_popup(ctx);
+					}
+
+					if(mu_button(ctx, "?"))
+						mu_open_popup(ctx, "Help");
+					mu_pop_id(ctx);
 				}
 			}
 		}
+
+		mu_end_panel(ctx);
+
+		mu_end_window(ctx);
 	}
 }
 
 static void hud_controls_touch(void* finger, int action, float x, float y, float dx, float dy) {
 	window_setmouseloc(x, y);
-	switch(action) {
-		case TOUCH_DOWN: hud_controls_mouseclick(x, y, WINDOW_MOUSE_LMB, WINDOW_PRESS, 0); break;
-		case TOUCH_UP: hud_controls_mouseclick(x, y, WINDOW_MOUSE_LMB, WINDOW_RELEASE, 0); break;
-	}
 }
 
 static void hud_controls_keyboard(int key, int action, int mods, int internal) {
@@ -2981,14 +2656,16 @@ static void hud_controls_keyboard(int key, int action, int mods, int internal) {
 }
 
 struct hud hud_controls = {
-	(void*)NULL,
-	(void*)NULL,
+	hud_controls_init,
+	NULL,
 	hud_controls_render,
 	hud_controls_keyboard,
-	(void*)NULL,
-	hud_controls_mouseclick,
-	(void*)NULL,
+	NULL,
+	NULL,
+	NULL,
 	hud_controls_touch,
+	hud_settings_ui_images,
 	0,
 	0,
+	NULL,
 };

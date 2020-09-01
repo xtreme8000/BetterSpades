@@ -59,7 +59,8 @@ struct config_key_pair {
 	int def;
 	int toggle;
 	char name[24];
-	char display[16];
+	char display[24];
+	char category[24];
 };
 
 enum {
@@ -80,7 +81,8 @@ struct config_setting {
 
 extern struct list config_settings;
 
-void config_register_key(int internal, int def, const char* name, int toggle, const char* display);
+void config_register_key(int internal, int def, const char* name, int toggle, const char* display,
+						 const char* category);
 int config_key_translate(int key, int dir);
 struct config_key_pair* config_key(int key);
 void config_key_reset_togglestates();

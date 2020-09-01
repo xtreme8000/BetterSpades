@@ -30,6 +30,8 @@ download_file_if_it_doesnt_exist(../deps/libdeflate.h https://raw.githubusercont
 download_file_if_it_doesnt_exist(../bsresources.zip http://aos.party/bsresources.zip)
 download_file_if_it_doesnt_exist(libvxl.c https://raw.githubusercontent.com/xtreme8000/libvxl/master/libvxl.c)
 download_file_if_it_doesnt_exist(libvxl.h https://raw.githubusercontent.com/xtreme8000/libvxl/master/libvxl.h)
+download_file_if_it_doesnt_exist(microui.c https://raw.githubusercontent.com/rxi/microui/master/src/microui.c)
+download_file_if_it_doesnt_exist(microui.h https://raw.githubusercontent.com/rxi/microui/master/src/microui.h)
 
 list(APPEND CLIENT_SOURCES aabb.c)
 list(APPEND CLIENT_SOURCES camera.c)
@@ -67,6 +69,7 @@ list(APPEND CLIENT_SOURCES hashtable.c)
 list(APPEND CLIENT_SOURCES rpc.c)
 list(APPEND CLIENT_SOURCES tesselator.c)
 list(APPEND CLIENT_SOURCES libvxl.c)
+list(APPEND CLIENT_SOURCES microui.c)
 list(APPEND CLIENT_SOURCES ${BetterSpades_SOURCE_DIR}/resources/icon.rc)
 
 add_executable(client ${CLIENT_SOURCES})

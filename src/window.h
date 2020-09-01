@@ -21,6 +21,7 @@
 #define WINDOW_H
 
 #include "common.h"
+#include <stddef.h>
 
 struct window_instance {
 	void* impl;
@@ -29,6 +30,7 @@ struct window_instance {
 enum {
 	WINDOW_PRESS,
 	WINDOW_RELEASE,
+	WINDOW_REPEAT,
 };
 
 enum {
@@ -80,6 +82,7 @@ enum window_keys {
 	WINDOW_KEY_HIDEHUD,
 	WINDOW_KEY_LASTTOOL,
 	WINDOW_KEY_NETWORKSTATS,
+	WINDOW_KEY_SHIFT,
 };
 
 enum {
@@ -112,7 +115,7 @@ extern int window_pressed_keys[64];
 
 void window_textinput(int allow);
 float window_time(void);
-char* window_keyname(int keycode);
+void window_keyname(int keycode, char* output, size_t length);
 const char* window_clipboard(void);
 int window_key_translate(int key, int dir);
 int window_key_down(int key);

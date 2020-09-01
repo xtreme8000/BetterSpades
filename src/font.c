@@ -19,6 +19,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "common.h"
 #include "file.h"
@@ -121,12 +122,18 @@ float font_length(float h, char* text) {
 	stbtt_aligned_quad q;
 	float y = h * 0.75F;
 	float x = 0.0F;
-	for(int k = 0; k < strlen(text); k++) {
+	float length = 0.0F;
+	for(size_t k = 0; k < strlen(text); k++) {
+		if(text[k] == '\n') {
+			length = fmax(length, x);
+			x = 0.0F;
+		}
+
 		if(text[k] > 30) {
 			stbtt_GetBakedQuad(font->cdata, font->w, font->h, text[k] - 31, &x, &y, &q, 1);
 		}
 	}
-	return x + h * 0.125F;
+	return fmax(length, x) + h * 0.125F;
 }
 
 void font_reset() {
@@ -144,17 +151,18 @@ void font_render(float x, float y, float h, char* text) {
 	if(!font)
 		return;
 
-	int chars_x = 16;
-	int chars_y = (font_type == FONT_SMALLFNT) ? 16 : 14;
-	float size_ratio = (font_type == FONT_SMALLFNT) ? 0.75F : 0.49F;
-
-	float i = 0.0F;
-	int k = 0;
+	size_t k = 0;
+	float x2 = x;
 	float y2 = h * 0.75F;
 	while(*text) {
-		if(*text > 31) {
+		if(*text == '\n') {
+			x2 = x;
+			y2 += h;
+		}
+
+		if(*text > 30) {
 			stbtt_aligned_quad q;
-			stbtt_GetBakedQuad(font->cdata, font->w, font->h, *text - 31, &x, &y2, &q, 1);
+			stbtt_GetBakedQuad(font->cdata, font->w, font->h, *text - 31, &x2, &y2, &q, 1);
 			font_coords_buffer[k + 0] = q.s0 * 8192.0F;
 			font_coords_buffer[k + 1] = q.t1 * 8192.0F;
 			font_coords_buffer[k + 2] = q.s1 * 8192.0F;
@@ -183,9 +191,8 @@ void font_render(float x, float y, float h, char* text) {
 			font_vertex_buffer[k + 10] = q.x0;
 			font_vertex_buffer[k + 11] = -q.y0 + y;
 			k += 12;
-		} else {
-			x += h * 0.49F;
 		}
+
 		text++;
 	}
 

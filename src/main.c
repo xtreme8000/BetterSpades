@@ -330,32 +330,32 @@ void display() {
 					if(amount <= (is_local ? local_player_blocks : 50))
 						glColor3f(1.0F, 1.0F, 1.0F);
 
-					short vertices[72] = {cubes[amount - 1].x,	 cubes[amount - 1].y,		cubes[amount - 1].z,
-										  cubes[amount - 1].x,	 cubes[amount - 1].y,		cubes[amount - 1].z + 1,
-										  cubes[amount - 1].x,	 cubes[amount - 1].y,		cubes[amount - 1].z,
+					short vertices[72] = {cubes[amount - 1].x,	   cubes[amount - 1].y,		cubes[amount - 1].z,
+										  cubes[amount - 1].x,	   cubes[amount - 1].y,		cubes[amount - 1].z + 1,
+										  cubes[amount - 1].x,	   cubes[amount - 1].y,		cubes[amount - 1].z,
 										  cubes[amount - 1].x + 1, cubes[amount - 1].y,		cubes[amount - 1].z,
 										  cubes[amount - 1].x + 1, cubes[amount - 1].y,		cubes[amount - 1].z + 1,
 										  cubes[amount - 1].x + 1, cubes[amount - 1].y,		cubes[amount - 1].z,
 										  cubes[amount - 1].x + 1, cubes[amount - 1].y,		cubes[amount - 1].z + 1,
-										  cubes[amount - 1].x,	 cubes[amount - 1].y,		cubes[amount - 1].z + 1,
+										  cubes[amount - 1].x,	   cubes[amount - 1].y,		cubes[amount - 1].z + 1,
 
-										  cubes[amount - 1].x,	 cubes[amount - 1].y + 1, cubes[amount - 1].z,
-										  cubes[amount - 1].x,	 cubes[amount - 1].y + 1, cubes[amount - 1].z + 1,
-										  cubes[amount - 1].x,	 cubes[amount - 1].y + 1, cubes[amount - 1].z,
+										  cubes[amount - 1].x,	   cubes[amount - 1].y + 1, cubes[amount - 1].z,
+										  cubes[amount - 1].x,	   cubes[amount - 1].y + 1, cubes[amount - 1].z + 1,
+										  cubes[amount - 1].x,	   cubes[amount - 1].y + 1, cubes[amount - 1].z,
 										  cubes[amount - 1].x + 1, cubes[amount - 1].y + 1, cubes[amount - 1].z,
 										  cubes[amount - 1].x + 1, cubes[amount - 1].y + 1, cubes[amount - 1].z + 1,
 										  cubes[amount - 1].x + 1, cubes[amount - 1].y + 1, cubes[amount - 1].z,
 										  cubes[amount - 1].x + 1, cubes[amount - 1].y + 1, cubes[amount - 1].z + 1,
-										  cubes[amount - 1].x,	 cubes[amount - 1].y + 1, cubes[amount - 1].z + 1,
+										  cubes[amount - 1].x,	   cubes[amount - 1].y + 1, cubes[amount - 1].z + 1,
 
-										  cubes[amount - 1].x,	 cubes[amount - 1].y,		cubes[amount - 1].z,
-										  cubes[amount - 1].x,	 cubes[amount - 1].y + 1, cubes[amount - 1].z,
+										  cubes[amount - 1].x,	   cubes[amount - 1].y,		cubes[amount - 1].z,
+										  cubes[amount - 1].x,	   cubes[amount - 1].y + 1, cubes[amount - 1].z,
 										  cubes[amount - 1].x + 1, cubes[amount - 1].y,		cubes[amount - 1].z,
 										  cubes[amount - 1].x + 1, cubes[amount - 1].y + 1, cubes[amount - 1].z,
 										  cubes[amount - 1].x + 1, cubes[amount - 1].y,		cubes[amount - 1].z + 1,
 										  cubes[amount - 1].x + 1, cubes[amount - 1].y + 1, cubes[amount - 1].z + 1,
-										  cubes[amount - 1].x,	 cubes[amount - 1].y,		cubes[amount - 1].z + 1,
-										  cubes[amount - 1].x,	 cubes[amount - 1].y + 1, cubes[amount - 1].z + 1};
+										  cubes[amount - 1].x,	   cubes[amount - 1].y,		cubes[amount - 1].z + 1,
+										  cubes[amount - 1].x,	   cubes[amount - 1].y + 1, cubes[amount - 1].z + 1};
 					glEnableClientState(GL_VERTEX_ARRAY);
 					glVertexPointer(3, GL_SHORT, 0, vertices);
 					glDrawArrays(GL_LINES, 0, 24);
@@ -433,8 +433,67 @@ void display() {
 	float scalex = settings.window_width / 800.0F;
 	float scalef = settings.window_height / 600.0F;
 
-	if(hud_active->render_2D)
-		hud_active->render_2D(scalex, scalef);
+	if(hud_active->render_2D) {
+		mu_Context* ctx = hud_active->ctx;
+
+		if(ctx) {
+			hud_active->ctx->style->padding = 10 * scalef - 5;
+			hud_active->ctx->style->spacing = 8 * scalef - 4;
+			hud_active->ctx->style->title_height = 48 * scalef - 24;
+			hud_active->ctx->style->scrollbar_size = 12 * scalef;
+			hud_active->ctx->style->thumb_size = 8 * scalef;
+
+			mu_begin(ctx);
+		}
+
+		hud_active->render_2D(ctx, scalex, scalef);
+
+		if(ctx) {
+			mu_end(ctx);
+
+			glEnable(GL_BLEND);
+			glEnable(GL_SCISSOR_TEST);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+			mu_Command* cmd = NULL;
+			while(mu_next_command(ctx, &cmd)) {
+				switch(cmd->type) {
+					case MU_COMMAND_TEXT:
+						glColor4ub(cmd->text.color.r, cmd->text.color.g, cmd->text.color.b, cmd->text.color.a);
+						font_render(cmd->text.pos.x, settings.window_height - cmd->text.pos.y,
+									ctx->text_height(cmd->text.font), cmd->text.str);
+						glEnable(GL_BLEND);
+						break;
+					case MU_COMMAND_RECT:
+						glColor4ub(cmd->rect.color.r, cmd->rect.color.g, cmd->rect.color.b, cmd->rect.color.a);
+						texture_draw_empty(cmd->rect.rect.x, settings.window_height - cmd->rect.rect.y,
+										   cmd->rect.rect.w, cmd->rect.rect.h);
+						break;
+					case MU_COMMAND_ICON:
+						if(hud_active->ui_images) {
+							bool resize = false;
+							struct texture* img = hud_active->ui_images(cmd->icon.id, &resize);
+
+							if(img) {
+								glColor4ub(cmd->icon.color.r, cmd->icon.color.g, cmd->icon.color.b, cmd->icon.color.a);
+								int size = min(cmd->icon.rect.w, cmd->icon.rect.h);
+
+								texture_draw(img, cmd->icon.rect.x, settings.window_height - cmd->icon.rect.y,
+											 resize ? size : cmd->icon.rect.w, resize ? size : cmd->icon.rect.h);
+								glEnable(GL_BLEND);
+							}
+						}
+
+						break;
+					case MU_COMMAND_CLIP:
+						glScissor(cmd->clip.rect.x, settings.window_height - (cmd->clip.rect.y + cmd->clip.rect.h),
+								  cmd->clip.rect.w, cmd->clip.rect.h);
+						break;
+				}
+			}
+			glDisable(GL_SCISSOR_TEST);
+			glDisable(GL_BLEND);
+		}
+	}
 
 	if(settings.multisamples > 0)
 		glEnable(GL_MULTISAMPLE);
@@ -487,7 +546,28 @@ void reshape(struct window_instance* window, int width, int height) {
 		window_swapping(0);
 }
 
+static int mu_button_translate(int button) {
+	switch(button) {
+		case WINDOW_MOUSE_LMB: return MU_MOUSE_LEFT;
+		case WINDOW_MOUSE_MMB: return MU_MOUSE_MIDDLE;
+		case WINDOW_MOUSE_RMB: return MU_MOUSE_RIGHT;
+		default: return 0;
+	}
+}
+
+static int mu_key_translate(int key) {
+	switch(key) {
+		case WINDOW_KEY_BACKSPACE: return MU_KEY_BACKSPACE;
+		case WINDOW_KEY_ENTER: return MU_KEY_RETURN;
+		case WINDOW_KEY_SHIFT: return MU_KEY_SHIFT;
+		default: return 0;
+	}
+}
+
 void text_input(struct window_instance* window, unsigned int codepoint) {
+	if(hud_active->ctx)
+		mu_input_text(hud_active->ctx, (char[2]) {codepoint, 0});
+
 	if(chat_input_mode == CHAT_NO_INPUT)
 		return;
 
@@ -499,6 +579,14 @@ void text_input(struct window_instance* window, unsigned int codepoint) {
 }
 
 void keys(struct window_instance* window, int key, int scancode, int action, int mods) {
+	if(hud_active->ctx && mu_key_translate(key)) {
+		switch(action) {
+			case WINDOW_RELEASE: mu_input_keyup(hud_active->ctx, mu_key_translate(key)); break;
+			case WINDOW_REPEAT:
+			case WINDOW_PRESS: mu_input_keydown(hud_active->ctx, mu_key_translate(key)); break;
+		}
+	}
+
 	if(action == WINDOW_PRESS) {
 		if(config_key(key)->toggle) {
 			if(chat_input_mode == CHAT_NO_INPUT) {
@@ -557,16 +645,29 @@ void mouse_click(struct window_instance* window, int button, int action, int mod
 		window_mouseloc(&x, &y);
 		hud_active->input_mouseclick(x, y, button, action, mods);
 	}
+
+	if(hud_active->ctx) {
+		double x, y;
+		window_mouseloc(&x, &y);
+		switch(action) {
+			case WINDOW_PRESS: mu_input_mousedown(hud_active->ctx, x, y, mu_button_translate(button)); break;
+			case WINDOW_RELEASE: mu_input_mouseup(hud_active->ctx, x, y, mu_button_translate(button)); break;
+		}
+	}
 }
 
 void mouse(struct window_instance* window, double x, double y) {
 	if(hud_active->input_mouselocation)
 		hud_active->input_mouselocation(x, y);
+	if(hud_active->ctx)
+		mu_input_mousemove(hud_active->ctx, x, y);
 }
 
 void mouse_scroll(struct window_instance* window, double xoffset, double yoffset) {
 	if(hud_active->input_mousescroll)
 		hud_active->input_mousescroll(yoffset);
+	if(hud_active->ctx)
+		mu_input_scroll(hud_active->ctx, -xoffset * 50, -yoffset * 50);
 }
 
 void deinit() {

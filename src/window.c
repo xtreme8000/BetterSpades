@@ -28,6 +28,7 @@
 
 #ifdef OS_WINDOWS
 #include <sysinfoapi.h>
+#include <windows.h>
 #endif
 
 #ifdef OS_LINUX
@@ -36,9 +37,9 @@
 
 #ifdef USE_GLFW
 
-void window_textinput(int allow) {}
+void window_textinput(int allow) { }
 
-void window_setmouseloc(double x, double y) {}
+void window_setmouseloc(double x, double y) { }
 
 static void window_impl_mouseclick(GLFWwindow* window, int button, int action, int mods) {
 	int b = 0;
@@ -74,6 +75,7 @@ static void window_impl_keys(GLFWwindow* window, int key, int scancode, int acti
 	switch(action) {
 		case GLFW_RELEASE: a = WINDOW_RELEASE; break;
 		case GLFW_PRESS: a = WINDOW_PRESS; break;
+		case GLFW_REPEAT: a = WINDOW_REPEAT; break;
 	}
 	int tr = window_key_translate(key, 0);
 	if(tr >= 0)
@@ -84,8 +86,20 @@ static void window_impl_keys(GLFWwindow* window, int key, int scancode, int acti
 		hud_active->input_keyboard(tr, action, mods, key);
 }
 
-char* window_keyname(int keycode) {
-	return glfwGetKeyName(keycode, 0) != NULL ? (char*)glfwGetKeyName(keycode, 0) : "?";
+void window_keyname(int keycode, char* output, size_t length) {
+#ifdef OS_WINDOWS
+	GetKeyNameTextA(glfwGetKeyScancode(keycode) << 16, output, length);
+#else
+	const char* name = glfwGetKeyName(keycode, 0);
+
+	if(name) {
+		strncpy(output, name, length);
+		output[length - 1] = 0;
+	} else {
+		if(length >= 2)
+			strcpy(output, "?");
+	}
+#endif
 }
 
 float window_time() {
@@ -221,10 +235,11 @@ void window_textinput(int allow) {
 		SDL_StopTextInput();
 }
 
-void window_fromsettings() {}
+void window_fromsettings() { }
 
-char* window_keyname(int keycode) {
-	return (char*)SDL_GetKeyName(keycode);
+void window_keyname(int keycode, char* output, size_t length) {
+	strncpy(output, SDL_GetKeyName(keycode), length);
+	output[length - 1] = 0;
 }
 
 float window_time() {
