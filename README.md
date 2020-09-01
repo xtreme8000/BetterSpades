@@ -1,4 +1,4 @@
-[![Build Status](http://aos.party/jenkins/buildStatus/icon?job=BetterSpades)](http://aos.party/jenkins/job/BetterSpades/)
+[![Build Status](https://aos.party/jenkins/buildStatus/icon?job=BetterSpades)](https://aos.party/jenkins/job/BetterSpades/)
 [![](https://img.shields.io/github/downloads/xtreme8000/BetterSpades/total.svg)](https://github.com/xtreme8000/BetterSpades/releases)
 [![Discord](https://img.shields.io/badge/discord-join-ff00ff.svg)](https://discord.gg/9JGXKBt)
 [![GPL](https://img.shields.io/badge/license-GPL--3.0-red.svg)](https://github.com/xtreme8000/BetterSpades/blob/standalone/LICENSE)
@@ -25,7 +25,7 @@
 
 **As of right now, you can download the newest stable version from the [releases page](https://github.com/xtreme8000/BetterSpades/releases).**
 
-**You can get [nightly builds here](http://bytebit.info.tm/jenkins/job/BetterSpades/).**
+**You can get [nightly builds here](https://aos.party/jenkins/job/BetterSpades/).**
 
 You can either:
 * use the client temporarily by extracting the downloaded zip into a new directory.
