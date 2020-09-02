@@ -27,10 +27,10 @@
 #ifdef USE_SDL
 #include <SDL2/SDL_opengles.h>
 #endif
-void glColor3f(float r, float g, float b);
-void glColor3ub(unsigned char r, unsigned char g, unsigned char b);
-void glDepthRange(float near, float far);
-void glClearDepth(float x);
+#define glColor3f(r, g, b) glColor4f(r, g, b, 1.0F)
+#define glColor3ub(r, g, b) glColor4ub(r, g, b, 255)
+#define glDepthRange(a, b) glDepthRangef(a, b)
+#define glClearDepth(a) glClearDepthf(a)
 #endif
 
 #ifdef USE_GLFW
@@ -38,6 +38,7 @@ void glClearDepth(float x);
 #endif
 
 #ifdef USE_SDL
+#define SDL_MAIN_HANDLED
 #include <SDL2/SDL.h>
 #endif
 

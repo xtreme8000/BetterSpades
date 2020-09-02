@@ -76,25 +76,26 @@ static void window_impl_textinput(GLFWwindow* window, unsigned int codepoint) {
 static void window_impl_keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
 	int count = config_key_translate(key, 0, NULL);
 
+	int a = -1;
+	switch(action) {
+		case GLFW_RELEASE: a = WINDOW_RELEASE; break;
+		case GLFW_PRESS: a = WINDOW_PRESS; break;
+		case GLFW_REPEAT: a = WINDOW_REPEAT; break;
+	}
+
 	if(count > 0) {
-		int a = -1;
-		switch(action) {
-			case GLFW_RELEASE: a = WINDOW_RELEASE; break;
-			case GLFW_PRESS: a = WINDOW_PRESS; break;
-			case GLFW_REPEAT: a = WINDOW_REPEAT; break;
+		int results[count];
+		config_key_translate(key, 0, results);
+
+		for(int k = 0; k < count; k++) {
+			keys(hud_window, results[k], scancode, a, mods & GLFW_MOD_CONTROL);
+
+			if(hud_active->input_keyboard)
+				hud_active->input_keyboard(results[k], action, mods & GLFW_MOD_CONTROL, key);
 		}
-
-		if(a >= 0) {
-			int results[count];
-			config_key_translate(key, 0, results);
-
-			for(int k = 0; k < count; k++) {
-				keys(hud_window, results[k], scancode, a, mods & GLFW_MOD_CONTROL);
-
-				if(hud_active->input_keyboard)
-					hud_active->input_keyboard(results[k], action, mods & GLFW_MOD_CONTROL, key);
-			}
-		}
+	} else {
+		if(hud_active->input_keyboard)
+			hud_active->input_keyboard(WINDOW_KEY_UNKNOWN, action, mods & GLFW_MOD_CONTROL, key);
 	}
 }
 
@@ -161,6 +162,10 @@ void window_init() {
 	glfwWindowHint(GLFW_VISIBLE, 0);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 1);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+#ifdef OPENGL_ES
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+	glfwWindowHint(GLFW_CONTEXT_CREATION_API, GLFW_EGL_CONTEXT_API);
+#endif
 
 	glfwSetErrorCallback(window_impl_error);
 
@@ -243,7 +248,19 @@ void window_textinput(int allow) {
 		SDL_StopTextInput();
 }
 
-void window_fromsettings() { }
+void window_fromsettings() {
+	SDL_SetWindowSize(hud_window->impl, settings.window_width, settings.window_height);
+
+	if(settings.vsync < 2)
+		window_swapping(settings.vsync);
+	if(settings.vsync > 1)
+		window_swapping(0);
+
+	if(settings.fullscreen)
+		SDL_SetWindowFullscreen(hud_window->impl, SDL_WINDOW_FULLSCREEN);
+	else
+		SDL_SetWindowFullscreen(hud_window->impl, 0);
+}
 
 void window_keyname(int keycode, char* output, size_t length) {
 	strncpy(output, SDL_GetKeyName(keycode), length);
@@ -299,13 +316,15 @@ void window_init() {
 	static struct window_instance i;
 	hud_window = &i;
 
+#ifdef USE_TOUCH
 	SDL_SetHintWithPriority(SDL_HINT_ANDROID_SEPARATE_MOUSE_AND_TOUCH, "1", SDL_HINT_OVERRIDE);
+#endif
 
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_TIMER);
 
 	hud_window->impl
 		= SDL_CreateWindow("BetterSpades " BETTERSPADES_VERSION, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-						   settings.window_width, settings.window_height, SDL_WINDOW_OPENGL);
+						   settings.window_width, settings.window_height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
@@ -334,12 +353,12 @@ void window_update() {
 	while(SDL_PollEvent(&event)) {
 		switch(event.type) {
 			case SDL_QUIT: quit = 1; break;
-			case SDL_KEYDOWN:
-				int count = config_key_translate(key, 0, NULL);
+			case SDL_KEYDOWN: {
+				int count = config_key_translate(event.key.keysym.sym, 0, NULL);
 
 				if(count > 0) {
 					int results[count];
-					config_key_translate(key, 0, results);
+					config_key_translate(event.key.keysym.sym, 0, results);
 
 					for(int k = 0; k < count; k++) {
 						keys(hud_window, results[k], event.key.keysym.sym, WINDOW_PRESS,
@@ -349,14 +368,19 @@ void window_update() {
 							hud_active->input_keyboard(results[k], WINDOW_PRESS, event.key.keysym.mod & KMOD_CTRL,
 													   event.key.keysym.sym);
 					}
+				} else {
+					if(hud_active->input_keyboard)
+						hud_active->input_keyboard(WINDOW_KEY_UNKNOWN, WINDOW_PRESS, event.key.keysym.mod & KMOD_CTRL,
+												   event.key.keysym.sym);
 				}
 				break;
-			case SDL_KEYUP:
-				int count = config_key_translate(key, 0, NULL);
+			}
+			case SDL_KEYUP: {
+				int count = config_key_translate(event.key.keysym.sym, 0, NULL);
 
 				if(count > 0) {
 					int results[count];
-					config_key_translate(key, 0, results);
+					config_key_translate(event.key.keysym.sym, 0, results);
 
 					for(int k = 0; k < count; k++) {
 						keys(hud_window, results[k], event.key.keysym.sym, WINDOW_RELEASE,
@@ -366,8 +390,13 @@ void window_update() {
 							hud_active->input_keyboard(results[k], WINDOW_RELEASE, event.key.keysym.mod & KMOD_CTRL,
 													   event.key.keysym.sym);
 					}
+				} else {
+					if(hud_active->input_keyboard)
+						hud_active->input_keyboard(WINDOW_KEY_UNKNOWN, WINDOW_RELEASE, event.key.keysym.mod & KMOD_CTRL,
+												   event.key.keysym.sym);
 				}
 				break;
+			}
 			case SDL_MOUSEBUTTONDOWN: {
 				int a = 0;
 				switch(event.button.button) {
@@ -396,10 +425,14 @@ void window_update() {
 				break;
 			case SDL_MOUSEWHEEL: mouse_scroll(hud_window, event.wheel.x, event.wheel.y); break;
 			case SDL_MOUSEMOTION: {
-				static int x_sum = 0, y_sum = 0;
-				x_sum += event.motion.xrel;
-				y_sum += event.motion.yrel;
-				mouse(hud_window, x_sum, y_sum);
+				if(SDL_GetRelativeMouseMode()) {
+					static int x, y;
+					x += event.motion.xrel;
+					y += event.motion.yrel;
+					mouse(hud_window, x, y);
+				} else {
+					mouse(hud_window, event.motion.x, event.motion.y);
+				}
 				break;
 			}
 			case SDL_TEXTINPUT: text_input(hud_window, event.text.text[0]); break;
@@ -413,7 +446,7 @@ void window_update() {
 							fingers[k].start.y = event.tfinger.y * settings.window_height;
 							fingers[k].down_time = window_time();
 							fingers[k].full = 1;
-							f = &fingers[k];
+							f = fingers + k;
 							break;
 						}
 					}
@@ -430,7 +463,7 @@ void window_update() {
 					for(int k = 0; k < 8; k++) {
 						if(fingers[k].full && fingers[k].finger == event.tfinger.fingerId) {
 							fingers[k].full = 0;
-							f = &fingers[k];
+							f = fingers + k;
 							break;
 						}
 					}
@@ -444,7 +477,7 @@ void window_update() {
 					struct window_finger* f;
 					for(int k = 0; k < 8; k++) {
 						if(fingers[k].full && fingers[k].finger == event.tfinger.fingerId) {
-							f = &fingers[k];
+							f = fingers + k;
 							break;
 						}
 					}

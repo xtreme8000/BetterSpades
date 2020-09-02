@@ -47,24 +47,6 @@
 #include "chunk.h"
 #include "main.h"
 
-#ifdef OPENGL_ES
-void glColor3f(float r, float g, float b) {
-	glColor4f(r, g, b, 1.0F);
-}
-
-void glColor3ub(unsigned char r, unsigned char g, unsigned char b) {
-	glColor4ub(r, g, b, 255);
-}
-
-void glDepthRange(float near, float far) {
-	glDepthRangef(near, far);
-}
-
-void glClearDepth(float x) {
-	glClearDepthf(x);
-}
-#endif
-
 int fps = 0;
 
 int ms_seed = 1;
