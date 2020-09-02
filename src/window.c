@@ -48,12 +48,15 @@ static void window_impl_mouseclick(GLFWwindow* window, int button, int action, i
 		case GLFW_MOUSE_BUTTON_RIGHT: b = WINDOW_MOUSE_RMB; break;
 		case GLFW_MOUSE_BUTTON_MIDDLE: b = WINDOW_MOUSE_MMB; break;
 	}
+
 	int a = -1;
 	switch(action) {
 		case GLFW_RELEASE: a = WINDOW_RELEASE; break;
 		case GLFW_PRESS: a = WINDOW_PRESS; break;
 	}
-	mouse_click(hud_window, b, a, mods > 0);
+
+	if(a >= 0)
+		mouse_click(hud_window, b, a, mods & GLFW_MOD_CONTROL);
 }
 static void window_impl_mouse(GLFWwindow* window, double x, double y) {
 	mouse(hud_window, x, y);
@@ -71,19 +74,28 @@ static void window_impl_textinput(GLFWwindow* window, unsigned int codepoint) {
 	text_input(hud_window, codepoint);
 }
 static void window_impl_keys(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	int a = -1;
-	switch(action) {
-		case GLFW_RELEASE: a = WINDOW_RELEASE; break;
-		case GLFW_PRESS: a = WINDOW_PRESS; break;
-		case GLFW_REPEAT: a = WINDOW_REPEAT; break;
+	int count = config_key_translate(key, 0, NULL);
+
+	if(count > 0) {
+		int a = -1;
+		switch(action) {
+			case GLFW_RELEASE: a = WINDOW_RELEASE; break;
+			case GLFW_PRESS: a = WINDOW_PRESS; break;
+			case GLFW_REPEAT: a = WINDOW_REPEAT; break;
+		}
+
+		if(a >= 0) {
+			int results[count];
+			config_key_translate(key, 0, results);
+
+			for(int k = 0; k < count; k++) {
+				keys(hud_window, results[k], scancode, a, mods & GLFW_MOD_CONTROL);
+
+				if(hud_active->input_keyboard)
+					hud_active->input_keyboard(results[k], action, mods & GLFW_MOD_CONTROL, key);
+			}
+		}
 	}
-	int tr = window_key_translate(key, 0);
-	if(tr >= 0)
-		keys(hud_window, tr, scancode, a, mods > 0);
-	else
-		tr = WINDOW_KEY_UNKNOWN;
-	if(hud_active->input_keyboard)
-		hud_active->input_keyboard(tr, action, mods, key);
 }
 
 void window_keyname(int keycode, char* output, size_t length) {
@@ -110,10 +122,6 @@ int window_pressed_keys[64] = {0};
 
 const char* window_clipboard() {
 	return glfwGetClipboardString(hud_window->impl);
-}
-
-int window_key_translate(int key, int dir) {
-	return config_key_translate(key, dir);
 }
 
 int window_key_down(int key) {
@@ -252,12 +260,6 @@ const char* window_clipboard() {
 	return SDL_HasClipboardText() ? SDL_GetClipboardText() : NULL;
 }
 
-int window_key_translate(int key, int dir) {
-	if(key == SDLK_AC_BACK && !dir)
-		return WINDOW_KEY_ESCAPE;
-	return config_key_translate(key, dir);
-}
-
 int window_key_down(int key) {
 	return window_pressed_keys[key];
 }
@@ -332,26 +334,40 @@ void window_update() {
 	while(SDL_PollEvent(&event)) {
 		switch(event.type) {
 			case SDL_QUIT: quit = 1; break;
-			case SDL_KEYDOWN: {
-				int tr = window_key_translate(event.key.keysym.sym, 0);
-				if(tr >= 0)
-					keys(hud_window, tr, event.key.keysym.sym, WINDOW_PRESS, 0);
-				else
-					tr = WINDOW_KEY_UNKNOWN;
-				if(hud_active->input_keyboard)
-					hud_active->input_keyboard(tr, WINDOW_PRESS, 0, event.key.keysym.sym);
+			case SDL_KEYDOWN:
+				int count = config_key_translate(key, 0, NULL);
+
+				if(count > 0) {
+					int results[count];
+					config_key_translate(key, 0, results);
+
+					for(int k = 0; k < count; k++) {
+						keys(hud_window, results[k], event.key.keysym.sym, WINDOW_PRESS,
+							 event.key.keysym.mod & KMOD_CTRL);
+
+						if(hud_active->input_keyboard)
+							hud_active->input_keyboard(results[k], WINDOW_PRESS, event.key.keysym.mod & KMOD_CTRL,
+													   event.key.keysym.sym);
+					}
+				}
 				break;
-			}
-			case SDL_KEYUP: {
-				int tr = window_key_translate(event.key.keysym.sym, 0);
-				if(tr >= 0)
-					keys(hud_window, tr, event.key.keysym.sym, WINDOW_RELEASE, 0);
-				else
-					tr = WINDOW_KEY_UNKNOWN;
-				if(hud_active->input_keyboard)
-					hud_active->input_keyboard(tr, WINDOW_RELEASE, 0, event.key.keysym.sym);
+			case SDL_KEYUP:
+				int count = config_key_translate(key, 0, NULL);
+
+				if(count > 0) {
+					int results[count];
+					config_key_translate(key, 0, results);
+
+					for(int k = 0; k < count; k++) {
+						keys(hud_window, results[k], event.key.keysym.sym, WINDOW_RELEASE,
+							 event.key.keysym.mod & KMOD_CTRL);
+
+						if(hud_active->input_keyboard)
+							hud_active->input_keyboard(results[k], WINDOW_RELEASE, event.key.keysym.mod & KMOD_CTRL,
+													   event.key.keysym.sym);
+					}
+				}
 				break;
-			}
 			case SDL_MOUSEBUTTONDOWN: {
 				int a = 0;
 				switch(event.button.button) {

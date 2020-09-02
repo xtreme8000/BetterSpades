@@ -117,7 +117,6 @@ void window_textinput(int allow);
 float window_time(void);
 void window_keyname(int keycode, char* output, size_t length);
 const char* window_clipboard(void);
-int window_key_translate(int key, int dir);
 int window_key_down(int key);
 void window_mousemode(int mode);
 void window_mouseloc(double* x, double* y);

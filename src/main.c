@@ -579,11 +579,19 @@ void text_input(struct window_instance* window, unsigned int codepoint) {
 }
 
 void keys(struct window_instance* window, int key, int scancode, int action, int mods) {
-	if(hud_active->ctx && mu_key_translate(key)) {
-		switch(action) {
-			case WINDOW_RELEASE: mu_input_keyup(hud_active->ctx, mu_key_translate(key)); break;
-			case WINDOW_REPEAT:
-			case WINDOW_PRESS: mu_input_keydown(hud_active->ctx, mu_key_translate(key)); break;
+	if(hud_active->ctx) {
+		if(mu_key_translate(key)) {
+			switch(action) {
+				case WINDOW_RELEASE: mu_input_keyup(hud_active->ctx, mu_key_translate(key)); break;
+				case WINDOW_REPEAT:
+				case WINDOW_PRESS: mu_input_keydown(hud_active->ctx, mu_key_translate(key)); break;
+			}
+		}
+
+		if(action == WINDOW_PRESS && key == WINDOW_KEY_V && mods) {
+			const char* clipboard = window_clipboard();
+			if(clipboard)
+				mu_input_text(hud_active->ctx, clipboard);
 		}
 	}
 

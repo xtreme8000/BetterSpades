@@ -83,7 +83,7 @@ extern struct list config_settings;
 
 void config_register_key(int internal, int def, const char* name, int toggle, const char* display,
 						 const char* category);
-int config_key_translate(int key, int dir);
+int config_key_translate(int key, int dir, int* results);
 struct config_key_pair* config_key(int key);
 void config_key_reset_togglestates();
 void config_reload(void);

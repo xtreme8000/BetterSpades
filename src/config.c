@@ -201,15 +201,24 @@ void config_register_key(int internal, int def, const char* name, int toggle, co
 	list_add(&config_keys, &key);
 }
 
-int config_key_translate(int key, int dir) {
+int config_key_translate(int key, int dir, int* results) {
+	int count = 0;
+
 	for(int k = 0; k < list_size(&config_keys); k++) {
 		struct config_key_pair* a = list_get(&config_keys, k);
-		if(dir && a->internal == key)
-			return a->def;
-		if(!dir && a->def == key)
-			return a->internal;
+
+		if(dir && a->internal == key) {
+			if(results)
+				results[count] = a->def;
+			count++;
+		} else if(!dir && a->def == key) {
+			if(results)
+				results[count] = a->internal;
+			count++;
+		}
 	}
-	return -1;
+
+	return count;
 }
 
 struct config_key_pair* config_key(int key) {
@@ -267,6 +276,7 @@ void config_reload() {
 	config_register_key(WINDOW_KEY_TOOL4, SDLK_4, "tool_grenade", 0, "Select grenade", "Tools & Weapons");
 	config_register_key(WINDOW_KEY_TAB, SDLK_TAB, "view_score", 0, "Score", "Information");
 	config_register_key(WINDOW_KEY_ESCAPE, SDLK_ESCAPE, "quit_game", 0, "Quit", "Game");
+	config_register_key(WINDOW_KEY_ESCAPE, SDLK_AC_BACK, NULL, 0, NULL, NULL);
 	config_register_key(WINDOW_KEY_MAP, SDLK_m, "view_map", 1, "Map", "Information");
 	config_register_key(WINDOW_KEY_CROUCH, SDLK_LCTRL, "crouch", 0, "Crouch", "Movement");
 	config_register_key(WINDOW_KEY_SNEAK, SDLK_v, "sneak", 0, "Sneak", "Movement");
