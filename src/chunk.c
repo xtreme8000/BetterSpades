@@ -34,35 +34,53 @@
 #include "camera.h"
 #include "tesselator.h"
 #include "chunk.h"
+#include "channel.h"
 
 struct chunk chunks[CHUNKS_PER_DIM * CHUNKS_PER_DIM];
 
-struct chunk* chunk_geometry_changed[CHUNKS_PER_DIM * CHUNKS_PER_DIM * 2];
-int chunk_geometry_changed_lenght = 0;
+struct channel chunk_work_queue;
+struct channel chunk_result_queue;
 
-struct chunk_worker chunk_workers[CHUNK_WORKERS_MAX];
+struct chunk_work_packet {
+	size_t chunk_x;
+	size_t chunk_y;
+	struct chunk* chunk;
+};
 
-int chunk_enabled_cores;
+struct chunk_result_packet {
+	struct chunk* chunk;
+	int max_height;
+	struct tesselator tesselator;
+	uint32_t minimap_data[CHUNK_SIZE * CHUNK_SIZE];
+};
+
+struct chunk_render_call {
+	struct chunk* chunk;
+	int mirror_x;
+	int mirror_y;
+};
 
 void chunk_init() {
-	for(int x = 0; x < CHUNKS_PER_DIM; x++) {
-		for(int y = 0; y < CHUNKS_PER_DIM; y++) {
+	for(size_t x = 0; x < CHUNKS_PER_DIM; x++) {
+		for(size_t y = 0; y < CHUNKS_PER_DIM; y++) {
 			struct chunk* c = chunks + x + y * CHUNKS_PER_DIM;
-			c->created = 0;
+			c->created = false;
 			c->max_height = 1;
 			c->x = x;
 			c->y = y;
 		}
 	}
 
-	chunk_enabled_cores = min(max(window_cpucores() / 2, 1), CHUNK_WORKERS_MAX);
+	channel_create(&chunk_work_queue, sizeof(struct chunk_work_packet), CHUNKS_PER_DIM * CHUNKS_PER_DIM);
+	channel_create(&chunk_result_queue, sizeof(struct chunk_result_packet), CHUNKS_PER_DIM * CHUNKS_PER_DIM);
+
+	int chunk_enabled_cores = min(max(window_cpucores() / 2, 1), CHUNK_WORKERS_MAX);
 	log_info("%i cores enabled for chunk generation", chunk_enabled_cores);
-	for(int k = 0; k < chunk_enabled_cores; k++) {
-		chunk_workers[k].state = CHUNK_WORKERSTATE_IDLE;
-		pthread_mutex_init(&chunk_workers[k].state_lock, NULL);
-		pthread_cond_init(&chunk_workers[k].can_work, NULL);
-		pthread_create(&chunk_workers[k].thread, NULL, chunk_generate, &chunk_workers[k]);
-	}
+
+	pthread_t threads[chunk_enabled_cores];
+
+	for(size_t k = 0; k < chunk_enabled_cores; k++)
+		pthread_create(threads + k, NULL, chunk_generate, NULL);
 }
 
 static int chunk_sort(const void* a, const void* b) {
@@ -72,6 +90,22 @@ static int chunk_sort(const void* a, const void* b) {
 					  camera_z)
 		- distance2D(bb->chunk->x * CHUNK_SIZE + CHUNK_SIZE / 2, bb->chunk->y * CHUNK_SIZE + CHUNK_SIZE / 2, camera_x,
 					 camera_z);
+}
+
+void chunk_render(struct chunk_render_call* c) {
+	if(c->chunk->created) {
+		matrix_push();
+		matrix_translate(c->mirror_x * map_size_x, 0.0F, c->mirror_y * map_size_z);
+		matrix_upload();
+
+		// glPolygonMode(GL_FRONT, GL_LINE);
+
+		glx_displaylist_draw(&c->chunk->display_list, GLX_DISPLAYLIST_NORMAL);
+
+		// glPolygonMode(GL_FRONT, GL_FILL);
+
+		matrix_pop();
+	}
 }
 
 void chunk_draw_visible() {
@@ -108,22 +142,6 @@ void chunk_draw_visible() {
 		chunk_render(chunks_draw + k);
 }
 
-void chunk_render(struct chunk_render_call* c) {
-	if(c->chunk->created) {
-		matrix_push();
-		matrix_translate(c->mirror_x * map_size_x, 0.0F, c->mirror_y * map_size_z);
-		matrix_upload();
-
-		// glPolygonMode(GL_FRONT, GL_LINE);
-
-		glx_displaylist_draw(&c->chunk->display_list, GLX_DISPLAYLIST_NORMAL);
-
-		// glPolygonMode(GL_FRONT, GL_FILL);
-
-		matrix_pop();
-	}
-}
-
 static __attribute__((always_inline)) inline uint32_t solid_array_isair(uint32_t* array, uint32_t x, uint32_t y,
 																		uint32_t z) {
 	if(y < 0)
@@ -151,40 +169,41 @@ static __attribute__((always_inline)) inline float solid_sunblock(uint32_t* arra
 void* chunk_generate(void* data) {
 	pthread_detach(pthread_self());
 
-	struct chunk_worker* worker = (struct chunk_worker*)data;
-
-	int first_start = 1;
-
 	while(1) {
-		pthread_mutex_lock(&worker->state_lock);
-		if(!first_start) {
-			worker->state = CHUNK_WORKERSTATE_FINISHED;
-		}
+		struct chunk_work_packet work;
+		channel_await(&chunk_work_queue, &work);
 
-		while(worker->state != CHUNK_WORKERSTATE_BUSY)
-			pthread_cond_wait(&worker->can_work, &worker->state_lock);
-		pthread_mutex_unlock(&worker->state_lock);
+		if(!work.chunk)
+			break;
 
-		first_start = 0;
+		struct chunk_result_packet result;
+		result.chunk = work.chunk;
+		tesselator_create(&result.tesselator, VERTEX_INT, 0);
+
+		uint32_t blocks_count;
+		struct libvxl_block* blocks = map_copy_blocks(work.chunk_x, work.chunk_y, &blocks_count);
+		uint32_t* blocks_solid = map_copy_solids();
 
 		/*if(settings.greedy_meshing)
 			chunk_generate_greedy(worker->chunk_x, worker->chunk_y, &worker->tesselator, &worker->max_height);
 		else*/
-		chunk_generate_naive(worker->blocks, worker->blocks_count, worker->blocks_solid, &worker->tesselator,
-							 &worker->max_height, settings.ambient_occlusion);
+		chunk_generate_naive(blocks, blocks_count, blocks_solid, &result.tesselator, &result.max_height,
+							 settings.ambient_occlusion);
 
 		// use the fact that libvxl orders libvxl_blocks by top-down coordinate first in its data structure
+		size_t chunk_x = work.chunk_x * CHUNK_SIZE;
+		size_t chunk_y = work.chunk_y * CHUNK_SIZE;
 		uint32_t last_position = 0;
-		for(int k = worker->blocks_count - 1; k >= 0; k--) {
-			struct libvxl_block* blk = worker->blocks + k;
+		for(int k = blocks_count - 1; k >= 0; k--) {
+			struct libvxl_block* blk = blocks + k;
 
-			if(blk->position != last_position || k == worker->blocks_count - 1) {
+			if(blk->position != last_position || k == blocks_count - 1) {
 				last_position = blk->position;
 
 				int x = key_getx(blk->position);
 				int z = key_gety(blk->position);
 
-				uint32_t* out = worker->minimap_data + (x - worker->chunk_x + (z - worker->chunk_y) * CHUNK_SIZE);
+				uint32_t* out = result.minimap_data + (x - chunk_x + (z - chunk_y) * CHUNK_SIZE);
 
 				if((x % 64) > 0 && (z % 64) > 0) {
 					*out = rgb2bgr(blk->color) | 0xFF000000;
@@ -193,6 +212,11 @@ void* chunk_generate(void* data) {
 				}
 			}
 		}
+
+		free(blocks);
+		free(blocks_solid);
+
+		channel_put(&chunk_result_queue, &result);
 	}
 
 	return NULL;
@@ -701,109 +725,48 @@ void chunk_generate_naive(struct libvxl_block* blocks, int count, uint32_t* soli
 }
 
 void chunk_update_all() {
-	struct chunk* in_progress[chunk_enabled_cores];
+	size_t drain = channel_size(&chunk_result_queue);
 
-	// collect all chunks that are currently processed
-	for(int j = 0; j < chunk_enabled_cores; j++) {
-		struct chunk_worker* worker = chunk_workers + j;
-		pthread_mutex_lock(&worker->state_lock);
-		in_progress[j] = (worker->state != CHUNK_WORKERSTATE_IDLE) ? worker->chunk : NULL;
-		pthread_mutex_unlock(&worker->state_lock);
-	}
+	for(size_t k = 0; k < drain; k++) {
+		struct chunk_result_packet result;
+		channel_await(&chunk_result_queue, &result);
 
-	for(int j = 0; j < chunk_enabled_cores; j++) {
-		struct chunk_worker* worker = chunk_workers + j;
-
-		pthread_mutex_lock(&worker->state_lock);
-
-		if(worker->state == CHUNK_WORKERSTATE_FINISHED) {
-			// chunk of this worker is no longer in progress
-			in_progress[j] = NULL;
-
-			worker->state = CHUNK_WORKERSTATE_IDLE;
-			worker->chunk->max_height = worker->max_height;
-
-			free(worker->blocks);
-			free(worker->blocks_solid);
-
-			tesselator_glx(&worker->tesselator, &worker->chunk->display_list);
-			tesselator_free(&worker->tesselator);
-
-			glBindTexture(GL_TEXTURE_2D, texture_minimap.texture_id);
-			glTexSubImage2D(GL_TEXTURE_2D, 0, worker->chunk_x, worker->chunk_y, CHUNK_SIZE, CHUNK_SIZE, GL_RGBA,
-							GL_UNSIGNED_BYTE, worker->minimap_data);
-			glBindTexture(GL_TEXTURE_2D, 0);
+		if(!result.chunk->created) {
+			glx_displaylist_create(&result.chunk->display_list, true, false);
+			result.chunk->created = true;
 		}
 
-		if(worker->state == CHUNK_WORKERSTATE_IDLE && chunk_geometry_changed_lenght > 0) {
-			float closest_dist = FLT_MAX;
-			int closest_index = -1;
-			for(int k = 0; k < chunk_geometry_changed_lenght; k++) {
-				int can_take = 1;
+		result.chunk->last_update = window_time();
+		result.chunk->max_height = result.max_height;
 
-				for(int i = 0; i < chunk_enabled_cores; i++) {
-					if(in_progress[i] && in_progress[i] == chunk_geometry_changed[k]) {
-						can_take = 0;
-						break;
-					}
-				}
+		tesselator_glx(&result.tesselator, &result.chunk->display_list);
+		tesselator_free(&result.tesselator);
 
-				if(can_take) {
-					float l = distance2D(chunk_geometry_changed[k]->x * CHUNK_SIZE,
-										 chunk_geometry_changed[k]->y * CHUNK_SIZE, camera_x, camera_z);
-					if(l < closest_dist) {
-						closest_dist = l;
-						closest_index = k;
-					}
-				}
-			}
-
-			if(closest_index >= 0) {
-				struct chunk* c = chunk_geometry_changed[closest_index];
-
-				in_progress[j] = c;
-
-				chunk_geometry_changed[closest_index] = chunk_geometry_changed[--chunk_geometry_changed_lenght];
-
-				if(!c->created) {
-					glx_displaylist_create(&c->display_list, true, false);
-					c->created = 1;
-				}
-
-				c->last_update = window_time();
-				worker->chunk = c;
-				worker->chunk_x = c->x * CHUNK_SIZE;
-				worker->chunk_y = c->y * CHUNK_SIZE;
-				worker->state = CHUNK_WORKERSTATE_BUSY;
-				worker->blocks = map_copy_blocks(c->x, c->y, &worker->blocks_count);
-				worker->blocks_solid = map_copy_solids();
-
-				tesselator_create(&worker->tesselator, VERTEX_INT, 0);
-
-				pthread_cond_signal(&worker->can_work);
-			}
-		}
-
-		pthread_mutex_unlock(&worker->state_lock);
+		glBindTexture(GL_TEXTURE_2D, texture_minimap.texture_id);
+		glTexSubImage2D(GL_TEXTURE_2D, 0, result.chunk->x * CHUNK_SIZE, result.chunk->y * CHUNK_SIZE, CHUNK_SIZE,
+						CHUNK_SIZE, GL_RGBA, GL_UNSIGNED_BYTE, result.minimap_data);
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 }
 
 void chunk_rebuild_all() {
-	for(int d = 0; d < CHUNKS_PER_DIM * CHUNKS_PER_DIM; d++) {
-		chunk_geometry_changed[d] = chunks + d;
-	}
+	channel_clear(&chunk_work_queue);
 
-	chunk_geometry_changed_lenght = CHUNKS_PER_DIM * CHUNKS_PER_DIM;
+	for(size_t k = 0; k < CHUNKS_PER_DIM * CHUNKS_PER_DIM; k++) {
+		channel_put(&chunk_work_queue,
+					&(struct chunk_work_packet) {
+						.chunk = chunks + k,
+						.chunk_x = (chunks + k)->x,
+						.chunk_y = (chunks + k)->y,
+					});
+	}
 }
 
 void chunk_block_update(int x, int y, int z) {
-	struct chunk* c = chunks + (x / CHUNK_SIZE) + (z / CHUNK_SIZE) * CHUNKS_PER_DIM;
-
-	for(int k = 0; k < chunk_geometry_changed_lenght; k++) {
-		if(chunk_geometry_changed[k] == c) {
-			return;
-		}
-	}
-
-	chunk_geometry_changed[chunk_geometry_changed_lenght++] = c;
+	channel_put(&chunk_work_queue,
+				&(struct chunk_work_packet) {
+					.chunk = chunks + (x / CHUNK_SIZE) + (z / CHUNK_SIZE) * CHUNKS_PER_DIM,
+					.chunk_x = x / CHUNK_SIZE,
+					.chunk_y = z / CHUNK_SIZE,
+				});
 }
