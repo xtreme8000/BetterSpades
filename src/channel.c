@@ -44,7 +44,7 @@ bool channel_create(struct channel* ch, size_t object_size, size_t length) {
 
 	if(pthread_cond_init(&ch->signal, NULL)) {
 		free(ch->queue);
-		pthread_mutex_destroy(ch->lock);
+		pthread_mutex_destroy(&ch->lock);
 		return false;
 	}
 
@@ -68,12 +68,32 @@ void channel_destroy(struct channel* ch) {
 	pthread_mutex_destroy(&ch->lock);
 }
 
+static void channel_grow(struct channel* ch) {
+	assert(ch != NULL);
+
+	size_t length = ch->length * 2;
+
+	ch->queue = realloc(ch->queue, ch->object_size * length);
+
+	if(ch->loc_insert <= ch->loc_remove) {
+		size_t object_count = ch->length - ch->loc_remove;
+		size_t new_remove_loc = length - object_count;
+
+		memcpy((uint8_t*)ch->queue + new_remove_loc * ch->object_size,
+			   (uint8_t*)ch->queue + ch->loc_remove * ch->object_size, object_count * ch->object_size);
+
+		ch->loc_remove = new_remove_loc;
+	}
+
+	ch->length = length;
+}
+
 void channel_put(struct channel* ch, void* object) {
 	assert(ch != NULL && object != NULL);
 
 	pthread_mutex_lock(&ch->lock);
-	while(ch->count >= ch->length)
-		pthread_cond_wait(&ch->signal, &ch->lock);
+	if(ch->count >= ch->length)
+		channel_grow(ch);
 
 	memcpy((uint8_t*)ch->queue + ch->loc_insert * ch->object_size, object, ch->object_size);
 	ch->loc_insert = (ch->loc_insert + 1) % ch->length;
