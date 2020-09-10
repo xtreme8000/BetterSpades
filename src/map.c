@@ -37,6 +37,7 @@
 #include "minheap.h"
 #include "tesselator.h"
 #include "utils.h"
+#include "config.h"
 
 uint8_t* map_heights;
 int map_size_x = 512;
@@ -518,14 +519,17 @@ void map_set(int x, int y, int z, unsigned int color) {
 		chunk_block_update(x + 1, y, z);
 	if(z < map_size_z - 1 && z_off == CHUNK_SIZE - 1)
 		chunk_block_update(x, y, z + 1);
-	if(x > 0 && z > 0 && x_off == 0 && z_off == 0)
-		chunk_block_update(x - 1, y, z - 1);
-	if(x < map_size_x - 1 && z < map_size_z - 1 && x_off == CHUNK_SIZE - 1 && z_off == CHUNK_SIZE - 1)
-		chunk_block_update(x + 1, y, z + 1);
-	if(x > 0 && z < map_size_z - 1 && x_off == 0 && z_off == CHUNK_SIZE - 1)
-		chunk_block_update(x - 1, y, z + 1);
-	if(x < map_size_x - 1 && z > 0 && x_off == CHUNK_SIZE - 1 && z_off == 0)
-		chunk_block_update(x + 1, y, z - 1);
+
+	if(settings.ambient_occlusion) {
+		if(x > 0 && z > 0 && x_off == 0 && z_off == 0)
+			chunk_block_update(x - 1, y, z - 1);
+		if(x < map_size_x - 1 && z < map_size_z - 1 && x_off == CHUNK_SIZE - 1 && z_off == CHUNK_SIZE - 1)
+			chunk_block_update(x + 1, y, z + 1);
+		if(x > 0 && z < map_size_z - 1 && x_off == 0 && z_off == CHUNK_SIZE - 1)
+			chunk_block_update(x - 1, y, z + 1);
+		if(x < map_size_x - 1 && z > 0 && x_off == CHUNK_SIZE - 1 && z_off == 0)
+			chunk_block_update(x + 1, y, z - 1);
+	}
 
 	if(x == 0)
 		chunk_block_update(map_size_x - 1, y, z);

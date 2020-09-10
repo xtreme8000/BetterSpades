@@ -1090,6 +1090,9 @@ int network_update() {
 			}
 		}
 	}
+
+	chunk_queue_blocks();
+
 	return 1;
 }
 

@@ -35,9 +35,11 @@
 #include "tesselator.h"
 #include "chunk.h"
 #include "channel.h"
+#include "utils.h"
 
 struct chunk chunks[CHUNKS_PER_DIM * CHUNKS_PER_DIM];
 
+HashTable chunk_block_queue;
 struct channel chunk_work_queue;
 struct channel chunk_result_queue;
 
@@ -51,7 +53,7 @@ struct chunk_result_packet {
 	struct chunk* chunk;
 	int max_height;
 	struct tesselator tesselator;
-	uint32_t minimap_data[CHUNK_SIZE * CHUNK_SIZE];
+	uint32_t* minimap_data;
 };
 
 struct chunk_render_call {
@@ -73,6 +75,7 @@ void chunk_init() {
 
 	channel_create(&chunk_work_queue, sizeof(struct chunk_work_packet), CHUNKS_PER_DIM * CHUNKS_PER_DIM);
 	channel_create(&chunk_result_queue, sizeof(struct chunk_result_packet), CHUNKS_PER_DIM * CHUNKS_PER_DIM);
+	ht_setup(&chunk_block_queue, sizeof(struct chunk*), sizeof(struct chunk_result_packet), 64);
 
 	int chunk_enabled_cores = min(max(window_cpucores() / 2, 1), CHUNK_WORKERS_MAX);
 	log_info("%i cores enabled for chunk generation", chunk_enabled_cores);
@@ -178,6 +181,7 @@ void* chunk_generate(void* data) {
 
 		struct chunk_result_packet result;
 		result.chunk = work.chunk;
+		result.minimap_data = malloc(CHUNK_SIZE * CHUNK_SIZE * sizeof(uint32_t));
 		tesselator_create(&result.tesselator, VERTEX_INT, 0);
 
 		uint32_t blocks_count;
@@ -557,9 +561,7 @@ void chunk_generate_naive(struct libvxl_block* blocks, int count, uint32_t* soli
 		int y = map_size_y - 1 - key_getz(blk->position);
 		int z = key_gety(blk->position);
 
-		if(*max_height < y) {
-			*max_height = y;
-		}
+		*max_height = max(*max_height, y);
 
 		uint32_t col = blk->color;
 		int r = blue(col);
@@ -727,25 +729,38 @@ void chunk_generate_naive(struct libvxl_block* blocks, int count, uint32_t* soli
 void chunk_update_all() {
 	size_t drain = channel_size(&chunk_result_queue);
 
-	for(size_t k = 0; k < drain; k++) {
-		struct chunk_result_packet result;
-		channel_await(&chunk_result_queue, &result);
+	if(drain > 0) {
+		struct chunk_result_packet results[drain];
 
-		if(!result.chunk->created) {
-			glx_displaylist_create(&result.chunk->display_list, true, false);
-			result.chunk->created = true;
+		for(size_t k = 0; k < drain; k++) {
+			channel_await(&chunk_result_queue, results + k);
+			results[k].chunk->updated = false;
 		}
 
-		result.chunk->last_update = window_time();
-		result.chunk->max_height = result.max_height;
+		struct chunk_result_packet* result = results + drain - 1;
 
-		tesselator_glx(&result.tesselator, &result.chunk->display_list);
-		tesselator_free(&result.tesselator);
+		for(size_t k = 0; k < drain; k++, result--) {
+			if(!result->chunk->updated) {
+				result->chunk->updated = true;
 
-		glBindTexture(GL_TEXTURE_2D, texture_minimap.texture_id);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, result.chunk->x * CHUNK_SIZE, result.chunk->y * CHUNK_SIZE, CHUNK_SIZE,
-						CHUNK_SIZE, GL_RGBA, GL_UNSIGNED_BYTE, result.minimap_data);
-		glBindTexture(GL_TEXTURE_2D, 0);
+				if(!result->chunk->created) {
+					glx_displaylist_create(&result->chunk->display_list, true, false);
+					result->chunk->created = true;
+				}
+
+				result->chunk->max_height = result->max_height;
+
+				tesselator_glx(&result->tesselator, &result->chunk->display_list);
+
+				glBindTexture(GL_TEXTURE_2D, texture_minimap.texture_id);
+				glTexSubImage2D(GL_TEXTURE_2D, 0, result->chunk->x * CHUNK_SIZE, result->chunk->y * CHUNK_SIZE,
+								CHUNK_SIZE, CHUNK_SIZE, GL_RGBA, GL_UNSIGNED_BYTE, result->minimap_data);
+				glBindTexture(GL_TEXTURE_2D, 0);
+			}
+
+			tesselator_free(&result->tesselator);
+			free(result->minimap_data);
+		}
 	}
 }
 
@@ -763,10 +778,23 @@ void chunk_rebuild_all() {
 }
 
 void chunk_block_update(int x, int y, int z) {
-	channel_put(&chunk_work_queue,
-				&(struct chunk_work_packet) {
-					.chunk = chunks + (x / CHUNK_SIZE) + (z / CHUNK_SIZE) * CHUNKS_PER_DIM,
-					.chunk_x = x / CHUNK_SIZE,
-					.chunk_y = z / CHUNK_SIZE,
-				});
+	struct chunk* c = chunks + (x / CHUNK_SIZE) + (z / CHUNK_SIZE) * CHUNKS_PER_DIM;
+
+	ht_insert(&chunk_block_queue, &c,
+			  &(struct chunk_work_packet) {
+				  .chunk = c,
+				  .chunk_x = c->x,
+				  .chunk_y = c->y,
+			  });
+}
+
+static bool iterate_chunk_updates(void* key, void* value, void* user) {
+	channel_put(&chunk_work_queue, value);
+
+	return true;
+}
+
+void chunk_queue_blocks() {
+	ht_iterate(&chunk_block_queue, NULL, iterate_chunk_updates);
+	ht_clear(&chunk_block_queue);
 }

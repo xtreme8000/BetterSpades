@@ -34,7 +34,7 @@
 extern struct chunk {
 	struct glx_displaylist display_list;
 	int max_height;
-	float last_update;
+	bool updated;
 	bool created;
 	int x, y;
 } chunks[CHUNKS_PER_DIM * CHUNKS_PER_DIM];
@@ -51,5 +51,6 @@ void chunk_generate_naive(struct libvxl_block* blocks, int count, uint32_t* soli
 						  int* max_height, int ao);
 void chunk_rebuild_all(void);
 void chunk_draw_visible(void);
+void chunk_queue_blocks();
 
 #endif

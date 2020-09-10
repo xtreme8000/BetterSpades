@@ -64,3 +64,12 @@ size_t int_hash(void* raw_key, size_t key_size) {
 	x = (x >> 16) ^ x;
 	return x;
 }
+
+void ht_iterate(HashTable* ht, void* user, bool (*callback)(void* key, void* value, void* user)) {
+	for(size_t chain = 0; chain < ht->capacity; chain++) {
+		HTNode* node = ht->nodes[chain];
+
+		while(node && callback(node->key, node->value, user))
+			node = node->next;
+	}
+}

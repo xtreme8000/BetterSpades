@@ -22,9 +22,12 @@
 
 #include <stdint.h>
 
+#include "hashtable.h"
+
 int base64_decode(char* data, int len);
 
 int int_cmp(void* first_key, void* second_key, size_t key_size);
 size_t int_hash(void* raw_key, size_t key_size);
+void ht_iterate(HashTable* ht, void* user, bool (*callback)(void* key, void* value, void* user));
 
 #endif
