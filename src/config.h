@@ -50,6 +50,7 @@ extern struct RENDER_OPTIONS {
 	int force_displaylist;
 	int invert_y;
 	int smooth_fog;
+	float camera_fov;
 } settings, settings_tmp;
 
 extern struct list config_keys;
@@ -72,6 +73,7 @@ enum {
 struct config_setting {
 	void* value;
 	int type;
+	int min;
 	int max;
 	char name[32];
 	char help[32];

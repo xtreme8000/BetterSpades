@@ -138,7 +138,8 @@ static void hud_ingame_render3D() {
 
 	matrix_select(matrix_projection);
 	matrix_identity();
-	matrix_perspective(camera_fov, ((float)settings.window_width) / ((float)settings.window_height), 0.1F, 128.0F);
+	matrix_perspective(CAMERA_DEFAULT_FOV, ((float)settings.window_width) / ((float)settings.window_height), 0.1F,
+					   128.0F);
 	matrix_select(matrix_view);
 	matrix_identity();
 	matrix_upload_p();
@@ -2477,7 +2478,7 @@ static void hud_settings_render(mu_Context* ctx, float scalex, float scaley) {
 						mu_textbox(ctx, a->value, a->max + 1);
 						break;
 					case CONFIG_TYPE_INT:
-						if(a->max == 1) {
+						if(a->max == 1 && a->min == 0) {
 							mu_text(ctx, a->name);
 							mu_checkbox(ctx, "", a->value);
 						} else if(a->max == INT_MAX) {
@@ -2485,16 +2486,16 @@ static void hud_settings_render(mu_Context* ctx, float scalex, float scaley) {
 							int_number(ctx, a->value);
 						} else {
 							mu_text(ctx, a->name);
-							int_slider(ctx, a->value, 0, a->max);
+							int_slider(ctx, a->value, a->min, a->max);
 						}
 						break;
 					case CONFIG_TYPE_FLOAT:
 						mu_text(ctx, a->name);
 						if(a->max == INT_MAX) {
 							mu_number(ctx, a->value, 0.1F);
-							*(float*)a->value = max(0, *(float*)a->value);
+							*(float*)a->value = max(a->min, *(float*)a->value);
 						} else {
-							mu_slider(ctx, a->value, 0, a->max);
+							mu_slider(ctx, a->value, a->min, a->max);
 						}
 						break;
 				}

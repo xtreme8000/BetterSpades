@@ -695,6 +695,7 @@ int main(int argc, char** argv) {
 	settings.force_displaylist = 0;
 	settings.invert_y = 0;
 	settings.smooth_fog = 0;
+	settings.camera_fov = CAMERA_DEFAULT_FOV;
 	strcpy(settings.name, "DEV_CLIENT");
 
 #ifdef USE_TOUCH

@@ -27,6 +27,7 @@
 #include "map.h"
 #include "matrix.h"
 #include "camera.h"
+#include "config.h"
 
 enum camera_mode camera_mode = CAMERAMODE_SPECTATOR;
 
@@ -34,7 +35,6 @@ float frustum[6][4];
 float camera_rot_x = 2.04F, camera_rot_y = 1.79F;
 float camera_x = 256.0F, camera_y = 60.0F, camera_z = 256.0F;
 float camera_vx, camera_vy, camera_vz;
-float camera_fov = CAMERA_DEFAULT_FOV;
 float camera_size = 0.8F;
 float camera_height = 0.8F;
 float camera_eye_height = 0.0F;
@@ -49,8 +49,8 @@ float camera_fov_scaled() {
 
 	if(render_fpv && players[local_id].held_item == TOOL_GUN && players[local_id].input.buttons.rmb
 	   && !players[local_id].input.keys.sprint && players[local_id].alive)
-		return camera_fov * atan(tan((camera_fov / 180.0F * PI) / 2) / 2.0F) * 2.0F;
-	return camera_fov;
+		return CAMERA_DEFAULT_FOV * atan(tan((CAMERA_DEFAULT_FOV / 180.0F * PI) / 2) / 2.0F) * 2.0F;
+	return settings.camera_fov;
 }
 
 void camera_overflow_adjust() {

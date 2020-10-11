@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <limits.h>
+#include <math.h>
 
 #include "window.h"
 #include "file.h"
@@ -29,6 +30,7 @@
 #include "config.h"
 #include "sound.h"
 #include "model.h"
+#include "camera.h"
 
 struct RENDER_OPTIONS settings, settings_tmp;
 struct list config_keys;
@@ -82,6 +84,7 @@ void config_save() {
 	config_seti("client", "inverty", settings.invert_y);
 	config_seti("client", "smooth_fog", settings.smooth_fog);
 	config_seti("client", "ambient_occlusion", settings.ambient_occlusion);
+	config_setf("client", "camera_fov", settings.camera_fov);
 
 	for(int k = 0; k < list_size(&config_keys); k++) {
 		struct config_key_pair* e = list_get(&config_keys, k);
@@ -117,52 +120,39 @@ static int config_read_key(void* user, const char* section, const char* name, co
 	if(!strcmp(section, "client")) {
 		if(!strcmp(name, "name")) {
 			strcpy(settings.name, value);
-		}
-		if(!strcmp(name, "xres")) {
+		} else if(!strcmp(name, "xres")) {
 			settings.window_width = atoi(value);
-		}
-		if(!strcmp(name, "yres")) {
+		} else if(!strcmp(name, "yres")) {
 			settings.window_height = atoi(value);
-		}
-		if(!strcmp(name, "windowed")) {
+		} else if(!strcmp(name, "windowed")) {
 			settings.fullscreen = !atoi(value);
-		}
-		if(!strcmp(name, "multisamples")) {
+		} else if(!strcmp(name, "multisamples")) {
 			settings.multisamples = atoi(value);
-		}
-		if(!strcmp(name, "greedy_meshing")) {
+		} else if(!strcmp(name, "greedy_meshing")) {
 			settings.greedy_meshing = atoi(value);
-		}
-		if(!strcmp(name, "vsync")) {
+		} else if(!strcmp(name, "vsync")) {
 			settings.vsync = atoi(value);
-		}
-		if(!strcmp(name, "mouse_sensitivity")) {
+		} else if(!strcmp(name, "mouse_sensitivity")) {
 			settings.mouse_sensitivity = atof(value);
-		}
-		if(!strcmp(name, "show_news")) {
+		} else if(!strcmp(name, "show_news")) {
 			settings.show_news = atoi(value);
-		}
-		if(!strcmp(name, "vol")) {
+		} else if(!strcmp(name, "vol")) {
 			settings.volume = max(min(atoi(value), 10), 0);
 			sound_volume(settings.volume / 10.0F);
-		}
-		if(!strcmp(name, "show_fps")) {
+		} else if(!strcmp(name, "show_fps")) {
 			settings.show_fps = atoi(value);
-		}
-		if(!strcmp(name, "voxlap_models")) {
+		} else if(!strcmp(name, "voxlap_models")) {
 			settings.voxlap_models = atoi(value);
-		}
-		if(!strcmp(name, "force_displaylist")) {
+		} else if(!strcmp(name, "force_displaylist")) {
 			settings.force_displaylist = atoi(value);
-		}
-		if(!strcmp(name, "inverty")) {
+		} else if(!strcmp(name, "inverty")) {
 			settings.invert_y = atoi(value);
-		}
-		if(!strcmp(name, "smooth_fog")) {
+		} else if(!strcmp(name, "smooth_fog")) {
 			settings.smooth_fog = atoi(value);
-		}
-		if(!strcmp(name, "ambient_occlusion")) {
+		} else if(!strcmp(name, "ambient_occlusion")) {
 			settings.ambient_occlusion = atoi(value);
+		} else if(!strcmp(name, "camera_fov")) {
+			settings.camera_fov = fmax(fmin(atof(value), CAMERA_MAX_FOV), CAMERA_DEFAULT_FOV);
 		}
 	}
 	if(!strcmp(section, "controls")) {
@@ -375,13 +365,24 @@ void config_reload() {
 			 &(struct config_setting) {
 				 .value = &settings_tmp.mouse_sensitivity,
 				 .type = CONFIG_TYPE_FLOAT,
+				 .min = 0,
 				 .max = INT_MAX,
 				 .name = "Mouse sensitivity",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
+				 .value = &settings_tmp.camera_fov,
+				 .type = CONFIG_TYPE_FLOAT,
+				 .min = CAMERA_DEFAULT_FOV,
+				 .max = CAMERA_MAX_FOV,
+				 .name = "Camera FOV",
+				 .help = "Field of View in degrees",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
 				 .value = &settings_tmp.volume,
 				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
 				 .max = 10,
 				 .name = "Volume",
 			 });
@@ -389,6 +390,7 @@ void config_reload() {
 			 &(struct config_setting) {
 				 .value = &settings_tmp.window_width,
 				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
 				 .max = INT_MAX,
 				 .name = "Game width",
 				 .defaults = 640,
@@ -404,6 +406,7 @@ void config_reload() {
 			 &(struct config_setting) {
 				 .value = &settings_tmp.window_height,
 				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
 				 .max = INT_MAX,
 				 .name = "Game height",
 				 .defaults = 480,
@@ -419,6 +422,7 @@ void config_reload() {
 			 &(struct config_setting) {
 				 .value = &settings_tmp.vsync,
 				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
 				 .max = INT_MAX,
 				 .name = "V-Sync",
 				 .help = "Limits your game's fps",
@@ -433,6 +437,7 @@ void config_reload() {
 			 &(struct config_setting) {
 				 .value = &settings_tmp.fullscreen,
 				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
 				 .max = 1,
 				 .name = "Fullscreen",
 			 });
@@ -440,6 +445,7 @@ void config_reload() {
 			 &(struct config_setting) {
 				 .value = &settings_tmp.multisamples,
 				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
 				 .max = 16,
 				 .name = "Multisamples",
 				 .help = "Smooth out block edges",
@@ -455,6 +461,7 @@ void config_reload() {
 			 &(struct config_setting) {
 				 .value = &settings_tmp.voxlap_models,
 				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
 				 .max = 1,
 				 .help = "Render models like in voxlap",
 				 .name = "Voxlap models",
@@ -463,6 +470,7 @@ void config_reload() {
 			 &(struct config_setting) {
 				 .value = &settings_tmp.greedy_meshing,
 				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
 				 .max = 1,
 				 .help = "Join similar mesh faces",
 				 .name = "Greedy meshing",
@@ -471,6 +479,7 @@ void config_reload() {
 			 &(struct config_setting) {
 				 .value = &settings_tmp.force_displaylist,
 				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
 				 .max = 1,
 				 .help = "Enable this on buggy drivers",
 				 .name = "Force Displaylist",
@@ -479,6 +488,7 @@ void config_reload() {
 			 &(struct config_setting) {
 				 .value = &settings_tmp.smooth_fog,
 				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
 				 .max = 1,
 				 .help = "Enable this on buggy drivers",
 				 .name = "Smooth fog",
@@ -487,6 +497,7 @@ void config_reload() {
 			 &(struct config_setting) {
 				 .value = &settings_tmp.ambient_occlusion,
 				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
 				 .max = 1,
 				 .help = "(won't work with greedy mesh)",
 				 .name = "Ambient occlusion",
@@ -495,6 +506,7 @@ void config_reload() {
 			 &(struct config_setting) {
 				 .value = &settings_tmp.show_fps,
 				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
 				 .max = 1,
 				 .name = "Show fps",
 				 .help = "Show current fps and ping ingame",
@@ -503,6 +515,7 @@ void config_reload() {
 			 &(struct config_setting) {
 				 .value = &settings_tmp.invert_y,
 				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
 				 .max = 1,
 				 .name = "Invert y",
 				 .help = "Invert vertical mouse movement",
@@ -511,6 +524,7 @@ void config_reload() {
 			 &(struct config_setting) {
 				 .value = &settings_tmp.show_news,
 				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
 				 .max = 1,
 				 .name = "Show news",
 				 .help = "Open the bns news on exit",
