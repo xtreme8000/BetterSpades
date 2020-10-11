@@ -85,6 +85,7 @@ void config_save() {
 	config_seti("client", "smooth_fog", settings.smooth_fog);
 	config_seti("client", "ambient_occlusion", settings.ambient_occlusion);
 	config_setf("client", "camera_fov", settings.camera_fov);
+	config_seti("client", "hold_down_sights", settings.hold_down_sights);
 
 	for(int k = 0; k < list_size(&config_keys); k++) {
 		struct config_key_pair* e = list_get(&config_keys, k);
@@ -153,6 +154,8 @@ static int config_read_key(void* user, const char* section, const char* name, co
 			settings.ambient_occlusion = atoi(value);
 		} else if(!strcmp(name, "camera_fov")) {
 			settings.camera_fov = fmax(fmin(atof(value), CAMERA_MAX_FOV), CAMERA_DEFAULT_FOV);
+		} else if(!strcmp(name, "hold_down_sights")) {
+			settings.hold_down_sights = atoi(value);
 		}
 	}
 	if(!strcmp(section, "controls")) {
@@ -465,6 +468,15 @@ void config_reload() {
 				 .max = 1,
 				 .help = "Render models like in voxlap",
 				 .name = "Voxlap models",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = &settings_tmp.hold_down_sights,
+				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
+				 .max = 1,
+				 .help = "Only aim while pressing RMB",
+				 .name = "Hold down sights",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {

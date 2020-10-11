@@ -51,6 +51,7 @@ extern struct RENDER_OPTIONS {
 	int invert_y;
 	int smooth_fog;
 	float camera_fov;
+	int hold_down_sights;
 } settings, settings_tmp;
 
 extern struct list config_keys;

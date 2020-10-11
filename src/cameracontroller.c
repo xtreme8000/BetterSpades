@@ -25,6 +25,7 @@
 #include "camera.h"
 #include "matrix.h"
 #include "cameracontroller.h"
+#include "config.h"
 
 int cameracontroller_bodyview_mode = 0;
 int cameracontroller_bodyview_player = 0;
@@ -156,7 +157,8 @@ void cameracontroller_fps(float dt) {
 
 	players[local_player_id].input.buttons.lmb = button_map[0];
 
-	if(players[local_player_id].held_item != TOOL_GUN) {
+	if(players[local_player_id].held_item != TOOL_GUN
+	   || (settings.hold_down_sights && !players[local_player_id].items_show)) {
 		players[local_player_id].input.buttons.rmb = button_map[1];
 	}
 

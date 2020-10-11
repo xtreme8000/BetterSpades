@@ -1244,11 +1244,9 @@ static void hud_ingame_mouseclick(double x, double y, int button, int action, in
 		button_map[0] = (action == WINDOW_PRESS);
 	}
 	if(button == WINDOW_MOUSE_RMB) {
-		if(action == WINDOW_PRESS && players[local_player_id].held_item == TOOL_GUN) {
+		if(action == WINDOW_PRESS && players[local_player_id].held_item == TOOL_GUN && !settings.hold_down_sights
+		   && !players[local_player_id].items_show) {
 			players[local_player_id].input.buttons.rmb ^= 1;
-			if(players[local_player_id].items_show) {
-				players[local_player_id].input.buttons.rmb = 0;
-			}
 		}
 		if(local_player_drag_active && action == WINDOW_RELEASE && players[local_player_id].held_item == TOOL_BLOCK) {
 			int* pos = camera_terrain_pick(0);
