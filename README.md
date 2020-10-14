@@ -45,12 +45,12 @@ You can either:
 
 ## Build requirements
 
-This projects uses the following libraries and files:
+This project uses the following libraries and files:
 
 | Name         | License         | Usage                  | GitHub                                             |
 | ------------ | --------------- | ---------------------- | :------------------------------------------------: |
 | GLFW3        | *ZLib*          | OpenGL context         | [Link](https://github.com/glfw/glfw)               |
-| OpenAL soft  | *LGPL-2.1*      | 3D Sound env           | [Link](https://github.com/kcat/openal-soft)        |
+| OpenAL soft  | *LGPL-2.1*      | 3D sound environment   | [Link](https://github.com/kcat/openal-soft)        |
 | inih         | *BSD-3.Clause*  | .INI file parser       | [Link](https://github.com/benhoyt/inih)            |
 | stb_truetype | *Public domain* | TrueType font renderer | [Link](https://github.com/nothings/stb)            |
 | dr_wav       | *Public domain* | wav support            | [Link](https://github.com/mackron/dr_libs/)        |
@@ -62,6 +62,8 @@ This projects uses the following libraries and files:
 | log.c        | *MIT*           | logger                 | [Link](https://github.com/xtreme8000/log.c)        |
 | GLEW         | *MIT*           | OpenGL extensions      | [Link](https://github.com/nigels-com/glew)         |
 | hashtable    | *MIT*           | hashtable              | [Link](https://github.com/goldsborough/hashtable/) |
+| libvxl       | *MIT*           | access VXL format      | [Link](https://github.com/xtreme8000/libvxl/)      |
+| microui      | *MIT*           | user interface         | [Link](https://github.com/rxi/microui)             |
 
 You will need to compile the following by yourself, or get hold of precompiled binaries:
 
