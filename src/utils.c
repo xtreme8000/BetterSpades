@@ -65,11 +65,16 @@ size_t int_hash(void* raw_key, size_t key_size) {
 	return x;
 }
 
-void ht_iterate(HashTable* ht, void* user, bool (*callback)(void* key, void* value, void* user)) {
+bool ht_iterate(HashTable* ht, void* user, bool (*callback)(void* key, void* value, void* user)) {
 	for(size_t chain = 0; chain < ht->capacity; chain++) {
 		HTNode* node = ht->nodes[chain];
 
-		while(node && callback(node->key, node->value, user))
+		while(node) {
+			if(!callback(node->key, node->value, user))
+				return true;
 			node = node->next;
+		}
 	}
+
+	return false;
 }

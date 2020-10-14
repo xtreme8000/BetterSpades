@@ -38,6 +38,7 @@
 #include "tesselator.h"
 #include "utils.h"
 #include "config.h"
+#include "channel.h"
 
 uint8_t* map_heights;
 int map_size_x = 512;
@@ -139,6 +140,13 @@ void map_damaged_voxels_render() {
 	// glDisable(GL_POLYGON_OFFSET_FILL);
 }
 
+struct map_work_packet {
+	int x, y, z;
+};
+
+struct channel map_work_queue;
+struct channel map_result_queue;
+
 struct map_collapsing {
 	HashTable voxels;
 	struct Velocity v;
@@ -148,11 +156,74 @@ struct map_collapsing {
 	int voxel_count;
 	int used, rotation, has_displaylist;
 	struct glx_displaylist displaylist;
+	struct tesselator mesh_geometry;
 } map_collapsing_structures[32];
 
-static void map_update_physics_sub(int x, int y, int z) {
+static bool falling_blocks_meshing(void* key, void* value, void* user) {
+	uint32_t pos = *(uint32_t*)key;
+	uint32_t color = *(uint32_t*)value;
+	struct map_collapsing* collapsing = ((struct map_collapsing**)user)[0];
+	struct tesselator* tess = ((struct tesselator**)user)[1];
+
+	int x2 = pos_keyx(pos);
+	int y2 = pos_keyy(pos);
+	int z2 = pos_keyz(pos);
+
+	float x = x2 - collapsing->p2.x;
+	float y = y2 - collapsing->p2.y;
+	float z = z2 - collapsing->p2.z;
+
+	if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2, y2 - 1, z2)})) {
+		tesselator_set_color(tess, rgba(red(color) * 0.5F, green(color) * 0.5F, blue(color) * 0.5F, 0xCC));
+		tesselator_addf_cube_face(tess, CUBE_FACE_Y_N, x, y, z, 1.0F);
+	}
+
+	if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2, y2 + 1, z2)})) {
+		tesselator_set_color(tess, rgba(red(color), green(color), blue(color), 0xCC));
+		tesselator_addf_cube_face(tess, CUBE_FACE_Y_P, x, y, z, 1.0F);
+	}
+
+	if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2, y2, z2 - 1)})) {
+		tesselator_set_color(tess, rgba(red(color) * 0.7F, green(color) * 0.7F, blue(color) * 0.7F, 0xCC));
+		tesselator_addf_cube_face(tess, CUBE_FACE_Z_N, x, y, z, 1.0F);
+	}
+
+	if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2, y2, z2 + 1)})) {
+		tesselator_set_color(tess, rgba(red(color) * 0.6F, green(color) * 0.6F, blue(color) * 0.6F, 0xCC));
+		tesselator_addf_cube_face(tess, CUBE_FACE_Z_P, x, y, z, 1.0F);
+	}
+
+	if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2 - 1, y2, z2)})) {
+		tesselator_set_color(tess, rgba(red(color) * 0.9F, green(color) * 0.9F, blue(color) * 0.9F, 0xCC));
+		tesselator_addf_cube_face(tess, CUBE_FACE_X_N, x, y, z, 1.0F);
+	}
+
+	if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2 + 1, y2, z2)})) {
+		tesselator_set_color(tess, rgba(red(color) * 0.8F, green(color) * 0.8F, blue(color) * 0.8F, 0xCC));
+		tesselator_addf_cube_face(tess, CUBE_FACE_X_P, x, y, z, 1.0F);
+	}
+
+	return true;
+}
+
+static bool falling_blocks_pivot(void* key, void* value, void* user) {
+	float* pivot = (float*)user;
+	uint32_t pos = *(uint32_t*)key;
+
+	map_set(pos_keyx(pos), pos_keyy(pos), pos_keyz(pos), 0xFFFFFFFF);
+	pivot[0] += pos_keyx(pos);
+	pivot[1] += pos_keyy(pos);
+	pivot[2] += pos_keyz(pos);
+
+	return true;
+}
+
+static bool map_update_physics_sub(struct map_collapsing* collapsing, int x, int y, int z) {
 	if(y <= 1)
-		return;
+		return false;
+
+	if(map_isair(x, y, z))
+		return false;
 
 	struct minheap openlist;
 	minheap_create(&openlist);
@@ -178,7 +249,7 @@ static void map_update_physics_sub(int x, int y, int z) {
 			if(y <= 2) { // reached layer at water level = finished!
 				minheap_destroy(&openlist);
 				ht_destroy(&closedlist);
-				return;
+				return false;
 			}
 			minheap_put(&openlist, &(struct minheap_block) {.pos = pos_key(x, y - 1, z)});
 		}
@@ -204,44 +275,26 @@ static void map_update_physics_sub(int x, int y, int z) {
 
 	minheap_destroy(&openlist);
 
-	float px = 0.0F, py = 0.0F, pz = 0.0F;
-	for(int chain = 0; chain < closedlist.capacity; chain++) {
-		HTNode* node = closedlist.nodes[chain];
-		while(node) {
-			uint32_t key = *(uint32_t*)(node->key);
-			map_set(pos_keyx(key), pos_keyy(key), pos_keyz(key), 0xFFFFFFFF);
-			px += pos_keyx(key);
-			py += pos_keyy(key);
-			pz += pos_keyz(key);
+	float pivot[3] = {0, 0, 0};
+	ht_iterate(&closedlist, pivot, falling_blocks_pivot);
 
-			node = node->next;
-		}
-	}
-	px = (px / (float)closedlist.size) + 0.5F;
-	py = (py / (float)closedlist.size) + 0.5F;
-	pz = (pz / (float)closedlist.size) + 0.5F;
+	for(size_t k = 0; k < 3; k++)
+		pivot[k] = (pivot[k] / (float)closedlist.size) + 0.5F;
 
-	sound_create(NULL, SOUND_WORLD, &sound_debris, px, py, pz);
+	collapsing->used = 1;
+	collapsing->voxels = closedlist;
+	collapsing->v = (struct Velocity) {0, 0, 0};
+	collapsing->o = (struct Orientation) {0, 0, 0};
+	collapsing->p = (struct Position) {pivot[0], pivot[1], pivot[2]};
+	collapsing->p2 = collapsing->p;
+	collapsing->rotation = rand() & 3;
+	collapsing->voxel_count = closedlist.size;
+	collapsing->has_displaylist = 0;
 
-	for(int k = 0; k < 32; k++) {
-		struct map_collapsing* collapsing = map_collapsing_structures + k;
+	tesselator_create(&collapsing->mesh_geometry, VERTEX_FLOAT, 0);
+	ht_iterate(&collapsing->voxels, (void*[]) {collapsing, &collapsing->mesh_geometry}, falling_blocks_meshing);
 
-		if(!collapsing->used) {
-			collapsing->used = 1;
-			collapsing->voxels = closedlist;
-			collapsing->v = (struct Velocity) {0, 0, 0};
-			collapsing->o = (struct Orientation) {0, 0, 0};
-			collapsing->p = (struct Position) {px, py, pz};
-			collapsing->p2 = (struct Position) {px, py, pz};
-			collapsing->rotation = rand() & 3;
-			collapsing->voxel_count = closedlist.size;
-			collapsing->has_displaylist = 0;
-			return;
-		}
-	}
-
-	// there was no free slot!
-	ht_destroy(&closedlist);
+	return true;
 }
 
 int map_collapsing_cmp(const void* a, const void* b) {
@@ -258,9 +311,6 @@ int map_collapsing_cmp(const void* a, const void* b) {
 void map_collapsing_render() {
 	qsort(map_collapsing_structures, 32, sizeof(struct map_collapsing), map_collapsing_cmp);
 
-	struct tesselator tess;
-	tesselator_create(&tess, VERTEX_FLOAT, 0);
-
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -274,66 +324,12 @@ void map_collapsing_render() {
 			matrix_rotate(collapsing->o.x, 1.0F, 0.0F, 0.0F);
 			matrix_rotate(collapsing->o.y, 0.0F, 1.0F, 0.0F);
 			matrix_upload();
+
 			if(!collapsing->has_displaylist) {
 				collapsing->has_displaylist = 1;
 				glx_displaylist_create(&collapsing->displaylist, true, false);
-
-				tesselator_clear(&tess);
-
-				for(int chain = 0; chain < collapsing->voxels.capacity; chain++) {
-					HTNode* node = collapsing->voxels.nodes[chain];
-					while(node) {
-						uint32_t key = *(uint32_t*)(node->key);
-						uint32_t color = *(uint32_t*)(node->value);
-
-						int x2 = pos_keyx(key);
-						int y2 = pos_keyy(key);
-						int z2 = pos_keyz(key);
-
-						float x = x2 - collapsing->p2.x;
-						float y = y2 - collapsing->p2.y;
-						float z = z2 - collapsing->p2.z;
-
-						if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2, y2 - 1, z2)})) {
-							tesselator_set_color(
-								&tess, rgba(red(color) * 0.5F, green(color) * 0.5F, blue(color) * 0.5F, 0xCC));
-							tesselator_addf_cube_face(&tess, CUBE_FACE_Y_N, x, y, z, 1.0F);
-						}
-
-						if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2, y2 + 1, z2)})) {
-							tesselator_set_color(&tess, rgba(red(color), green(color), blue(color), 0xCC));
-							tesselator_addf_cube_face(&tess, CUBE_FACE_Y_P, x, y, z, 1.0F);
-						}
-
-						if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2, y2, z2 - 1)})) {
-							tesselator_set_color(
-								&tess, rgba(red(color) * 0.7F, green(color) * 0.7F, blue(color) * 0.7F, 0xCC));
-							tesselator_addf_cube_face(&tess, CUBE_FACE_Z_N, x, y, z, 1.0F);
-						}
-
-						if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2, y2, z2 + 1)})) {
-							tesselator_set_color(
-								&tess, rgba(red(color) * 0.6F, green(color) * 0.6F, blue(color) * 0.6F, 0xCC));
-							tesselator_addf_cube_face(&tess, CUBE_FACE_Z_P, x, y, z, 1.0F);
-						}
-
-						if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2 - 1, y2, z2)})) {
-							tesselator_set_color(
-								&tess, rgba(red(color) * 0.9F, green(color) * 0.9F, blue(color) * 0.9F, 0xCC));
-							tesselator_addf_cube_face(&tess, CUBE_FACE_X_N, x, y, z, 1.0F);
-						}
-
-						if(!ht_contains(&collapsing->voxels, (uint32_t[]) {pos_key(x2 + 1, y2, z2)})) {
-							tesselator_set_color(
-								&tess, rgba(red(color) * 0.8F, green(color) * 0.8F, blue(color) * 0.8F, 0xCC));
-							tesselator_addf_cube_face(&tess, CUBE_FACE_X_P, x, y, z, 1.0F);
-						}
-
-						node = node->next;
-					}
-				}
-
-				tesselator_glx(&tess, &collapsing->displaylist);
+				tesselator_glx(&collapsing->mesh_geometry, &collapsing->displaylist);
+				tesselator_free(&collapsing->mesh_geometry);
 			}
 
 			glColorMask(0, 0, 0, 0);
@@ -345,12 +341,63 @@ void map_collapsing_render() {
 		}
 	}
 
-	tesselator_free(&tess);
-
 	glDisable(GL_BLEND);
 }
 
+static bool falling_blocks_collision(void* key, void* value, void* user) {
+	uint32_t pos = *(uint32_t*)key;
+	struct map_collapsing* collapsing = ((struct map_collapsing**)user)[0];
+	float dt = *(((float**)user)[1]);
+
+	float v[4] = {pos_keyx(pos) + collapsing->v.x * dt * 32.0F - collapsing->p2.x + 0.5F,
+				  pos_keyy(pos) + collapsing->v.y * dt * 32.0F - collapsing->p2.y + 0.5F,
+				  pos_keyz(pos) + collapsing->v.z * dt * 32.0F - collapsing->p2.z + 0.5F, 1.0F};
+
+	matrix_vector(v);
+
+	return map_isair(v[0], v[1], v[2]);
+}
+
+static bool falling_blocks_particles(void* key, void* value, void* user) {
+	uint32_t pos = *(uint32_t*)key;
+	uint32_t color = *(uint32_t*)value;
+	struct map_collapsing* collapsing = (struct map_collapsing*)user;
+
+	float v[4] = {pos_keyx(pos) - collapsing->p2.x + 0.5F, pos_keyy(pos) - collapsing->p2.y + 0.5F,
+				  pos_keyz(pos) - collapsing->p2.z + 0.5F, 1.0F};
+	matrix_vector(v);
+	particle_create(color, v[0], v[1], v[2], 2.5F, 1.0F, 2, 0.25F, 0.4F);
+
+	return true;
+}
+
 void map_collapsing_update(float dt) {
+	size_t drain = channel_size(&map_result_queue);
+
+	for(size_t k = 0; k < drain; k++) {
+		struct map_collapsing res;
+		channel_await(&map_result_queue, &res);
+
+		sound_create(NULL, SOUND_WORLD, &sound_debris, res.p.x, res.p.y, res.p.z);
+
+		bool found = false;
+		for(size_t j = 0; j < 32; j++) {
+			struct map_collapsing* collapsing = map_collapsing_structures + j;
+
+			if(!collapsing->used) {
+				*collapsing = res;
+				found = true;
+				break;
+			}
+		}
+
+		if(!found) {
+			// there was no free slot!
+			ht_destroy(&res.voxels);
+			tesselator_free(&res.mesh_geometry);
+		}
+	}
+
 	for(int k = 0; k < 32; k++) {
 		struct map_collapsing* collapsing = map_collapsing_structures + k;
 
@@ -363,24 +410,7 @@ void map_collapsing_update(float dt) {
 			matrix_rotate(collapsing->o.x, 1.0F, 0.0F, 0.0F);
 			matrix_rotate(collapsing->o.y, 0.0F, 1.0F, 0.0F);
 
-			int collision = 0;
-			for(int chain = 0; chain < collapsing->voxels.capacity && !collision; chain++) {
-				HTNode* node = collapsing->voxels.nodes[chain];
-				while(node) {
-					uint32_t key = *(uint32_t*)(node->key);
-
-					float v[4] = {pos_keyx(key) + collapsing->v.x * dt * 32.0F - collapsing->p2.x + 0.5F,
-								  pos_keyy(key) + collapsing->v.y * dt * 32.0F - collapsing->p2.y + 0.5F,
-								  pos_keyz(key) + collapsing->v.z * dt * 32.0F - collapsing->p2.z + 0.5F, 1.0F};
-					matrix_vector(v);
-					if(!map_isair(v[0], v[1], v[2])) {
-						collision = 1;
-						break;
-					}
-
-					node = node->next;
-				}
-			}
+			bool collision = ht_iterate(&collapsing->voxels, (void*[]) {collapsing, &dt}, falling_blocks_collision);
 
 			if(!collision) {
 				collapsing->p.x += collapsing->v.x * dt * 32.0F;
@@ -395,29 +425,16 @@ void map_collapsing_update(float dt) {
 				sound_create(NULL, SOUND_WORLD, &sound_bounce, collapsing->p.x, collapsing->p.y, collapsing->p.z);
 
 				if(absf(collapsing->v.y) < 0.1F) {
-					for(int chain = 0; chain < collapsing->voxels.capacity; chain++) {
-						HTNode* node = collapsing->voxels.nodes[chain];
-						while(node) {
-							uint32_t key = *(uint32_t*)(node->key);
-							uint32_t color = *(uint32_t*)(node->value);
+					ht_iterate(&collapsing->voxels, collapsing, falling_blocks_particles);
+					ht_destroy(&collapsing->voxels);
 
-							float v[4]
-								= {pos_keyx(key) - collapsing->p2.x + 0.5F, pos_keyy(key) - collapsing->p2.y + 0.5F,
-								   pos_keyz(key) - collapsing->p2.z + 0.5F, 1.0F};
-							matrix_vector(v);
-							particle_create(color, v[0], v[1], v[2], 2.5F, 1.0F, 2, 0.25F, 0.4F);
-
-							node = node->next;
-						}
+					if(collapsing->has_displaylist) {
+						glx_displaylist_destroy(&collapsing->displaylist);
+					} else {
+						tesselator_free(&collapsing->mesh_geometry);
 					}
 
-					matrix_pop();
-
-					ht_destroy(&collapsing->voxels);
-					glx_displaylist_destroy(&collapsing->displaylist);
-
 					collapsing->used = 0;
-					continue;
 				}
 			}
 
@@ -431,17 +448,17 @@ void map_collapsing_update(float dt) {
 
 void map_update_physics(int x, int y, int z) {
 	if(!map_isair(x + 1, y, z))
-		map_update_physics_sub(x + 1, y, z);
+		channel_put(&map_work_queue, &(struct map_work_packet) {.x = x + 1, .y = y, .z = z});
 	if(!map_isair(x - 1, y, z))
-		map_update_physics_sub(x - 1, y, z);
+		channel_put(&map_work_queue, &(struct map_work_packet) {.x = x - 1, .y = y, .z = z});
 	if(!map_isair(x, y, z + 1))
-		map_update_physics_sub(x, y, z + 1);
+		channel_put(&map_work_queue, &(struct map_work_packet) {.x = x, .y = y, .z = z + 1});
 	if(!map_isair(x, y, z - 1))
-		map_update_physics_sub(x, y, z - 1);
+		channel_put(&map_work_queue, &(struct map_work_packet) {.x = x, .y = y, .z = z - 1});
 	if(!map_isair(x, y - 1, z))
-		map_update_physics_sub(x, y - 1, z);
+		channel_put(&map_work_queue, &(struct map_work_packet) {.x = x, .y = y - 1, .z = z});
 	if(!map_isair(x, y + 1, z))
-		map_update_physics_sub(x, y + 1, z);
+		channel_put(&map_work_queue, &(struct map_work_packet) {.x = x, .y = y + 1, .z = z});
 }
 
 // see this for details: https://github.com/infogulch/pyspades/blob/protocol075/pyspades/vxl_c.cpp#L380
@@ -457,6 +474,19 @@ float map_sunblock(int x, int y, int z) {
 	return (float)i / 127.0F;
 }
 
+void* falling_blocks_worker(void* user) {
+	while(1) {
+		struct map_work_packet work;
+		channel_await(&map_work_queue, &work);
+
+		struct map_collapsing collapsing;
+		if(map_update_physics_sub(&collapsing, work.x, work.y, work.z))
+			channel_put(&map_result_queue, &collapsing);
+	}
+
+	return NULL;
+}
+
 void map_init() {
 	libvxl_create(&map, 512, 512, 64, NULL, 0);
 	tesselator_create(&map_damaged_tesselator, VERTEX_INT, 0);
@@ -467,6 +497,12 @@ void map_init() {
 
 	for(int k = 0; k < 32; k++)
 		map_collapsing_structures[k].used = 0;
+
+	channel_create(&map_work_queue, sizeof(struct map_work_packet), 16);
+	channel_create(&map_result_queue, sizeof(struct map_collapsing), 16);
+
+	pthread_t worker;
+	pthread_create(&worker, NULL, falling_blocks_worker, NULL);
 }
 
 int map_height_at(int x, int z) {
