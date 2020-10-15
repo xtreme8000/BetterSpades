@@ -53,12 +53,11 @@ float fog_color[4] = {0.5F, 0.9098F, 1.0F, 1.0F};
 float map_sun[4];
 
 struct damaged_voxel {
-	uint32_t x, y, z;
 	int damage;
-	int used;
 	float timer;
-} map_damaged_voxels[8];
+};
 
+HashTable map_damaged_voxels;
 struct tesselator map_damaged_tesselator;
 
 int map_object_visible(float x, float y, float z) {
@@ -66,40 +65,53 @@ int map_object_visible(float x, float y, float z) {
 }
 
 int map_damage(int x, int y, int z, int damage) {
-	struct damaged_voxel* oldest = map_damaged_voxels;
+	uint32_t key = pos_key(x, y, z);
+	struct damaged_voxel* voxel = ht_lookup(&map_damaged_voxels, &key);
 
-	for(int k = 0; k < 8; k++) {
-		struct damaged_voxel* voxel = map_damaged_voxels + k;
+	if(voxel) {
+		voxel->damage = min(damage + voxel->damage, 100);
+		voxel->timer = window_time();
 
-		if(voxel->used && voxel->x == x && voxel->y == y && voxel->z == z) {
-			voxel->damage = min(damage + voxel->damage, 100);
-			voxel->timer = window_time();
+		return voxel->damage;
+	} else {
+		ht_insert(&map_damaged_voxels, &key,
+				  &(struct damaged_voxel) {
+					  .damage = damage,
+					  .timer = window_time(),
+				  });
 
-			return voxel->damage;
-		}
-
-		if((voxel->used && voxel->timer < oldest->timer) || !voxel->used)
-			oldest = voxel;
+		return damage;
 	}
-
-	oldest->used = 1;
-	oldest->x = x;
-	oldest->y = y;
-	oldest->z = z;
-	oldest->damage = damage;
-	oldest->timer = window_time();
-	return damage;
 }
 
 int map_damage_get(int x, int y, int z) {
-	for(int k = 0; k < 8; k++) {
-		struct damaged_voxel* voxel = map_damaged_voxels + k;
+	uint32_t key = pos_key(x, y, z);
+	struct damaged_voxel* voxel = ht_lookup(&map_damaged_voxels, &key);
 
-		if(voxel->used && voxel->x == x && voxel->y == y && voxel->z == z)
-			return voxel->damage;
-	}
+	return voxel ? voxel->damage : 0;
+}
 
-	return 0;
+static bool damaged_voxel_update(void* key, void* value, void* user) {
+	uint32_t pos = *(uint32_t*)key;
+	struct damaged_voxel* voxel = (struct damaged_voxel*)value;
+	struct tesselator* tess = (struct tesselator*)user;
+	int x = pos_keyx(pos);
+	int y = pos_keyy(pos);
+	int z = pos_keyz(pos);
+
+	if(window_time() - voxel->timer > 10.0F || map_isair(x, y, z))
+		return true;
+
+	tesselator_set_color(tess, rgba(0, 0, 0, voxel->damage * 1.9125F));
+
+	tesselator_addi_cube_face(tess, CUBE_FACE_Z_N, x, y, z);
+	tesselator_addi_cube_face(tess, CUBE_FACE_Z_P, x, y, z);
+	tesselator_addi_cube_face(tess, CUBE_FACE_X_N, x, y, z);
+	tesselator_addi_cube_face(tess, CUBE_FACE_X_P, x, y, z);
+	tesselator_addi_cube_face(tess, CUBE_FACE_Y_P, x, y, z);
+	tesselator_addi_cube_face(tess, CUBE_FACE_Y_N, x, y, z);
+
+	return false;
 }
 
 void map_damaged_voxels_render() {
@@ -113,24 +125,7 @@ void map_damaged_voxels_render() {
 
 	tesselator_clear(&map_damaged_tesselator);
 
-	for(int k = 0; k < 8; k++) {
-		struct damaged_voxel* voxel = map_damaged_voxels + k;
-
-		if(voxel->used) {
-			if(window_time() - voxel->timer > 10.0F || map_isair(voxel->x, voxel->y, voxel->z)) {
-				voxel->used = 0;
-			} else {
-				tesselator_set_color(&map_damaged_tesselator, rgba(0, 0, 0, voxel->damage * 1.9125F));
-
-				tesselator_addi_cube_face(&map_damaged_tesselator, CUBE_FACE_Z_N, voxel->x, voxel->y, voxel->z);
-				tesselator_addi_cube_face(&map_damaged_tesselator, CUBE_FACE_Z_P, voxel->x, voxel->y, voxel->z);
-				tesselator_addi_cube_face(&map_damaged_tesselator, CUBE_FACE_X_N, voxel->x, voxel->y, voxel->z);
-				tesselator_addi_cube_face(&map_damaged_tesselator, CUBE_FACE_X_P, voxel->x, voxel->y, voxel->z);
-				tesselator_addi_cube_face(&map_damaged_tesselator, CUBE_FACE_Y_P, voxel->x, voxel->y, voxel->z);
-				tesselator_addi_cube_face(&map_damaged_tesselator, CUBE_FACE_Y_N, voxel->x, voxel->y, voxel->z);
-			}
-		}
-	}
+	ht_iterate_remove(&map_damaged_voxels, &map_damaged_tesselator, damaged_voxel_update);
 
 	tesselator_draw(&map_damaged_tesselator, 1);
 
@@ -492,8 +487,7 @@ void map_init() {
 	tesselator_create(&map_damaged_tesselator, VERTEX_INT, 0);
 	pthread_rwlock_init(&map_lock, NULL);
 
-	for(int k = 0; k < 8; k++)
-		map_damaged_voxels[k].used = 0;
+	ht_setup(&map_damaged_voxels, sizeof(uint32_t), sizeof(struct damaged_voxel), 16);
 
 	for(int k = 0; k < 32; k++)
 		map_collapsing_structures[k].used = 0;
