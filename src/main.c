@@ -451,14 +451,22 @@ void display() {
 										   cmd->rect.rect.w, cmd->rect.rect.h);
 						break;
 					case MU_COMMAND_ICON:
-						if(hud_active->ui_images) {
+						glColor4ub(cmd->icon.color.r, cmd->icon.color.g, cmd->icon.color.b, cmd->icon.color.a);
+						int size = min(cmd->icon.rect.w, cmd->icon.rect.h);
+
+						if(cmd->icon.id >= HUD_FLAG_INDEX_START - 1) {
+							float u, v;
+							texture_flag_offset(cmd->icon.id - HUD_FLAG_INDEX_START, &u, &v);
+
+							texture_draw_sector(&texture_ui_flags, cmd->icon.rect.x,
+												settings.window_height - cmd->icon.rect.y - size * 0.167F, size,
+												size * 0.667F, u, v, 18.0F / 256.0F, 12.0F / 256.0F);
+							glEnable(GL_BLEND);
+						} else if(hud_active->ui_images) {
 							bool resize = false;
 							struct texture* img = hud_active->ui_images(cmd->icon.id, &resize);
 
 							if(img) {
-								glColor4ub(cmd->icon.color.r, cmd->icon.color.g, cmd->icon.color.b, cmd->icon.color.a);
-								int size = min(cmd->icon.rect.w, cmd->icon.rect.h);
-
 								texture_draw(img, cmd->icon.rect.x, settings.window_height - cmd->icon.rect.y,
 											 resize ? size : cmd->icon.rect.w, resize ? size : cmd->icon.rect.h);
 								glEnable(GL_BLEND);

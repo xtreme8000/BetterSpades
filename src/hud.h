@@ -62,6 +62,8 @@ extern struct hud hud_controls;
 extern struct hud* hud_active;
 extern struct window_instance* hud_window;
 
+#define HUD_FLAG_INDEX_START 64
+
 void hud_change(struct hud* new);
 void hud_init();
 void hud_mousemode(int mode);

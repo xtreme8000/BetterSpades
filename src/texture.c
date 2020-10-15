@@ -89,12 +89,16 @@ static int texture_flag_cmp(const void* a, const void* b) {
 	return strcmp(a, *(const void* const*)b);
 }
 
-void texture_flag_offset(const char* country, float* u, float* v) {
-	char** res = bsearch(country, texture_flags, 251, sizeof(char*), texture_flag_cmp);
-	if(res) {
-		int i = res - texture_flags;
-		*u = (i % 14) * (18.0F / 256.0F);
-		*v = (i / 14) * (12.0F / 256.0F);
+int texture_flag_index(const char* country) {
+	char** res = bsearch(country, texture_flags, sizeof(texture_flags) / sizeof(texture_flags[0]), sizeof(char*),
+						 texture_flag_cmp);
+	return res ? (res - texture_flags) : -1;
+}
+
+void texture_flag_offset(int index, float* u, float* v) {
+	if(index >= 0) {
+		*u = (index % 14) * (18.0F / 256.0F);
+		*v = (index / 14) * (12.0F / 256.0F);
 	} else {
 		*u = 0.0F;
 		*v = 0.9375F;
@@ -217,7 +221,7 @@ void texture_draw_empty(float x, float y, float w, float h) {
 	glDisableClientState(GL_VERTEX_ARRAY);
 }
 
-#define texture_emit_rotated(tx, ty, x, y, a) cos(a) * x - sin(a) * y + tx, sin(a) * x + cos(a) * y + ty
+#define texture_emit_rotated(tx, ty, x, y, a) cos(a) * (x)-sin(a) * (y) + (tx), sin(a) * (x) + cos(a) * (y) + (ty)
 
 void texture_draw_empty_rotated(float x, float y, float w, float h, float angle) {
 	float vertices[12]
@@ -392,6 +396,7 @@ void texture_init() {
 	CHECK_ALLOCATION_ERROR(gradient)
 	texture_gradient_fog(gradient);
 	texture_create_buffer(&texture_gradient, 512, 512, (unsigned char*)gradient, 1);
+	texture_filter(&texture_gradient, TEXTURE_FILTER_LINEAR);
 
 	texture_create_buffer(&texture_dummy, 1, 1, (unsigned char[]) {0, 0, 0, 0}, 1);
 }

@@ -2142,6 +2142,7 @@ static void hud_serverlist_render(mu_Context* ctx, float scalex, float scaley) {
 		mu_begin_panel(ctx, "Servers");
 		int width = mu_get_current_container(ctx)->body.w;
 
+		int flag_width = ctx->style->size.y + ctx->style->padding * 2;
 		mu_layout_row(ctx, 5, (int[]) {0.12F * width, 0.418F * width, 0.22F * width, 0.117F * width, -1}, 0);
 
 		if(mu_button(ctx, "Players")) {
@@ -2170,6 +2171,11 @@ static void hud_serverlist_render(mu_Context* ctx, float scalex, float scaley) {
 			pthread_mutex_unlock(&serverlist_lock);
 		}
 
+		mu_layout_row(ctx, 6,
+					  (int[]) {0.12F * width, flag_width, 0.418F * width - flag_width - ctx->style->spacing * 2,
+							   0.22F * width, 0.117F * width, -1},
+					  0);
+
 		pthread_mutex_lock(&serverlist_lock);
 		if(server_count > 0) {
 			for(int k = 0; k < server_count; k++) {
@@ -2185,9 +2191,14 @@ static void hud_serverlist_render(mu_Context* ctx, float scalex, float scaley) {
 						1 :
 						2;
 
+					mu_push_id(ctx, &serverlist[k].identifier, strlen(serverlist[k].identifier));
+
 					mu_text_color(ctx, 230 / f, 230 / f, 230 / f);
 					bool join = false;
 					if(mu_button_ex(ctx, total_str, 0, MU_OPT_NOFRAME | MU_OPT_ALIGNCENTER))
+						join = true;
+					if(mu_button_ex(ctx, "", texture_flag_index(serverlist[k].country) + HUD_FLAG_INDEX_START,
+									MU_OPT_NOFRAME))
 						join = true;
 					if(mu_button_ex(ctx, serverlist[k].name, 0, MU_OPT_NOFRAME))
 						join = true;
@@ -2196,17 +2207,21 @@ static void hud_serverlist_render(mu_Context* ctx, float scalex, float scaley) {
 					if(mu_button_ex(ctx, serverlist[k].gamemode, 0, MU_OPT_NOFRAME | MU_OPT_ALIGNCENTER))
 						join = true;
 
-					if(serverlist[k].ping < 110)
-						mu_text_color(ctx, 0, 255 / f, 0);
-					else if(serverlist[k].ping < 200)
-						mu_text_color(ctx, 255 / f, 255 / f, 0);
-					else
-						mu_text_color(ctx, 255 / f, 0, 0);
+					if(serverlist[k].ping >= 0) {
+						if(serverlist[k].ping < 110)
+							mu_text_color(ctx, 0, 255 / f, 0);
+						else if(serverlist[k].ping < 200)
+							mu_text_color(ctx, 255 / f, 255 / f, 0);
+						else
+							mu_text_color(ctx, 255 / f, 0, 0);
+					}
 
 					sprintf(total_str, "%ims", serverlist[k].ping);
 					if(mu_button_ex(ctx, (serverlist[k].ping >= 0) ? total_str : "?", 0,
 									MU_OPT_NOFRAME | MU_OPT_ALIGNCENTER))
 						join = true;
+
+					mu_pop_id(ctx);
 
 					if(join) {
 						server_c(serverlist[k].identifier, serverlist[k].name);
@@ -2281,6 +2296,7 @@ static void hud_serverlist_render(mu_Context* ctx, float scalex, float scaley) {
 						int width, height;
 						lodepng_decode32(&buffer, &width, &height, img, size);
 						texture_create_buffer(&current->image, width, height, buffer, 1);
+						texture_filter(&current->image, TEXTURE_FILTER_LINEAR);
 					}
 					current->next = (k < news_entries - 1) ? malloc(sizeof(struct serverlist_news_entry)) : NULL;
 					current = current->next;
