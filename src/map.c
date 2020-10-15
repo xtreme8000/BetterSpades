@@ -149,10 +149,13 @@ struct map_collapsing {
 	struct Position p2;
 	struct Orientation o;
 	int voxel_count;
-	int used, rotation, has_displaylist;
+	int rotation, has_displaylist;
 	struct glx_displaylist displaylist;
 	struct tesselator mesh_geometry;
-} map_collapsing_structures[32];
+};
+
+HashTable map_collapsing_structures;
+uint32_t map_collapsing_next_key = 0;
 
 static bool falling_blocks_meshing(void* key, void* value, void* user) {
 	uint32_t pos = *(uint32_t*)key;
@@ -276,7 +279,6 @@ static bool map_update_physics_sub(struct map_collapsing* collapsing, int x, int
 	for(size_t k = 0; k < 3; k++)
 		pivot[k] = (pivot[k] / (float)closedlist.size) + 0.5F;
 
-	collapsing->used = 1;
 	collapsing->voxels = closedlist;
 	collapsing->v = (struct Velocity) {0, 0, 0};
 	collapsing->o = (struct Orientation) {0, 0, 0};
@@ -292,7 +294,7 @@ static bool map_update_physics_sub(struct map_collapsing* collapsing, int x, int
 	return true;
 }
 
-int map_collapsing_cmp(const void* a, const void* b) {
+/*int map_collapsing_cmp(const void* a, const void* b) {
 	struct map_collapsing* A = (struct map_collapsing*)a;
 	struct map_collapsing* B = (struct map_collapsing*)b;
 	if(A->used && !B->used)
@@ -301,40 +303,41 @@ int map_collapsing_cmp(const void* a, const void* b) {
 		return 1;
 	return distance3D(B->p.x, B->p.y, B->p.z, camera_x, camera_y, camera_z)
 		- distance3D(A->p.x, A->p.y, A->p.z, camera_x, camera_y, camera_z);
+}*/
+
+static bool falling_blocks_render(void* key, void* value, void* user) {
+	struct map_collapsing* collapsing = (struct map_collapsing*)value;
+
+	matrix_identity();
+	matrix_translate(collapsing->p.x, collapsing->p.y, collapsing->p.z);
+	matrix_rotate(collapsing->o.x, 1.0F, 0.0F, 0.0F);
+	matrix_rotate(collapsing->o.y, 0.0F, 1.0F, 0.0F);
+	matrix_upload();
+
+	if(!collapsing->has_displaylist) {
+		collapsing->has_displaylist = 1;
+		glx_displaylist_create(&collapsing->displaylist, true, false);
+		tesselator_glx(&collapsing->mesh_geometry, &collapsing->displaylist);
+		tesselator_free(&collapsing->mesh_geometry);
+	}
+
+	glColorMask(0, 0, 0, 0);
+	glx_displaylist_draw(&collapsing->displaylist, GLX_DISPLAYLIST_ENHANCED);
+	glColorMask(1, 1, 1, 1);
+	glx_displaylist_draw(&collapsing->displaylist, GLX_DISPLAYLIST_ENHANCED);
+
+	return true;
 }
 
 void map_collapsing_render() {
-	qsort(map_collapsing_structures, 32, sizeof(struct map_collapsing), map_collapsing_cmp);
+	// qsort(map_collapsing_structures, 32, sizeof(struct map_collapsing), map_collapsing_cmp);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	for(int k = 0; k < 32; k++) {
-		struct map_collapsing* collapsing = map_collapsing_structures + k;
-
-		if(collapsing->used) {
-			matrix_push();
-			matrix_identity();
-			matrix_translate(collapsing->p.x, collapsing->p.y, collapsing->p.z);
-			matrix_rotate(collapsing->o.x, 1.0F, 0.0F, 0.0F);
-			matrix_rotate(collapsing->o.y, 0.0F, 1.0F, 0.0F);
-			matrix_upload();
-
-			if(!collapsing->has_displaylist) {
-				collapsing->has_displaylist = 1;
-				glx_displaylist_create(&collapsing->displaylist, true, false);
-				tesselator_glx(&collapsing->mesh_geometry, &collapsing->displaylist);
-				tesselator_free(&collapsing->mesh_geometry);
-			}
-
-			glColorMask(0, 0, 0, 0);
-			glx_displaylist_draw(&collapsing->displaylist, GLX_DISPLAYLIST_ENHANCED);
-			glColorMask(1, 1, 1, 1);
-			glx_displaylist_draw(&collapsing->displaylist, GLX_DISPLAYLIST_ENHANCED);
-
-			matrix_pop();
-		}
-	}
+	matrix_push();
+	ht_iterate(&map_collapsing_structures, NULL, falling_blocks_render);
+	matrix_pop();
 
 	glDisable(GL_BLEND);
 }
@@ -366,6 +369,55 @@ static bool falling_blocks_particles(void* key, void* value, void* user) {
 	return true;
 }
 
+static bool falling_blocks_update(void* key, void* value, void* user) {
+	struct map_collapsing* collapsing = (struct map_collapsing*)value;
+	float dt = *(float*)user;
+
+	collapsing->v.y -= dt;
+
+	matrix_push();
+	matrix_identity();
+	matrix_translate(collapsing->p.x, collapsing->p.y, collapsing->p.z);
+	matrix_rotate(collapsing->o.x, 1.0F, 0.0F, 0.0F);
+	matrix_rotate(collapsing->o.y, 0.0F, 1.0F, 0.0F);
+
+	bool collision = ht_iterate(&collapsing->voxels, (void*[]) {collapsing, &dt}, falling_blocks_collision);
+
+	if(!collision) {
+		collapsing->p.x += collapsing->v.x * dt * 32.0F;
+		collapsing->p.y += collapsing->v.y * dt * 32.0F;
+		collapsing->p.z += collapsing->v.z * dt * 32.0F;
+	} else {
+		collapsing->v.x *= 0.85F;
+		collapsing->v.y *= -0.85F;
+		collapsing->v.z *= 0.85F;
+		collapsing->rotation++;
+		collapsing->rotation &= 3;
+		sound_create(NULL, SOUND_WORLD, &sound_bounce, collapsing->p.x, collapsing->p.y, collapsing->p.z);
+
+		if(absf(collapsing->v.y) < 0.1F) {
+			ht_iterate(&collapsing->voxels, collapsing, falling_blocks_particles);
+			ht_destroy(&collapsing->voxels);
+
+			if(collapsing->has_displaylist) {
+				glx_displaylist_destroy(&collapsing->displaylist);
+			} else {
+				tesselator_free(&collapsing->mesh_geometry);
+			}
+
+			matrix_pop();
+			return true;
+		}
+	}
+
+	matrix_pop();
+
+	collapsing->o.x += ((collapsing->rotation & 1) ? 1.0F : -1.0F) * dt * 75.0F;
+	collapsing->o.y += ((collapsing->rotation & 2) ? 1.0F : -1.0F) * dt * 75.0F;
+
+	return false;
+}
+
 void map_collapsing_update(float dt) {
 	size_t drain = channel_size(&map_result_queue);
 
@@ -375,70 +427,11 @@ void map_collapsing_update(float dt) {
 
 		sound_create(NULL, SOUND_WORLD, &sound_debris, res.p.x, res.p.y, res.p.z);
 
-		bool found = false;
-		for(size_t j = 0; j < 32; j++) {
-			struct map_collapsing* collapsing = map_collapsing_structures + j;
-
-			if(!collapsing->used) {
-				*collapsing = res;
-				found = true;
-				break;
-			}
-		}
-
-		if(!found) {
-			// there was no free slot!
-			ht_destroy(&res.voxels);
-			tesselator_free(&res.mesh_geometry);
-		}
+		ht_insert(&map_collapsing_structures, &map_collapsing_next_key, &res);
+		map_collapsing_next_key++; // don't care about overflow, since key is very likely unused by then
 	}
 
-	for(int k = 0; k < 32; k++) {
-		struct map_collapsing* collapsing = map_collapsing_structures + k;
-
-		if(collapsing->used) {
-			collapsing->v.y -= dt;
-
-			matrix_push();
-			matrix_identity();
-			matrix_translate(collapsing->p.x, collapsing->p.y, collapsing->p.z);
-			matrix_rotate(collapsing->o.x, 1.0F, 0.0F, 0.0F);
-			matrix_rotate(collapsing->o.y, 0.0F, 1.0F, 0.0F);
-
-			bool collision = ht_iterate(&collapsing->voxels, (void*[]) {collapsing, &dt}, falling_blocks_collision);
-
-			if(!collision) {
-				collapsing->p.x += collapsing->v.x * dt * 32.0F;
-				collapsing->p.y += collapsing->v.y * dt * 32.0F;
-				collapsing->p.z += collapsing->v.z * dt * 32.0F;
-			} else {
-				collapsing->v.x *= 0.85F;
-				collapsing->v.y *= -0.85F;
-				collapsing->v.z *= 0.85F;
-				collapsing->rotation++;
-				collapsing->rotation &= 3;
-				sound_create(NULL, SOUND_WORLD, &sound_bounce, collapsing->p.x, collapsing->p.y, collapsing->p.z);
-
-				if(absf(collapsing->v.y) < 0.1F) {
-					ht_iterate(&collapsing->voxels, collapsing, falling_blocks_particles);
-					ht_destroy(&collapsing->voxels);
-
-					if(collapsing->has_displaylist) {
-						glx_displaylist_destroy(&collapsing->displaylist);
-					} else {
-						tesselator_free(&collapsing->mesh_geometry);
-					}
-
-					collapsing->used = 0;
-				}
-			}
-
-			matrix_pop();
-
-			collapsing->o.x += ((collapsing->rotation & 1) ? 1.0F : -1.0F) * dt * 75.0F;
-			collapsing->o.y += ((collapsing->rotation & 2) ? 1.0F : -1.0F) * dt * 75.0F;
-		}
-	}
+	ht_iterate_remove(&map_collapsing_structures, &dt, falling_blocks_update);
 }
 
 void map_update_physics(int x, int y, int z) {
@@ -488,9 +481,12 @@ void map_init() {
 	pthread_rwlock_init(&map_lock, NULL);
 
 	ht_setup(&map_damaged_voxels, sizeof(uint32_t), sizeof(struct damaged_voxel), 16);
+	map_damaged_voxels.compare = int_cmp;
+	map_damaged_voxels.hash = int_hash;
 
-	for(int k = 0; k < 32; k++)
-		map_collapsing_structures[k].used = 0;
+	ht_setup(&map_collapsing_structures, sizeof(uint32_t), sizeof(struct map_collapsing), 32);
+	map_collapsing_structures.compare = int_cmp;
+	map_collapsing_structures.hash = int_hash;
 
 	channel_create(&map_work_queue, sizeof(struct map_work_packet), 16);
 	channel_create(&map_result_queue, sizeof(struct map_collapsing), 16);
