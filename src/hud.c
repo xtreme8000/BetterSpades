@@ -1997,24 +1997,19 @@ static int hud_serverlist_sort_ping(const void* a, const void* b) {
 	return aa->ping - bb->ping;
 }
 
-static void hud_serverlist_pingupdate(void* e, float time_delta, void* user_data) {
+static void hud_serverlist_pingupdate(void* e, float time_delta, char* aos) {
 	pthread_mutex_lock(&serverlist_lock);
 	if(!e) {
 		for(int k = 0; k < server_count; k++)
-			if(strcmp(serverlist[k].identifier, user_data) == 0) {
+			if(!strcmp(serverlist[k].identifier, aos)) {
 				serverlist[k].ping = ceil(time_delta * 1000.0F);
 				break;
 			}
 	} else {
 		serverlist = realloc(serverlist, (++server_count) * sizeof(struct serverlist_entry));
-		memcpy(&serverlist[server_count - 1], e, sizeof(struct serverlist_entry));
+		memcpy(serverlist + server_count - 1, e, sizeof(struct serverlist_entry));
 	}
-	qsort(serverlist, server_count, sizeof(struct serverlist_entry), hud_serverlist_sort);
-	pthread_mutex_unlock(&serverlist_lock);
-}
 
-static void hud_serverlist_pingcomplete() {
-	pthread_mutex_lock(&serverlist_lock);
 	qsort(serverlist, server_count, sizeof(struct serverlist_entry), hud_serverlist_sort);
 	pthread_mutex_unlock(&serverlist_lock);
 }
@@ -2345,7 +2340,7 @@ static void hud_serverlist_render(mu_Context* ctx, float scalex, float scaley) {
 				serverlist = realloc(serverlist, server_count * sizeof(struct serverlist_entry));
 				CHECK_ALLOCATION_ERROR(serverlist)
 
-				ping_stop();
+				ping_start(hud_serverlist_pingupdate);
 
 				player_count = 0;
 				for(int k = 0; k < server_count; k++) {
@@ -2372,8 +2367,6 @@ static void hud_serverlist_render(mu_Context* ctx, float scalex, float scaley) {
 
 					player_count += serverlist[k].current;
 				}
-
-				ping_start(hud_serverlist_pingcomplete, hud_serverlist_pingupdate);
 
 				qsort(serverlist, server_count, sizeof(struct serverlist_entry), hud_serverlist_sort);
 				pthread_mutex_unlock(&serverlist_lock);
