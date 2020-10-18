@@ -124,6 +124,6 @@ The development headers for OpenAL and OpenGL don't have to be installed since t
 
 ## Gallery
 
-| <img src="/docs/pic01.png" width="250px"><br />*quite old* | <img src="/docs/pic02.png" width="250px"><br />*quite old* | <img src="/docs/pic03.png" width="250px"> |
+| <img src="/docs/pic01.png" width="250px"><br />*quite old* | <img src="/docs/pic02.png" width="250px"><br />hiesville | <img src="/docs/pic03.png" width="250px"> |
 | :-: | :-: | :-: |
 | <img src="/docs/pic04.png" width="250px"><br />*grenade fun* | <img src="/docs/pic05.png" width="250px"><br />*falling block animation* | <img src="/docs/pic06.png" width="250px"><br />*sniping on normandie* |
