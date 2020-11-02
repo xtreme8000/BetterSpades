@@ -30,7 +30,7 @@ extern int glx_fog;
 
 struct glx_displaylist {
 	uint32_t legacy;
-	uint32_t modern[3];
+	uint32_t modern;
 	size_t size;
 	size_t buffer_size;
 	bool has_normal;
