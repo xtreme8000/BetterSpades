@@ -176,6 +176,7 @@ void config_register_key(int internal, int def, const char* name, int toggle, co
 	struct config_key_pair key;
 	key.internal = internal;
 	key.def = def;
+	key.original = def;
 	key.toggle = toggle;
 	if(display)
 		strncpy(key.display, display, sizeof(key.display) - 1);

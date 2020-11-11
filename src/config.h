@@ -59,6 +59,7 @@ extern struct list config_keys;
 struct config_key_pair {
 	int internal;
 	int def;
+	int original;
 	int toggle;
 	char name[24];
 	char display[24];

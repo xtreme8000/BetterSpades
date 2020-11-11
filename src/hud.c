@@ -2613,13 +2613,27 @@ static void hud_controls_render(mu_Context* ctx, float scalex, float scaley) {
 					category = a->category;
 
 					open = mu_header_ex(ctx, a->category, MU_OPT_EXPANDED);
-					int width = mu_get_current_container(ctx)->body.w;
-					mu_layout_row(ctx, 3, (int[]) {0.65F * width, -0.05F * width, -1}, 0);
 				}
 
 				if(open) {
+					int width = mu_get_current_container(ctx)->body.w;
+					if(a->def != a->original) {
+						mu_layout_row(ctx, 4,
+									  (int[]) {0.65F * width, ctx->text_width(ctx->style->font, "Reset", 0) * 1.5F,
+											   -0.05F * width, -1},
+									  0);
+					} else {
+						mu_layout_row(ctx, 3, (int[]) {0.65F * width, -0.05F * width, -1}, 0);
+					}
+
 					mu_push_id(ctx, a->display, sizeof(a->display));
 					mu_text(ctx, a->display);
+
+					if(a->def != a->original && mu_button(ctx, "Reset")) {
+						a->def = a->original;
+						config_save();
+					}
+
 					char name[32];
 					window_keyname(a->def, name, sizeof(name));
 
