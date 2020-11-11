@@ -519,6 +519,7 @@ void init() {
 	tracer_init();
 	hud_init();
 	chunk_init();
+	grenade_init();
 
 	weapon_set();
 

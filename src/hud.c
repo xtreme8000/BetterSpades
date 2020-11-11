@@ -662,7 +662,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 							  53.0F * scalef * (cameracontroller_bodyview_mode ? 2.0F : 1.0F), 53.0F * scalef, coin);
 				if(local_player_respawn_cnt_last != cnt) {
 					if(cnt < 4) {
-						sound_create(NULL, SOUND_LOCAL, (cnt == 1) ? &sound_beep1 : &sound_beep2, 0.0F, 0.0F, 0.0F);
+						sound_create(SOUND_LOCAL, (cnt == 1) ? &sound_beep1 : &sound_beep2, 0.0F, 0.0F, 0.0F);
 					}
 					local_player_respawn_cnt_last = cnt;
 				}
@@ -1205,7 +1205,7 @@ static void hud_ingame_scroll(double yoffset) {
 		if(h > 3)
 			h = 0;
 		players[local_player_id].held_item = h;
-		sound_create(NULL, SOUND_LOCAL, &sound_switch, 0.0F, 0.0F, 0.0F)->stick_to_player = local_player_id;
+		sound_create(SOUND_LOCAL, &sound_switch, 0.0F, 0.0F, 0.0F);
 		players[local_player_id].item_disabled = window_time();
 		players[local_player_id].items_show_start = window_time();
 		players[local_player_id].items_show = 1;
@@ -1339,8 +1339,7 @@ static void hud_ingame_mouseclick(double x, double y, int button, int action, in
 					players[local_player_id].item_showup = window_time();
 				}
 				if(action == WINDOW_PRESS) {
-					sound_create(NULL, SOUND_LOCAL, &sound_grenade_pin, 0.0F, 0.0F, 0.0F)->stick_to_player
-						= local_player_id;
+					sound_create(SOUND_LOCAL, &sound_grenade_pin, 0.0F, 0.0F, 0.0F);
 				}
 			}
 		}
@@ -1354,7 +1353,7 @@ static void hud_ingame_mouseclick(double x, double y, int button, int action, in
 					weapon_reload_abort();
 				}
 				if(local_player_ammo == 0 && window_time() - players[local_player_id].item_showup >= 0.5F) {
-					sound_create(NULL, SOUND_LOCAL, &sound_empty, 0.0F, 0.0F, 0.0F);
+					sound_create(SOUND_LOCAL, &sound_empty, 0.0F, 0.0F, 0.0F);
 					chat_showpopup("RELOAD", 0.4F, rgb(255, 0, 0));
 				}
 			}
@@ -1610,7 +1609,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				}
 
 				if(tool_switch) {
-					sound_create(NULL, SOUND_LOCAL, &sound_switch, 0.0F, 0.0F, 0.0F)->stick_to_player = local_player_id;
+					sound_create(SOUND_LOCAL, &sound_switch, 0.0F, 0.0F, 0.0F);
 					players[local_player_id].item_disabled = window_time();
 					players[local_player_id].items_show_start = window_time();
 					players[local_player_id].items_show = 1;

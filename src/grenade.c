@@ -22,26 +22,25 @@
 #include "window.h"
 #include "particle.h"
 #include "matrix.h"
-#include "player.h"
 #include "model.h"
 #include "sound.h"
 #include "grenade.h"
 #include "map.h"
+#include "entitysystem.h"
 
-struct Grenade grenades[GRENADES_MAX];
+struct entity_system grenades;
 
-struct Grenade* grenade_add() {
-	for(int k = 0; k < GRENADES_MAX; k++) {
-		if(!grenades[k].active) {
-			grenades[k].active = 1;
-			grenades[k].created = window_time();
-			return &grenades[k];
-		}
-	}
-	return &grenades[GRENADES_MAX - 1];
+void grenade_init() {
+	entitysys_create(&grenades, sizeof(struct Grenade), 32);
 }
 
-int grenade_clipworld(int x, int y, int z) {
+void grenade_add(struct Grenade* g) {
+	g->created = window_time();
+
+	entitysys_add(&grenades, g);
+}
+
+static int grenade_clipworld(int x, int y, int z) {
 	if(x < 0)
 		x += map_size_x;
 	if(y < 0)
@@ -56,16 +55,16 @@ int grenade_clipworld(int x, int y, int z) {
 	if(z < 0)
 		return 0;
 	sz = (int)z;
-	if(sz == 63)
-		sz = 62;
+	if(sz == map_size_y - 1)
+		sz = map_size_y - 2;
 	else if(sz >= map_size_y - 1)
 		return 1;
 	else if(sz < 0)
 		return 0;
-	return !map_isair((int)x, 63 - sz, (int)y);
+	return !map_isair((int)x, (map_size_y - 1) - sz, (int)y);
 }
 
-int grenade_move(struct Grenade* g, float dt) {
+static int grenade_move(struct Grenade* g, float dt) {
 	float tmp;
 	tmp = g->pos.z;
 	g->pos.z = 63.0F - g->pos.y;
@@ -126,49 +125,51 @@ int grenade_move(struct Grenade* g, float dt) {
 	return ret;
 }
 
-int grenade_inwater(struct Grenade* g) {
+static int grenade_inwater(struct Grenade* g) {
 	return g->pos.y < 1.0F;
 }
 
+bool grenade_render_single(void* obj, void* user) {
+	struct Grenade* g = (struct Grenade*)obj;
+
+	// TODO: position grenade on ground properly
+	matrix_push();
+	matrix_translate(g->pos.x, g->pos.y + (model_grenade.zpiv + model_grenade.zsiz * 2) * model_grenade.scale,
+					 g->pos.z);
+	if(fabs(g->velocity.x) > 0.05F || fabs(g->velocity.y) > 0.05F || fabs(g->velocity.z) > 0.05F)
+		matrix_rotate(-window_time() * 720.0F, -g->velocity.z, 0.0F, g->velocity.x);
+	matrix_upload();
+
+	kv6_calclight(g->pos.x, g->pos.y, g->pos.z);
+
+	kv6_render(&model_grenade, TEAM_1);
+	matrix_pop();
+	return false;
+}
+
 void grenade_render() {
-	for(int k = 0; k < GRENADES_MAX; k++) {
-		if(grenades[k].active) {
-			// TODO: position grenade on ground properly
-			matrix_push();
-			matrix_translate(grenades[k].pos.x,
-							 grenades[k].pos.y + (model_grenade.zpiv + model_grenade.zsiz * 2) * model_grenade.scale,
-							 grenades[k].pos.z);
-			if(fabs(grenades[k].velocity.x) > 0.05F || fabs(grenades[k].velocity.y) > 0.05F
-			   || fabs(grenades[k].velocity.z) > 0.05F)
-				matrix_rotate(-window_time() * 720.0F, -grenades[k].velocity.z, 0.0F, grenades[k].velocity.x);
-			matrix_upload();
+	entitysys_iterate(&grenades, NULL, grenade_render_single);
+}
 
-			kv6_calclight(grenades[k].pos.x, grenades[k].pos.y, grenades[k].pos.z);
+bool grenade_update_single(void* obj, void* user) {
+	struct Grenade* g = (struct Grenade*)obj;
+	float dt = *(float*)user;
 
-			kv6_render(&model_grenade, TEAM_1);
-			matrix_pop();
-		}
+	if(window_time() - g->created > g->fuse_length) {
+		sound_create(SOUND_WORLD, grenade_inwater(g) ? &sound_explode_water : &sound_explode, g->pos.x, g->pos.y,
+					 g->pos.z);
+		particle_create(grenade_inwater(g) ? map_get(g->pos.x, 0, g->pos.z) : 0x505050, g->pos.x, g->pos.y + 1.5F,
+						g->pos.z, 20.0F, 1.5F, 64, 0.1F, 0.5F);
+
+		return true;
+	} else {
+		if(grenade_move(g, dt) == 2)
+			sound_create(SOUND_WORLD, &sound_grenade_bounce, g->pos.x, g->pos.y, g->pos.z);
+
+		return false;
 	}
 }
 
 void grenade_update(float dt) {
-	for(int k = 0; k < GRENADES_MAX; k++) {
-		if(grenades[k].active) {
-			if(window_time() - grenades[k].created > grenades[k].fuse_length) {
-				sound_createEx(NULL, SOUND_WORLD, grenade_inwater(&grenades[k]) ? &sound_explode_water : &sound_explode,
-							   grenades[k].pos.x, grenades[k].pos.y, grenades[k].pos.z, grenades[k].velocity.x,
-							   grenades[k].velocity.y, grenades[k].velocity.z);
-				particle_create(
-					grenade_inwater(&grenades[k]) ? map_get(grenades[k].pos.x, 0, grenades[k].pos.z) : 0x505050,
-					grenades[k].pos.x, grenades[k].pos.y + 1.5F, grenades[k].pos.z, 20.0F, 1.5F, 64, 0.1F, 0.5F);
-				grenades[k].active = 0;
-			} else {
-				if(grenade_move(&grenades[k], dt) == 2) {
-					sound_createEx(NULL, SOUND_WORLD, &sound_grenade_bounce, grenades[k].pos.x, grenades[k].pos.y,
-								   grenades[k].pos.z, grenades[k].velocity.x, grenades[k].velocity.y,
-								   grenades[k].velocity.z);
-				}
-			}
-		}
-	}
+	entitysys_iterate(&grenades, &dt, grenade_update_single);
 }

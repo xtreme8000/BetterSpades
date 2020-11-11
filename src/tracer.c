@@ -29,10 +29,10 @@
 #include "camera.h"
 #include "texture.h"
 #include "config.h"
+#include "sound.h"
+#include "entitysystem.h"
 
-static struct Tracer* tracers;
-static int tracer_insert = 0;
-static int tracer_remove = 0;
+struct entity_system tracers;
 
 void tracer_pvelocity(float* o, struct Player* p) {
 	o[0] = o[0] * 256.0F / 32.0F + p->physics.velocity.x;
@@ -40,120 +40,112 @@ void tracer_pvelocity(float* o, struct Player* p) {
 	o[2] = o[2] * 256.0F / 32.0F + p->physics.velocity.z;
 }
 
-static void tracer_minimap_single(struct Tracer* t, int large, float scalef, float minimap_x, float minimap_y) {
-	if(t->used) {
-		if(large) {
+struct tracer_minimap_info {
+	int large;
+	float scalef;
+	float minimap_x;
+	float minimap_y;
+};
+
+static bool tracer_minimap_single(void* obj, void* user) {
+	struct Tracer* t = (struct Tracer*)obj;
+	struct tracer_minimap_info* info = (struct tracer_minimap_info*)user;
+
+	if(info->large) {
+		float ang = -atan2(t->r.direction.z, t->r.direction.x) - HALFPI;
+		texture_draw_rotated(&texture_tracer, info->minimap_x + t->r.origin.x * info->scalef,
+							 info->minimap_y - t->r.origin.z * info->scalef, 15 * info->scalef, 15 * info->scalef, ang);
+	} else {
+		float tracer_x = t->r.origin.x - info->minimap_x;
+		float tracer_y = t->r.origin.z - info->minimap_y;
+		if(tracer_x > 0.0F && tracer_x < 128.0F && tracer_y > 0.0F && tracer_y < 128.0F) {
 			float ang = -atan2(t->r.direction.z, t->r.direction.x) - HALFPI;
-			texture_draw_rotated(&texture_tracer, minimap_x + t->r.origin.x * scalef,
-								 minimap_y - t->r.origin.z * scalef, 15 * scalef, 15 * scalef, ang);
-		} else {
-			float tracer_x = t->r.origin.x - minimap_x;
-			float tracer_y = t->r.origin.z - minimap_y;
-			if(tracer_x > 0.0F && tracer_x < 128.0F && tracer_y > 0.0F && tracer_y < 128.0F) {
-				float ang = -atan2(t->r.direction.z, t->r.direction.x) - HALFPI;
-				texture_draw_rotated(&texture_tracer, settings.window_width - 143 * scalef + tracer_x * scalef,
-									 (585 - tracer_y) * scalef, 15 * scalef, 15 * scalef, ang);
-			}
+			texture_draw_rotated(&texture_tracer, settings.window_width - 143 * info->scalef + tracer_x * info->scalef,
+								 (585 - tracer_y) * info->scalef, 15 * info->scalef, 15 * info->scalef, ang);
 		}
 	}
+
+	return false;
 }
 
 void tracer_minimap(int large, float scalef, float minimap_x, float minimap_y) {
-	if(tracer_remove <= tracer_insert) {
-		for(int k = tracer_remove; k < tracer_insert; k++)
-			tracer_minimap_single(tracers + k, large, scalef, minimap_x, minimap_y);
-	} else {
-		for(int k = tracer_remove; k < TRACER_MAX; k++)
-			tracer_minimap_single(tracers + k, large, scalef, minimap_x, minimap_y);
-		for(int k = 0; k < tracer_insert; k++)
-			tracer_minimap_single(tracers + k, large, scalef, minimap_x, minimap_y);
-	}
+	entitysys_iterate(&tracers,
+					  &(struct tracer_minimap_info) {
+						  .large = large,
+						  .scalef = scalef,
+						  .minimap_x = minimap_x,
+						  .minimap_y = minimap_y,
+					  },
+					  tracer_minimap_single);
 }
 
 void tracer_add(int type, float x, float y, float z, float dx, float dy, float dz) {
-	struct Tracer* t = tracers + tracer_insert;
-	tracer_insert = (tracer_insert + 1) % TRACER_MAX;
-	if(tracer_insert == tracer_remove)
-		tracer_remove = (tracer_remove + 1) % TRACER_MAX;
-
-	float spread = 0.0F;
-	t->type = type;
-	t->x = t->r.origin.x = x + dx / 4.0F;
-	t->y = t->r.origin.y = y + dy / 4.0F;
-	t->z = t->r.origin.z = z + dz / 4.0F;
-	t->r.direction.x = dx;
-	t->r.direction.y = dy;
-	t->r.direction.z = dz;
-	t->created = window_time();
+	struct Tracer t = (struct Tracer) {
+		.type = type,
+		.x = t.r.origin.x = x + dx / 4.0F,
+		.y = t.r.origin.y = y + dy / 4.0F,
+		.z = t.r.origin.z = z + dz / 4.0F,
+		.r.direction.x = dx,
+		.r.direction.y = dy,
+		.r.direction.z = dz,
+		.created = window_time(),
+	};
 
 	float len = len3D(dx, dy, dz);
-	camera_hit(&t->hit, -1, t->x, t->y, t->z, dx / len, dy / len, dz / len, 128.0F);
+	camera_hit(&t.hit, -1, t.x, t.y, t.z, dx / len, dy / len, dz / len, 128.0F);
 
-	t->used = 1;
+	entitysys_add(&tracers, &t);
 }
 
-static void tracer_render_single(struct Tracer* t) {
-	struct kv6_t* m[3] = {&model_semi_tracer, &model_smg_tracer, &model_shotgun_tracer};
+static bool tracer_render_single(void* obj, void* user) {
+	struct Tracer* t = (struct Tracer*)obj;
 
-	if(t->used) {
-		matrix_push();
-		matrix_translate(t->r.origin.x, t->r.origin.y, t->r.origin.z);
-		matrix_pointAt(t->r.direction.x, t->r.direction.y, t->r.direction.z);
-		matrix_rotate(90.0F, 0.0F, 1.0F, 0.0F);
-		matrix_upload();
-		kv6_render(m[t->type], TEAM_SPECTATOR);
-		matrix_pop();
-	}
+	matrix_push();
+	matrix_translate(t->r.origin.x, t->r.origin.y, t->r.origin.z);
+	matrix_pointAt(t->r.direction.x, t->r.direction.y, t->r.direction.z);
+	matrix_rotate(90.0F, 0.0F, 1.0F, 0.0F);
+	matrix_upload();
+	kv6_render(
+		(struct kv6_t*[]) {
+			&model_semi_tracer,
+			&model_smg_tracer,
+			&model_shotgun_tracer,
+		}[t->type],
+		TEAM_SPECTATOR);
+	matrix_pop();
+
+	return false;
 }
 
 void tracer_render() {
-	if(tracer_remove <= tracer_insert) {
-		for(int k = tracer_remove; k < tracer_insert; k++)
-			tracer_render_single(tracers + k);
-	} else {
-		for(int k = tracer_remove; k < TRACER_MAX; k++)
-			tracer_render_single(tracers + k);
-		for(int k = 0; k < tracer_insert; k++)
-			tracer_render_single(tracers + k);
-	}
+	entitysys_iterate(&tracers, NULL, tracer_render_single);
 }
 
-static void tracer_update_single(struct Tracer* t, float dt) {
-	if(t->used) {
-		float len = distance3D(t->x, t->y, t->z, t->r.origin.x, t->r.origin.y, t->r.origin.z);
+static bool tracer_update_single(void* obj, void* user) {
+	struct Tracer* t = (struct Tracer*)obj;
+	float dt = *(float*)user;
 
-		// 128.0[m] / 256.0[m/s] = 0.5[s]
-		if((t->hit.type != CAMERA_HITTYPE_NONE && len > pow(t->hit.distance, 2)) || window_time() - t->created > 0.5F) {
-			if(t->hit.type != CAMERA_HITTYPE_NONE) {
-				sound_create(NULL, SOUND_WORLD, &sound_impact, t->r.origin.x, t->r.origin.y, t->r.origin.z);
-			}
+	float len = distance3D(t->x, t->y, t->z, t->r.origin.x, t->r.origin.y, t->r.origin.z);
 
-			t->used = 0;
-		} else {
-			t->r.origin.x += t->r.direction.x * 32.0F * dt;
-			t->r.origin.y += t->r.direction.y * 32.0F * dt;
-			t->r.origin.z += t->r.direction.z * 32.0F * dt;
-		}
+	// 128.0[m] / 256.0[m/s] = 0.5[s]
+	if((t->hit.type != CAMERA_HITTYPE_NONE && len > pow(t->hit.distance, 2)) || window_time() - t->created > 0.5F) {
+		if(t->hit.type != CAMERA_HITTYPE_NONE)
+			sound_create(SOUND_WORLD, &sound_impact, t->r.origin.x, t->r.origin.y, t->r.origin.z);
+
+		return true;
+	} else {
+		t->r.origin.x += t->r.direction.x * 32.0F * dt;
+		t->r.origin.y += t->r.direction.y * 32.0F * dt;
+		t->r.origin.z += t->r.direction.z * 32.0F * dt;
 	}
+
+	return false;
 }
 
 void tracer_update(float dt) {
-	if(tracer_remove <= tracer_insert) {
-		for(int k = tracer_remove; k < tracer_insert; k++)
-			tracer_update_single(tracers + k, dt);
-	} else {
-		for(int k = tracer_remove; k < TRACER_MAX; k++)
-			tracer_update_single(tracers + k, dt);
-		for(int k = 0; k < tracer_insert; k++)
-			tracer_update_single(tracers + k, dt);
-	}
-
-	while(!tracers[tracer_remove].used && tracer_remove != tracer_insert) {
-		tracer_remove = (tracer_remove + 1) % TRACER_MAX;
-	}
+	entitysys_iterate(&tracers, &dt, tracer_update_single);
 }
 
 void tracer_init() {
-	tracers = calloc(TRACER_MAX, sizeof(struct Tracer));
-	CHECK_ALLOCATION_ERROR(tracers)
+	entitysys_create(&tracers, sizeof(struct Tracer), PLAYERS_MAX);
 }

@@ -17,26 +17,25 @@
 	along with BetterSpades.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef PARTICLE_H
-#define PARTICLE_H
+#ifndef ENTITY_SYSTEM_H
+#define ENTITY_SYSTEM_H
 
-#include "player.h"
+#include <stddef.h>
+#include <stdbool.h>
+#include <pthread.h>
 
-struct Particle {
-	float x, y, z;
-	float vx, vy, vz;
-	float ox, oy, oz;
-	unsigned char type;
-	float size;
-	float fade;
-	unsigned int color;
+struct entity_system {
+	void* buffer;
+	size_t count;
+	size_t length;
+	size_t object_size;
+	pthread_mutex_t lock;
 };
 
-void particle_init(void);
-void particle_update(float dt);
-void particle_render(void);
-void particle_create_casing(struct Player* p);
-void particle_create(unsigned int color, float x, float y, float z, float velocity, float velocity_y, int amount,
-					 float min_size, float max_size);
+void entitysys_create(struct entity_system* es, size_t object_size, size_t initial_size);
+
+void entitysys_add(struct entity_system* es, void* object);
+
+void entitysys_iterate(struct entity_system* es, void* user, bool (*callback)(void* object, void* user));
 
 #endif

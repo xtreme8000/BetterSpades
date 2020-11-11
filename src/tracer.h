@@ -24,15 +24,12 @@
 #include "player.h"
 #include "camera.h"
 
-#define TRACER_MAX (PLAYERS_MAX * 5)
-
 struct Tracer {
 	struct Camera_HitType hit;
 	float x, y, z;
 	Ray r;
 	int type;
 	float created;
-	int used;
 };
 
 void tracer_minimap(int large, float scalef, float minimap_x, float minimap_y);

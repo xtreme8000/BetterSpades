@@ -71,6 +71,7 @@ list(APPEND CLIENT_SOURCES tesselator.c)
 list(APPEND CLIENT_SOURCES libvxl.c)
 list(APPEND CLIENT_SOURCES microui.c)
 list(APPEND CLIENT_SOURCES channel.c)
+list(APPEND CLIENT_SOURCES entitysystem.c)
 list(APPEND CLIENT_SOURCES ${BetterSpades_SOURCE_DIR}/resources/icon.rc)
 
 add_executable(client ${CLIENT_SOURCES})

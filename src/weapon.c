@@ -53,7 +53,7 @@ void weapon_update() {
 					weapon_reload_inprogress = 0;
 					snd = &sound_shotgun_cock;
 				}
-				sound_create(NULL, SOUND_LOCAL, snd, 0.0F, 0.0F, 0.0F);
+				sound_create(SOUND_LOCAL, snd, 0.0F, 0.0F, 0.0F);
 			}
 		} else {
 			if(window_time() - weapon_reload_start >= t) {
@@ -198,8 +198,8 @@ void weapon_reload() {
 	weapon_reload_start = window_time();
 	weapon_reload_inprogress = 1;
 
-	sound_create(NULL, SOUND_LOCAL, weapon_sound_reload(players[local_player_id].weapon),
-				 players[local_player_id].pos.x, players[local_player_id].pos.y, players[local_player_id].pos.z);
+	sound_create(SOUND_LOCAL, weapon_sound_reload(players[local_player_id].weapon), players[local_player_id].pos.x,
+				 players[local_player_id].pos.y, players[local_player_id].pos.z);
 
 	struct PacketWeaponReload reloadp;
 	reloadp.player_id = local_player_id;
@@ -263,11 +263,8 @@ void weapon_shoot() {
 			hit.type = CAMERA_HITTYPE_NONE;
 		switch(hit.type) {
 			case CAMERA_HITTYPE_PLAYER: {
-				sound_create(NULL, SOUND_WORLD,
-							 (hit.player_section == HITTYPE_HEAD) ? &sound_spade_whack : &sound_hitplayer,
-							 players[hit.player_id].pos.x, players[hit.player_id].pos.y, players[hit.player_id].pos.z)
-					->stick_to_player
-					= hit.player_id;
+				sound_create_sticky((hit.player_section == HITTYPE_HEAD) ? &sound_spade_whack : &sound_hitplayer,
+									players + hit.player_id, hit.player_id);
 				particle_create(0x0000FF, players[hit.player_id].physics.eye.x,
 								players[hit.player_id].physics.eye.y + player_section_height(hit.player_section),
 								players[hit.player_id].physics.eye.z, 3.5F, 1.0F, 8, 0.1F, 0.4F);
@@ -339,7 +336,7 @@ void weapon_shoot() {
 
 	camera_overflow_adjust();
 
-	sound_create(NULL, SOUND_LOCAL, weapon_sound(players[local_player_id].weapon), players[local_player_id].pos.x,
+	sound_create(SOUND_LOCAL, weapon_sound(players[local_player_id].weapon), players[local_player_id].pos.x,
 				 players[local_player_id].pos.y, players[local_player_id].pos.z);
 	particle_create_casing(&players[local_player_id]);
 }

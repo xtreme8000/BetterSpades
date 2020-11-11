@@ -112,11 +112,11 @@ void read_PacketChatMessage(void* data, int len) {
 	char n[32] = {0};
 	char m[256];
 	switch(p->chat_type) {
-		case CHAT_ERROR: sound_create(NULL, SOUND_LOCAL, &sound_beep2, 0.0F, 0.0F, 0.0F);
+		case CHAT_ERROR: sound_create(SOUND_LOCAL, &sound_beep2, 0.0F, 0.0F, 0.0F);
 		case CHAT_BIG: chat_showpopup(p->message, 5.0F, rgb(255, 0, 0)); return;
 		case CHAT_INFO: chat_showpopup(p->message, 5.0F, rgb(255, 255, 255)); return;
 		case CHAT_WARNING:
-			sound_create(NULL, SOUND_LOCAL, &sound_beep1, 0.0F, 0.0F, 0.0F);
+			sound_create(SOUND_LOCAL, &sound_beep1, 0.0F, 0.0F, 0.0F);
 			chat_showpopup(p->message, 5.0F, rgb(255, 255, 0));
 			return;
 		case CHAT_SYSTEM:
@@ -209,7 +209,7 @@ void read_PacketBlockAction(void* data, int len) {
 				map_set(p->x, 63 - p->z, p->y,
 						players[p->player_id].block.red | (players[p->player_id].block.green << 8)
 							| (players[p->player_id].block.blue << 16));
-				sound_create(NULL, SOUND_WORLD, &sound_build, p->x + 0.5F, 63 - p->z + 0.5F, p->y + 0.5F);
+				sound_create(SOUND_WORLD, &sound_build, p->x + 0.5F, 63 - p->z + 0.5F, p->y + 0.5F);
 			}
 			break;
 	}
@@ -236,8 +236,8 @@ void read_PacketBlockLine(void* data, int len) {
 			len--;
 		}
 	}
-	sound_create(NULL, SOUND_WORLD, &sound_build, (p->sx + p->ex) * 0.5F + 0.5F,
-				 (63 - p->sz + 63 - p->ez) * 0.5F + 0.5F, (p->sy + p->ey) * 0.5F + 0.5F);
+	sound_create(SOUND_WORLD, &sound_build, (p->sx + p->ex) * 0.5F + 0.5F, (63 - p->sz + 63 - p->ez) * 0.5F + 0.5F,
+				 (p->sy + p->ey) * 0.5F + 0.5F);
 }
 
 void read_PacketStateData(void* data, int len) {
@@ -265,7 +265,7 @@ void read_PacketStateData(void* data, int len) {
 		default: log_error("Unknown gamemode!");
 	}
 
-	sound_create(NULL, SOUND_LOCAL, &sound_intro, 0.0F, 0.0F, 0.0F);
+	sound_create(SOUND_LOCAL, &sound_intro, 0.0F, 0.0F, 0.0F);
 
 	fog_color[0] = p->fog_red / 255.0F;
 	fog_color[1] = p->fog_green / 255.0F;
@@ -549,7 +549,7 @@ void read_PacketKillAction(void* data, int len) {
 			local_player_death_time = window_time();
 			local_player_respawn_time = p->respawn_time;
 			local_player_respawn_cnt_last = 255;
-			sound_create(NULL, SOUND_LOCAL, &sound_death, 0.0F, 0.0F, 0.0F);
+			sound_create(SOUND_LOCAL, &sound_death, 0.0F, 0.0F, 0.0F);
 
 			if(p->player_id != p->killer_id) {
 				local_player_last_damage_timer = local_player_death_time;
@@ -611,15 +611,16 @@ void read_PacketShortPlayerData(void* data, int len) {
 
 void read_PacketGrenade(void* data, int len) {
 	struct PacketGrenade* p = (struct PacketGrenade*)data;
-	struct Grenade* g = grenade_add();
-	g->owner = p->player_id;
-	g->fuse_length = p->fuse_length;
-	g->pos.x = p->x;
-	g->pos.y = 63.0F - p->z;
-	g->pos.z = p->y;
-	g->velocity.x = p->vx;
-	g->velocity.y = -p->vz;
-	g->velocity.z = p->vy;
+
+	grenade_add(&(struct Grenade) {
+		.fuse_length = p->fuse_length,
+		.pos.x = p->x,
+		.pos.y = 63.0F - p->z,
+		.pos.z = p->y,
+		.velocity.x = p->vx,
+		.velocity.y = -p->vz,
+		.velocity.z = p->vy,
+	});
 }
 
 void read_PacketSetHP(void* data, int len) {
@@ -627,7 +628,7 @@ void read_PacketSetHP(void* data, int len) {
 	local_player_health = p->hp;
 	if(p->type == DAMAGE_SOURCE_GUN) {
 		local_player_last_damage_timer = window_time();
-		sound_create(NULL, SOUND_LOCAL, &sound_hitplayer, 0.0F, 0.0F, 0.0F);
+		sound_create(SOUND_LOCAL, &sound_hitplayer, 0.0F, 0.0F, 0.0F);
 	}
 	local_player_last_damage_x = p->x;
 	local_player_last_damage_y = 63.0F - p->z;
@@ -640,7 +641,7 @@ void read_PacketRestock(void* data, int len) {
 	local_player_blocks = 50;
 	local_player_grenades = 3;
 	weapon_set();
-	sound_create(NULL, SOUND_LOCAL, &sound_switch, 0.0F, 0.0F, 0.0F);
+	sound_create(SOUND_LOCAL, &sound_switch, 0.0F, 0.0F, 0.0F);
 }
 
 void read_PacketChangeWeapon(void* data, int len) {
@@ -660,10 +661,7 @@ void read_PacketWeaponReload(void* data, int len) {
 		local_player_ammo = p->ammo;
 		local_player_ammo_reserved = p->reserved;
 	} else {
-		sound_create(NULL, SOUND_WORLD, weapon_sound_reload(players[p->player_id].weapon), players[p->player_id].pos.x,
-					 players[p->player_id].pos.y, players[p->player_id].pos.z)
-			->stick_to_player
-			= p->player_id;
+		sound_create_sticky(weapon_sound_reload(players[p->player_id].weapon), players + p->player_id, p->player_id);
 		// dont use values from packet which somehow are never correct
 		players[p->player_id].ammo = weapon_ammo(players[p->player_id].weapon);
 		players[p->player_id].ammo_reserved = weapon_ammo_reserved(players[p->player_id].weapon);
@@ -720,7 +718,7 @@ void read_PacketIntelCapture(void* data, int len) {
 				sprintf(capture_str, "%s has captured the %s Intel", players[p->player_id].name, gamestate.team_1.name);
 				break;
 		}
-		sound_create(NULL, SOUND_LOCAL, p->winning ? &sound_horn : &sound_pickup, 0.0F, 0.0F, 0.0F);
+		sound_create(SOUND_LOCAL, p->winning ? &sound_horn : &sound_pickup, 0.0F, 0.0F, 0.0F);
 		players[p->player_id].score += 10;
 		chat_add(0, 0x0000FF, capture_str);
 		if(p->winning) {
@@ -781,7 +779,7 @@ void read_PacketIntelPickup(void* data, int len) {
 				break;
 		}
 		chat_add(0, 0x0000FF, pickup_str);
-		sound_create(NULL, SOUND_LOCAL, &sound_pickup, 0.0F, 0.0F, 0.0F);
+		sound_create(SOUND_LOCAL, &sound_pickup, 0.0F, 0.0F, 0.0F);
 	}
 }
 
@@ -789,7 +787,7 @@ void read_PacketTerritoryCapture(void* data, int len) {
 	struct PacketTerritoryCapture* p = (struct PacketTerritoryCapture*)data;
 	if(gamestate.gamemode_type == GAMEMODE_TC && p->tent < gamestate.gamemode.tc.territory_count) {
 		gamestate.gamemode.tc.territory[p->tent].team = p->team;
-		sound_create(NULL, SOUND_LOCAL, p->winning ? &sound_horn : &sound_pickup, 0.0F, 0.0F, 0.0F);
+		sound_create(SOUND_LOCAL, p->winning ? &sound_horn : &sound_pickup, 0.0F, 0.0F, 0.0F);
 		char x = (int)(gamestate.gamemode.tc.territory[p->tent].x / 64.0F) + 'A';
 		char y = (int)(gamestate.gamemode.tc.territory[p->tent].y / 64.0F) + '1';
 		char capture_str[128];

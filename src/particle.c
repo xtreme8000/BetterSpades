@@ -31,24 +31,23 @@
 #include "weapon.h"
 #include "config.h"
 #include "tesselator.h"
+#include "entitysystem.h"
 
-struct Particle* particles;
-static int particle_insert = 0;
-static int particle_remove = 0;
-static struct tesselator particle_tesselator;
+struct entity_system particles;
+struct tesselator particle_tesselator;
 
 void particle_init() {
-	particles = calloc(PARTICLES_MAX, sizeof(struct Particle));
-	CHECK_ALLOCATION_ERROR(particles)
-
+	entitysys_create(&particles, sizeof(struct Particle), 256);
 	tesselator_create(&particle_tesselator, VERTEX_FLOAT, 0);
 }
 
-static void particle_update_single(struct Particle* p, float dt) {
+static bool particle_update_single(void* obj, void* user) {
+	struct Particle* p = (struct Particle*)obj;
+	float dt = *(float*)user;
 	float size = p->size * (1.0F - ((float)(window_time() - p->fade) / 2.0F));
 
 	if(size < 0.01F) {
-		particle_remove = (particle_remove + 1) % PARTICLES_MAX; // allowed, particles are sorted by creation time
+		return true;
 	} else {
 		float acc_y = -32.0F * dt;
 		if(map_isair(p->x, p->y + acc_y * dt - p->size / 2.0F, p->z) && !p->y + acc_y * dt < 0.0F) {
@@ -92,59 +91,33 @@ static void particle_update_single(struct Particle* p, float dt) {
 		p->x += movement_x;
 		p->y += movement_y;
 		p->z += movement_z;
+
+		return false;
 	}
 }
 
 void particle_update(float dt) {
-	if(particle_remove <= particle_insert) {
-		for(int k = particle_remove; k < particle_insert; k++)
-			particle_update_single(particles + k, dt);
-	} else {
-		for(int k = particle_remove; k < PARTICLES_MAX; k++)
-			particle_update_single(particles + k, dt);
-		for(int k = 0; k < particle_insert; k++)
-			particle_update_single(particles + k, dt);
-	}
+	entitysys_iterate(&particles, &dt, particle_update_single);
 }
 
-static void particle_render_single(struct tesselator* tess, struct Particle* p) {
+static bool particle_render_single(void* obj, void* user) {
+	struct Particle* p = (struct Particle*)obj;
+	struct tesselator* tess = (struct tesselator*)user;
+
 	if(distance2D(camera_x, camera_z, p->x, p->z) > pow(settings.render_distance, 2.0F))
-		return;
+		return false;
 
 	float size = p->size / 2.0F * (1.0F - ((float)(window_time() - p->fade) / 2.0F));
 
 	if(p->type == 255) {
 		tesselator_set_color(tess, p->color);
 
-		tesselator_addf_simple(tess,
-							   (float[]) {p->x - size, p->y - size, p->z - size, p->x + size, p->y - size, p->z - size,
-										  p->x + size, p->y - size, p->z + size, p->x - size, p->y - size,
-										  p->z + size});
-
-		tesselator_addf_simple(tess,
-							   (float[]) {p->x - size, p->y + size, p->z - size, p->x - size, p->y + size, p->z + size,
-										  p->x + size, p->y + size, p->z + size, p->x + size, p->y + size,
-										  p->z - size});
-
-		tesselator_addf_simple(tess,
-							   (float[]) {p->x - size, p->y - size, p->z - size, p->x - size, p->y - size, p->z + size,
-										  p->x - size, p->y + size, p->z + size, p->x - size, p->y + size,
-										  p->z - size});
-
-		tesselator_addf_simple(tess,
-							   (float[]) {p->x + size, p->y - size, p->z - size, p->x + size, p->y + size, p->z - size,
-										  p->x + size, p->y + size, p->z + size, p->x + size, p->y - size,
-										  p->z + size});
-
-		tesselator_addf_simple(tess,
-							   (float[]) {p->x - size, p->y - size, p->z - size, p->x - size, p->y + size, p->z - size,
-										  p->x + size, p->y + size, p->z - size, p->x + size, p->y - size,
-										  p->z - size});
-
-		tesselator_addf_simple(tess,
-							   (float[]) {p->x - size, p->y - size, p->z + size, p->x + size, p->y - size, p->z + size,
-										  p->x + size, p->y + size, p->z + size, p->x - size, p->y + size,
-										  p->z + size});
+		tesselator_addf_cube_face(tess, CUBE_FACE_X_N, p->x - size, p->y - size, p->z - size, size * 2.0F);
+		tesselator_addf_cube_face(tess, CUBE_FACE_X_P, p->x - size, p->y - size, p->z - size, size * 2.0F);
+		tesselator_addf_cube_face(tess, CUBE_FACE_Y_N, p->x - size, p->y - size, p->z - size, size * 2.0F);
+		tesselator_addf_cube_face(tess, CUBE_FACE_Y_P, p->x - size, p->y - size, p->z - size, size * 2.0F);
+		tesselator_addf_cube_face(tess, CUBE_FACE_Z_N, p->x - size, p->y - size, p->z - size, size * 2.0F);
+		tesselator_addf_cube_face(tess, CUBE_FACE_Z_P, p->x - size, p->y - size, p->z - size, size * 2.0F);
 	} else {
 		struct kv6_t* casing = weapon_casing(p->type);
 
@@ -159,65 +132,62 @@ static void particle_render_single(struct tesselator* tess, struct Particle* p) 
 			matrix_pop();
 		}
 	}
+
+	return false;
 }
 
 void particle_render() {
 	tesselator_clear(&particle_tesselator);
 
-	if(particle_remove <= particle_insert) {
-		for(int k = particle_remove; k < particle_insert; k++)
-			particle_render_single(&particle_tesselator, particles + k);
-	} else {
-		for(int k = particle_remove; k < PARTICLES_MAX; k++)
-			particle_render_single(&particle_tesselator, particles + k);
-		for(int k = 0; k < particle_insert; k++)
-			particle_render_single(&particle_tesselator, particles + k);
-	}
+	entitysys_iterate(&particles, &particle_tesselator, particle_render_single);
 
 	matrix_upload();
 	tesselator_draw(&particle_tesselator, 1);
 }
 
 void particle_create_casing(struct Player* p) {
-	struct Particle* pp = particles + particle_insert;
-	particle_insert = (particle_insert + 1) % PARTICLES_MAX;
-
-	pp->size = 0.1F;
-	pp->x = p->gun_pos.x;
-	pp->y = p->gun_pos.y;
-	pp->z = p->gun_pos.z;
-	pp->ox = p->orientation.x;
-	pp->oy = p->orientation.y;
-	pp->oz = p->orientation.z;
-	pp->vx = p->casing_dir.x * 3.5F;
-	pp->vy = p->casing_dir.y * 3.5F;
-	pp->vz = p->casing_dir.z * 3.5F;
-	pp->fade = window_time();
-	pp->type = p->weapon;
-	pp->color = 0x00FFFF;
+	entitysys_add(&particles,
+				  &(struct Particle) {
+					  .size = 0.1F,
+					  .x = p->gun_pos.x,
+					  .y = p->gun_pos.y,
+					  .z = p->gun_pos.z,
+					  .ox = p->orientation.x,
+					  .oy = p->orientation.y,
+					  .oz = p->orientation.z,
+					  .vx = p->casing_dir.x * 3.5F,
+					  .vy = p->casing_dir.y * 3.5F,
+					  .vz = p->casing_dir.z * 3.5F,
+					  .fade = window_time(),
+					  .type = p->weapon,
+					  .color = 0x00FFFF,
+				  });
 }
 
 void particle_create(unsigned int color, float x, float y, float z, float velocity, float velocity_y, int amount,
 					 float min_size, float max_size) {
 	for(int k = 0; k < amount; k++) {
-		struct Particle* pp = particles + particle_insert;
-		particle_insert = (particle_insert + 1) % PARTICLES_MAX;
-		if(particle_insert == particle_remove)
-			particle_remove = (particle_remove + 1) % PARTICLES_MAX;
+		float vx = (((float)rand() / (float)RAND_MAX) * 2.0F - 1.0F);
+		float vy = (((float)rand() / (float)RAND_MAX) * 2.0F - 1.0F);
+		float vz = (((float)rand() / (float)RAND_MAX) * 2.0F - 1.0F);
+		float len = len3D(vx, vy, vz);
 
-		pp->size = ((float)rand() / (float)RAND_MAX) * (max_size - min_size) + min_size;
-		pp->x = x;
-		pp->y = y;
-		pp->z = z;
-		pp->vx = (((float)rand() / (float)RAND_MAX) * 2.0F - 1.0F);
-		pp->vy = (((float)rand() / (float)RAND_MAX) * 2.0F - 1.0F);
-		pp->vz = (((float)rand() / (float)RAND_MAX) * 2.0F - 1.0F);
-		float len = sqrt(pp->vx * pp->vx + pp->vy * pp->vy + pp->vz * pp->vz);
-		pp->vx = (pp->vx / len) * velocity;
-		pp->vy = (pp->vy / len) * velocity * velocity_y;
-		pp->vz = (pp->vz / len) * velocity;
-		pp->fade = window_time();
-		pp->color = color;
-		pp->type = 255;
+		vx = (vx / len) * velocity;
+		vy = (vy / len) * velocity * velocity_y;
+		vz = (vz / len) * velocity;
+
+		entitysys_add(&particles,
+					  &(struct Particle) {
+						  .size = ((float)rand() / (float)RAND_MAX) * (max_size - min_size) + min_size,
+						  .x = x,
+						  .y = y,
+						  .z = z,
+						  .vx = vx,
+						  .vy = vy,
+						  .vz = vz,
+						  .fade = window_time(),
+						  .color = color,
+						  .type = 255,
+					  });
 	}
 }

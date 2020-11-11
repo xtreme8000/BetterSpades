@@ -20,7 +20,6 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
-#include "sound.h"
 #include "aabb.h"
 #include "network.h"
 
@@ -156,10 +155,8 @@ extern struct Player {
 	} physics;
 
 	struct {
-		struct Sound_source feet;
 		float feet_started, feet_started_cycle;
 		char feet_cylce;
-		struct Sound_source tool;
 		float tool_started;
 	} sound;
 } players[PLAYERS_MAX];

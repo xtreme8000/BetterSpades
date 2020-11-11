@@ -20,21 +20,16 @@
 #ifndef GRENADE_H
 #define GRENADE_H
 
-#define GRENADES_MAX PLAYERS_MAX * 3
-// each can throw all their grenades all at once
-
 struct Grenade {
-	unsigned char active;
-	unsigned char owner;
 	float fuse_length;
 	float created;
 	struct Position pos;
 	struct Velocity velocity;
 };
 
-struct Grenade* grenade_add(void);
+void grenade_init(void);
+void grenade_add(struct Grenade* g);
 void grenade_update(float dt);
 void grenade_render(void);
-int grenade_inwater(struct Grenade* g);
 
 #endif

@@ -30,29 +30,21 @@
 #endif
 #endif
 
+#include "player.h"
+
 #define SOUND_SCALE 0.6F
 
-#define SOUND_VOICES_MAX 256
-
-#define SOUND_WORLD 0
-#define SOUND_LOCAL 1
+enum sound_space {
+	SOUND_WORLD,
+	SOUND_LOCAL,
+};
 
 extern int sound_enabled;
-
-struct Sound_source {
-	int openal_handle;
-	char active;
-	char local;
-	int stick_to_player;
-};
 
 struct Sound_wav {
 	int openal_buffer;
 	float min, max;
 };
-
-extern struct Sound_source sound_sources[SOUND_VOICES_MAX];
-extern unsigned char sound_sources_free[SOUND_VOICES_MAX];
 
 extern struct Sound_wav sound_footstep1;
 extern struct Sound_wav sound_footstep2;
@@ -107,12 +99,9 @@ extern struct Sound_wav sound_bounce;
 extern struct Sound_wav sound_impact;
 
 void sound_volume(float vol);
-struct Sound_source* sound_create(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z);
-struct Sound_source* sound_createEx(struct Sound_source* s, int option, struct Sound_wav* w, float x, float y, float z,
-									float vx, float vy, float vz);
-void sound_velocity(struct Sound_source* s, float vx, float vy, float vz);
-void sound_position(struct Sound_source* s, float x, float y, float z);
-void sound_update();
+void sound_create_sticky(struct Sound_wav* w, struct Player* player, int player_id);
+void sound_create(enum sound_space option, struct Sound_wav* w, float x, float y, float z);
+void sound_update(void);
 void sound_load(struct Sound_wav* wav, char* name, float min, float max);
 void sound_init(void);
 
