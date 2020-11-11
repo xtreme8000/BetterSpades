@@ -26,6 +26,7 @@
 
 struct channel {
 	size_t object_size;
+	size_t initial_length;
 	size_t length;
 	size_t count;
 	size_t loc_insert;
