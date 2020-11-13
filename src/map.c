@@ -39,8 +39,8 @@
 #include "utils.h"
 #include "config.h"
 #include "channel.h"
+#include "entitysystem.h"
 
-uint8_t* map_heights;
 int map_size_x = 512;
 int map_size_y = 64;
 int map_size_z = 512;
@@ -154,8 +154,7 @@ struct map_collapsing {
 	struct tesselator mesh_geometry;
 };
 
-HashTable map_collapsing_structures;
-uint32_t map_collapsing_next_key = 0;
+struct entity_system map_collapsing_structures;
 
 static bool falling_blocks_meshing(void* key, void* value, void* user) {
 	uint32_t pos = *(uint32_t*)key;
@@ -305,8 +304,8 @@ static bool map_update_physics_sub(struct map_collapsing* collapsing, int x, int
 		- distance3D(A->p.x, A->p.y, A->p.z, camera_x, camera_y, camera_z);
 }*/
 
-static bool falling_blocks_render(void* key, void* value, void* user) {
-	struct map_collapsing* collapsing = (struct map_collapsing*)value;
+static bool falling_blocks_render(void* obj, void* user) {
+	struct map_collapsing* collapsing = (struct map_collapsing*)obj;
 
 	matrix_identity();
 	matrix_translate(collapsing->p.x, collapsing->p.y, collapsing->p.z);
@@ -326,7 +325,7 @@ static bool falling_blocks_render(void* key, void* value, void* user) {
 	glColorMask(1, 1, 1, 1);
 	glx_displaylist_draw(&collapsing->displaylist, GLX_DISPLAYLIST_ENHANCED);
 
-	return true;
+	return false;
 }
 
 void map_collapsing_render() {
@@ -336,7 +335,7 @@ void map_collapsing_render() {
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	matrix_push();
-	ht_iterate(&map_collapsing_structures, NULL, falling_blocks_render);
+	entitysys_iterate(&map_collapsing_structures, NULL, falling_blocks_render);
 	matrix_pop();
 
 	glDisable(GL_BLEND);
@@ -369,8 +368,8 @@ static bool falling_blocks_particles(void* key, void* value, void* user) {
 	return true;
 }
 
-static bool falling_blocks_update(void* key, void* value, void* user) {
-	struct map_collapsing* collapsing = (struct map_collapsing*)value;
+static bool falling_blocks_update(void* obj, void* user) {
+	struct map_collapsing* collapsing = (struct map_collapsing*)obj;
 	float dt = *(float*)user;
 
 	collapsing->v.y -= dt;
@@ -427,11 +426,10 @@ void map_collapsing_update(float dt) {
 
 		sound_create(SOUND_WORLD, &sound_debris, res.p.x, res.p.y, res.p.z);
 
-		ht_insert(&map_collapsing_structures, &map_collapsing_next_key, &res);
-		map_collapsing_next_key++; // don't care about overflow, since key is very likely unused by then
+		entitysys_add(&map_collapsing_structures, &res);
 	}
 
-	ht_iterate_remove(&map_collapsing_structures, &dt, falling_blocks_update);
+	entitysys_iterate(&map_collapsing_structures, &dt, falling_blocks_update);
 }
 
 void map_update_physics(int x, int y, int z) {
@@ -484,9 +482,7 @@ void map_init() {
 	map_damaged_voxels.compare = int_cmp;
 	map_damaged_voxels.hash = int_hash;
 
-	ht_setup(&map_collapsing_structures, sizeof(uint32_t), sizeof(struct map_collapsing), 32);
-	map_collapsing_structures.compare = int_cmp;
-	map_collapsing_structures.hash = int_hash;
+	entitysys_create(&map_collapsing_structures, sizeof(struct map_collapsing), 32);
 
 	channel_create(&map_work_queue, sizeof(struct map_work_packet), 16);
 	channel_create(&map_result_queue, sizeof(struct map_collapsing), 16);
