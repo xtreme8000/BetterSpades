@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
-  <id>org.xtreme8000.BetterSpades.desktop</id>
+  <id>party.aos.betterspades.desktop</id>
   <metadata_license>GPL-3.0</metadata_license>
   <project_license>GPL-3.0</project_license>
   <name>BetterSpades</name>
@@ -32,7 +32,7 @@
     <content_attribute id="social-chat">intense</content_attribute>
   </content_rating>
 
-  <launchable type="desktop-id">org.xtreme8000.BetterSpades.desktop</launchable>
+  <launchable type="desktop-id">party.aos.betterspades.desktop</launchable>
 
   <url type="homepage">https://github.com/xtreme8000/BetterSpades/</url>
   <url type="bugtracker">https://github.com/xtreme8000/BetterSpades/issues</url>

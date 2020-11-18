@@ -1,4 +1,4 @@
-app-id: org.xtreme8000.BetterSpades
+app-id: party.aos.betterspades
 cleanup:
 - /include
 - /lib/pkgconfig
@@ -60,8 +60,8 @@ modules:
   name: BetterSpades
   no-make-install: true
   # This script creates the following symlink chains:
-  # /app/cache -> /run/cache -> $XDG_CACHE_HOME/org.xtreme8000.BetterSpades
-  # /app/config.ini -> /run/config.ini -> $XDG_CONFIG_HOME/org.xtreme8000.BetterSpades
+  # /app/cache -> /run/cache -> $XDG_CACHE_HOME/party.aos.betterspades
+  # /app/config.ini -> /run/config.ini -> $XDG_CONFIG_HOME/party.aos.betterspades
   post-install:
   - mv build/BetterSpades/* /app/
   - mv /app/config.ini /app/config.ini.initial
@@ -70,16 +70,16 @@ modules:
   - ln -s /run/cache /app/cache
   - 'echo ''#!/bin/sh
 
-    mkdir -p $XDG_CACHE_HOME/org.xtreme8000.BetterSpades
+    mkdir -p $XDG_CACHE_HOME/party.aos.betterspades
 
-    mkdir -p $XDG_CONFIG_HOME/org.xtreme8000.BetterSpades
+    mkdir -p $XDG_CONFIG_HOME/party.aos.betterspades
 
-    ln -s $XDG_CONFIG_HOME/org.xtreme8000.BetterSpades/config.ini /run/config.ini
+    ln -s $XDG_CONFIG_HOME/party.aos.betterspades/config.ini /run/config.ini
 
-    ln -s $XDG_CACHE_HOME/org.xtreme8000.BetterSpades /run/cache
+    ln -s $XDG_CACHE_HOME/party.aos.betterspades /run/cache
 
-    [ ! -f $XDG_CONFIG_HOME/org.xtreme8000.BetterSpades/config.ini ] && cp /app/config.ini.initial
-    $XDG_CONFIG_HOME/org.xtreme8000.BetterSpades/config.ini
+    [ ! -f $XDG_CONFIG_HOME/party.aos.betterspades/config.ini ] && cp /app/config.ini.initial
+    $XDG_CONFIG_HOME/party.aos.betterspades/config.ini
 
     cd /app
 
