@@ -16,15 +16,18 @@ finish-args:
 modules:
 - shared-modules/glu/glu-9.json
 - shared-modules/glew/glew.json
-- buildsystem: cmake
+- buildsystem: cmake-ninja
   config-opts:
   - -DBUILD_SHARED_LIBS=ON
+  - -DGLFW_BUILD_EXAMPLES=OFF
+  - -DGLFW_BUILD_TESTS=OFF
+  - -DGLFW_BUILD_DOCS=OFF
   name: glfw
   sources:
   - tag: 3.3.2
     type: git
     url: https://github.com/glfw/glfw
-- buildsystem: cmake
+- buildsystem: cmake-ninja
   name: openal-soft
   sources:
   - tag: openal-soft-1.21.0
@@ -38,7 +41,7 @@ modules:
   buildsystem: simple
   name: enet
   sources:
-  - tag: v1.3.16
+  - tag: v1.3.17
     type: git
     url: https://github.com/lsalzman/enet
 - build-commands:
@@ -53,7 +56,7 @@ modules:
 - build-options:
     build-args:
     - --share=network
-  buildsystem: cmake
+  buildsystem: cmake-ninja
   name: BetterSpades
   no-make-install: true
   # This script creates the following symlink chains:
