@@ -2,12 +2,14 @@ app-id: party.aos.betterspades
 cleanup:
 - /include
 - /lib/pkgconfig
+- /lib/cmake
+- /lib/debug
+- /lib/*.a
 command: /app/start.sh
 finish-args:
 - --share=ipc
 - --socket=x11
 - --socket=pulseaudio
-- --socket=wayland
 - --share=network
 - --device=dri
 - --extension=org.freedesktop.Platform.GL=directory=lib/GL
@@ -28,6 +30,10 @@ modules:
     type: git
     url: https://github.com/glfw/glfw
 - buildsystem: cmake-ninja
+  config-opts:
+  - -DALSOFT_EXAMPLES=OFF
+  - -DALSOFT_NO_CONFIG_UTIL=ON
+  - -DALSOFT_UTILS=OFF
   name: openal-soft
   sources:
   - tag: openal-soft-1.21.0
