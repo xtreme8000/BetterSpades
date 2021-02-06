@@ -81,7 +81,7 @@ void kv6_init() {
 	kv6_load_file(&model_shotgun, "kv6/shotgun.kv6", 0.05F);
 	kv6_load_file(&model_spade, "kv6/spade.kv6", 0.05F);
 	kv6_load_file(&model_block, "kv6/block.kv6", 0.05F);
-	model_block.colorize = 1;
+	model_block.colorize = true;
 	kv6_load_file(&model_grenade, "kv6/grenade.kv6", 0.05F);
 
 	kv6_load_file(&model_semi_tracer, "kv6/semitracer.kv6", 0.05F);
@@ -117,11 +117,12 @@ void kv6_rebuild_complete() {
 	kv6_rebuild(&model_shotgun_casing);
 }
 
-void kv6_load(struct kv6_t* kv6, unsigned char* bytes, float scale) {
-	kv6->colorize = 0;
-	kv6->has_display_list = 0;
+void kv6_load(struct kv6_t* kv6, void* bytes, float scale) {
+	kv6->colorize = false;
+	kv6->has_display_list = false;
 	kv6->scale = scale;
-	int index = 0;
+	size_t index = 0;
+
 	if(buffer_read32(bytes, index) == 0x6C78764B) { //"Kvxl"
 		index += 4;
 		kv6->xsiz = buffer_read32(bytes, index);
@@ -138,52 +139,42 @@ void kv6_load(struct kv6_t* kv6, unsigned char* bytes, float scale) {
 		kv6->zpiv = kv6->zsiz - buffer_readf(bytes, index);
 		index += 4;
 
-		int blklen = buffer_read32(bytes, index);
+		kv6->voxel_count = buffer_read32(bytes, index);
 		index += 4;
-		unsigned int* blkdata_color = malloc(blklen * 4);
-		CHECK_ALLOCATION_ERROR(blkdata_color)
-		unsigned short* blkdata_zpos = malloc(blklen * 2);
-		CHECK_ALLOCATION_ERROR(blkdata_zpos)
-		unsigned char* blkdata_visfaces = malloc(blklen);
-		CHECK_ALLOCATION_ERROR(blkdata_visfaces)
-		unsigned char* blkdata_lighting = malloc(blklen);
-		CHECK_ALLOCATION_ERROR(blkdata_lighting)
-		for(int k = 0; k < blklen; k++) {
-			blkdata_color[k] = buffer_read32(bytes, index);
-			index += 4;
-			blkdata_zpos[k] = buffer_read16(bytes, index);
-			index += 2;
-			blkdata_visfaces[k] = buffer_read8(bytes, index++); // 0x00zZyYxX
-			blkdata_lighting[k]
-				= buffer_read8(bytes, index++); // compressed normal vector (also referred to as lighting)
-		}
-		index += 4 * kv6->xsiz;
-		kv6->voxels = malloc(kv6->xsiz * kv6->ysiz * kv6->zsiz * sizeof(struct kv6_voxel));
+
+		kv6->voxels = malloc(sizeof(struct kv6_voxel) * kv6->voxel_count);
 		CHECK_ALLOCATION_ERROR(kv6->voxels)
-		kv6->voxel_count = 0;
-		for(int x = 0; x < kv6->xsiz; x++) {
-			for(int y = 0; y < kv6->ysiz; y++) {
-				int size = buffer_read16(bytes, index);
+
+		for(size_t k = 0; k < kv6->voxel_count; k++) {
+			uint32_t color = buffer_read32(bytes, index);
+			index += 4;
+			uint16_t zpos = buffer_read16(bytes, index);
+			index += 2;
+			uint8_t visfaces = buffer_read8(bytes, index++); // 0x00zZyYxX
+			uint8_t lighting = buffer_read8(bytes, index++); // compressed normal vector (also referred to as lighting)
+
+			kv6->voxels[k] = (struct kv6_voxel) {
+				.color = (color & 0xFFFFFF) | (lighting << 24),
+				.visfaces = visfaces,
+				.z = (kv6->zsiz - 1) - zpos,
+			};
+		}
+
+		index += 4 * kv6->xsiz;
+
+		struct kv6_voxel* voxel = kv6->voxels;
+
+		for(size_t x = 0; x < kv6->xsiz; x++) {
+			for(size_t y = 0; y < kv6->ysiz; y++) {
+				uint16_t size = buffer_read16(bytes, index);
 				index += 2;
-				for(int z = 0; z < size; z++) {
-					struct kv6_voxel* voxel = &kv6->voxels[kv6->voxel_count];
+
+				for(size_t z = 0; z < size; z++, voxel++) {
 					voxel->x = x;
 					voxel->y = y;
-					voxel->z = (kv6->zsiz - 1) - blkdata_zpos[kv6->voxel_count];
-					voxel->color
-						= (blkdata_color[kv6->voxel_count] & 0xFFFFFF) | (blkdata_lighting[kv6->voxel_count] << 24);
-					voxel->visfaces = blkdata_visfaces[kv6->voxel_count];
-					kv6->voxel_count++;
 				}
 			}
 		}
-		kv6->voxels = realloc(kv6->voxels, kv6->voxel_count * sizeof(struct kv6_voxel));
-		CHECK_ALLOCATION_ERROR(kv6->voxels)
-
-		free(blkdata_color);
-		free(blkdata_zpos);
-		free(blkdata_visfaces);
-		free(blkdata_lighting);
 	}
 }
 
@@ -232,7 +223,7 @@ void kv6_rebuild(struct kv6_t* kv6) {
 	if(kv6->has_display_list) {
 		glx_displaylist_destroy(kv6->display_list + 0);
 		glx_displaylist_destroy(kv6->display_list + 1);
-		kv6->has_display_list = 0;
+		kv6->has_display_list = false;
 	}
 }
 
@@ -330,7 +321,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 			tesselator_free(&tess_color);
 			tesselator_free(&tess_team);
 
-			kv6->has_display_list = 1;
+			kv6->has_display_list = true;
 		} else {
 			glEnable(GL_LIGHTING);
 			glEnable(GL_LIGHT0);
@@ -397,7 +388,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 			float vertices[2][kv6->voxel_count * 3];
 			uint8_t colors[2][kv6->voxel_count * 4];
 			int8_t normals[2][kv6->voxel_count * 3];
-			kv6->has_display_list = 1;
+			kv6->has_display_list = true;
 
 			int cnt[2] = {0, 0};
 

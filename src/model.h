@@ -20,20 +20,23 @@
 #ifndef MODEL_H
 #define MODEL_H
 
+#include <stdint.h>
+#include <stdbool.h>
+
 #include "aabb.h"
 #include "glx.h"
 #include "tesselator.h"
 
 struct kv6_voxel {
-	short x, y, z;
-	unsigned char visfaces;
-	unsigned int color;
+	uint16_t x, y, z;
+	uint8_t visfaces;
+	uint32_t color;
 };
 
 struct kv6_t {
-	unsigned short xsiz, ysiz, zsiz;
+	uint16_t xsiz, ysiz, zsiz;
 	float xpiv, ypiv, zpiv;
-	unsigned char has_display_list, colorize;
+	bool has_display_list, colorize;
 	struct glx_displaylist display_list[2];
 	struct kv6_voxel* voxels;
 	int voxel_count;
@@ -72,7 +75,7 @@ float kv6_intersection(struct kv6_t* kv6, Ray* r);
 void kv6_rebuild_complete(void);
 void kv6_rebuild(struct kv6_t* kv6);
 void kv6_render(struct kv6_t* kv6, unsigned char team);
-void kv6_load(struct kv6_t* kv6, unsigned char* bytes, float scale);
+void kv6_load(struct kv6_t* kv6, void* bytes, float scale);
 void kv6_init(void);
 void mul_matrix_vector(float* out, double* m, float* v);
 
