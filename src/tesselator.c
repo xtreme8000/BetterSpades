@@ -273,27 +273,35 @@ void tesselator_addf_simple(struct tesselator* t, float* coords) {
 									NULL);
 }
 
-void tesselator_addi_cube_face(struct tesselator* t, enum tesselator_cube_face face, int16_t x, int16_t y, int16_t z) {
+void tesselator_addi_cube_face_adv(struct tesselator* t, enum tesselator_cube_face face, int16_t x, int16_t y,
+								   int16_t z, int16_t sx, int16_t sy, int16_t sz) {
 	switch(face) {
 		case CUBE_FACE_Z_N:
-			tesselator_addi_simple(t, (int16_t[]) {x, y, z, x, y + 1, z, x + 1, y + 1, z, x + 1, y, z});
+			tesselator_addi_simple(t, (int16_t[]) {x, y, z, x, y + sy, z, x + sx, y + sy, z, x + sx, y, z});
 			break;
 		case CUBE_FACE_Z_P:
-			tesselator_addi_simple(t, (int16_t[]) {x, y, z + 1, x + 1, y, z + 1, x + 1, y + 1, z + 1, x, y + 1, z + 1});
+			tesselator_addi_simple(
+				t, (int16_t[]) {x, y, z + sz, x + sx, y, z + sz, x + sx, y + sy, z + sz, x, y + sy, z + sz});
 			break;
 		case CUBE_FACE_X_N:
-			tesselator_addi_simple(t, (int16_t[]) {x, y, z, x, y, z + 1, x, y + 1, z + 1, x, y + 1, z});
+			tesselator_addi_simple(t, (int16_t[]) {x, y, z, x, y, z + sz, x, y + sy, z + sz, x, y + sy, z});
 			break;
 		case CUBE_FACE_X_P:
-			tesselator_addi_simple(t, (int16_t[]) {x + 1, y, z, x + 1, y + 1, z, x + 1, y + 1, z + 1, x + 1, y, z + 1});
+			tesselator_addi_simple(
+				t, (int16_t[]) {x + sx, y, z, x + sx, y + sy, z, x + sx, y + sy, z + sz, x + sx, y, z + sz});
 			break;
 		case CUBE_FACE_Y_P:
-			tesselator_addi_simple(t, (int16_t[]) {x, y + 1, z, x, y + 1, z + 1, x + 1, y + 1, z + 1, x + 1, y + 1, z});
+			tesselator_addi_simple(
+				t, (int16_t[]) {x, y + sy, z, x, y + sy, z + sz, x + sx, y + sy, z + sz, x + sx, y + sy, z});
 			break;
 		case CUBE_FACE_Y_N:
-			tesselator_addi_simple(t, (int16_t[]) {x, y, z, x + 1, y, z, x + 1, y, z + 1, x, y, z + 1});
+			tesselator_addi_simple(t, (int16_t[]) {x, y, z, x + sx, y, z, x + sx, y, z + sz, x, y, z + sz});
 			break;
 	}
+}
+
+void tesselator_addi_cube_face(struct tesselator* t, enum tesselator_cube_face face, int16_t x, int16_t y, int16_t z) {
+	tesselator_addi_cube_face_adv(t, face, x, y, z, 1, 1, 1);
 }
 
 void tesselator_addf_cube_face(struct tesselator* t, enum tesselator_cube_face face, float x, float y, float z,

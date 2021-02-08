@@ -27,6 +27,13 @@
 #include "glx.h"
 #include "tesselator.h"
 
+#define KV6_VIS_NEG_X (1 << 0)
+#define KV6_VIS_POS_X (1 << 1)
+#define KV6_VIS_NEG_Z (1 << 2)
+#define KV6_VIS_POS_Z (1 << 3)
+#define KV6_VIS_POS_Y (1 << 4)
+#define KV6_VIS_NEG_Y (1 << 5)
+
 struct kv6_voxel {
 	uint16_t x, y, z;
 	uint8_t visfaces;

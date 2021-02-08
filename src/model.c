@@ -240,6 +240,97 @@ void kv6_calclight(int x, int y, int z) {
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, ldiffuse);
 }
 
+static int kv6_voxel_cmp(const void* a, const void* b) {
+	const struct kv6_voxel* A = a;
+	const struct kv6_voxel* B = b;
+
+	if(A->x == B->x) {
+		if(A->y == B->y) {
+			return B->z - A->z;
+		} else {
+			return A->y - B->y;
+		}
+	} else {
+		return A->x - B->x;
+	}
+}
+
+static void greedy_mesh(struct kv6_t* kv6, struct kv6_voxel* voxel, uint8_t* marked, size_t* max_a, size_t* max_b,
+						uint8_t face) {
+	if(!settings.greedy_meshing) {
+		*max_a = 1;
+		*max_b = 1;
+	} else {
+		switch(face) {
+			case KV6_VIS_POS_X:
+			case KV6_VIS_NEG_X:
+				*max_a = kv6->ysiz;
+				*max_b = kv6->zsiz;
+				break;
+			case KV6_VIS_POS_Y:
+			case KV6_VIS_NEG_Y:
+				*max_a = kv6->xsiz;
+				*max_b = kv6->ysiz;
+				break;
+			case KV6_VIS_POS_Z:
+			case KV6_VIS_NEG_Z:
+				*max_a = kv6->xsiz;
+				*max_b = kv6->zsiz;
+				break;
+		}
+
+		struct kv6_voxel lookup = *voxel;
+
+		for(size_t a = 0; a < *max_a; a++) {
+			struct kv6_voxel* recent[*max_b];
+			size_t b;
+			for(b = 0; b < *max_b; b++) {
+				switch(face) {
+					case KV6_VIS_POS_X:
+					case KV6_VIS_NEG_X:
+						lookup.y = voxel->y + b;
+						lookup.z = voxel->z - a;
+						break;
+					case KV6_VIS_POS_Y:
+					case KV6_VIS_NEG_Y:
+						lookup.x = voxel->x + a;
+						lookup.y = voxel->y + b;
+						break;
+					case KV6_VIS_POS_Z:
+					case KV6_VIS_NEG_Z:
+						lookup.x = voxel->x + a;
+						lookup.z = voxel->z - b;
+						break;
+				}
+
+				struct kv6_voxel* neighbour
+					= bsearch(&lookup, kv6->voxels, kv6->voxel_count, sizeof(struct kv6_voxel), kv6_voxel_cmp);
+
+				if(!neighbour || !(neighbour->visfaces & face)
+				   || (neighbour->color & 0xFFFFFF) != (voxel->color & 0xFFFFFF)
+				   || marked[neighbour - kv6->voxels] & face) {
+					break;
+				} else {
+					marked[neighbour - kv6->voxels] |= face;
+					recent[b] = neighbour;
+				}
+			}
+
+			if(a == 0)
+				*max_b = b;
+
+			if(b < *max_b) { // early abort
+				*max_a = a;
+
+				for(size_t k = 0; k < b; k++)
+					marked[recent[k] - kv6->voxels] &= ~face;
+
+				break;
+			}
+		}
+	}
+}
+
 static int kv6_program = -1;
 void kv6_render(struct kv6_t* kv6, unsigned char team) {
 	if(!kv6)
@@ -249,16 +340,18 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 	if(!settings.voxlap_models) {
 		if(!kv6->has_display_list) {
 			struct tesselator tess_color;
-			tesselator_create(&tess_color, VERTEX_FLOAT, 1);
+			tesselator_create(&tess_color, VERTEX_INT, 1);
 			struct tesselator tess_team;
-			tesselator_create(&tess_team, VERTEX_FLOAT, 1);
+			tesselator_create(&tess_team, VERTEX_INT, 1);
 
 			glx_displaylist_create(kv6->display_list + 0, true, true);
 			glx_displaylist_create(kv6->display_list + 1, true, true);
 
-			for(int k = 0; k < kv6->voxel_count; k++) {
-				struct kv6_voxel* voxel = kv6->voxels + k;
+			uint8_t marked[kv6->voxel_count];
+			memset(marked, 0, sizeof(uint8_t) * kv6->voxel_count);
 
+			struct kv6_voxel* voxel = kv6->voxels;
+			for(size_t k = 0; k < kv6->voxel_count; k++, voxel++) {
 				int b = red(voxel->color);
 				int g = green(voxel->color);
 				int r = blue(voxel->color);
@@ -273,45 +366,58 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 					r = g = b = 255;
 				}
 
-				float p[3] = {(voxel->x - kv6->xpiv) * kv6->scale, (voxel->z - kv6->zpiv) * kv6->scale,
-							  (voxel->y - kv6->ypiv) * kv6->scale};
-
 				tesselator_set_normal(tess, kv6_normals[a][0] * 128, -kv6_normals[a][2] * 128, kv6_normals[a][1] * 128);
 
-				// positive y
-				if(voxel->visfaces & 16) {
+				if(voxel->visfaces & KV6_VIS_POS_Y) {
+					size_t max_x, max_z;
+					greedy_mesh(kv6, voxel, marked, &max_x, &max_z, KV6_VIS_POS_Y);
+
 					tesselator_set_color(tess, rgba(r, g, b, 0));
-					tesselator_addf_cube_face(tess, CUBE_FACE_Y_P, p[0], p[1], p[2], kv6->scale);
+					tesselator_addi_cube_face_adv(tess, CUBE_FACE_Y_P, voxel->x, voxel->z, voxel->y, max_x, 1, max_z);
 				}
 
-				// negative y
-				if(voxel->visfaces & 32) {
+				if(voxel->visfaces & KV6_VIS_NEG_Y) {
+					size_t max_x, max_z;
+					greedy_mesh(kv6, voxel, marked, &max_x, &max_z, KV6_VIS_NEG_Y);
+
 					tesselator_set_color(tess, rgba(r * 0.6F, g * 0.6F, b * 0.6F, 0));
-					tesselator_addf_cube_face(tess, CUBE_FACE_Y_N, p[0], p[1], p[2], kv6->scale);
+					tesselator_addi_cube_face_adv(tess, CUBE_FACE_Y_N, voxel->x, voxel->z, voxel->y, max_x, 1, max_z);
 				}
 
-				// negative z
-				if(voxel->visfaces & 4) {
+				if(voxel->visfaces & KV6_VIS_NEG_Z) {
+					size_t max_x, max_y;
+					greedy_mesh(kv6, voxel, marked, &max_x, &max_y, KV6_VIS_NEG_Z);
+
 					tesselator_set_color(tess, rgba(r * 0.95F, g * 0.95F, b * 0.95F, 0));
-					tesselator_addf_cube_face(tess, CUBE_FACE_Z_N, p[0], p[1], p[2], kv6->scale);
+					tesselator_addi_cube_face_adv(tess, CUBE_FACE_Z_N, voxel->x, voxel->z - (max_y - 1), voxel->y,
+												  max_x, max_y, 1);
 				}
 
-				// positive z
-				if(voxel->visfaces & 8) {
+				if(voxel->visfaces & KV6_VIS_POS_Z) {
+					size_t max_x, max_y;
+					greedy_mesh(kv6, voxel, marked, &max_x, &max_y, KV6_VIS_POS_Z);
+
 					tesselator_set_color(tess, rgba(r * 0.9F, g * 0.9F, b * 0.9F, 0));
-					tesselator_addf_cube_face(tess, CUBE_FACE_Z_P, p[0], p[1], p[2], kv6->scale);
+					tesselator_addi_cube_face_adv(tess, CUBE_FACE_Z_P, voxel->x, voxel->z - (max_y - 1), voxel->y,
+												  max_x, max_y, 1);
 				}
 
-				// negative x
-				if(voxel->visfaces & 1) {
+				if(voxel->visfaces & KV6_VIS_NEG_X) {
+					size_t max_y, max_z;
+					greedy_mesh(kv6, voxel, marked, &max_y, &max_z, KV6_VIS_NEG_X);
+
 					tesselator_set_color(tess, rgba(r * 0.85F, g * 0.85F, b * 0.85F, 0));
-					tesselator_addf_cube_face(tess, CUBE_FACE_X_N, p[0], p[1], p[2], kv6->scale);
+					tesselator_addi_cube_face_adv(tess, CUBE_FACE_X_N, voxel->x, voxel->z - (max_y - 1), voxel->y, 1,
+												  max_y, max_z);
 				}
 
-				// positive x
-				if(voxel->visfaces & 2) {
+				if(voxel->visfaces & KV6_VIS_POS_X) {
+					size_t max_y, max_z;
+					greedy_mesh(kv6, voxel, marked, &max_y, &max_z, KV6_VIS_POS_X);
+
 					tesselator_set_color(tess, rgba(r * 0.8F, g * 0.8F, b * 0.8F, 0));
-					tesselator_addf_cube_face(tess, CUBE_FACE_X_P, p[0], p[1], p[2], kv6->scale);
+					tesselator_addi_cube_face_adv(tess, CUBE_FACE_X_P, voxel->x, voxel->z - (max_y - 1), voxel->y, 1,
+												  max_y, max_z);
 				}
 			}
 
@@ -349,11 +455,16 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 				glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, (float[]) {kv6->red, kv6->green, kv6->blue, 1.0F});
 			}
 
-			glx_displaylist_draw(kv6->display_list + 0, GLX_DISPLAYLIST_ENHANCED);
+			matrix_select(matrix_model);
+			matrix_push();
+			matrix_scale3(kv6->scale);
+			matrix_translate(-kv6->xpiv, -kv6->zpiv, -kv6->ypiv);
+			matrix_upload();
 
-			if(!kv6->colorize) {
+			glx_displaylist_draw(kv6->display_list + 0, GLX_DISPLAYLIST_NORMAL);
+
+			if(!kv6->colorize)
 				glEnable(GL_TEXTURE_2D);
-			}
 
 			switch(team) {
 				case TEAM_1:
@@ -371,7 +482,9 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 				default: glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, (float[]) {0, 0, 0, 1});
 			}
 
-			glx_displaylist_draw(kv6->display_list + 1, GLX_DISPLAYLIST_ENHANCED);
+			glx_displaylist_draw(kv6->display_list + 1, GLX_DISPLAYLIST_NORMAL);
+
+			matrix_pop();
 
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
