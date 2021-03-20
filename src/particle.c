@@ -122,14 +122,14 @@ static bool particle_render_single(void* obj, void* user) {
 		struct kv6_t* casing = weapon_casing(p->type);
 
 		if(casing) {
-			matrix_push();
-			matrix_identity();
-			matrix_translate(p->x, p->y, p->z);
-			matrix_pointAt(p->ox, p->oy * max(1.0F - (window_time() - p->fade) / 0.5F, 0.0F), p->oz);
-			matrix_rotate(90.0F, 0.0F, 1.0F, 0.0F);
+			matrix_push(matrix_model);
+			matrix_identity(matrix_model);
+			matrix_translate(matrix_model, p->x, p->y, p->z);
+			matrix_pointAt(matrix_model, p->ox, p->oy * max(1.0F - (window_time() - p->fade) / 0.5F, 0.0F), p->oz);
+			matrix_rotate(matrix_model, 90.0F, 0.0F, 1.0F, 0.0F);
 			matrix_upload();
 			kv6_render(casing, TEAM_SPECTATOR);
-			matrix_pop();
+			matrix_pop(matrix_model);
 		}
 	}
 

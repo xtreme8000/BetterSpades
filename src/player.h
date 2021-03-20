@@ -20,6 +20,8 @@
 #ifndef PLAYER_H
 #define PLAYER_H
 
+#include <stdbool.h>
+
 #include "aabb.h"
 #include "network.h"
 
@@ -73,11 +75,11 @@ extern int player_intersection_player;
 extern float player_intersection_dist;
 
 struct player_intersection {
-	unsigned char head : 1;
-	unsigned char torso : 1;
-	unsigned char leg_left : 1;
-	unsigned char leg_right : 1;
-	unsigned char arms : 1;
+	bool head;
+	bool torso;
+	bool leg_left;
+	bool leg_right;
+	bool arms;
 	union {
 		struct {
 			float head;
@@ -90,9 +92,8 @@ struct player_intersection {
 	} distance;
 };
 
-int player_intersection_exists(struct player_intersection* s);
-int player_intersection_choose(struct player_intersection* s);
-float player_intersection_choose_dist(struct player_intersection* s);
+bool player_intersection_exists(struct player_intersection* s);
+int player_intersection_choose(struct player_intersection* s, float* distance);
 
 extern struct Player {
 	char name[17];
@@ -165,12 +166,13 @@ extern struct Player {
 int player_can_spectate(struct Player* p);
 float player_section_height(int section);
 void player_init(void);
-float player_height(struct Player* p);
-float player_height2(struct Player* p);
+float player_height(const struct Player* p);
+float player_height2(const struct Player* p);
 void player_reposition(struct Player* p);
 void player_update(float dt, int locked);
 void player_render_all(void);
-void player_render(struct Player* p, int id, Ray* ray, char render, struct player_intersection* intersects);
+void player_render(struct Player* p, int id);
+void player_collision(const struct Player* p, Ray* ray, struct player_intersection* intersects);
 void player_reset(struct Player* p);
 int player_move(struct Player* p, float fsynctics, int id);
 int player_uncrouch(struct Player* p);

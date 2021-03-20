@@ -238,7 +238,6 @@ void weapon_shoot() {
 		weapon_spread(&players[local_player_id], o);
 
 		struct Camera_HitType hit;
-		// camera_hit_fromplayer(&hit,local_player_id,128.0F);
 		camera_hit(&hit, local_player_id, players[local_player_id].physics.eye.x,
 				   players[local_player_id].physics.eye.y + player_height(&players[local_player_id]),
 				   players[local_player_id].physics.eye.z, o[0], o[1], o[2], 128.0F);
@@ -273,7 +272,7 @@ void weapon_shoot() {
 				h.player_id = hit.player_id;
 				h.hit_type = hit.player_section;
 				network_send(PACKET_HIT_ID, &h, sizeof(h));
-				// printf("hit on %s (%i)\n",players[hit.player_id].name,h.hit_type);
+				// printf("hit on %s (%i)\n", players[hit.player_id].name, h.hit_type);
 				break;
 			}
 			case CAMERA_HITTYPE_BLOCK:

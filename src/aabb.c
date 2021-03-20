@@ -24,40 +24,47 @@
 #include "common.h"
 #include "map.h"
 #include "aabb.h"
+#include "tesselator.h"
+#include "matrix.h"
 
-void aabb_render(AABB* a) {}
+void aabb_render(AABB* a) { }
 
-float aabb_intersection_ray(AABB* a, Ray* r) {
-	float total_min = FLT_MIN, total_max = FLT_MAX;
+// see: https://tavianator.com/2011/ray_box.html
+bool aabb_intersection_ray(AABB* a, Ray* r, float* distance) {
+	aabb_render(a);
 
-	for(int coord = 0; coord < 3; coord++) {
-		float t_A = (a->min[coord] - r->origin.coords[coord]) / r->direction.coords[coord];
-		float t_B = (a->max[coord] - r->origin.coords[coord]) / r->direction.coords[coord];
+	double inv_x = 1.0 / r->direction.x;
+	double tx1 = (a->min_x - r->origin.x) * inv_x;
+	double tx2 = (a->max_x - r->origin.x) * inv_x;
 
-		float range_min = fmin(t_A, t_B);
-		float range_max = fmax(t_A, t_B);
+	double tmin = fmin(tx1, tx2);
+	double tmax = fmax(tx1, tx2);
 
-		// test if intervals don't intersect
-		if(total_max <= range_min && total_min <= range_min)
-			return -1;
-		if(range_max <= total_max && range_max <= total_min)
-			return -1;
+	double inv_y = 1.0 / r->direction.y;
+	double ty1 = (a->min_y - r->origin.y) * inv_y;
+	double ty2 = (a->max_y - r->origin.y) * inv_y;
 
-		// now calculate overlap of intervals/ranges
-		total_min = fmax(range_min, total_min);
-		total_max = fmin(range_max, total_max);
-	}
+	tmin = fmax(tmin, fmin(fmin(ty1, ty2), tmax));
+	tmax = fmin(tmax, fmax(fmax(ty1, ty2), tmin));
 
-	if(total_min < 0)
-		return -1;
+	double inv_z = 1.0 / r->direction.z;
+	double tz1 = (a->min_z - r->origin.z) * inv_z;
+	double tz2 = (a->max_z - r->origin.z) * inv_z;
 
-	return fabs(total_min) * len3D(r->direction.x, r->direction.y, r->direction.z);
+	tmin = fmax(tmin, fmin(fmin(tz1, tz2), tmax));
+	tmax = fmin(tmax, fmax(fmax(tz1, tz2), tmin));
+
+	if(distance)
+		*distance = fmax(tmin, 0.0) * len3D(r->direction.x, r->direction.y, r->direction.z);
+
+	return tmax > fmax(tmin, 0.0);
 }
 
 void aabb_set_center(AABB* a, float x, float y, float z) {
 	float size_x = a->max_x - a->min_x;
 	float size_y = a->max_y - a->min_y;
 	float size_z = a->max_z - a->min_z;
+
 	a->min_x = x - size_x / 2;
 	a->min_y = y - size_y / 2;
 	a->min_z = z - size_z / 2;
@@ -72,12 +79,12 @@ void aabb_set_size(AABB* a, float x, float y, float z) {
 	a->max_z = a->min_z + z;
 }
 
-unsigned char aabb_intersection(AABB* a, AABB* b) {
+bool aabb_intersection(AABB* a, AABB* b) {
 	return (a->min_x <= b->max_x && b->min_x <= a->max_x) && (a->min_y <= b->max_y && b->min_y <= a->max_y)
 		&& (a->min_z <= b->max_z && b->min_z <= a->max_z);
 }
 
-unsigned char aabb_intersection_terrain(AABB* a, int miny) {
+bool aabb_intersection_terrain(AABB* a, int miny) {
 	AABB terrain_cube;
 
 	int min_x = min(max(floor(a->min_x) - 1, 0), map_size_x);
@@ -98,12 +105,13 @@ unsigned char aabb_intersection_terrain(AABB* a, int miny) {
 					terrain_cube.max_x = x + 1;
 					terrain_cube.max_y = y + 1;
 					terrain_cube.max_z = z + 1;
-					if(aabb_intersection(a, &terrain_cube)) {
-						return 1;
-					}
+
+					if(aabb_intersection(a, &terrain_cube))
+						return true;
 				}
 			}
 		}
 	}
-	return 0;
+
+	return false;
 }

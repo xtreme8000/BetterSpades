@@ -1,3 +1,15 @@
+include(FetchContent)
+
+FetchContent_Declare(
+	cglm
+	GIT_REPOSITORY	https://github.com/recp/cglm
+	GIT_TAG			v0.8.0
+)
+
+SET(CGLM_STATIC ON)
+SET(CGLM_USE_C99 ON)
+FetchContent_MakeAvailable(cglm)
+
 macro(download_file_if_it_doesnt_exist filename url)
 	if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
 		message(STATUS "Downloading ${filename}")
@@ -90,6 +102,16 @@ execute_process(
   OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 
+include(CheckIPOSupported)
+check_ipo_supported(RESULT lto_supported OUTPUT error)
+
+if(lto_supported)
+	message(STATUS "IPO / LTO enabled")
+	set_property(TARGET client PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+else()
+	message(STATUS "IPO / LTO not supported: <${error}>")
+endif()
+
 target_compile_definitions(client PRIVATE GIT_COMMIT_HASH="${GIT_COMMIT_HASH}")
 target_compile_definitions(client PRIVATE DR_WAV_IMPLEMENTATION)
 target_compile_definitions(client PRIVATE LOG_USE_COLOR)
@@ -148,7 +170,7 @@ if(ENABLE_RPC)
 	target_compile_definitions(client PRIVATE USE_RPC DISCORD_DISABLE_IO_THREAD)
 endif()
 
-target_link_libraries(client ${CMAKE_THREAD_LIBS_INIT} ${OPENGL_LIBRARIES} enet::enet deflate::deflate m)
+target_link_libraries(client ${CMAKE_THREAD_LIBS_INIT} ${OPENGL_LIBRARIES} enet::enet deflate::deflate m cglm)
 include_directories(client ${OPENAL_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIR} ${OPENGL_EGL_INCLUDE_DIRS})
 
 add_custom_command(

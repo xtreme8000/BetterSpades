@@ -20,22 +20,16 @@
 #ifndef FONT_H
 #define FONT_H
 
-#include "list.h"
+enum font_type {
+	FONT_FIXEDSYS,
+	FONT_SMALLFNT,
+};
 
-#define FONT_FIXEDSYS 0
-#define FONT_SMALLFNT 1
-
-extern short* font_vertex_buffer;
-extern short* font_coords_buffer;
-extern int font_type;
-
-extern struct list font_backed_fonts;
-
-unsigned char font_init(void);
+void font_init(void);
 void font_reset(void);
 float font_length(float h, char* text);
 void font_render(float x, float y, float h, char* text);
 void font_centered(float x, float y, float h, char* text);
-void font_select(char type);
+void font_select(enum font_type type);
 
 #endif

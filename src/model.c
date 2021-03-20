@@ -121,8 +121,8 @@ void kv6_load(struct kv6_t* kv6, void* bytes, float scale) {
 	kv6->colorize = false;
 	kv6->has_display_list = false;
 	kv6->scale = scale;
-	size_t index = 0;
 
+	size_t index = 0;
 	if(buffer_read32(bytes, index) == 0x6C78764B) { //"Kvxl"
 		index += 4;
 		kv6->xsiz = buffer_read32(bytes, index);
@@ -175,48 +175,11 @@ void kv6_load(struct kv6_t* kv6, void* bytes, float scale) {
 				}
 			}
 		}
+	} else {
+		log_error("Data not in kv6 format");
+		kv6->xsiz = kv6->ysiz = kv6->zsiz = 0;
+		kv6->voxel_count = 0;
 	}
-}
-
-void kv6_boundingbox(struct kv6_t* kv6, AABB* bb) {
-	matrix_push();
-	matrix_load(matrix_model);
-	matrix_multiply(matrix_view);
-	matrix_multiply(matrix_projection);
-
-	for(int k = 0; k < 8; k++) {
-		float v[4] = {(kv6->xsiz * ((k & 1) > 0) - kv6->xpiv) * kv6->scale,
-					  (kv6->zsiz * ((k & 2) > 0) - kv6->zpiv) * kv6->scale,
-					  (kv6->ysiz * ((k & 4) > 0) - kv6->ypiv) * kv6->scale, 1.0F};
-		matrix_vector(v);
-
-		bb->min_x = min(bb->min_x, v[0]);
-		bb->min_y = min(bb->min_y, v[1]);
-		bb->max_x = max(bb->max_x, v[0]);
-		bb->max_y = max(bb->max_y, v[1]);
-	}
-
-	matrix_pop();
-}
-
-float kv6_intersection(struct kv6_t* kv6, Ray* r) {
-	AABB bb;
-
-	for(int k = 0; k < 8; k++) {
-		float v[4] = {(kv6->xsiz * ((k & 1) > 0) - kv6->xpiv) * kv6->scale,
-					  (kv6->zsiz * ((k & 2) > 0) - kv6->zpiv) * kv6->scale,
-					  (kv6->ysiz * ((k & 4) > 0) - kv6->ypiv) * kv6->scale, 1.0F};
-		matrix_vector(v);
-		bb.min_x = (k == 0) ? v[0] : min(bb.min_x, v[0]);
-		bb.min_y = (k == 0) ? v[1] : min(bb.min_y, v[1]);
-		bb.min_z = (k == 0) ? v[2] : min(bb.min_z, v[2]);
-
-		bb.max_x = (k == 0) ? v[0] : max(bb.max_x, v[0]);
-		bb.max_y = (k == 0) ? v[1] : max(bb.max_y, v[1]);
-		bb.max_z = (k == 0) ? v[2] : max(bb.max_z, v[2]);
-	}
-
-	return aabb_intersection_ray(&bb, r);
 }
 
 void kv6_rebuild(struct kv6_t* kv6) {
@@ -455,10 +418,9 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 				glTexEnvfv(GL_TEXTURE_ENV, GL_TEXTURE_ENV_COLOR, (float[]) {kv6->red, kv6->green, kv6->blue, 1.0F});
 			}
 
-			matrix_select(matrix_model);
-			matrix_push();
-			matrix_scale3(kv6->scale);
-			matrix_translate(-kv6->xpiv, -kv6->zpiv, -kv6->ypiv);
+			matrix_push(matrix_model);
+			matrix_scale3(matrix_model, kv6->scale);
+			matrix_translate(matrix_model, -kv6->xpiv, -kv6->zpiv, -kv6->ypiv);
 			matrix_upload();
 
 			glx_displaylist_draw(kv6->display_list + 0, GLX_DISPLAYLIST_NORMAL);
@@ -484,7 +446,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 
 			glx_displaylist_draw(kv6->display_list + 1, GLX_DISPLAYLIST_NORMAL);
 
-			matrix_pop();
+			matrix_pop(matrix_model);
 
 			glBindTexture(GL_TEXTURE_2D, 0);
 			glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
@@ -563,9 +525,9 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		float near_plane_height
 			= (float)settings.window_height / (2.0F * tan(camera_fov_scaled() * 1.570796F / 180.0F));
 
-		float len_x = len3D(matrix_model[0], matrix_model[1], matrix_model[2]);
-		float len_y = len3D(matrix_model[4], matrix_model[5], matrix_model[6]);
-		float len_z = len3D(matrix_model[8], matrix_model[9], matrix_model[10]);
+		float len_x = len3D(matrix_model[0][0], matrix_model[1][0], matrix_model[2][0]);
+		float len_y = len3D(matrix_model[0][1], matrix_model[1][1], matrix_model[2][1]);
+		float len_z = len3D(matrix_model[0][2], matrix_model[1][2], matrix_model[2][2]);
 
 #ifndef OPENGL_ES
 		if(!glx_version)
@@ -592,7 +554,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 						1.414F * near_plane_height * kv6->scale * (len_x + len_y + len_z) / 3.0F);
 			glUniform3f(glGetUniformLocation(kv6_program, "fog"), fog_color[0], fog_color[1], fog_color[2]);
 			glUniform3f(glGetUniformLocation(kv6_program, "camera"), camera_x, camera_y, camera_z);
-			glUniformMatrix4fv(glGetUniformLocation(kv6_program, "model"), 1, 0, matrix_model);
+			glUniformMatrix4fv(glGetUniformLocation(kv6_program, "model"), 1, 0, (float*)matrix_model);
 		}
 #endif
 		if(settings.multisamples)

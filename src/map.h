@@ -30,7 +30,6 @@ extern int map_size_y;
 extern int map_size_z;
 
 extern float fog_color[4];
-extern float map_sun[4];
 
 struct Point {
 	int x, y, z;

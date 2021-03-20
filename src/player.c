@@ -112,7 +112,7 @@ float player_spade_func(float x) {
 	return 1.0F - (x * 5 - (int)(x * 5));
 }
 
-float* player_tool_func(struct Player* p) {
+float* player_tool_func(const struct Player* p) {
 	static float ret[3];
 	ret[0] = ret[1] = ret[2] = 0.0F;
 	switch(p->held_item) {
@@ -212,11 +212,11 @@ float* player_tool_translate_func(struct Player* p) {
 	return ret;
 }
 
-float player_height(struct Player* p) {
+float player_height(const struct Player* p) {
 	return p->input.keys.crouch ? 1.05F : 1.1F;
 }
 
-float player_height2(struct Player* p) {
+float player_height2(const struct Player* p) {
 	return p->alive ? 0.0F : 1.0F;
 }
 
@@ -230,38 +230,40 @@ float player_section_height(int section) {
 	}
 }
 
-int player_intersection_exists(struct player_intersection* s) {
+bool player_intersection_exists(struct player_intersection* s) {
 	return s->head || s->torso || s->arms || s->leg_left || s->leg_right;
 }
 
-int player_intersection_choose(struct player_intersection* s) {
+int player_intersection_choose(struct player_intersection* s, float* dist) {
 	int type;
-	if(s->arms)
-		type = HITTYPE_ARMS;
-	if(s->leg_left)
-		type = HITTYPE_LEGS;
-	if(s->leg_right)
-		type = HITTYPE_LEGS;
-	if(s->torso)
-		type = HITTYPE_TORSO;
-	if(s->head)
-		type = HITTYPE_HEAD;
-	return type;
-}
+	*dist = FLT_MAX;
 
-float player_intersection_choose_dist(struct player_intersection* s) {
-	float dist;
-	if(s->arms)
-		dist = s->distance.arms;
-	if(s->leg_left)
-		dist = s->distance.leg_left;
-	if(s->leg_right)
-		dist = s->distance.leg_right;
-	if(s->torso)
-		dist = s->distance.torso;
-	if(s->head)
-		dist = s->distance.head;
-	return dist;
+	if(s->arms && s->distance.arms < *dist) {
+		type = HITTYPE_ARMS;
+		*dist = s->distance.arms;
+	}
+
+	if(s->leg_left && s->distance.leg_left < *dist) {
+		type = HITTYPE_LEGS;
+		*dist = s->distance.leg_left;
+	}
+
+	if(s->leg_right && s->distance.leg_right < *dist) {
+		type = HITTYPE_LEGS;
+		*dist = s->distance.leg_right;
+	}
+
+	if(s->torso && s->distance.torso < *dist) {
+		type = HITTYPE_TORSO;
+		*dist = s->distance.torso;
+	}
+
+	if(s->head && s->distance.head < *dist) {
+		type = HITTYPE_HEAD;
+		*dist = s->distance.head;
+	}
+
+	return type;
 }
 
 void player_update(float dt, int locked) {
@@ -379,12 +381,16 @@ void player_render_all() {
 			   && distance2D(players[k].pos.x, players[k].pos.z, camera_x, camera_z)
 				   <= pow(settings.render_distance + 2.0F, 2.0F)) {
 				struct player_intersection intersects = {0};
-				player_render(&players[k], k, &ray, 1, &intersects);
-				if(player_intersection_exists(&intersects)
-				   && player_intersection_choose_dist(&intersects) < player_intersection_dist) {
-					player_intersection_dist = player_intersection_choose_dist(&intersects);
-					player_intersection_player = k;
-					player_intersection_type = player_intersection_choose(&intersects);
+				player_render(players + k, k);
+				player_collision(players + k, &ray, &intersects);
+				if(player_intersection_exists(&intersects)) {
+					float d;
+					int type = player_intersection_choose(&intersects, &d);
+					if(d < player_intersection_dist) {
+						player_intersection_dist = d;
+						player_intersection_player = k;
+						player_intersection_type = type;
+					}
 				}
 			}
 
@@ -429,41 +435,208 @@ void player_render_all() {
 	}
 }
 
-static float foot_function(struct Player* p) {
+static float foot_function(const struct Player* p) {
 	float f = (window_time() - p->sound.feet_started_cycle) / (p->input.keys.sprint ? (0.5F / 1.3F) : 0.5F);
 	f = f * 2.0F - 1.0F;
 	return p->sound.feet_cylce ? f : -f;
 }
 
-void player_render(struct Player* p, int id, Ray* ray, char render, struct player_intersection* intersects) {
-	p->bb_2d = (AABB) {.min_x = INT_MAX, .min_y = INT_MAX, .max_x = -INT_MAX, .max_y = -INT_MAX};
+struct hitbox {
+	float pivot[3];
+	int size[3];
+	float scale;
+};
 
-	if(render) {
-		kv6_calclight(p->pos.x, p->pos.y, p->pos.z);
+static const struct hitbox box_head = (struct hitbox) {
+	.pivot = {2.5F, 2.5F, 0.5F},
+	.size = {6, 6, 6},
+	.scale = 0.1F,
+};
 
-		if(camera_mode == CAMERAMODE_SPECTATOR && p->team != TEAM_SPECTATOR && !cameracontroller_bodyview_mode) {
-			matrix_push();
-			matrix_translate(p->pos.x, p->physics.eye.y + player_height(p) + 1.25F, p->pos.z);
-			matrix_rotate(camera_rot_x / PI * 180.0F + 180.0F, 0.0F, 1.0F, 0.0F);
-			matrix_rotate(-camera_rot_y / PI * 180.0F + 90.0F, 1.0F, 0.0F, 0.0F);
-			matrix_scale(1.0F / 92.0F, 1.0F / 92.0F, 1.0F / 92.0F);
-			matrix_upload();
+static const struct hitbox box_torso = (struct hitbox) {
+	.pivot = {3.5F, 1.5F, 9.5F},
+	.size = {8, 4, 9},
+	.scale = 0.1F,
+};
 
-			switch(p->team) {
-				case TEAM_1: glColor3ub(gamestate.team_1.red, gamestate.team_1.green, gamestate.team_1.blue); break;
-				case TEAM_2: glColor3ub(gamestate.team_2.red, gamestate.team_2.green, gamestate.team_2.blue); break;
-			}
+static const struct hitbox box_torsoc = (struct hitbox) {
+	.pivot = {3.5F, 6.5F, 6.5F},
+	.size = {8, 8, 7},
+	.scale = 0.1F,
+};
 
-			font_select(FONT_FIXEDSYS);
-			glEnable(GL_ALPHA_TEST);
-			glAlphaFunc(GL_GREATER, 0.5F);
-			glDisable(GL_DEPTH_TEST);
-			font_centered(0, 0, 64, p->name);
-			glEnable(GL_DEPTH_TEST);
-			glDisable(GL_ALPHA_TEST);
-			matrix_pop();
-			matrix_upload();
+static const struct hitbox box_arm_left = (struct hitbox) {
+	.pivot = {5.5F, -0.5F, 5.5F},
+	.size = {2, 9, 6},
+	.scale = 0.1F,
+};
+
+static const struct hitbox box_arm_right = (struct hitbox) {
+	.pivot = {-3.5F, 4.25F, 1.5F},
+	.size = {3, 14, 2},
+	.scale = 0.1F,
+};
+
+static const struct hitbox box_leg = (struct hitbox) {
+	.pivot = {1.0F, 1.5F, 12.0F},
+	.size = {3, 5, 12},
+	.scale = 0.1F,
+};
+
+static const struct hitbox box_legc = (struct hitbox) {
+	.pivot = {1.0F, 1.5F, 7.0F},
+	.size = {3, 7, 8},
+	.scale = 0.1F,
+};
+
+static bool hitbox_intersection(mat4 model, const struct hitbox* box, Ray* r, float* distance) {
+	mat4 inv_model;
+	glmc_mat4_inv(model, inv_model);
+
+	vec3 origin, dir;
+	glmc_mat4_mulv3(inv_model, r->origin.coords, 1.0F, origin);
+	glmc_mat4_mulv3(inv_model, r->direction.coords, 0.0F, dir);
+
+	return aabb_intersection_ray(
+		&(AABB) {
+			.min = {-box->pivot[0] * box->scale, -box->pivot[2] * box->scale, -box->pivot[1] * box->scale},
+			.max = {(box->size[0] - box->pivot[0]) * box->scale, (box->size[2] - box->pivot[2]) * box->scale,
+					(box->size[1] - box->pivot[1]) * box->scale},
+		},
+		&(Ray) {
+			.origin.coords = {origin[0], origin[1], origin[2]},
+			.direction.coords = {dir[0], dir[1], dir[2]},
+		},
+		distance);
+}
+
+void player_collision(const struct Player* p, Ray* ray, struct player_intersection* intersects) {
+	if(!p->alive || p->team == TEAM_SPECTATOR)
+		return;
+
+	float l = sqrt(distance3D(p->orientation_smooth.x, p->orientation_smooth.y, p->orientation_smooth.z, 0, 0, 0));
+	float ox = p->orientation_smooth.x / l;
+	float oy = p->orientation_smooth.y / l;
+	float oz = p->orientation_smooth.z / l;
+
+	const struct hitbox* torso = p->input.keys.crouch ? &box_torsoc : &box_torso;
+	const struct hitbox* leg = p->input.keys.crouch ? &box_legc : &box_leg;
+
+	float height = player_height(p) - 0.25F;
+
+	float len = sqrt(pow(p->orientation.x, 2.0F) + pow(p->orientation.z, 2.0F));
+	float fx = p->orientation.x / len;
+	float fy = p->orientation.z / len;
+
+	float a = (p->physics.velocity.x * fx + fy * p->physics.velocity.z) / (fx * fx + fy * fy);
+	float b = (p->physics.velocity.z - fy * a) / fx;
+	a /= 0.25F;
+	b /= 0.25F;
+
+	float dist; // distance
+
+	matrix_push(matrix_model);
+
+	matrix_identity(matrix_model);
+	matrix_translate(matrix_model, p->physics.eye.x, p->physics.eye.y + height, p->physics.eye.z);
+	float head_scale = sqrt(pow(p->orientation.x, 2.0F) + pow(p->orientation.y, 2.0F) + pow(p->orientation.z, 2.0F));
+	matrix_translate(matrix_model, 0.0F, box_head.pivot[2] * (head_scale * box_head.scale - box_head.scale), 0.0F);
+	matrix_scale3(matrix_model, head_scale);
+	matrix_pointAt(matrix_model, ox, oy, oz);
+	matrix_rotate(matrix_model, 90.0F, 0.0F, 1.0F, 0.0F);
+
+	if(hitbox_intersection(matrix_model, &box_head, ray, &dist)) {
+		intersects->head = 1;
+		intersects->distance.head = dist;
+	}
+
+	matrix_identity(matrix_model);
+	matrix_translate(matrix_model, p->physics.eye.x, p->physics.eye.y + height, p->physics.eye.z);
+	matrix_pointAt(matrix_model, ox, 0.0F, oz);
+	matrix_rotate(matrix_model, 90.0F, 0.0F, 1.0F, 0.0F);
+
+	if(hitbox_intersection(matrix_model, torso, ray, &dist)) {
+		intersects->torso = 1;
+		intersects->distance.torso = dist;
+	}
+
+	matrix_push(matrix_model);
+	matrix_translate(matrix_model, torso->size[0] * 0.1F * 0.5F - leg->size[0] * 0.1F * 0.5F,
+					 -torso->size[2] * 0.1F * (p->input.keys.crouch ? 0.6F : 1.0F),
+					 p->input.keys.crouch ? (-torso->size[2] * 0.1F * 0.75F) : 0.0F);
+	matrix_rotate(matrix_model, 45.0F * foot_function(p) * a, 1.0F, 0.0F, 0.0F);
+	matrix_rotate(matrix_model, 45.0F * foot_function(p) * b, 0.0F, 0.0F, 1.0F);
+
+	if(hitbox_intersection(matrix_model, leg, ray, &dist)) {
+		intersects->leg_left = 1;
+		intersects->distance.leg_left = dist;
+	}
+
+	matrix_pop(matrix_model);
+	matrix_translate(matrix_model, -torso->size[0] * 0.1F * 0.5F + leg->size[0] * 0.1F * 0.5F,
+					 -torso->size[2] * 0.1F * (p->input.keys.crouch ? 0.6F : 1.0F),
+					 p->input.keys.crouch ? (-torso->size[2] * 0.1F * 0.75F) : 0.0F);
+	matrix_rotate(matrix_model, -45.0F * foot_function(p) * a, 1.0F, 0.0F, 0.0F);
+	matrix_rotate(matrix_model, -45.0F * foot_function(p) * b, 0.0F, 0.0F, 1.0F);
+
+	if(hitbox_intersection(matrix_model, leg, ray, &dist)) {
+		intersects->leg_right = 1;
+		intersects->distance.leg_right = dist;
+	}
+
+	matrix_identity(matrix_model);
+	matrix_translate(matrix_model, p->physics.eye.x, p->physics.eye.y + height, p->physics.eye.z);
+	matrix_translate(matrix_model, 0.0F, p->input.keys.crouch * 0.1F - 0.1F * 2, 0.0F);
+	matrix_pointAt(matrix_model, ox, oy, oz);
+	matrix_rotate(matrix_model, 90.0F, 0.0F, 1.0F, 0.0F);
+
+	if(p->input.keys.sprint && !p->input.keys.crouch)
+		matrix_rotate(matrix_model, 45.0F, 1.0F, 0.0F, 0.0F);
+
+	float* angles = player_tool_func(p);
+	matrix_rotate(matrix_model, angles[0], 1.0F, 0.0F, 0.0F);
+	matrix_rotate(matrix_model, angles[1], 0.0F, 1.0F, 0.0F);
+
+	if(hitbox_intersection(matrix_model, &box_arm_left, ray, &dist)) {
+		intersects->arms = 1;
+		intersects->distance.arms = dist;
+	}
+
+	matrix_rotate(matrix_model, -45.0F, 0.0F, 1.0F, 0.0F);
+
+	if(hitbox_intersection(matrix_model, &box_arm_right, ray, &dist)) {
+		intersects->arms = 1;
+		intersects->distance.arms = dist;
+	}
+
+	matrix_pop(matrix_model);
+}
+
+void player_render(struct Player* p, int id) {
+	kv6_calclight(p->pos.x, p->pos.y, p->pos.z);
+
+	if(camera_mode == CAMERAMODE_SPECTATOR && p->team != TEAM_SPECTATOR && !cameracontroller_bodyview_mode) {
+		matrix_push(matrix_model);
+		matrix_translate(matrix_model, p->pos.x, p->physics.eye.y + player_height(p) + 1.25F, p->pos.z);
+		matrix_rotate(matrix_model, camera_rot_x / PI * 180.0F + 180.0F, 0.0F, 1.0F, 0.0F);
+		matrix_rotate(matrix_model, -camera_rot_y / PI * 180.0F + 90.0F, 1.0F, 0.0F, 0.0F);
+		matrix_scale(matrix_model, 1.0F / 92.0F, 1.0F / 92.0F, 1.0F / 92.0F);
+		matrix_upload();
+
+		switch(p->team) {
+			case TEAM_1: glColor3ub(gamestate.team_1.red, gamestate.team_1.green, gamestate.team_1.blue); break;
+			case TEAM_2: glColor3ub(gamestate.team_2.red, gamestate.team_2.green, gamestate.team_2.blue); break;
 		}
+
+		font_select(FONT_FIXEDSYS);
+		glEnable(GL_ALPHA_TEST);
+		glAlphaFunc(GL_GREATER, 0.5F);
+		glDisable(GL_DEPTH_TEST);
+		font_centered(0, 0, 64, p->name);
+		glEnable(GL_DEPTH_TEST);
+		glDisable(GL_ALPHA_TEST);
+		matrix_pop(matrix_model);
+		matrix_upload();
 	}
 
 	float l = sqrt(distance3D(p->orientation_smooth.x, p->orientation_smooth.y, p->orientation_smooth.z, 0, 0, 0));
@@ -472,19 +645,18 @@ void player_render(struct Player* p, int id, Ray* ray, char render, struct playe
 	float oz = p->orientation_smooth.z / l;
 
 	if(!p->alive) {
-		if(render && (id != local_player_id || camera_mode != CAMERAMODE_DEATH)) {
-			matrix_push();
-			matrix_translate(p->pos.x, p->pos.y + 0.25F, p->pos.z);
-			matrix_pointAt(ox, 0.0F, oz);
-			matrix_rotate(90.0F, 0.0F, 1.0F, 0.0F);
+		if(id != local_player_id || camera_mode != CAMERAMODE_DEATH) {
+			matrix_push(matrix_model);
+			matrix_translate(matrix_model, p->pos.x, p->pos.y + 0.25F, p->pos.z);
+			matrix_pointAt(matrix_model, ox, 0.0F, oz);
+			matrix_rotate(matrix_model, 90.0F, 0.0F, 1.0F, 0.0F);
 			if(p->physics.velocity.y < 0.05F && p->pos.y < 1.5F) {
-				matrix_translate(0.0F, (sin(window_time() * 1.5F) - 1.0F) * 0.15F, 0.0F);
-				matrix_rotate(sin(window_time() * 1.5F) * 5.0F, 1.0F, 0.0F, 0.0F);
+				matrix_translate(matrix_model, 0.0F, (sin(window_time() * 1.5F) - 1.0F) * 0.15F, 0.0F);
+				matrix_rotate(matrix_model, sin(window_time() * 1.5F) * 5.0F, 1.0F, 0.0F, 0.0F);
 			}
 			matrix_upload();
 			kv6_render(&model_playerdead, p->team);
-			kv6_boundingbox(&model_playerdead, &p->bb_2d);
-			matrix_pop();
+			matrix_pop(matrix_model);
 		}
 
 		return;
@@ -495,9 +667,8 @@ void player_render(struct Player* p, int id, Ray* ray, char render, struct playe
 	struct kv6_t* torso = p->input.keys.crouch ? &model_playertorsoc : &model_playertorso;
 	struct kv6_t* leg = p->input.keys.crouch ? &model_playerlegc : &model_playerleg;
 	float height = player_height(p);
-	if(id != local_player_id) {
+	if(id != local_player_id)
 		height -= 0.25F;
-	}
 
 	float len = sqrt(pow(p->orientation.x, 2.0F) + pow(p->orientation.z, 2.0F));
 	float fx = p->orientation.x / len;
@@ -516,63 +687,43 @@ void player_render(struct Player* p, int id, Ray* ray, char render, struct playe
 			&& cameracontroller_bodyview_mode && cameracontroller_bodyview_player == id);
 
 	if(render_body) {
-		matrix_push();
-		matrix_translate(p->physics.eye.x, p->physics.eye.y + height, p->physics.eye.z);
+		matrix_push(matrix_model);
+		matrix_translate(matrix_model, p->physics.eye.x, p->physics.eye.y + height, p->physics.eye.z);
 		float head_scale
 			= sqrt(pow(p->orientation.x, 2.0F) + pow(p->orientation.y, 2.0F) + pow(p->orientation.z, 2.0F));
-		matrix_translate(0.0F, model_playerhead.zpiv * (head_scale * model_playerhead.scale - model_playerhead.scale),
-						 0.0F);
-		matrix_scale3(head_scale);
-		matrix_pointAt(ox, oy, oz);
-		matrix_rotate(90.0F, 0.0F, 1.0F, 0.0F);
-		if(render) {
-			matrix_upload();
-			kv6_render(&model_playerhead, p->team);
-		}
-		kv6_boundingbox(&model_playerhead, &p->bb_2d);
-		if(ray != NULL && intersects != NULL) {
-			float d = kv6_intersection(&model_playerhead, ray);
-			if(d >= 0) {
-				intersects->head = 1;
-				intersects->distance.head = d;
-			}
-		}
-		matrix_pop();
+		matrix_translate(matrix_model, 0.0F,
+						 model_playerhead.zpiv * (head_scale * model_playerhead.scale - model_playerhead.scale), 0.0F);
+		matrix_scale3(matrix_model, head_scale);
+		matrix_pointAt(matrix_model, ox, oy, oz);
+		matrix_rotate(matrix_model, 90.0F, 0.0F, 1.0F, 0.0F);
+		matrix_upload();
+		kv6_render(&model_playerhead, p->team);
+		matrix_pop(matrix_model);
 
-		matrix_push();
-		matrix_translate(p->physics.eye.x, p->physics.eye.y + height, p->physics.eye.z - 0.01F);
-		matrix_pointAt(ox, 0.0F, oz);
-		matrix_rotate(90.0F, 0.0F, 1.0F, 0.0F);
-		if(render) {
-			matrix_upload();
-			kv6_render(torso, p->team);
-		}
-		kv6_boundingbox(torso, &p->bb_2d);
-		if(ray != NULL && intersects != NULL) {
-			float d = kv6_intersection(torso, ray);
-			if(d >= 0) {
-				intersects->torso = 1;
-				intersects->distance.torso = d;
-			}
-		}
-		matrix_pop();
+		matrix_push(matrix_model);
+		matrix_translate(matrix_model, p->physics.eye.x, p->physics.eye.y + height, p->physics.eye.z);
+		matrix_pointAt(matrix_model, ox, 0.0F, oz);
+		matrix_rotate(matrix_model, 90.0F, 0.0F, 1.0F, 0.0F);
+		matrix_upload();
+		kv6_render(torso, p->team);
+		matrix_pop(matrix_model);
 
-		if(render && gamestate.gamemode_type == GAMEMODE_CTF
+		if(gamestate.gamemode_type == GAMEMODE_CTF
 		   && ((gamestate.gamemode.ctf.team_1_intel
 				&& gamestate.gamemode.ctf.team_1_intel_location.held.player_id == id)
 			   || (gamestate.gamemode.ctf.team_2_intel
 				   && gamestate.gamemode.ctf.team_2_intel_location.held.player_id == id))) {
-			matrix_push();
-			matrix_translate(p->physics.eye.x, p->physics.eye.y + height, p->physics.eye.z);
-			matrix_pointAt(-oz, 0.0F, ox);
+			matrix_push(matrix_model);
+			matrix_translate(matrix_model, p->physics.eye.x, p->physics.eye.y + height, p->physics.eye.z);
+			matrix_pointAt(matrix_model, -oz, 0.0F, ox);
 			matrix_translate(
-				(torso->xsiz - model_intel.xsiz) * 0.5F * torso->scale,
+				matrix_model, (torso->xsiz - model_intel.xsiz) * 0.5F * torso->scale,
 				-(torso->zpiv - torso->zsiz * 0.5F + model_intel.zsiz * (p->input.keys.crouch ? 0.125F : 0.25F))
 					* torso->scale,
 				(torso->ypiv + model_intel.ypiv) * torso->scale);
-			matrix_scale3(torso->scale / model_intel.scale);
+			matrix_scale3(matrix_model, torso->scale / model_intel.scale);
 			if(p->input.keys.crouch) {
-				matrix_rotate(-45.0F, 1.0F, 0.0F, 0.0F);
+				matrix_rotate(matrix_model, -45.0F, 1.0F, 0.0F, 0.0F);
 			}
 			matrix_upload();
 			int t = TEAM_SPECTATOR;
@@ -581,182 +732,113 @@ void player_render(struct Player* p, int id, Ray* ray, char render, struct playe
 			if(gamestate.gamemode.ctf.team_2_intel && gamestate.gamemode.ctf.team_2_intel_location.held.player_id == id)
 				t = TEAM_2;
 			kv6_render(&model_intel, t);
-			kv6_boundingbox(&model_intel, &p->bb_2d);
-			matrix_pop();
+			matrix_pop(matrix_model);
 		}
 
-		matrix_push();
-		matrix_translate(p->physics.eye.x, p->physics.eye.y + height, p->physics.eye.z);
-		matrix_pointAt(ox, 0.0F, oz);
-		matrix_rotate(90.0F, 0.0F, 1.0F, 0.0F);
-		matrix_translate(torso->xsiz * 0.1F * 0.5F - leg->xsiz * 0.1F * 0.5F,
+		matrix_push(matrix_model);
+		matrix_translate(matrix_model, p->physics.eye.x, p->physics.eye.y + height, p->physics.eye.z);
+		matrix_pointAt(matrix_model, ox, 0.0F, oz);
+		matrix_rotate(matrix_model, 90.0F, 0.0F, 1.0F, 0.0F);
+		matrix_translate(matrix_model, torso->xsiz * 0.1F * 0.5F - leg->xsiz * 0.1F * 0.5F,
 						 -torso->zsiz * 0.1F * (p->input.keys.crouch ? 0.6F : 1.0F),
 						 p->input.keys.crouch ? (-torso->zsiz * 0.1F * 0.75F) : 0.0F);
-		matrix_rotate(45.0F * foot_function(p) * a, 1.0F, 0.0F, 0.0F);
-		matrix_rotate(45.0F * foot_function(p) * b, 0.0F, 0.0F, 1.0F);
-		if(render) {
-			matrix_upload();
-			kv6_render(leg, p->team);
-		}
-		kv6_boundingbox(leg, &p->bb_2d);
-		if(ray != NULL && intersects != NULL) {
-			float d = kv6_intersection(leg, ray);
-			if(d >= 0) {
-				intersects->leg_left = 1;
-				intersects->distance.leg_left = d;
-			}
-		}
-		matrix_pop();
+		matrix_rotate(matrix_model, 45.0F * foot_function(p) * a, 1.0F, 0.0F, 0.0F);
+		matrix_rotate(matrix_model, 45.0F * foot_function(p) * b, 0.0F, 0.0F, 1.0F);
+		matrix_upload();
+		kv6_render(leg, p->team);
+		matrix_pop(matrix_model);
 
-		matrix_push();
-		matrix_translate(p->physics.eye.x, p->physics.eye.y + height, p->physics.eye.z);
-		matrix_pointAt(ox, 0.0F, oz);
-		matrix_rotate(90.0F, 0.0F, 1.0F, 0.0F);
-		matrix_translate(-torso->xsiz * 0.1F * 0.5F + leg->xsiz * 0.1F * 0.5F,
+		matrix_push(matrix_model);
+		matrix_translate(matrix_model, p->physics.eye.x, p->physics.eye.y + height, p->physics.eye.z);
+		matrix_pointAt(matrix_model, ox, 0.0F, oz);
+		matrix_rotate(matrix_model, 90.0F, 0.0F, 1.0F, 0.0F);
+		matrix_translate(matrix_model, -torso->xsiz * 0.1F * 0.5F + leg->xsiz * 0.1F * 0.5F,
 						 -torso->zsiz * 0.1F * (p->input.keys.crouch ? 0.6F : 1.0F),
 						 p->input.keys.crouch ? (-torso->zsiz * 0.1F * 0.75F) : 0.0F);
-		matrix_rotate(-45.0F * foot_function(p) * a, 1.0F, 0.0F, 0.0F);
-		matrix_rotate(-45.0F * foot_function(p) * b, 0.0F, 0.0F, 1.0F);
-		if(render) {
-			matrix_upload();
-			kv6_render(leg, p->team);
-		}
-		kv6_boundingbox(leg, &p->bb_2d);
-		if(ray != NULL && intersects != NULL) {
-			float d = kv6_intersection(leg, ray);
-			if(d >= 0) {
-				intersects->leg_right = 1;
-				intersects->distance.leg_right = d;
-			}
-		}
-		matrix_pop();
+		matrix_rotate(matrix_model, -45.0F * foot_function(p) * a, 1.0F, 0.0F, 0.0F);
+		matrix_rotate(matrix_model, -45.0F * foot_function(p) * b, 0.0F, 0.0F, 1.0F);
+		matrix_upload();
+		kv6_render(leg, p->team);
+		matrix_pop(matrix_model);
 	}
 
-	matrix_push();
-	matrix_translate(p->physics.eye.x, p->physics.eye.y + height, p->physics.eye.z);
+	matrix_push(matrix_model);
+	matrix_translate(matrix_model, p->physics.eye.x, p->physics.eye.y + height, p->physics.eye.z);
 	if(!render_fpv)
-		matrix_translate(0.0F, p->input.keys.crouch * 0.1F - 0.1F * 2, 0.0F);
-	matrix_pointAt(ox, oy, oz);
-	matrix_rotate(90.0F, 0.0F, 1.0F, 0.0F);
+		matrix_translate(matrix_model, 0.0F, p->input.keys.crouch * 0.1F - 0.1F * 2, 0.0F);
+	matrix_pointAt(matrix_model, ox, oy, oz);
+	matrix_rotate(matrix_model, 90.0F, 0.0F, 1.0F, 0.0F);
 	if(render_fpv)
-		matrix_translate(0.0F, -2 * 0.1F, -2 * 0.1F);
+		matrix_translate(matrix_model, 0.0F, -2 * 0.1F, -2 * 0.1F);
 
 	if(render_fpv && p->alive) {
 		float speed = sqrt(pow(p->physics.velocity.x, 2) + pow(p->physics.velocity.z, 2)) / 0.25F;
 		float* f = player_tool_translate_func(p);
-		matrix_translate(f[0], f[1], 0.1F * player_swing_func(time / 1000.0F) * speed + f[2]);
+		matrix_translate(matrix_model, f[0], f[1], 0.1F * player_swing_func(time / 1000.0F) * speed + f[2]);
 	}
 
 	if(p->input.keys.sprint && !p->input.keys.crouch)
-		matrix_rotate(45.0F, 1.0F, 0.0F, 0.0F);
+		matrix_rotate(matrix_model, 45.0F, 1.0F, 0.0F, 0.0F);
 
 	if(render_fpv && window_time() - p->item_showup < 0.5F)
-		matrix_rotate(45.0F - (window_time() - p->item_showup) * 90.0F, 1.0F, 0.0F, 0.0F);
+		matrix_rotate(matrix_model, 45.0F - (window_time() - p->item_showup) * 90.0F, 1.0F, 0.0F, 0.0F);
 
 	if(!(p->held_item == TOOL_SPADE && render_fpv && camera_mode == CAMERAMODE_FPS)) {
 		float* angles = player_tool_func(p);
-		matrix_rotate(angles[0], 1.0F, 0.0F, 0.0F);
-		matrix_rotate(angles[1], 0.0F, 1.0F, 0.0F);
+		matrix_rotate(matrix_model, angles[0], 1.0F, 0.0F, 0.0F);
+		matrix_rotate(matrix_model, angles[1], 0.0F, 1.0F, 0.0F);
 	}
 	if(render_body || settings.player_arms) {
-		if(render) {
-			matrix_upload();
-			kv6_render(&model_playerarms, p->team);
-		}
-		kv6_boundingbox(&model_playerarms, &p->bb_2d);
-		if(ray != NULL && intersects != NULL) {
-			float d = kv6_intersection(&model_playerarms, ray);
-			if(d >= 0) {
-				intersects->arms = 1;
-				intersects->distance.arms = d;
-			}
-		}
+		matrix_upload();
+		kv6_render(&model_playerarms, p->team);
 	}
 
-	if(render) {
-		matrix_translate(-3.5F * 0.1F + 0.01F, 0.0F, 10 * 0.1F);
-		if(p->held_item == TOOL_SPADE && render_fpv && window_time() - p->item_showup >= 0.5F) {
-			float* angles = player_tool_func(p);
-			matrix_translate(0.0F, (model_spade.zpiv - model_spade.zsiz) * 0.05F, 0.0F);
-			matrix_rotate(angles[0], 1.0F, 0.0F, 0.0F);
-			matrix_rotate(angles[1], 0.0F, 1.0F, 0.0F);
-			matrix_translate(0.0F, -(model_spade.zpiv - model_spade.zsiz) * 0.05F, 0.0F);
-		}
+	matrix_translate(matrix_model, -3.5F * 0.1F + 0.01F, 0.0F, 10 * 0.1F);
+	if(p->held_item == TOOL_SPADE && render_fpv && window_time() - p->item_showup >= 0.5F) {
+		float* angles = player_tool_func(p);
+		matrix_translate(matrix_model, 0.0F, (model_spade.zpiv - model_spade.zsiz) * 0.05F, 0.0F);
+		matrix_rotate(matrix_model, angles[0], 1.0F, 0.0F, 0.0F);
+		matrix_rotate(matrix_model, angles[1], 0.0F, 1.0F, 0.0F);
+		matrix_translate(matrix_model, 0.0F, -(model_spade.zpiv - model_spade.zsiz) * 0.05F, 0.0F);
+	}
 
-		matrix_upload();
-		switch(p->held_item) {
-			case TOOL_SPADE: kv6_render(&model_spade, p->team); break;
-			case TOOL_BLOCK:
-				model_block.red = p->block.red / 255.0F;
-				model_block.green = p->block.green / 255.0F;
-				model_block.blue = p->block.blue / 255.0F;
-				kv6_render(&model_block, p->team);
-				break;
-			case TOOL_GUN:
-				// matrix_translate(3.0F*0.1F-0.01F+0.025F,0.25F,-0.0625F);
-				// matrix_upload();
-				if(!(render_fpv && p->input.buttons.rmb)) {
-					switch(p->weapon) {
-						case WEAPON_RIFLE: kv6_render(&model_semi, p->team); break;
-						case WEAPON_SMG: kv6_render(&model_smg, p->team); break;
-						case WEAPON_SHOTGUN: kv6_render(&model_shotgun, p->team); break;
-					}
+	matrix_upload();
+	switch(p->held_item) {
+		case TOOL_SPADE: kv6_render(&model_spade, p->team); break;
+		case TOOL_BLOCK:
+			model_block.red = p->block.red / 255.0F;
+			model_block.green = p->block.green / 255.0F;
+			model_block.blue = p->block.blue / 255.0F;
+			kv6_render(&model_block, p->team);
+			break;
+		case TOOL_GUN:
+			// matrix_translate(matrix_model, 3.0F*0.1F-0.01F+0.025F,0.25F,-0.0625F);
+			// matrix_upload();
+			if(!(render_fpv && p->input.buttons.rmb)) {
+				switch(p->weapon) {
+					case WEAPON_RIFLE: kv6_render(&model_semi, p->team); break;
+					case WEAPON_SMG: kv6_render(&model_smg, p->team); break;
+					case WEAPON_SHOTGUN: kv6_render(&model_shotgun, p->team); break;
 				}
-				break;
-			case TOOL_GRENADE: kv6_render(&model_grenade, p->team); break;
-		}
-
-		float v[4] = {0.1F, 0, -0.3F, 1};
-		matrix_vector(v);
-		float v2[4] = {1.1F, 0, -0.3F, 1};
-		matrix_vector(v2);
-
-		p->gun_pos.x = v[0];
-		p->gun_pos.y = v[1];
-		p->gun_pos.z = v[2];
-
-		p->casing_dir.x = v[0] - v2[0];
-		p->casing_dir.y = v[1] - v2[1];
-		p->casing_dir.z = v[2] - v2[2];
+			}
+			break;
+		case TOOL_GRENADE: kv6_render(&model_grenade, p->team); break;
 	}
 
-	matrix_pop();
+	vec4 v = {0.1F, 0, -0.3F, 1};
+	matrix_vector(matrix_model, v);
+	vec4 v2 = {1.1F, 0, -0.3F, 1};
+	matrix_vector(matrix_model, v2);
 
-	/*if(render && 0) {
-		matrix_select(matrix_model);
-		matrix_identity();
-		matrix_select(matrix_view);
-		matrix_push();
-		matrix_identity();
-		matrix_select(matrix_projection);
-		matrix_push();
-		matrix_identity();
+	p->gun_pos.x = v[0];
+	p->gun_pos.y = v[1];
+	p->gun_pos.z = v[2];
 
-		matrix_upload();
-		matrix_upload_p();
+	p->casing_dir.x = v[0] - v2[0];
+	p->casing_dir.y = v[1] - v2[1];
+	p->casing_dir.z = v[2] - v2[2];
 
-		glBegin(GL_LINES);
-		glColor3f(1.0F,0.0F,0.0F);
-		glVertex3f(p->bb_2d.min_x,p->bb_2d.min_y,-1.0F);
-		glVertex3f(p->bb_2d.max_x,p->bb_2d.min_y,-1.0F);
-
-		glVertex3f(p->bb_2d.min_x,p->bb_2d.max_y,-1.0F);
-		glVertex3f(p->bb_2d.max_x,p->bb_2d.max_y,-1.0F);
-
-		glVertex3f(p->bb_2d.max_x,p->bb_2d.min_y,-1.0F);
-		glVertex3f(p->bb_2d.max_x,p->bb_2d.max_y,-1.0F);
-
-		glVertex3f(p->bb_2d.min_x,p->bb_2d.min_y,-1.0F);
-		glVertex3f(p->bb_2d.min_x,p->bb_2d.max_y,-1.0F);
-		glEnd();
-
-		matrix_pop();
-		matrix_select(matrix_view);
-		matrix_pop();
-		matrix_select(matrix_model);
-
-		matrix_upload_p();
-	}*/
+	matrix_pop(matrix_model);
 }
 
 int player_clipbox(float x, float y, float z) {

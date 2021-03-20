@@ -72,7 +72,7 @@ void cameracontroller_death(float dt) {
 }
 
 void cameracontroller_death_render() {
-	matrix_lookAt(camera_x, camera_y, camera_z, camera_x + players[local_player_id].orientation.x,
+	matrix_lookAt(matrix_view, camera_x, camera_y, camera_z, camera_x + players[local_player_id].orientation.x,
 				  camera_y + players[local_player_id].orientation.y, camera_z + players[local_player_id].orientation.z,
 				  0.0F, 1.0F, 0.0F);
 }
@@ -189,7 +189,7 @@ void cameracontroller_fps(float dt) {
 }
 
 void cameracontroller_fps_render() {
-	matrix_lookAt(camera_x, camera_y, camera_z, camera_x + sin(camera_rot_x) * sin(camera_rot_y),
+	matrix_lookAt(matrix_view, camera_x, camera_y, camera_z, camera_x + sin(camera_rot_x) * sin(camera_rot_y),
 				  camera_y + cos(camera_rot_y), camera_z + cos(camera_rot_x) * sin(camera_rot_y), 0.0F, 1.0F, 0.0F);
 }
 
@@ -303,9 +303,10 @@ void cameracontroller_spectator_render() {
 		float oy = p->orientation_smooth.y / l;
 		float oz = p->orientation_smooth.z / l;
 
-		matrix_lookAt(camera_x, camera_y, camera_z, camera_x + ox, camera_y + oy, camera_z + oz, 0.0F, 1.0F, 0.0F);
+		matrix_lookAt(matrix_view, camera_x, camera_y, camera_z, camera_x + ox, camera_y + oy, camera_z + oz, 0.0F,
+					  1.0F, 0.0F);
 	} else {
-		matrix_lookAt(camera_x, camera_y, camera_z, camera_x + sin(camera_rot_x) * sin(camera_rot_y),
+		matrix_lookAt(matrix_view, camera_x, camera_y, camera_z, camera_x + sin(camera_rot_x) * sin(camera_rot_y),
 					  camera_y + cos(camera_rot_y), camera_z + cos(camera_rot_x) * sin(camera_rot_y), 0.0F, 1.0F, 0.0F);
 	}
 }
@@ -383,9 +384,11 @@ void cameracontroller_bodyview_render() {
 		float oy = p->orientation_smooth.y / l;
 		float oz = p->orientation_smooth.z / l;
 
-		matrix_lookAt(camera_x, camera_y, camera_z, camera_x + ox, camera_y + oy, camera_z + oz, 0.0F, 1.0F, 0.0F);
+		matrix_lookAt(matrix_view, camera_x, camera_y, camera_z, camera_x + ox, camera_y + oy, camera_z + oz, 0.0F,
+					  1.0F, 0.0F);
 	} else {
-		matrix_lookAt(players[cameracontroller_bodyview_player].pos.x
+		matrix_lookAt(matrix_view,
+					  players[cameracontroller_bodyview_player].pos.x
 						  - sin(camera_rot_x) * sin(camera_rot_y) * cameracontroller_bodyview_zoom,
 					  players[cameracontroller_bodyview_player].pos.y
 						  - cos(camera_rot_y) * cameracontroller_bodyview_zoom
@@ -407,11 +410,11 @@ void cameracontroller_selection(float dt) {
 	camera_vy = 0.0F;
 	camera_vz = 0.0F;
 
-	matrix_rotate(90.0F, 1.0F, 0.0F, 0.0F);
-	matrix_translate(-camera_x, -camera_y, -camera_z);
+	matrix_rotate(matrix_view, 90.0F, 1.0F, 0.0F, 0.0F);
+	matrix_translate(matrix_view, -camera_x, -camera_y, -camera_z);
 }
 
 void cameracontroller_selection_render() {
-	matrix_rotate(90.0F, 1.0F, 0.0F, 0.0F);
-	matrix_translate(-camera_x, -camera_y, -camera_z);
+	matrix_rotate(matrix_view, 90.0F, 1.0F, 0.0F, 0.0F);
+	matrix_translate(matrix_view, -camera_x, -camera_y, -camera_z);
 }

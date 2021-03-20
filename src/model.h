@@ -77,14 +77,11 @@ extern struct kv6_t model_smg_casing;
 extern struct kv6_t model_shotgun_casing;
 
 void kv6_calclight(int x, int y, int z);
-void kv6_boundingbox(struct kv6_t* kv6, AABB* bb);
-float kv6_intersection(struct kv6_t* kv6, Ray* r);
 void kv6_rebuild_complete(void);
 void kv6_rebuild(struct kv6_t* kv6);
 void kv6_render(struct kv6_t* kv6, unsigned char team);
 void kv6_load(struct kv6_t* kv6, void* bytes, float scale);
 void kv6_init(void);
-void mul_matrix_vector(float* out, double* m, float* v);
 
 extern float kv6_normals[256][3];
 

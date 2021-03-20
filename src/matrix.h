@@ -20,33 +20,28 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
-extern float* matrix_current;
+#include <cglm/call.h>
 
-extern float matrix_view[16];
-extern float matrix_model[16];
-extern float matrix_projection[16];
+extern mat4 matrix_view;
+extern mat4 matrix_model;
+extern mat4 matrix_projection;
 
-#define MATRIX_STACK_DEPTH 8
-extern float matrix_stack[MATRIX_STACK_DEPTH][16];
-extern int matrix_stack_index;
-
-void matrix_select(float* m);
-void matrix_multiply(float* m);
-void matrix_load(float* m);
-void matrix_rotate(float angle, float x, float y, float z);
-void matrix_translate(float x, float y, float z);
-void matrix_scale3(float s);
-void matrix_scale(float sx, float sy, float sz);
-void matrix_identity(void);
-void matrix_push(void);
-void matrix_pop(void);
-void matrix_vector(float* v);
-void matrix_ortho(float left, float right, float bottom, float top, float nearv, float farv);
-void matrix_perspective(float fovy, float aspect, float zNear, float zFar);
-void matrix_lookAt(double eyex, double eyey, double eyez, double centerx, double centery, double centerz, double upx,
-				   double upy, double upz);
+void matrix_multiply(mat4 m, mat4 n);
+void matrix_load(mat4 m, mat4 n);
+void matrix_rotate(mat4 m, float angle, float x, float y, float z);
+void matrix_translate(mat4 m, float x, float y, float z);
+void matrix_scale3(mat4 m, float s);
+void matrix_scale(mat4 m, float sx, float sy, float sz);
+void matrix_identity(mat4 m);
+void matrix_push(mat4 m);
+void matrix_pop(mat4 m);
+void matrix_vector(mat4 m, vec4 v);
+void matrix_ortho(mat4 m, float left, float right, float bottom, float top, float nearv, float farv);
+void matrix_perspective(mat4 m, float fovy, float aspect, float zNear, float zFar);
+void matrix_lookAt(mat4 m, double eyex, double eyey, double eyez, double centerx, double centery, double centerz,
+				   double upx, double upy, double upz);
 void matrix_upload(void);
 void matrix_upload_p(void);
-void matrix_pointAt(float dx, float dy, float dz);
+void matrix_pointAt(mat4 m, float dx, float dy, float dz);
 
 #endif

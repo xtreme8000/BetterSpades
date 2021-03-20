@@ -112,30 +112,23 @@ void camera_hit(struct Camera_HitType* hit, int exclude_player, float x, float y
 
 void camera_hit_mask(struct Camera_HitType* hit, int exclude_player, float x, float y, float z, float ray_x,
 					 float ray_y, float ray_z, float range) {
-	Ray dir;
-	dir.origin.x = x;
-	dir.origin.y = y;
-	dir.origin.z = z;
-	dir.direction.x = ray_x;
-	dir.direction.y = ray_y;
-	dir.direction.z = ray_z;
+	Ray dir = (Ray) {
+		.origin.coords = {x, y, z},
+		.direction.coords = {ray_x, ray_y, ray_z},
+	};
 
 	hit->type = CAMERA_HITTYPE_NONE;
 	hit->distance = FLT_MAX;
 
 	int* pos = camera_terrain_pickEx(1, x, y, z, ray_x, ray_y, ray_z);
-	if(pos != NULL && distance2D(x, z, pos[0], pos[2]) <= range * range) {
+	if(pos != NULL && distance3D(x, y, z, pos[0], pos[1], pos[2]) <= range * range) {
 		AABB block = (AABB) {
-			.min_x = pos[0],
-			.min_y = pos[1],
-			.min_z = pos[2],
-			.max_x = pos[0] + 1,
-			.max_y = pos[1] + 1,
-			.max_z = pos[2] + 1,
+			.min = {pos[0], pos[1], pos[2]},
+			.max = {pos[0] + 1, pos[1] + 1, pos[2] + 1},
 		};
 
-		float d = aabb_intersection_ray(&block, &dir);
-		if(d >= 0.0F) {
+		float d;
+		if(aabb_intersection_ray(&block, &dir, &d)) {
 			hit->type = CAMERA_HITTYPE_BLOCK;
 			hit->distance = d;
 			hit->x = pos[0];
@@ -151,23 +144,19 @@ void camera_hit_mask(struct Camera_HitType* hit, int exclude_player, float x, fl
 		float l = distance2D(x, z, players[i].pos.x, players[i].pos.z);
 		if(players[i].connected && players[i].alive && l < range * range
 		   && (exclude_player < 0 || (exclude_player >= 0 && exclude_player != i))) {
-			float px = players[i].pos.x - x;
-			float py = players[i].pos.y - y;
-			float pz = players[i].pos.z - z;
-			float angle = acos(((px * ray_x) + (py * ray_y) + (pz * ray_z)) / sqrt(px * px + py * py + pz * pz));
-			if(angle < 45.0F / 180.0F * PI) {
-				struct player_intersection intersects = {0};
-				player_render(&players[i], i, &dir, 0, &intersects);
-				float d = player_intersection_choose_dist(&intersects);
-				if(player_intersection_exists(&intersects) && d < hit->distance) {
-					hit->type = CAMERA_HITTYPE_PLAYER;
-					hit->distance = d;
-					hit->x = players[i].pos.x;
-					hit->y = players[i].pos.y;
-					hit->z = players[i].pos.z;
-					hit->player_id = i;
-					hit->player_section = player_intersection_choose(&intersects);
-				}
+			struct player_intersection intersects = {0};
+			player_collision(players + i, &dir, &intersects);
+
+			float d;
+			int type = player_intersection_choose(&intersects, &d);
+			if(player_intersection_exists(&intersects) && d < hit->distance) {
+				hit->type = CAMERA_HITTYPE_PLAYER;
+				hit->distance = d;
+				hit->x = players[i].pos.x;
+				hit->y = players[i].pos.y;
+				hit->z = players[i].pos.z;
+				hit->player_id = i;
+				hit->player_section = type;
 			}
 		}
 	}
@@ -283,12 +272,11 @@ void camera_ExtractFrustum() {
 	float clip[16];
 	float t;
 
-	matrix_push();
-	matrix_load(matrix_model);
-	matrix_multiply(matrix_view);
-	matrix_multiply(matrix_projection);
-	memcpy(clip, matrix_current, 16 * sizeof(float));
-	matrix_pop();
+	mat4 mvp;
+	matrix_load(mvp, matrix_model);
+	matrix_multiply(mvp, matrix_view);
+	matrix_multiply(mvp, matrix_projection);
+	memcpy(clip, (float*)mvp, 16 * sizeof(float));
 
 	/* Extract the numbers for the RIGHT plane */
 	frustum[0][0] = clip[3] - clip[0];

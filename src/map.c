@@ -50,8 +50,6 @@ static pthread_rwlock_t map_lock;
 
 float fog_color[4] = {0.5F, 0.9098F, 1.0F, 1.0F};
 
-float map_sun[4];
-
 struct damaged_voxel {
 	int damage;
 	float timer;
@@ -115,7 +113,7 @@ static bool damaged_voxel_update(void* key, void* value, void* user) {
 }
 
 void map_damaged_voxels_render() {
-	matrix_identity();
+	matrix_identity(matrix_model);
 	matrix_upload();
 	// glEnable(GL_POLYGON_OFFSET_FILL);
 	// glPolygonOffset(0.0F,-100.0F);
@@ -307,10 +305,10 @@ static bool map_update_physics_sub(struct map_collapsing* collapsing, int x, int
 static bool falling_blocks_render(void* obj, void* user) {
 	struct map_collapsing* collapsing = (struct map_collapsing*)obj;
 
-	matrix_identity();
-	matrix_translate(collapsing->p.x, collapsing->p.y, collapsing->p.z);
-	matrix_rotate(collapsing->o.x, 1.0F, 0.0F, 0.0F);
-	matrix_rotate(collapsing->o.y, 0.0F, 1.0F, 0.0F);
+	matrix_identity(matrix_model);
+	matrix_translate(matrix_model, collapsing->p.x, collapsing->p.y, collapsing->p.z);
+	matrix_rotate(matrix_model, collapsing->o.x, 1.0F, 0.0F, 0.0F);
+	matrix_rotate(matrix_model, collapsing->o.y, 0.0F, 1.0F, 0.0F);
 	matrix_upload();
 
 	if(!collapsing->has_displaylist) {
@@ -334,9 +332,9 @@ void map_collapsing_render() {
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-	matrix_push();
+	matrix_push(matrix_model);
 	entitysys_iterate(&map_collapsing_structures, NULL, falling_blocks_render);
-	matrix_pop();
+	matrix_pop(matrix_model);
 
 	glDisable(GL_BLEND);
 }
@@ -346,11 +344,11 @@ static bool falling_blocks_collision(void* key, void* value, void* user) {
 	struct map_collapsing* collapsing = ((struct map_collapsing**)user)[0];
 	float dt = *(((float**)user)[1]);
 
-	float v[4] = {pos_keyx(pos) + collapsing->v.x * dt * 32.0F - collapsing->p2.x + 0.5F,
-				  pos_keyy(pos) + collapsing->v.y * dt * 32.0F - collapsing->p2.y + 0.5F,
-				  pos_keyz(pos) + collapsing->v.z * dt * 32.0F - collapsing->p2.z + 0.5F, 1.0F};
+	vec4 v = {pos_keyx(pos) + collapsing->v.x * dt * 32.0F - collapsing->p2.x + 0.5F,
+			  pos_keyy(pos) + collapsing->v.y * dt * 32.0F - collapsing->p2.y + 0.5F,
+			  pos_keyz(pos) + collapsing->v.z * dt * 32.0F - collapsing->p2.z + 0.5F, 1.0F};
 
-	matrix_vector(v);
+	matrix_vector(matrix_model, v);
 
 	return map_isair(v[0], v[1], v[2]);
 }
@@ -360,9 +358,9 @@ static bool falling_blocks_particles(void* key, void* value, void* user) {
 	uint32_t color = *(uint32_t*)value;
 	struct map_collapsing* collapsing = (struct map_collapsing*)user;
 
-	float v[4] = {pos_keyx(pos) - collapsing->p2.x + 0.5F, pos_keyy(pos) - collapsing->p2.y + 0.5F,
-				  pos_keyz(pos) - collapsing->p2.z + 0.5F, 1.0F};
-	matrix_vector(v);
+	vec4 v = {pos_keyx(pos) - collapsing->p2.x + 0.5F, pos_keyy(pos) - collapsing->p2.y + 0.5F,
+			  pos_keyz(pos) - collapsing->p2.z + 0.5F, 1.0F};
+	matrix_vector(matrix_model, v);
 	particle_create(color, v[0], v[1], v[2], 2.5F, 1.0F, 2, 0.25F, 0.4F);
 
 	return true;
@@ -374,11 +372,11 @@ static bool falling_blocks_update(void* obj, void* user) {
 
 	collapsing->v.y -= dt;
 
-	matrix_push();
-	matrix_identity();
-	matrix_translate(collapsing->p.x, collapsing->p.y, collapsing->p.z);
-	matrix_rotate(collapsing->o.x, 1.0F, 0.0F, 0.0F);
-	matrix_rotate(collapsing->o.y, 0.0F, 1.0F, 0.0F);
+	matrix_push(matrix_model);
+	matrix_identity(matrix_model);
+	matrix_translate(matrix_model, collapsing->p.x, collapsing->p.y, collapsing->p.z);
+	matrix_rotate(matrix_model, collapsing->o.x, 1.0F, 0.0F, 0.0F);
+	matrix_rotate(matrix_model, collapsing->o.y, 0.0F, 1.0F, 0.0F);
 
 	bool collision = ht_iterate(&collapsing->voxels, (void*[]) {collapsing, &dt}, falling_blocks_collision);
 
@@ -404,12 +402,12 @@ static bool falling_blocks_update(void* obj, void* user) {
 				tesselator_free(&collapsing->mesh_geometry);
 			}
 
-			matrix_pop();
+			matrix_pop(matrix_model);
 			return true;
 		}
 	}
 
-	matrix_pop();
+	matrix_pop(matrix_model);
 
 	collapsing->o.x += ((collapsing->rotation & 1) ? 1.0F : -1.0F) * dt * 75.0F;
 	collapsing->o.y += ((collapsing->rotation & 2) ? 1.0F : -1.0F) * dt * 75.0F;

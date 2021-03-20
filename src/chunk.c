@@ -100,8 +100,8 @@ static int chunk_sort(const void* a, const void* b) {
 
 void chunk_render(struct chunk_render_call* c) {
 	if(c->chunk->created) {
-		matrix_push();
-		matrix_translate(c->mirror_x * map_size_x, 0.0F, c->mirror_y * map_size_z);
+		matrix_push(matrix_model);
+		matrix_translate(matrix_model, c->mirror_x * map_size_x, 0.0F, c->mirror_y * map_size_z);
 		matrix_upload();
 
 		// glPolygonMode(GL_FRONT, GL_LINE);
@@ -110,7 +110,7 @@ void chunk_render(struct chunk_render_call* c) {
 
 		// glPolygonMode(GL_FRONT, GL_FILL);
 
-		matrix_pop();
+		matrix_pop(matrix_model);
 	}
 }
 

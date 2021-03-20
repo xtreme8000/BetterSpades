@@ -136,41 +136,40 @@ static int playertable_sort(const void* a, const void* b) {
 static void hud_ingame_render3D() {
 	glDepthRange(0.0F, 0.05F);
 
-	matrix_select(matrix_projection);
-	matrix_identity();
-	matrix_perspective(CAMERA_DEFAULT_FOV, ((float)settings.window_width) / ((float)settings.window_height), 0.1F,
-					   128.0F);
-	matrix_select(matrix_view);
-	matrix_identity();
+	matrix_identity(matrix_projection);
+	matrix_perspective(matrix_projection, CAMERA_DEFAULT_FOV,
+					   ((float)settings.window_width) / ((float)settings.window_height), 0.1F, 128.0F);
+	matrix_identity(matrix_view);
 	matrix_upload_p();
-	matrix_select(matrix_model);
 
 	if(!network_map_transfer) {
 		if(camera_mode == CAMERAMODE_FPS && players[local_player_id].items_show) {
 			players[local_player_id].input.buttons.rmb = 0;
 
-			matrix_identity();
-			matrix_translate(-2.25F, -1.5F - (players[local_player_id].held_item == TOOL_SPADE) * 0.5F, -6.0F);
-			matrix_rotate(window_time() * 57.4F, 0.0F, 1.0F, 0.0F);
-			matrix_translate((model_spade.xpiv - model_spade.xsiz / 2) * 0.05F,
+			matrix_identity(matrix_model);
+			matrix_translate(matrix_model, -2.25F, -1.5F - (players[local_player_id].held_item == TOOL_SPADE) * 0.5F,
+							 -6.0F);
+			matrix_rotate(matrix_model, window_time() * 57.4F, 0.0F, 1.0F, 0.0F);
+			matrix_translate(matrix_model, (model_spade.xpiv - model_spade.xsiz / 2) * 0.05F,
 							 (model_spade.zpiv - model_spade.zsiz / 2) * 0.05F,
 							 (model_spade.ypiv - model_spade.ysiz / 2) * 0.05F);
 			if(players[local_player_id].held_item == TOOL_SPADE) {
-				matrix_scale(1.5F, 1.5F, 1.5F);
+				matrix_scale(matrix_model, 1.5F, 1.5F, 1.5F);
 			}
 			matrix_upload();
 			kv6_render(&model_spade, players[local_player_id].team);
 
 			if(local_player_blocks > 0) {
-				matrix_identity();
-				matrix_translate(-2.25F, -1.5F - (players[local_player_id].held_item == TOOL_BLOCK) * 0.5F, -6.0F);
-				matrix_translate(1.5F, 0.0F, 0.0F);
-				matrix_rotate(window_time() * 57.4F, 0.0F, 1.0F, 0.0F);
-				matrix_translate((model_block.xpiv - model_block.xsiz / 2) * 0.05F,
+				matrix_identity(matrix_model);
+				matrix_translate(matrix_model, -2.25F,
+								 -1.5F - (players[local_player_id].held_item == TOOL_BLOCK) * 0.5F, -6.0F);
+				matrix_translate(matrix_model, 1.5F, 0.0F, 0.0F);
+				matrix_rotate(matrix_model, window_time() * 57.4F, 0.0F, 1.0F, 0.0F);
+				matrix_translate(matrix_model, (model_block.xpiv - model_block.xsiz / 2) * 0.05F,
 								 (model_block.zpiv - model_block.zsiz / 2) * 0.05F,
 								 (model_block.ypiv - model_block.ysiz / 2) * 0.05F);
 				if(players[local_player_id].held_item == TOOL_BLOCK) {
-					matrix_scale(1.5F, 1.5F, 1.5F);
+					matrix_scale(matrix_model, 1.5F, 1.5F, 1.5F);
 				}
 				model_block.red = players[local_player_id].block.red / 255.0F;
 				model_block.green = players[local_player_id].block.green / 255.0F;
@@ -187,29 +186,31 @@ static void hud_ingame_render3D() {
 					case WEAPON_SMG: gun = &model_smg; break;
 					case WEAPON_SHOTGUN: gun = &model_shotgun; break;
 				}
-				matrix_identity();
-				matrix_translate(-2.25F, -1.5F - (players[local_player_id].held_item == TOOL_GUN) * 0.5F, -6.0F);
-				matrix_translate(3.0F, 0.0F, 0.0F);
-				matrix_rotate(window_time() * 57.4F, 0.0F, 1.0F, 0.0F);
-				matrix_translate((gun->xpiv - gun->xsiz / 2) * 0.05F, (gun->zpiv - gun->zsiz / 2) * 0.05F,
+				matrix_identity(matrix_model);
+				matrix_translate(matrix_model, -2.25F, -1.5F - (players[local_player_id].held_item == TOOL_GUN) * 0.5F,
+								 -6.0F);
+				matrix_translate(matrix_model, 3.0F, 0.0F, 0.0F);
+				matrix_rotate(matrix_model, window_time() * 57.4F, 0.0F, 1.0F, 0.0F);
+				matrix_translate(matrix_model, (gun->xpiv - gun->xsiz / 2) * 0.05F, (gun->zpiv - gun->zsiz / 2) * 0.05F,
 								 (gun->ypiv - gun->ysiz / 2) * 0.05F);
 				if(players[local_player_id].held_item == TOOL_GUN) {
-					matrix_scale(1.5F, 1.5F, 1.5F);
+					matrix_scale(matrix_model, 1.5F, 1.5F, 1.5F);
 				}
 				matrix_upload();
 				kv6_render(gun, players[local_player_id].team);
 			}
 
 			if(local_player_grenades > 0) {
-				matrix_identity();
-				matrix_translate(-2.25F, -1.5F - (players[local_player_id].held_item == TOOL_GRENADE) * 0.5F, -6.0F);
-				matrix_translate(4.5F, 0.0F, 0.0F);
-				matrix_rotate(window_time() * 57.4F, 0.0F, 1.0F, 0.0F);
-				matrix_translate((model_grenade.xpiv - model_grenade.xsiz / 2) * 0.05F,
+				matrix_identity(matrix_model);
+				matrix_translate(matrix_model, -2.25F,
+								 -1.5F - (players[local_player_id].held_item == TOOL_GRENADE) * 0.5F, -6.0F);
+				matrix_translate(matrix_model, 4.5F, 0.0F, 0.0F);
+				matrix_rotate(matrix_model, window_time() * 57.4F, 0.0F, 1.0F, 0.0F);
+				matrix_translate(matrix_model, (model_grenade.xpiv - model_grenade.xsiz / 2) * 0.05F,
 								 (model_grenade.zpiv - model_grenade.zsiz / 2) * 0.05F,
 								 (model_grenade.ypiv - model_grenade.ysiz / 2) * 0.05F);
 				if(players[local_player_id].held_item == TOOL_GRENADE) {
-					matrix_scale(1.5F, 1.5F, 1.5F);
+					matrix_scale(matrix_model, 1.5F, 1.5F, 1.5F);
 				}
 				matrix_upload();
 				kv6_render(&model_grenade, players[local_player_id].team);
@@ -217,9 +218,9 @@ static void hud_ingame_render3D() {
 		}
 
 		if(screen_current == SCREEN_TEAM_SELECT) {
-			matrix_identity();
-			matrix_translate(-1.4F, -2.0F, -3.0F);
-			matrix_rotate(-90.0F + 22.5F, 0.0F, 1.0F, 0.0F);
+			matrix_identity(matrix_model);
+			matrix_translate(matrix_model, -1.4F, -2.0F, -3.0F);
+			matrix_rotate(matrix_model, -90.0F + 22.5F, 0.0F, 1.0F, 0.0F);
 			matrix_upload();
 			struct Player p_hud;
 			memset(&p_hud, 0, sizeof(struct Player));
@@ -239,38 +240,38 @@ static void hud_ingame_render3D() {
 			p_hud.alive = 1;
 
 			p_hud.team = TEAM_1;
-			player_render(&p_hud, PLAYERS_MAX, NULL, 1, NULL);
-			matrix_identity();
-			matrix_translate(1.4F, -2.0F, -3.0F);
-			matrix_rotate(-90.0F - 22.5F, 0.0F, 1.0F, 0.0F);
+			player_render(&p_hud, PLAYERS_MAX);
+			matrix_identity(matrix_model);
+			matrix_translate(matrix_model, 1.4F, -2.0F, -3.0F);
+			matrix_rotate(matrix_model, -90.0F - 22.5F, 0.0F, 1.0F, 0.0F);
 			matrix_upload();
 			p_hud.team = TEAM_2;
-			player_render(&p_hud, PLAYERS_MAX, NULL, 1, NULL);
+			player_render(&p_hud, PLAYERS_MAX);
 		}
 
 		if(screen_current == SCREEN_GUN_SELECT) {
-			matrix_identity();
-			matrix_translate(-1.5F, -1.25F, -3.25F);
-			matrix_rotate(window_time() * 90.0F, 0.0F, 1.0F, 0.0F);
-			matrix_translate((model_semi.xpiv - model_semi.xsiz / 2.0F) * model_semi.scale,
+			matrix_identity(matrix_model);
+			matrix_translate(matrix_model, -1.5F, -1.25F, -3.25F);
+			matrix_rotate(matrix_model, window_time() * 90.0F, 0.0F, 1.0F, 0.0F);
+			matrix_translate(matrix_model, (model_semi.xpiv - model_semi.xsiz / 2.0F) * model_semi.scale,
 							 (model_semi.zpiv - model_semi.zsiz / 2.0F) * model_semi.scale,
 							 (model_semi.ypiv - model_semi.ysiz / 2.0F) * model_semi.scale);
 			matrix_upload();
 			kv6_render(&model_semi, TEAM_SPECTATOR);
 
-			matrix_identity();
-			matrix_translate(0.0F, -1.25F, -3.25F);
-			matrix_rotate(window_time() * 90.0F, 0.0F, 1.0F, 0.0F);
-			matrix_translate((model_smg.xpiv - model_smg.xsiz / 2.0F) * model_smg.scale,
+			matrix_identity(matrix_model);
+			matrix_translate(matrix_model, 0.0F, -1.25F, -3.25F);
+			matrix_rotate(matrix_model, window_time() * 90.0F, 0.0F, 1.0F, 0.0F);
+			matrix_translate(matrix_model, (model_smg.xpiv - model_smg.xsiz / 2.0F) * model_smg.scale,
 							 (model_smg.zpiv - model_smg.zsiz / 2.0F) * model_smg.scale,
 							 (model_smg.ypiv - model_smg.ysiz / 2.0F) * model_smg.scale);
 			matrix_upload();
 			kv6_render(&model_smg, TEAM_SPECTATOR);
 
-			matrix_identity();
-			matrix_translate(1.5F, -1.25F, -3.25F);
-			matrix_rotate(window_time() * 90.0F, 0.0F, 1.0F, 0.0F);
-			matrix_translate((model_shotgun.xpiv - model_shotgun.xsiz / 2.0F) * model_shotgun.scale,
+			matrix_identity(matrix_model);
+			matrix_translate(matrix_model, 1.5F, -1.25F, -3.25F);
+			matrix_rotate(matrix_model, window_time() * 90.0F, 0.0F, 1.0F, 0.0F);
+			matrix_translate(matrix_model, (model_shotgun.xpiv - model_shotgun.xsiz / 2.0F) * model_shotgun.scale,
 							 (model_shotgun.zpiv - model_shotgun.zsiz / 2.0F) * model_shotgun.scale,
 							 (model_shotgun.ypiv - model_shotgun.ysiz / 2.0F) * model_shotgun.scale);
 			matrix_upload();
@@ -310,10 +311,10 @@ static void hud_ingame_render3D() {
 			}
 		}
 		if(rotating_model) {
-			matrix_identity();
-			matrix_translate(0.0F, -(rotating_model->zsiz * 0.5F + rotating_model->zpiv) * rotating_model->scale,
-							 -10.0F);
-			matrix_rotate(window_time() * 90.0F, 0.0F, 1.0F, 0.0F);
+			matrix_identity(matrix_model);
+			matrix_translate(matrix_model, 0.0F,
+							 -(rotating_model->zsiz * 0.5F + rotating_model->zpiv) * rotating_model->scale, -10.0F);
+			matrix_rotate(matrix_model, window_time() * 90.0F, 0.0F, 1.0F, 0.0F);
 			matrix_upload();
 			glViewport(-settings.window_width * 0.4F, settings.window_height * 0.2F, settings.window_width,
 					   settings.window_height);

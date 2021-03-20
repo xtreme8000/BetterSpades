@@ -119,57 +119,57 @@ void drawScene() {
 			float x = gamestate.gamemode.ctf.team_1_intel_location.dropped.x;
 			float y = 63.0F - gamestate.gamemode.ctf.team_1_intel_location.dropped.z + 1.0F;
 			float z = gamestate.gamemode.ctf.team_1_intel_location.dropped.y;
-			matrix_push();
-			matrix_translate(x, y, z);
+			matrix_push(matrix_model);
+			matrix_translate(matrix_model, x, y, z);
 			kv6_calclight(x, y, z);
 			matrix_upload();
 			kv6_render(&model_intel, TEAM_1);
-			matrix_pop();
+			matrix_pop(matrix_model);
 		}
 		if(!gamestate.gamemode.ctf.team_2_intel) {
 			float x = gamestate.gamemode.ctf.team_2_intel_location.dropped.x;
 			float y = 63.0F - gamestate.gamemode.ctf.team_2_intel_location.dropped.z + 1.0F;
 			float z = gamestate.gamemode.ctf.team_2_intel_location.dropped.y;
-			matrix_push();
-			matrix_translate(x, y, z);
+			matrix_push(matrix_model);
+			matrix_translate(matrix_model, x, y, z);
 			kv6_calclight(x, y, z);
 			matrix_upload();
 			kv6_render(&model_intel, TEAM_2);
-			matrix_pop();
+			matrix_pop(matrix_model);
 		}
 		if(map_object_visible(gamestate.gamemode.ctf.team_1_base.x, 63.0F - gamestate.gamemode.ctf.team_1_base.z + 1.0F,
 							  gamestate.gamemode.ctf.team_1_base.y)) {
-			matrix_push();
-			matrix_translate(gamestate.gamemode.ctf.team_1_base.x, 63.0F - gamestate.gamemode.ctf.team_1_base.z + 1.0F,
-							 gamestate.gamemode.ctf.team_1_base.y);
+			matrix_push(matrix_model);
+			matrix_translate(matrix_model, gamestate.gamemode.ctf.team_1_base.x,
+							 63.0F - gamestate.gamemode.ctf.team_1_base.z + 1.0F, gamestate.gamemode.ctf.team_1_base.y);
 			kv6_calclight(gamestate.gamemode.ctf.team_1_base.x, 63.0F - gamestate.gamemode.ctf.team_1_base.z + 1.0F,
 						  gamestate.gamemode.ctf.team_1_base.y);
 			matrix_upload();
 			kv6_render(&model_tent, TEAM_1);
-			matrix_pop();
+			matrix_pop(matrix_model);
 		}
 		if(map_object_visible(gamestate.gamemode.ctf.team_2_base.x, 63.0F - gamestate.gamemode.ctf.team_2_base.z + 1.0F,
 							  gamestate.gamemode.ctf.team_2_base.y)) {
-			matrix_push();
-			matrix_translate(gamestate.gamemode.ctf.team_2_base.x, 63.0F - gamestate.gamemode.ctf.team_2_base.z + 1.0F,
-							 gamestate.gamemode.ctf.team_2_base.y);
+			matrix_push(matrix_model);
+			matrix_translate(matrix_model, gamestate.gamemode.ctf.team_2_base.x,
+							 63.0F - gamestate.gamemode.ctf.team_2_base.z + 1.0F, gamestate.gamemode.ctf.team_2_base.y);
 			kv6_calclight(gamestate.gamemode.ctf.team_2_base.x, 63.0F - gamestate.gamemode.ctf.team_2_base.z + 1.0F,
 						  gamestate.gamemode.ctf.team_2_base.y);
 			matrix_upload();
 			kv6_render(&model_tent, TEAM_2);
-			matrix_pop();
+			matrix_pop(matrix_model);
 		}
 	}
 	if(gamestate.gamemode_type == GAMEMODE_TC) {
 		for(int k = 0; k < gamestate.gamemode.tc.territory_count; k++) {
-			matrix_push();
-			matrix_translate(gamestate.gamemode.tc.territory[k].x, 63.0F - gamestate.gamemode.tc.territory[k].z + 1.0F,
-							 gamestate.gamemode.tc.territory[k].y);
+			matrix_push(matrix_model);
+			matrix_translate(matrix_model, gamestate.gamemode.tc.territory[k].x,
+							 63.0F - gamestate.gamemode.tc.territory[k].z + 1.0F, gamestate.gamemode.tc.territory[k].y);
 			kv6_calclight(gamestate.gamemode.tc.territory[k].x, 63.0F - gamestate.gamemode.tc.territory[k].z + 1.0F,
 						  gamestate.gamemode.tc.territory[k].y);
 			matrix_upload();
 			kv6_render(&model_tent, min(gamestate.gamemode.tc.territory[k].team, 2));
-			matrix_pop();
+			matrix_pop(matrix_model);
 		}
 	}
 }
@@ -190,34 +190,19 @@ void display() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		if(settings.opengl14) {
-			matrix_select(matrix_projection);
-			matrix_identity();
-			matrix_perspective(camera_fov_scaled(), ((float)settings.window_width) / ((float)settings.window_height),
-							   0.1F, settings.render_distance + CHUNK_SIZE * 4.0F);
+			matrix_identity(matrix_projection);
+			matrix_perspective(matrix_projection, camera_fov_scaled(),
+							   ((float)settings.window_width) / ((float)settings.window_height), 0.1F,
+							   settings.render_distance + CHUNK_SIZE * 4.0F);
 			matrix_upload_p();
 
-			matrix_select(matrix_view);
-			matrix_identity();
+			matrix_identity(matrix_view);
 			camera_apply();
-			matrix_select(matrix_model);
-			matrix_identity();
-
+			matrix_identity(matrix_model);
 			matrix_upload();
+
 			float lpos[4] = {0.0F, -1.0F, 1.0F, 0.0F};
 			glLightfv(GL_LIGHT0, GL_POSITION, lpos);
-
-			map_sun[0] = 1.0F;
-			map_sun[1] = -3.0F;
-			map_sun[2] = 1.0F;
-			map_sun[3] = 0.0F;
-			matrix_push();
-			matrix_load(matrix_view);
-			matrix_vector(map_sun);
-			matrix_pop();
-			float map_sun_len = len3D(map_sun[0], map_sun[1], map_sun[2]);
-			map_sun[0] /= map_sun_len;
-			map_sun[1] /= map_sun_len;
-			map_sun[2] /= map_sun_len;
 		}
 
 		camera_ExtractFrustum();
@@ -359,23 +344,19 @@ void display() {
 					players[local_player_id].physics.eye.y = last_cy;
 					if(camera_mode == CAMERAMODE_FPS)
 						glDepthRange(0.0F, 0.05F);
-					matrix_select(matrix_projection);
-					matrix_push();
-					matrix_translate(0.0F, -0.25F, 0.0F);
+					matrix_push(matrix_projection);
+					matrix_translate(matrix_projection, 0.0F, -0.25F, 0.0F);
 					matrix_upload_p();
-					matrix_select(matrix_model);
 #ifdef OPENGL_ES
 					if(camera_mode == CAMERAMODE_FPS)
 						glx_disable_sphericalfog();
 #endif
-					player_render(&players[local_player_id], local_player_id, NULL, 1, NULL);
+					player_render(&players[local_player_id], local_player_id);
 #ifdef OPENGL_ES
 					if(camera_mode == CAMERAMODE_FPS)
 						glx_enable_sphericalfog();
 #endif
-					matrix_select(matrix_projection);
-					matrix_pop();
-					matrix_select(matrix_model);
+					matrix_pop(matrix_projection);
 					glDepthRange(0.0F, 1.0F);
 					players[local_player_id].physics.eye.y = tmp2;
 				}
@@ -403,13 +384,10 @@ void display() {
 
 	glDisable(GL_DEPTH_TEST);
 	glDisable(GL_MULTISAMPLE);
-	matrix_select(matrix_projection);
-	matrix_identity();
-	matrix_ortho(0.0F, settings.window_width, 0.0F, settings.window_height, -1.0F, 1.0F);
-	matrix_select(matrix_view);
-	matrix_identity();
-	matrix_select(matrix_model);
-	matrix_identity();
+	matrix_identity(matrix_projection);
+	matrix_ortho(matrix_projection, 0.0F, settings.window_width, 0.0F, settings.window_height, -1.0F, 1.0F);
+	matrix_identity(matrix_view);
+	matrix_identity(matrix_model);
 	matrix_upload();
 	matrix_upload_p();
 	float scalex = settings.window_width / 800.0F;
@@ -782,26 +760,28 @@ int main(int argc, char** argv) {
 		double dt = window_time() - last_frame_start;
 		last_frame_start = window_time();
 
-		physics_time_fast += dt;
-		physics_time_fixed += dt;
+		if(hud_active->render_world) {
+			physics_time_fast += dt;
+			physics_time_fixed += dt;
 
 // these run at exactly ~60fps
 #define PHYSICS_STEP_TIME (1.0 / 60.0)
-		while(physics_time_fixed >= PHYSICS_STEP_TIME) {
-			physics_time_fixed -= PHYSICS_STEP_TIME;
-			player_update(PHYSICS_STEP_TIME, 1); // just physics tick
-			grenade_update(PHYSICS_STEP_TIME);
-		}
+			while(physics_time_fixed >= PHYSICS_STEP_TIME) {
+				physics_time_fixed -= PHYSICS_STEP_TIME;
+				player_update(PHYSICS_STEP_TIME, 1); // just physics tick
+				grenade_update(PHYSICS_STEP_TIME);
+			}
 
-		// these run at min. ~60fps but as fast as possible
-		double step = fmin(dt, PHYSICS_STEP_TIME);
-		while(physics_time_fast >= step) {
-			physics_time_fast -= step;
-			player_update(step, 0); // smooth orientation update
-			camera_update(step);
-			tracer_update(step);
-			particle_update(step);
-			map_collapsing_update(step);
+			// these run at min. ~60fps but as fast as possible
+			double step = fmin(dt, PHYSICS_STEP_TIME);
+			while(physics_time_fast >= step) {
+				physics_time_fast -= step;
+				player_update(step, 0); // smooth orientation update
+				camera_update(step);
+				tracer_update(step);
+				particle_update(step);
+				map_collapsing_update(step);
+			}
 		}
 
 		display();

@@ -23,55 +23,76 @@
 
 #include "common.h"
 #include "file.h"
-#include "list.h"
+#include "hashtable.h"
 #include "font.h"
 #include "stb_truetype.h"
+#include "utils.h"
 
-short* font_vertex_buffer;
-short* font_coords_buffer;
-int font_type = FONT_FIXEDSYS;
+#define FONT_BAKE_START 31
 
-struct font_backed {
-	stbtt_bakedchar* cdata;
-	int type;
-	int texture_id;
-	int w, h;
+static short* font_vertex_buffer;
+static short* font_coords_buffer;
+static enum font_type font_current_type = FONT_FIXEDSYS;
+
+static void* font_data_fixedsys;
+static void* font_data_smallfnt;
+
+static HashTable fonts_backed;
+
+struct __attribute__((packed)) font_backed_id {
+	enum font_type type;
 	float size;
 };
 
-struct list font_backed_fonts;
+struct font_backed_data {
+	stbtt_bakedchar* cdata;
+	GLuint texture_id;
+	int w, h;
+};
 
-unsigned char font_init() {
+void font_init() {
 	font_vertex_buffer = malloc(512 * 8 * sizeof(short));
 	CHECK_ALLOCATION_ERROR(font_vertex_buffer)
 	font_coords_buffer = malloc(512 * 8 * sizeof(short));
 	CHECK_ALLOCATION_ERROR(font_coords_buffer)
 
-	list_create(&font_backed_fonts, sizeof(struct font_backed));
+	font_data_fixedsys = file_load("fonts/Fixedsys.ttf");
+	CHECK_ALLOCATION_ERROR(font_data_fixedsys)
+	font_data_smallfnt = file_load("fonts/Terminal.ttf");
+	CHECK_ALLOCATION_ERROR(font_data_smallfnt)
 
-	return 1;
+	ht_setup(&fonts_backed, sizeof(struct font_backed_id), sizeof(struct font_backed_data), 8);
 }
 
-void font_select(char type) {
-	font_type = type;
+void font_select(enum font_type type) {
+	font_current_type = type;
 }
 
-static struct font_backed* font_find(float h) {
-	if(font_type == FONT_SMALLFNT)
+static struct font_backed_data* font_find(float h) {
+	if(font_current_type == FONT_SMALLFNT)
 		h *= 1.5F;
 
-	for(int k = 0; k < list_size(&font_backed_fonts); k++) {
-		struct font_backed* b = (struct font_backed*)list_get(&font_backed_fonts, k);
-		if(b->size == h && b->type == font_type)
-			return (struct font_backed*)list_get(&font_backed_fonts, k);
+	struct font_backed_id id = (struct font_backed_id) {
+		.type = font_current_type,
+		.size = h,
+	};
+
+	struct font_backed_data* f_cached = ht_lookup(&fonts_backed, &id);
+
+	if(f_cached)
+		return f_cached;
+
+	void* file;
+	switch(font_current_type) {
+		case FONT_FIXEDSYS: file = font_data_fixedsys; break;
+		case FONT_SMALLFNT: file = font_data_smallfnt; break;
+		default: return NULL;
 	}
 
-	struct font_backed f;
+	struct font_backed_data f;
 	f.w = 64;
 	f.h = 64;
-	f.size = h;
-	f.type = font_type;
-	f.cdata = malloc(224 * sizeof(stbtt_bakedchar));
+	f.cdata = malloc((0xFF - FONT_BAKE_START) * sizeof(stbtt_bakedchar));
 	CHECK_ALLOCATION_ERROR(f.cdata)
 
 	void* temp_bitmap = NULL;
@@ -79,18 +100,11 @@ static struct font_backed* font_find(float h) {
 	int max_size = 0;
 	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_size);
 
-	void* file;
-	switch(font_type) {
-		case FONT_FIXEDSYS: file = file_load("fonts/Fixedsys.ttf"); break;
-		case FONT_SMALLFNT: file = file_load("fonts/Terminal.ttf"); break;
-		default: free(f.cdata); return NULL;
-	}
-
 	while(1) {
 		temp_bitmap = realloc(temp_bitmap, f.w * f.h);
 		CHECK_ALLOCATION_ERROR(temp_bitmap)
 		int res = 0;
-		res = stbtt_BakeFontBitmap(file, 0, f.size, temp_bitmap, f.w, f.h, 31, 224, f.cdata);
+		res = stbtt_BakeFontBitmap(file, 0, h, temp_bitmap, f.w, f.h, FONT_BAKE_START, 0xFF - FONT_BAKE_START, f.cdata);
 		if(res > 0 || (f.w == max_size && f.h == max_size))
 			break;
 		if(f.h > f.w)
@@ -99,7 +113,7 @@ static struct font_backed* font_find(float h) {
 			f.h *= 2;
 	}
 
-	log_info("font texsize: %i:%ipx [size %f] type: %i", f.w, f.h, f.size, f.type);
+	log_info("font texsize: %i:%ipx [size %f] type: %i", f.w, f.h, h, font_current_type);
 
 	glGenTextures(1, &f.texture_id);
 	glBindTexture(GL_TEXTURE_2D, f.texture_id);
@@ -108,13 +122,14 @@ static struct font_backed* font_find(float h) {
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	free(temp_bitmap);
-	free(file);
 
-	return list_add(&font_backed_fonts, &f);
+	ht_insert(&fonts_backed, &id, &f);
+
+	return ht_lookup(&fonts_backed, &id);
 }
 
 float font_length(float h, char* text) {
-	struct font_backed* font = font_find(h);
+	struct font_backed_data* font = font_find(h);
 
 	if(!font)
 		return 0.0F;
@@ -129,24 +144,28 @@ float font_length(float h, char* text) {
 			x = 0.0F;
 		}
 
-		if(text[k] > 30) {
-			stbtt_GetBakedQuad(font->cdata, font->w, font->h, text[k] - 31, &x, &y, &q, 1);
-		}
+		if(text[k] >= FONT_BAKE_START)
+			stbtt_GetBakedQuad(font->cdata, font->w, font->h, text[k] - FONT_BAKE_START, &x, &y, &q, 1);
 	}
+
 	return fmax(length, x) + h * 0.125F;
 }
 
+bool font_remove_callback(void* key, void* value, void* user) {
+	struct font_backed_data* f = (struct font_backed_data*)value;
+
+	glDeleteTextures(1, &f->texture_id);
+	free(f->cdata);
+
+	return true;
+}
+
 void font_reset() {
-	for(int k = 0; k < list_size(&font_backed_fonts); k++) {
-		struct font_backed* f = (struct font_backed*)list_get(&font_backed_fonts, k);
-		glDeleteTextures(1, &f->texture_id);
-		free(f->cdata);
-	}
-	list_clear(&font_backed_fonts);
+	ht_iterate_remove(&fonts_backed, NULL, font_remove_callback);
 }
 
 void font_render(float x, float y, float h, char* text) {
-	struct font_backed* font = font_find(h);
+	struct font_backed_data* font = font_find(h);
 
 	if(!font)
 		return;
@@ -160,9 +179,9 @@ void font_render(float x, float y, float h, char* text) {
 			y2 += h;
 		}
 
-		if(*text > 30) {
+		if(*text >= FONT_BAKE_START) {
 			stbtt_aligned_quad q;
-			stbtt_GetBakedQuad(font->cdata, font->w, font->h, *text - 31, &x2, &y2, &q, 1);
+			stbtt_GetBakedQuad(font->cdata, font->w, font->h, *text - FONT_BAKE_START, &x2, &y2, &q, 1);
 			font_coords_buffer[k + 0] = q.s0 * 8192.0F;
 			font_coords_buffer[k + 1] = q.t1 * 8192.0F;
 			font_coords_buffer[k + 2] = q.s1 * 8192.0F;

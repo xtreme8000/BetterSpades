@@ -241,11 +241,10 @@ void glx_enable_sphericalfog() {
 		glEnable(GL_TEXTURE_GEN_S);
 		glActiveTexture(GL_TEXTURE0);
 	} else {
-		matrix_select(matrix_model);
-		matrix_push();
-		matrix_identity();
+		matrix_push(matrix_model);
+		matrix_identity(matrix_model);
 		matrix_upload();
-		matrix_pop();
+		matrix_pop(matrix_model);
 
 		glEnable(GL_LIGHTING);
 		glEnable(GL_LIGHT1);
@@ -255,7 +254,6 @@ void glx_enable_sphericalfog() {
 
 		glLightfv(GL_LIGHT1, GL_POSITION,
 				  (float[]) {camera_x, (settings.render_distance * map_size_y) / 16.0F, camera_z, 1.0F});
-		float dir[3] = {0.0F, -1.0F, 0.0F};
 		glLightfv(GL_LIGHT1, GL_SPOT_DIRECTION, (float[]) {0.0F, -1.0F, 0.0F});
 		glLightfv(GL_LIGHT1, GL_DIFFUSE, (float[]) {1.0F, 1.0F, 1.0F, 1.0F});
 		glLightfv(GL_LIGHT1, GL_AMBIENT, (float[]) {-fog_color[0], -fog_color[1], -fog_color[2], 1.0F});
@@ -264,11 +262,10 @@ void glx_enable_sphericalfog() {
 		glNormal3f(0.0F, 1.0F, 0.0F);
 	}
 #else
-	matrix_select(matrix_model);
-	matrix_push();
-	matrix_identity();
+	matrix_push(matrix_model);
+	matrix_identity(matrix_model);
 	matrix_upload();
-	matrix_pop();
+	matrix_pop(matrix_model);
 
 	glEnable(GL_LIGHTING);
 	glEnable(GL_LIGHT1);
