@@ -6,8 +6,8 @@ FetchContent_Declare(
 	GIT_TAG			v0.8.0
 )
 
-SET(CGLM_STATIC ON)
-SET(CGLM_USE_C99 ON)
+set(CGLM_STATIC ON CACHE INTERNAL "")
+set(CGLM_USE_C99 ON CACHE INTERNAL "")
 FetchContent_MakeAvailable(cglm)
 
 macro(download_file_if_it_doesnt_exist filename url)
