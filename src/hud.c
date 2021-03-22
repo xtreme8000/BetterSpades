@@ -578,7 +578,11 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 					break;
 				}
 			}
-			font_centered(settings.window_width / 4.0F, 487 * scalef, 53.0F * scalef, score_str);
+			font_centered(settings.window_width * 0.25F, 487 * scalef, 53.0F * scalef, score_str);
+			font_render(settings.window_width * 0.25F - font_length(18.0F * scalef, gamestate.team_1.name)
+							- font_length(53.0F * scalef, score_str) / 2,
+						460 * scalef, 18.0F * scalef, gamestate.team_1.name);
+
 			glColor3ub(gamestate.team_2.red, gamestate.team_2.green, gamestate.team_2.blue);
 			switch(gamestate.gamemode_type) {
 				case GAMEMODE_CTF:
@@ -594,7 +598,10 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 					break;
 				}
 			}
-			font_centered(settings.window_width / 4.0F * 3.0F, 487 * scalef, 53.0F * scalef, score_str);
+			font_centered(settings.window_width * 0.75F, 487 * scalef, 53.0F * scalef, score_str);
+			font_render(settings.window_width * 0.75F - font_length(18.0F * scalef, gamestate.team_2.name)
+							- font_length(53.0F * scalef, score_str) / 2,
+						460 * scalef, 18.0F * scalef, gamestate.team_2.name);
 
 			struct player_table pt[PLAYERS_MAX];
 			int connected = 0;
@@ -1144,9 +1151,9 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 		char debug_str[16];
 		font_select(FONT_FIXEDSYS);
 		glColor3f(1.0F, 1.0F, 1.0F);
-		sprintf(debug_str, "PING: %ims", network_ping());
+		sprintf(debug_str, "%ims", network_ping());
 		font_render(11.0F * scalef, settings.window_height * 0.33F, 20.0F * scalef, debug_str);
-		sprintf(debug_str, "FPS: %i", (int)fps);
+		sprintf(debug_str, "%i", (int)fps);
 		font_render(11.0F * scalef, settings.window_height * 0.33F - 20.0F * scalef, 20.0F * scalef, debug_str);
 	}
 

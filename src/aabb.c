@@ -31,8 +31,6 @@ void aabb_render(AABB* a) { }
 
 // see: https://tavianator.com/2011/ray_box.html
 bool aabb_intersection_ray(AABB* a, Ray* r, float* distance) {
-	aabb_render(a);
-
 	double inv_x = 1.0 / r->direction.x;
 	double tx1 = (a->min_x - r->origin.x) * inv_x;
 	double tx2 = (a->max_x - r->origin.x) * inv_x;
