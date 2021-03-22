@@ -630,6 +630,16 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 					glColor3f(1.0F, 1.0F, 1.0F);
 				char id_str[16];
 				sprintf(id_str, "#%i", pt[k].id);
+				if(gamestate.gamemode_type == GAMEMODE_CTF
+				   && ((gamestate.gamemode.ctf.team_1_intel
+						&& gamestate.gamemode.ctf.team_1_intel_location.held.player_id == pt[k].id)
+					   || (gamestate.gamemode.ctf.team_2_intel
+						   && gamestate.gamemode.ctf.team_2_intel_location.held.player_id == pt[k].id))) {
+					texture_draw(&texture_intel,
+								 settings.window_width / 4.0F * mul
+									 - font_length(18.0F * scalef, players[pt[k].id].name) - 27.0F * scalef,
+								 (427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, 18.0F * scalef);
+				}
 				font_render(settings.window_width / 4.0F * mul - font_length(18.0F * scalef, players[pt[k].id].name),
 							(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, players[pt[k].id].name);
 				font_render(settings.window_width / 4.0F * mul + 8.82F * scalef, (427 - 18 * cntt[mul - 1]) * scalef,
