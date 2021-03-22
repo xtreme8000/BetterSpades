@@ -523,7 +523,7 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		}
 
 		float near_plane_height
-			= (float)settings.window_height / (2.0F * tan(camera_fov_scaled() * 1.570796F / 180.0F));
+			= (float)settings.window_height / (2.0F * tan(glm_persp_fovy(matrix_projection) / 2.0F));
 
 		float len_x = len3D(matrix_model[0][0], matrix_model[1][0], matrix_model[2][0]);
 		float len_y = len3D(matrix_model[0][1], matrix_model[1][1], matrix_model[2][1]);
