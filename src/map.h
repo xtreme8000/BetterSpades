@@ -22,7 +22,7 @@
 
 #include <stdint.h>
 
-#include "libvxl.h"
+#include <libvxl.h>
 #undef pos_key
 
 extern int map_size_x;
@@ -42,7 +42,7 @@ int map_damage_get(int x, int y, int z);
 void map_damaged_voxels_render();
 void map_update_physics(int x, int y, int z);
 float map_sunblock(int x, int y, int z);
-int map_isair(int x, int y, int z);
+bool map_isair(int x, int y, int z);
 unsigned int map_get(int x, int y, int z);
 void map_set(int x, int y, int z, unsigned int color);
 int map_cube_line(int x1, int y1, int z1, int x2, int y2, int z2, struct Point* cube_array);

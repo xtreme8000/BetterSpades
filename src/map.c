@@ -497,9 +497,9 @@ int map_height_at(int x, int z) {
 	return map_size_y - 1 - result[1];
 }
 
-int map_isair(int x, int y, int z) {
+bool map_isair(int x, int y, int z) {
 	pthread_rwlock_rdlock(&map_lock);
-	int result = !libvxl_map_issolid(&map, x, z, map_size_y - 1 - y);
+	bool result = !libvxl_map_issolid(&map, x, z, map_size_y - 1 - y);
 	pthread_rwlock_unlock(&map_lock);
 
 	return result;

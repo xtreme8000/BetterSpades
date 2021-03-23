@@ -10,6 +10,14 @@ set(CGLM_STATIC ON CACHE INTERNAL "")
 set(CGLM_USE_C99 ON CACHE INTERNAL "")
 FetchContent_MakeAvailable(cglm)
 
+FetchContent_Declare(
+	vxl
+	GIT_REPOSITORY	https://github.com/xtreme8000/libvxl
+	GIT_TAG			origin/master
+)
+
+FetchContent_MakeAvailable(vxl)
+
 macro(download_file_if_it_doesnt_exist filename url)
 	if (NOT EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${filename})
 		message(STATUS "Downloading ${filename}")
@@ -40,8 +48,6 @@ download_file_if_it_doesnt_exist(hashtable.c https://raw.githubusercontent.com/g
 download_file_if_it_doesnt_exist(hashtable.h https://raw.githubusercontent.com/goldsborough/hashtable/master/hashtable.h)
 download_file_if_it_doesnt_exist(../deps/libdeflate.h https://raw.githubusercontent.com/ebiggers/libdeflate/master/libdeflate.h)
 download_file_if_it_doesnt_exist(../bsresources.zip http://aos.party/bsresources.zip)
-download_file_if_it_doesnt_exist(libvxl.c https://raw.githubusercontent.com/xtreme8000/libvxl/master/libvxl.c)
-download_file_if_it_doesnt_exist(libvxl.h https://raw.githubusercontent.com/xtreme8000/libvxl/master/libvxl.h)
 download_file_if_it_doesnt_exist(microui.c https://raw.githubusercontent.com/rxi/microui/master/src/microui.c)
 download_file_if_it_doesnt_exist(microui.h https://raw.githubusercontent.com/rxi/microui/master/src/microui.h)
 
@@ -80,7 +86,6 @@ list(APPEND CLIENT_SOURCES minheap.c)
 list(APPEND CLIENT_SOURCES hashtable.c)
 list(APPEND CLIENT_SOURCES rpc.c)
 list(APPEND CLIENT_SOURCES tesselator.c)
-list(APPEND CLIENT_SOURCES libvxl.c)
 list(APPEND CLIENT_SOURCES microui.c)
 list(APPEND CLIENT_SOURCES channel.c)
 list(APPEND CLIENT_SOURCES entitysystem.c)
@@ -170,7 +175,7 @@ if(ENABLE_RPC)
 	target_compile_definitions(client PRIVATE USE_RPC DISCORD_DISABLE_IO_THREAD)
 endif()
 
-target_link_libraries(client ${CMAKE_THREAD_LIBS_INIT} ${OPENGL_LIBRARIES} enet::enet deflate::deflate m cglm)
+target_link_libraries(client ${CMAKE_THREAD_LIBS_INIT} ${OPENGL_LIBRARIES} enet::enet deflate::deflate m cglm vxl)
 include_directories(client ${OPENAL_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIR} ${OPENGL_EGL_INCLUDE_DIRS})
 
 add_custom_command(
