@@ -276,8 +276,8 @@ void weapon_shoot() {
 				break;
 			}
 			case CAMERA_HITTYPE_BLOCK:
-				if(map_damage(hit.x, hit.y, hit.z, weapon_block_damage(players[local_player_id].weapon)) == 100
-				   && hit.y > 1) {
+				map_damage(hit.x, hit.y, hit.z, weapon_block_damage(players[local_player_id].weapon));
+				if(map_damage_action(hit.x, hit.y, hit.z) && hit.y > 1) {
 					struct PacketBlockAction blk;
 					blk.action_type = ACTION_DESTROY;
 					blk.player_id = local_player_id;

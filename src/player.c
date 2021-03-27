@@ -288,7 +288,7 @@ void player_update(float dt, int locked) {
 
 void player_render_all() {
 	player_intersection_type = -1;
-	player_intersection_dist = 1024.0F;
+	player_intersection_dist = FLT_MAX;
 
 	Ray ray;
 	ray.origin.x = camera_x;
@@ -321,7 +321,11 @@ void player_render_all() {
 				switch(hit.type) {
 					case CAMERA_HITTYPE_BLOCK:
 						sound_create(SOUND_WORLD, &sound_hitground, hit.x + 0.5F, hit.y + 0.5F, hit.z + 0.5F);
-						if(k == local_player_id && map_damage(hit.x, hit.y, hit.z, 50) == 100 && hit.y > 1) {
+
+						if(k == local_player_id)
+							map_damage(hit.x, hit.y, hit.z, 50);
+
+						if(k == local_player_id && map_damage_action(hit.x, hit.y, hit.z) && hit.y > 1) {
 							struct PacketBlockAction blk;
 							blk.action_type = ACTION_DESTROY;
 							blk.player_id = local_player_id;

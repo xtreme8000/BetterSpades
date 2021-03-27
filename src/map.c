@@ -53,6 +53,7 @@ float fog_color[4] = {0.5F, 0.9098F, 1.0F, 1.0F};
 struct damaged_voxel {
 	int damage;
 	float timer;
+	float action_timer;
 };
 
 HashTable map_damaged_voxels;
@@ -76,9 +77,24 @@ int map_damage(int x, int y, int z, int damage) {
 				  &(struct damaged_voxel) {
 					  .damage = damage,
 					  .timer = window_time(),
+					  .action_timer = -FLT_MAX,
 				  });
 
 		return damage;
+	}
+}
+
+bool map_damage_action(int x, int y, int z) {
+	uint32_t key = pos_key(x, y, z);
+	struct damaged_voxel* voxel = ht_lookup(&map_damaged_voxels, &key);
+
+	if(!voxel) {
+		return false;
+	} else if(voxel->damage >= 100 && window_time() - voxel->action_timer > 5.0F) {
+		voxel->action_timer = window_time();
+		return true;
+	} else {
+		return false;
 	}
 }
 
@@ -708,8 +724,7 @@ struct libvxl_block* map_copy_blocks(int chunk_x, int chunk_y, size_t* count) {
 }
 
 size_t* map_copy_solids() {
-	size_t sg
-		= (map.width * map.height * map.depth + (sizeof(size_t) * 8 - 1)) / (sizeof(size_t) * 8) * sizeof(size_t);
+	size_t sg = (map.width * map.height * map.depth + (sizeof(size_t) * 8 - 1)) / (sizeof(size_t) * 8) * sizeof(size_t);
 	size_t* blocks = malloc(sg);
 	CHECK_ALLOCATION_ERROR(blocks)
 	pthread_rwlock_rdlock(&map_lock);
