@@ -689,7 +689,7 @@ void map_vxl_load(void* v, size_t size) {
 	pthread_rwlock_unlock(&map_lock);
 }
 
-struct libvxl_block* map_copy_blocks(int chunk_x, int chunk_y, uint32_t* count) {
+struct libvxl_block* map_copy_blocks(int chunk_x, int chunk_y, size_t* count) {
 	pthread_rwlock_rdlock(&map_lock);
 
 	struct libvxl_chunk* chunk
@@ -707,10 +707,10 @@ struct libvxl_block* map_copy_blocks(int chunk_x, int chunk_y, uint32_t* count) 
 	return blocks;
 }
 
-uint32_t* map_copy_solids() {
+size_t* map_copy_solids() {
 	size_t sg
-		= (map.width * map.height * map.depth + (sizeof(uint32_t) * 8 - 1)) / (sizeof(uint32_t) * 8) * sizeof(uint32_t);
-	uint32_t* blocks = malloc(sg);
+		= (map.width * map.height * map.depth + (sizeof(size_t) * 8 - 1)) / (sizeof(size_t) * 8) * sizeof(size_t);
+	size_t* blocks = malloc(sg);
 	CHECK_ALLOCATION_ERROR(blocks)
 	pthread_rwlock_rdlock(&map_lock);
 	memcpy(blocks, map.geometry, sg);

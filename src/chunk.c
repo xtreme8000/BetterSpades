@@ -148,19 +148,18 @@ void chunk_draw_visible() {
 		chunk_render(chunks_draw + k);
 }
 
-static __attribute__((always_inline)) inline uint32_t solid_array_isair(uint32_t* array, uint32_t x, uint32_t y,
-																		uint32_t z) {
+static __attribute__((always_inline)) inline bool solid_array_isair(size_t* array, uint32_t x, int32_t y, uint32_t z) {
 	if(y < 0)
-		return 0;
+		return false;
 	if(y >= map_size_y)
-		return 1;
+		return true;
 
 	size_t offset = (map_size_y - 1 - y) + ((x % map_size_x) + (z % map_size_z) * map_size_x) * map_size_y;
 
-	return !(array[offset / (sizeof(uint32_t) * 8)] & (1 << (offset % (sizeof(uint32_t) * 8))));
+	return !(array[offset / (sizeof(size_t) * 8)] & ((size_t)1 << (offset % (sizeof(size_t) * 8))));
 }
 
-static __attribute__((always_inline)) inline float solid_sunblock(uint32_t* array, uint32_t x, uint32_t y, uint32_t z) {
+static __attribute__((always_inline)) inline float solid_sunblock(size_t* array, uint32_t x, uint32_t y, uint32_t z) {
 	int dec = 18;
 	int i = 127;
 
@@ -187,9 +186,9 @@ void* chunk_generate(void* data) {
 		result.minimap_data = malloc(CHUNK_SIZE * CHUNK_SIZE * sizeof(uint32_t));
 		tesselator_create(&result.tesselator, VERTEX_INT, 0);
 
-		uint32_t blocks_count;
+		size_t blocks_count;
 		struct libvxl_block* blocks = map_copy_blocks(work.chunk_x, work.chunk_y, &blocks_count);
-		uint32_t* blocks_solid = map_copy_solids();
+		size_t* blocks_solid = map_copy_solids();
 
 		/*if(settings.greedy_meshing)
 			chunk_generate_greedy(worker->chunk_x, worker->chunk_y, &worker->tesselator, &worker->max_height);
@@ -553,7 +552,7 @@ static float vertexAO(int side1, int side2, int corner) {
 	return 0.75F - (!side1 + !side2 + !corner) * 0.25F + 0.25F;
 }
 
-void chunk_generate_naive(struct libvxl_block* blocks, int count, uint32_t* solid, struct tesselator* tess,
+void chunk_generate_naive(struct libvxl_block* blocks, size_t count, size_t* solid, struct tesselator* tess,
 						  int* max_height, int ao) {
 	*max_height = 0;
 
