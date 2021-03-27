@@ -299,6 +299,9 @@ void player_render_all() {
 	ray.direction.z = cos(camera_rot_x) * sin(camera_rot_y);
 
 	for(int k = 0; k < PLAYERS_MAX; k++) {
+		if(!players[k].connected || players[k].team == TEAM_SPECTATOR)
+			continue;
+
 		if(!players[k].input.buttons.lmb && !players[k].input.buttons.rmb) {
 			players[k].spade_used = 0;
 			if(players[k].spade_use_type == 1)
@@ -306,7 +309,7 @@ void player_render_all() {
 			if(players[k].spade_use_type == 2)
 				players[k].spade_use_timer = 0;
 		}
-		if(players[k].connected && players[k].alive && players[k].held_item == TOOL_SPADE
+		if(players[k].alive && players[k].held_item == TOOL_SPADE
 		   && (players[k].input.buttons.lmb || players[k].input.buttons.rmb)
 		   && window_time() - players[k].item_showup >= 0.5F) {
 			// now run a hitscan and see if any block or player is in the way
@@ -376,7 +379,7 @@ void player_render_all() {
 				players[k].spade_use_timer = window_time();
 			}
 		}
-		if(players[k].connected && k != local_player_id) {
+		if(k != local_player_id) {
 			if(camera_CubeInFrustum(players[k].pos.x, players[k].pos.y, players[k].pos.z, 1.0F, 2.0F)
 			   && distance2D(players[k].pos.x, players[k].pos.z, camera_x, camera_z)
 				   <= pow(settings.render_distance + 2.0F, 2.0F)) {
