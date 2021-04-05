@@ -64,6 +64,13 @@ static void kv6_load_file(struct kv6_t* kv6, char* filename, float scale) {
 	free(data);
 }
 
+static void kv6_check_dimensions(struct kv6_t* kv6, float max) {
+	if(max(max(kv6->xsiz, kv6->ysiz), kv6->zsiz) * kv6->scale > max) {
+		log_error("Model dimensions too large");
+		kv6->voxel_count = 0;
+	}
+}
+
 void kv6_init() {
 	kv6_load_file(&model_playerdead, "kv6/playerdead.kv6", 0.1F);
 	kv6_load_file(&model_playerhead, "kv6/playerhead.kv6", 0.1F);
@@ -91,6 +98,20 @@ void kv6_init() {
 	kv6_load_file(&model_semi_casing, "kv6/semicasing.kv6", 0.0125F);
 	kv6_load_file(&model_smg_casing, "kv6/smgcasing.kv6", 0.0125F);
 	kv6_load_file(&model_shotgun_casing, "kv6/shotguncasing.kv6", 0.0125F);
+
+	kv6_check_dimensions(&model_playerhead, 1.2F);
+	kv6_check_dimensions(&model_playertorso, 1.8F);
+	kv6_check_dimensions(&model_playertorsoc, 1.6F);
+	kv6_check_dimensions(&model_playerarms, 2.0F);
+	kv6_check_dimensions(&model_playerleg, 2.0F);
+	kv6_check_dimensions(&model_playerlegc, 1.6F);
+
+	kv6_check_dimensions(&model_semi, 2.25F);
+	kv6_check_dimensions(&model_smg, 2.25F);
+	kv6_check_dimensions(&model_shotgun, 2.25F);
+	kv6_check_dimensions(&model_spade, 2.25F);
+	kv6_check_dimensions(&model_block, 2.25F);
+	kv6_check_dimensions(&model_grenade, 2.25F);
 }
 
 void kv6_rebuild_complete() {
