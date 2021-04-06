@@ -614,6 +614,18 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
 		sprintf(pic_name, "Saved screenshot as screenshots/%ld.png", (long)pic_time);
 		chat_add(0, 0x0000FF, pic_name);
 	}
+
+	if(key == WINDOW_KEY_SAVE_MAP && action == WINDOW_PRESS) { // save map
+		time_t save_time;
+		time(&save_time);
+		char save_name[128];
+		sprintf(save_name, "vxl/%ld.vxl", (long)save_time);
+
+		map_save_file(save_name);
+
+		sprintf(save_name, "Saved map as vxl/%ld.vxl", (long)save_time);
+		chat_add(0, 0x0000FF, save_name);
+	}
 }
 
 void mouse_click(struct window_instance* window, int button, int action, int mods) {
