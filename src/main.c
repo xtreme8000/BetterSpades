@@ -704,6 +704,8 @@ int main(int argc, char** argv) {
 		file_dir_create("cache");
 	if(!file_dir_exists("screenshots"))
 		file_dir_create("screenshots");
+	if(!file_dir_exists("vxl"))
+		file_dir_create("vxl");
 #endif
 
 	log_set_level(LOG_INFO);

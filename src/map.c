@@ -706,7 +706,9 @@ void map_vxl_load(void* v, size_t size) {
 }
 
 void map_save_file(const char* filename) {
+	pthread_rwlock_rdlock(&map_lock);
 	libvxl_writefile(&map, filename);
+	pthread_rwlock_unlock(&map_lock);
 }
 
 struct libvxl_block* map_copy_blocks(int chunk_x, int chunk_y, size_t* count) {

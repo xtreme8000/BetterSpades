@@ -574,6 +574,6 @@ void config_reload() {
 				 .min = 0,
 				 .max = 1,
 				 .name = "Show news",
-				 .help = "Open the bns news on exit",
+				 .help = "Show news on server list",
 			 });
 }
