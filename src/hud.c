@@ -2110,7 +2110,7 @@ static void hud_serverlist_render(mu_Context* ctx, float scalex, float scaley) {
 
 		mu_layout_row(ctx, 1, (int[]) {-1}, settings.window_height * 0.3F);
 
-		if(serverlist_news_exists) {
+		if(serverlist_news_exists && settings.show_news) {
 			mu_begin_panel(ctx, "News");
 			mu_layout_row(ctx, 0, NULL, 0);
 

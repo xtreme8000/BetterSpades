@@ -662,8 +662,6 @@ void mouse_scroll(struct window_instance* window, double xoffset, double yoffset
 void deinit() {
 	rpc_deinit();
 	ping_deinit();
-	if(settings.show_news)
-		file_url("https://www.buildandshoot.com/news/");
 	if(network_connected)
 		network_disconnect();
 	window_deinit();
