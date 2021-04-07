@@ -46,7 +46,7 @@ void file_url(char* url) {
 	system(cmd);
 #endif
 #if defined(OS_LINUX) || defined(OS_APPLE)
-	sprintf(cmd, "open %s", url);
+	sprintf(cmd, "xdg-open %s", url);
 	system(cmd);
 #endif
 }
