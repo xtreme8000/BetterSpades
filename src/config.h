@@ -20,6 +20,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <stddef.h>
+
 #include "list.h"
 
 struct config_file_entry {
@@ -81,6 +83,7 @@ struct config_setting {
 	char help[32];
 	int defaults[8];
 	int defaults_length;
+	void (*label_callback)(char* buffer, size_t length, int value, size_t index);
 };
 
 extern struct list config_settings;

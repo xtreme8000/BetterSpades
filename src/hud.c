@@ -2431,6 +2431,29 @@ static void hud_settings_init() {
 	memcpy(&settings_tmp, &settings, sizeof(struct RENDER_OPTIONS));
 }
 
+static int int_slider_defaults(mu_Context* ctx, struct config_setting* setting) {
+	int k = setting->defaults_length - 1;
+	while(k > 0 && setting->defaults[k] > *(int*)setting->value)
+		k--;
+
+	float tmp = k;
+
+	mu_push_id(ctx, setting, sizeof(setting));
+	int res = mu_slider_ex(ctx, &tmp, 0, setting->defaults_length - 1, 0, "", MU_OPT_ALIGNCENTER);
+
+	if(res & MU_RES_CHANGE)
+		*(int*)setting->value = setting->defaults[(int)round(tmp)];
+
+	if(setting->label_callback) {
+		char buf[64];
+		setting->label_callback(buf, sizeof(buf), setting->defaults[(int)round(tmp)], (int)round(tmp));
+		mu_draw_control_text(ctx, buf, ctx->last_rect, MU_COLOR_TEXT, MU_OPT_ALIGNCENTER);
+	}
+
+	mu_pop_id(ctx);
+	return res;
+}
+
 static int int_slider(mu_Context* ctx, int* value, int low, int high) {
 	float tmp = *value;
 	mu_push_id(ctx, &value, sizeof(value));
@@ -2505,6 +2528,9 @@ static void hud_settings_render(mu_Context* ctx, float scalex, float scaley) {
 						if(a->max == 1 && a->min == 0) {
 							mu_text(ctx, a->name);
 							mu_checkbox(ctx, "", a->value);
+						} else if(a->defaults_length > 0) {
+							mu_text(ctx, a->name);
+							int_slider_defaults(ctx, a);
 						} else if(a->max == INT_MAX) {
 							mu_text(ctx, a->name);
 							int_number(ctx, a->value);

@@ -240,6 +240,32 @@ static int config_key_cmp(const void* a, const void* b) {
 	return cmp ? cmp : strcmp(A->display, B->display);
 }
 
+static void config_label_pixels(char* buffer, size_t length, int value, size_t index) {
+	if(value == 800 || value == 600) {
+		snprintf(buffer, length, "default: %ipx", value);
+	} else {
+		snprintf(buffer, length, "%ipx", value);
+	}
+}
+
+static void config_label_vsync(char* buffer, size_t length, int value, size_t index) {
+	if(value == 0) {
+		snprintf(buffer, length, "disabled");
+	} else if(value == 1) {
+		snprintf(buffer, length, "enabled");
+	} else {
+		snprintf(buffer, length, "max %i fps", value);
+	}
+}
+
+static void config_label_msaa(char* buffer, size_t length, int value, size_t index) {
+	if(index == 0) {
+		snprintf(buffer, length, "No MSAA");
+	} else {
+		snprintf(buffer, length, "%ix MSAA", value);
+	}
+}
+
 void config_reload() {
 	if(!list_created(&config_file))
 		list_create(&config_file, sizeof(struct config_file_entry));
@@ -405,8 +431,10 @@ void config_reload() {
 				 1024,
 				 1280,
 				 1920,
-				 .defaults_length = 6,
+				 3840,
+				 .defaults_length = 7,
 				 .help = "Default: 800",
+				 .label_callback = config_label_pixels,
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
@@ -421,8 +449,10 @@ void config_reload() {
 				 768,
 				 1024,
 				 1080,
-				 .defaults_length = 6,
+				 2160,
+				 .defaults_length = 7,
 				 .help = "Default: 600",
+				 .label_callback = config_label_pixels,
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
@@ -436,8 +466,10 @@ void config_reload() {
 				 1,
 				 60,
 				 120,
+				 144,
 				 240,
-				 .defaults_length = 5,
+				 .defaults_length = 6,
+				 .label_callback = config_label_vsync,
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
@@ -456,12 +488,12 @@ void config_reload() {
 				 .name = "Multisamples",
 				 .help = "Smooth out block edges",
 				 .defaults = 0,
-				 1,
 				 2,
 				 4,
 				 8,
 				 16,
-				 .defaults_length = 6,
+				 .defaults_length = 5,
+				 .label_callback = config_label_msaa,
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
