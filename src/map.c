@@ -711,31 +711,8 @@ void map_save_file(const char* filename) {
 	pthread_rwlock_unlock(&map_lock);
 }
 
-struct libvxl_block* map_copy_blocks(int chunk_x, int chunk_y, size_t* count) {
+void map_copy_blocks(struct libvxl_chunk_copy* copy, size_t x, size_t y) {
 	pthread_rwlock_rdlock(&map_lock);
-
-	struct libvxl_chunk* chunk
-		= map.chunks + chunk_x + chunk_y * ((map_size_x + LIBVXL_CHUNK_SIZE - 1) / LIBVXL_CHUNK_SIZE);
-
-	struct libvxl_block* blocks = malloc(chunk->index * sizeof(struct libvxl_block));
-	CHECK_ALLOCATION_ERROR(blocks)
-	memcpy(blocks, chunk->blocks, chunk->index * sizeof(struct libvxl_block));
-
-	if(count)
-		*count = chunk->index;
-
+	libvxl_copy_chunk(&map, copy, x, y);
 	pthread_rwlock_unlock(&map_lock);
-
-	return blocks;
-}
-
-size_t* map_copy_solids() {
-	size_t sg = (map.width * map.height * map.depth + (sizeof(size_t) * 8 - 1)) / (sizeof(size_t) * 8) * sizeof(size_t);
-	size_t* blocks = malloc(sg);
-	CHECK_ALLOCATION_ERROR(blocks)
-	pthread_rwlock_rdlock(&map_lock);
-	memcpy(blocks, map.geometry, sg);
-	pthread_rwlock_unlock(&map_lock);
-
-	return blocks;
 }

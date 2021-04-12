@@ -148,26 +148,27 @@ void chunk_draw_visible() {
 		chunk_render(chunks_draw + k);
 }
 
-static __attribute__((always_inline)) inline bool solid_array_isair(size_t* array, uint32_t x, int32_t y, uint32_t z) {
+static __attribute__((always_inline)) inline bool solid_array_isair(struct libvxl_chunk_copy* blocks, uint32_t x,
+																	int32_t y, uint32_t z) {
 	if(y < 0)
 		return false;
 	if(y >= map_size_y)
 		return true;
 
-	size_t offset = (map_size_y - 1 - y) + ((x % map_size_x) + (z % map_size_z) * map_size_x) * map_size_y;
-
-	return !(array[offset / (sizeof(size_t) * 8)] & ((size_t)1 << (offset % (sizeof(size_t) * 8))));
+	return !libvxl_copy_chunk_is_solid(blocks, x % map_size_x, z % map_size_z, map_size_y - 1 - y);
 }
 
-static __attribute__((always_inline)) inline float solid_sunblock(size_t* array, uint32_t x, uint32_t y, uint32_t z) {
+static __attribute__((always_inline)) inline float solid_sunblock(struct libvxl_chunk_copy* blocks, uint32_t x,
+																  uint32_t y, uint32_t z) {
 	int dec = 18;
 	int i = 127;
 
 	while(dec && y < map_size_y) {
-		if(!solid_array_isair(array, x, ++y, --z))
+		if(!solid_array_isair(blocks, x, ++y, --z))
 			i -= dec;
 		dec -= 2;
 	}
+
 	return (float)i / 127.0F;
 }
 
@@ -186,24 +187,23 @@ void* chunk_generate(void* data) {
 		result.minimap_data = malloc(CHUNK_SIZE * CHUNK_SIZE * sizeof(uint32_t));
 		tesselator_create(&result.tesselator, VERTEX_INT, 0);
 
-		size_t blocks_count;
-		struct libvxl_block* blocks = map_copy_blocks(work.chunk_x, work.chunk_y, &blocks_count);
-		size_t* blocks_solid = map_copy_solids();
+		struct libvxl_chunk_copy blocks;
+		map_copy_blocks(&blocks, work.chunk_x * CHUNK_SIZE, work.chunk_y * CHUNK_SIZE);
 
-		/*if(settings.greedy_meshing)
-			chunk_generate_greedy(worker->chunk_x, worker->chunk_y, &worker->tesselator, &worker->max_height);
-		else*/
-		chunk_generate_naive(blocks, blocks_count, blocks_solid, &result.tesselator, &result.max_height,
-							 settings.ambient_occlusion);
+		if(settings.greedy_meshing)
+			chunk_generate_greedy(&blocks, work.chunk_x * CHUNK_SIZE, work.chunk_y * CHUNK_SIZE, &result.tesselator,
+								  &result.max_height);
+		else
+			chunk_generate_naive(&blocks, &result.tesselator, &result.max_height, settings.ambient_occlusion);
 
 		// use the fact that libvxl orders libvxl_blocks by top-down coordinate first in its data structure
 		size_t chunk_x = work.chunk_x * CHUNK_SIZE;
 		size_t chunk_y = work.chunk_y * CHUNK_SIZE;
 		uint32_t last_position = 0;
-		for(int k = blocks_count - 1; k >= 0; k--) {
-			struct libvxl_block* blk = blocks + k;
+		for(int k = blocks.blocks_sorted_count - 1; k >= 0; k--) {
+			struct libvxl_block* blk = blocks.blocks_sorted + k;
 
-			if(blk->position != last_position || k == blocks_count - 1) {
+			if(blk->position != last_position || k == blocks.blocks_sorted_count - 1) {
 				last_position = blk->position;
 
 				int x = key_getx(blk->position);
@@ -219,8 +219,7 @@ void* chunk_generate(void* data) {
 			}
 		}
 
-		free(blocks);
-		free(blocks_solid);
+		libvxl_copy_chunk_destroy(&blocks);
 
 		channel_put(&chunk_result_queue, &result);
 	}
@@ -228,7 +227,8 @@ void* chunk_generate(void* data) {
 	return NULL;
 }
 
-void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, int* max_height) {
+void chunk_generate_greedy(struct libvxl_chunk_copy* blocks, size_t start_x, size_t start_z, struct tesselator* tess,
+						   int* max_height) {
 	*max_height = 0;
 
 	int checked_voxels[2][CHUNK_SIZE * CHUNK_SIZE];
@@ -240,26 +240,27 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 
 		for(int x = start_x; x < start_x + CHUNK_SIZE; x++) {
 			for(int y = 0; y < map_size_y; y++) {
-				if(!map_isair(x, y, z)) {
+				if(!solid_array_isair(blocks, x, y, z)) {
 					if(*max_height < y) {
 						*max_height = y;
 					}
 
-					unsigned int col = map_get(x, y, z);
-					int r = red(col);
+					uint32_t col = libvxl_copy_chunk_get_color(blocks, x, z, map_size_y - 1 - y);
+					int r = blue(col);
 					int g = green(col);
-					int b = blue(col);
+					int b = red(col);
 
-					if((z == 0 && map_isair(x, y, map_size_z - 1)) || (z > 0 && map_isair(x, y, z - 1))) {
+					if((z == 0 && solid_array_isair(blocks, x, y, map_size_z - 1))
+					   || (z > 0 && solid_array_isair(blocks, x, y, z - 1))) {
 						if(checked_voxels2[0][y + (x - start_x) * map_size_y] == 0) {
 							int len_y = 0;
 							int len_x = 1;
 
 							for(int a = 0; a < map_size_y - y; a++) {
-								if(map_get(x, y + a, z) == col
+								if(libvxl_copy_chunk_get_color(blocks, x, z, map_size_y - 1 - (y + a)) == col
 								   && checked_voxels2[0][y + a + (x - start_x) * map_size_y] == 0
-								   && ((z == 0 && map_isair(x, y + a, map_size_z - 1))
-									   || (z > 0 && map_isair(x, y + a, z - 1))))
+								   && ((z == 0 && solid_array_isair(blocks, x, y + a, map_size_z - 1))
+									   || (z > 0 && solid_array_isair(blocks, x, y + a, z - 1))))
 									len_y++;
 								else
 									break;
@@ -268,10 +269,10 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 							for(int b = 1; b < (start_x + CHUNK_SIZE - x); b++) {
 								int a;
 								for(a = 0; a < len_y; a++) {
-									if(map_get(x + b, y + a, z) != col
+									if(libvxl_copy_chunk_get_color(blocks, x + b, z, map_size_y - 1 - (y + a)) != col
 									   || checked_voxels2[0][y + a + (x + b - start_x) * map_size_y] != 0
-									   || !((z == 0 && map_isair(x + b, y + a, map_size_z - 1))
-											|| (z > 0 && map_isair(x + b, y + a, z - 1))))
+									   || !((z == 0 && solid_array_isair(blocks, x + b, y + a, map_size_z - 1))
+											|| (z > 0 && solid_array_isair(blocks, x + b, y + a, z - 1))))
 										break;
 								}
 								if(a == len_y)
@@ -290,16 +291,17 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 						}
 					}
 
-					if((z == map_size_z - 1 && map_isair(x, y, 0)) || (z < map_size_z - 1 && map_isair(x, y, z + 1))) {
+					if((z == map_size_z - 1 && solid_array_isair(blocks, x, y, 0))
+					   || (z < map_size_z - 1 && solid_array_isair(blocks, x, y, z + 1))) {
 						if(checked_voxels2[1][y + (x - start_x) * map_size_y] == 0) {
 							int len_y = 0;
 							int len_x = 1;
 
 							for(int a = 0; a < map_size_y - y; a++) {
-								if(map_get(x, y + a, z) == col
+								if(libvxl_copy_chunk_get_color(blocks, x, z, map_size_y - 1 - (y + a)) == col
 								   && checked_voxels2[1][y + a + (x - start_x) * map_size_y] == 0
-								   && ((z == map_size_z - 1 && map_isair(x, y + a, 0))
-									   || (z < map_size_z - 1 && map_isair(x, y + a, z + 1))))
+								   && ((z == map_size_z - 1 && solid_array_isair(blocks, x, y + a, 0))
+									   || (z < map_size_z - 1 && solid_array_isair(blocks, x, y + a, z + 1))))
 									len_y++;
 								else
 									break;
@@ -308,10 +310,10 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 							for(int b = 1; b < (start_x + CHUNK_SIZE - x); b++) {
 								int a;
 								for(a = 0; a < len_y; a++) {
-									if(map_get(x + b, a + a, z) != col
+									if(libvxl_copy_chunk_get_color(blocks, x + b, z, map_size_y - 1 - (y + a)) != col
 									   || checked_voxels2[1][y + a + (x + b - start_x) * map_size_y] != 0
-									   || !((z == map_size_z - 1 && map_isair(x + b, y + a, 0))
-											|| (z < map_size_z - 1 && map_isair(x + b, y + a, z + 1))))
+									   || !((z == map_size_z - 1 && solid_array_isair(blocks, x + b, y + a, 0))
+											|| (z < map_size_z - 1 && solid_array_isair(blocks, x + b, y + a, z + 1))))
 										break;
 								}
 								if(a == len_y)
@@ -341,26 +343,27 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 
 		for(int z = start_z; z < start_z + CHUNK_SIZE; z++) {
 			for(int y = 0; y < map_size_y; y++) {
-				if(!map_isair(x, y, z)) {
+				if(!solid_array_isair(blocks, x, y, z)) {
 					if(*max_height < y) {
 						*max_height = y;
 					}
 
-					unsigned int col = map_get(x, y, z);
-					int r = red(col);
+					unsigned int col = libvxl_copy_chunk_get_color(blocks, x, z, map_size_y - 1 - y);
+					int r = blue(col);
 					int g = green(col);
-					int b = blue(col);
+					int b = red(col);
 
-					if((x == 0 && map_isair(map_size_x - 1, y, z)) || (x > 0 && map_isair(x - 1, y, z))) {
+					if((x == 0 && solid_array_isair(blocks, map_size_x - 1, y, z))
+					   || (x > 0 && solid_array_isair(blocks, x - 1, y, z))) {
 						if(checked_voxels2[0][y + (z - start_z) * map_size_y] == 0) {
 							int len_y = 0;
 							int len_z = 1;
 
 							for(int a = 0; a < map_size_y - y; a++) {
-								if(map_get(x, y + a, z) == col
+								if(libvxl_copy_chunk_get_color(blocks, x, z, map_size_y - 1 - (y + a)) == col
 								   && checked_voxels2[0][y + a + (z - start_z) * map_size_y] == 0
-								   && ((x == 0 && map_isair(map_size_x - 1, y + a, z))
-									   || (x > 0 && map_isair(x - 1, y + a, z))))
+								   && ((x == 0 && solid_array_isair(blocks, map_size_x - 1, y + a, z))
+									   || (x > 0 && solid_array_isair(blocks, x - 1, y + a, z))))
 									len_y++;
 								else
 									break;
@@ -369,10 +372,10 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 							for(int b = 1; b < (start_z + CHUNK_SIZE - z); b++) {
 								int a;
 								for(a = 0; a < len_y; a++) {
-									if(map_get(x, y + a, z + b) != col
+									if(libvxl_copy_chunk_get_color(blocks, x, z + b, map_size_y - 1 - (y + a)) != col
 									   || checked_voxels2[0][y + a + (z + b - start_z) * map_size_y] != 0
-									   || !((x == 0 && map_isair(map_size_x - 1, y + a, z + b))
-											|| (x > 0 && map_isair(x - 1, y + a, z + b))))
+									   || !((x == 0 && solid_array_isair(blocks, map_size_x - 1, y + a, z + b))
+											|| (x > 0 && solid_array_isair(blocks, x - 1, y + a, z + b))))
 										break;
 								}
 								if(a == len_y)
@@ -391,16 +394,17 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 						}
 					}
 
-					if((x == map_size_x - 1 && map_isair(0, y, z)) || (x < map_size_x - 1 && map_isair(x + 1, y, z))) {
+					if((x == map_size_x - 1 && solid_array_isair(blocks, 0, y, z))
+					   || (x < map_size_x - 1 && solid_array_isair(blocks, x + 1, y, z))) {
 						if(checked_voxels2[1][y + (z - start_z) * map_size_y] == 0) {
 							int len_y = 0;
 							int len_z = 1;
 
 							for(int a = 0; a < map_size_y - y; a++) {
-								if(map_get(x, y + a, z) == col
+								if(libvxl_copy_chunk_get_color(blocks, x, z, map_size_y - 1 - (y + a)) == col
 								   && checked_voxels2[1][y + a + (z - start_z) * map_size_y] == 0
-								   && ((x == map_size_x - 1 && map_isair(0, y + a, z))
-									   || (x < map_size_x - 1 && map_isair(x + 1, y + a, z))))
+								   && ((x == map_size_x - 1 && solid_array_isair(blocks, 0, y + a, z))
+									   || (x < map_size_x - 1 && solid_array_isair(blocks, x + 1, y + a, z))))
 									len_y++;
 								else
 									break;
@@ -409,10 +413,10 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 							for(int b = 1; b < (start_z + CHUNK_SIZE - z); b++) {
 								int a;
 								for(a = 0; a < len_y; a++) {
-									if(map_get(x, y + a, z + b) != col
+									if(libvxl_copy_chunk_get_color(blocks, x, z + b, map_size_y - 1 - (y + a)) != col
 									   || checked_voxels2[1][y + a + (z + b - start_z) * map_size_y] != 0
-									   || !((x == map_size_x - 1 && map_isair(0, y + a, z + b))
-											|| (x < map_size_x - 1 && map_isair(x + 1, y + a, z + b))))
+									   || !((x == map_size_x - 1 && solid_array_isair(blocks, 0, y + a, z + b))
+											|| (x < map_size_x - 1 && solid_array_isair(blocks, x + 1, y + a, z + b))))
 										break;
 								}
 								if(a == len_y)
@@ -442,25 +446,25 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 
 		for(int x = start_x; x < start_x + CHUNK_SIZE; x++) {
 			for(int z = start_z; z < start_z + CHUNK_SIZE; z++) {
-				if(!map_isair(x, y, z)) {
+				if(!solid_array_isair(blocks, x, y, z)) {
 					if(*max_height < y) {
 						*max_height = y;
 					}
 
-					unsigned int col = map_get(x, y, z);
-					int r = red(col);
+					unsigned int col = libvxl_copy_chunk_get_color(blocks, x, z, map_size_y - 1 - y);
+					int r = blue(col);
 					int g = green(col);
-					int b = blue(col);
+					int b = red(col);
 
-					if(y == map_size_y - 1 || map_isair(x, y + 1, z)) {
+					if(y == map_size_y - 1 || solid_array_isair(blocks, x, y + 1, z)) {
 						if(checked_voxels[0][(x - start_x) + (z - start_z) * CHUNK_SIZE] == 0) {
 							int len_x = 0;
 							int len_z = 1;
 
 							for(int a = 0; a < (start_x + CHUNK_SIZE - x); a++) {
-								if(map_get(x + a, y, z) == col
+								if(libvxl_copy_chunk_get_color(blocks, x + a, z, map_size_y - 1 - y) == col
 								   && checked_voxels[0][(x + a - start_x) + (z - start_z) * CHUNK_SIZE] == 0
-								   && (y == map_size_y - 1 || map_isair(x + a, y + 1, z)))
+								   && (y == map_size_y - 1 || solid_array_isair(blocks, x + a, y + 1, z)))
 									len_x++;
 								else
 									break;
@@ -469,9 +473,9 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 							for(int b = 1; b < (start_z + CHUNK_SIZE - z); b++) {
 								int a;
 								for(a = 0; a < len_x; a++) {
-									if(map_get(x + a, y, z + b) != col
+									if(libvxl_copy_chunk_get_color(blocks, x + a, z + b, map_size_y - 1 - y) != col
 									   || checked_voxels[0][(x + a - start_x) + (z + b - start_z) * CHUNK_SIZE] != 0
-									   || !(y == map_size_y - 1 || map_isair(x + a, y + 1, z + b)))
+									   || !(y == map_size_y - 1 || solid_array_isair(blocks, x + a, y + 1, z + b)))
 										break;
 								}
 								if(a == len_x)
@@ -491,15 +495,15 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 						}
 					}
 
-					if(y > 0 && map_isair(x, y - 1, z)) {
+					if(y > 0 && solid_array_isair(blocks, x, y - 1, z)) {
 						if(checked_voxels[1][(x - start_x) + (z - start_z) * CHUNK_SIZE] == 0) {
 							int len_x = 0;
 							int len_z = 1;
 
 							for(int a = 0; a < (start_x + CHUNK_SIZE - x); a++) {
-								if(map_get(x + a, y, z) == col
+								if(libvxl_copy_chunk_get_color(blocks, x + a, z, map_size_y - 1 - y) == col
 								   && checked_voxels[1][(x + a - start_x) + (z - start_z) * CHUNK_SIZE] == 0
-								   && (y > 0 && map_isair(x + a, y - 1, z)))
+								   && (y > 0 && solid_array_isair(blocks, x + a, y - 1, z)))
 									len_x++;
 								else
 									break;
@@ -508,9 +512,9 @@ void chunk_generate_greedy(int start_x, int start_z, struct tesselator* tess, in
 							for(int b = 1; b < (start_z + CHUNK_SIZE - z); b++) {
 								int a;
 								for(a = 0; a < len_x; a++) {
-									if(map_get(x + a, y, z + b) != col
+									if(libvxl_copy_chunk_get_color(blocks, x + a, z + b, map_size_y - 1 - y) != col
 									   || checked_voxels[1][(x + a - start_x) + (z + b - start_z) * CHUNK_SIZE] != 0
-									   || !(y > 0 && map_isair(x + a, y - 1, z + b)))
+									   || !(y > 0 && solid_array_isair(blocks, x + a, y - 1, z + b)))
 										break;
 								}
 								if(a == len_x)
@@ -552,12 +556,11 @@ static float vertexAO(int side1, int side2, int corner) {
 	return 0.75F - (!side1 + !side2 + !corner) * 0.25F + 0.25F;
 }
 
-void chunk_generate_naive(struct libvxl_block* blocks, size_t count, size_t* solid, struct tesselator* tess,
-						  int* max_height, int ao) {
+void chunk_generate_naive(struct libvxl_chunk_copy* blocks, struct tesselator* tess, int* max_height, int ao) {
 	*max_height = 0;
 
-	for(int k = 0; k < count; k++) {
-		struct libvxl_block* blk = blocks + k;
+	for(size_t k = 0; k < blocks->blocks_sorted_count; k++) {
+		struct libvxl_block* blk = blocks->blocks_sorted + k;
 
 		int x = key_getx(blk->position);
 		int y = map_size_y - 1 - key_getz(blk->position);
@@ -570,21 +573,25 @@ void chunk_generate_naive(struct libvxl_block* blocks, size_t count, size_t* sol
 		int g = green(col);
 		int b = red(col);
 
-		float shade = solid_sunblock(solid, x, y, z);
+		float shade = solid_sunblock(blocks, x, y, z);
 		r *= shade;
 		g *= shade;
 		b *= shade;
 
-		if(solid_array_isair(solid, x, y, z - 1)) {
+		if(solid_array_isair(blocks, x, y, z - 1)) {
 			if(ao) {
-				float A = vertexAO(solid_array_isair(solid, x - 1, y, z - 1), solid_array_isair(solid, x, y - 1, z - 1),
-								   solid_array_isair(solid, x - 1, y - 1, z - 1));
-				float B = vertexAO(solid_array_isair(solid, x - 1, y, z - 1), solid_array_isair(solid, x, y + 1, z - 1),
-								   solid_array_isair(solid, x - 1, y + 1, z - 1));
-				float C = vertexAO(solid_array_isair(solid, x + 1, y, z - 1), solid_array_isair(solid, x, y + 1, z - 1),
-								   solid_array_isair(solid, x + 1, y + 1, z - 1));
-				float D = vertexAO(solid_array_isair(solid, x + 1, y, z - 1), solid_array_isair(solid, x, y - 1, z - 1),
-								   solid_array_isair(solid, x + 1, y - 1, z - 1));
+				float A
+					= vertexAO(solid_array_isair(blocks, x - 1, y, z - 1), solid_array_isair(blocks, x, y - 1, z - 1),
+							   solid_array_isair(blocks, x - 1, y - 1, z - 1));
+				float B
+					= vertexAO(solid_array_isair(blocks, x - 1, y, z - 1), solid_array_isair(blocks, x, y + 1, z - 1),
+							   solid_array_isair(blocks, x - 1, y + 1, z - 1));
+				float C
+					= vertexAO(solid_array_isair(blocks, x + 1, y, z - 1), solid_array_isair(blocks, x, y + 1, z - 1),
+							   solid_array_isair(blocks, x + 1, y + 1, z - 1));
+				float D
+					= vertexAO(solid_array_isair(blocks, x + 1, y, z - 1), solid_array_isair(blocks, x, y - 1, z - 1),
+							   solid_array_isair(blocks, x + 1, y - 1, z - 1));
 
 				tesselator_addi(tess, (int16_t[]) {x, y, z, x, y + 1, z, x + 1, y + 1, z, x + 1, y, z},
 								(uint32_t[]) {
@@ -600,16 +607,20 @@ void chunk_generate_naive(struct libvxl_block* blocks, size_t count, size_t* sol
 			}
 		}
 
-		if(solid_array_isair(solid, x, y, z + 1)) {
+		if(solid_array_isair(blocks, x, y, z + 1)) {
 			if(ao) {
-				float A = vertexAO(solid_array_isair(solid, x - 1, y, z + 1), solid_array_isair(solid, x, y - 1, z + 1),
-								   solid_array_isair(solid, x - 1, y - 1, z + 1));
-				float B = vertexAO(solid_array_isair(solid, x + 1, y, z + 1), solid_array_isair(solid, x, y - 1, z + 1),
-								   solid_array_isair(solid, x + 1, y - 1, z + 1));
-				float C = vertexAO(solid_array_isair(solid, x + 1, y, z + 1), solid_array_isair(solid, x, y + 1, z + 1),
-								   solid_array_isair(solid, x + 1, y + 1, z + 1));
-				float D = vertexAO(solid_array_isair(solid, x - 1, y, z + 1), solid_array_isair(solid, x, y + 1, z + 1),
-								   solid_array_isair(solid, x - 1, y + 1, z + 1));
+				float A
+					= vertexAO(solid_array_isair(blocks, x - 1, y, z + 1), solid_array_isair(blocks, x, y - 1, z + 1),
+							   solid_array_isair(blocks, x - 1, y - 1, z + 1));
+				float B
+					= vertexAO(solid_array_isair(blocks, x + 1, y, z + 1), solid_array_isair(blocks, x, y - 1, z + 1),
+							   solid_array_isair(blocks, x + 1, y - 1, z + 1));
+				float C
+					= vertexAO(solid_array_isair(blocks, x + 1, y, z + 1), solid_array_isair(blocks, x, y + 1, z + 1),
+							   solid_array_isair(blocks, x + 1, y + 1, z + 1));
+				float D
+					= vertexAO(solid_array_isair(blocks, x - 1, y, z + 1), solid_array_isair(blocks, x, y + 1, z + 1),
+							   solid_array_isair(blocks, x - 1, y + 1, z + 1));
 				tesselator_addi(tess, (int16_t[]) {x, y, z + 1, x + 1, y, z + 1, x + 1, y + 1, z + 1, x, y + 1, z + 1},
 								(uint32_t[]) {
 									rgba(r * 0.625F * A, g * 0.625F * A, b * 0.625F * A, 255),
@@ -624,16 +635,20 @@ void chunk_generate_naive(struct libvxl_block* blocks, size_t count, size_t* sol
 			}
 		}
 
-		if(solid_array_isair(solid, x - 1, y, z)) {
+		if(solid_array_isair(blocks, x - 1, y, z)) {
 			if(ao) {
-				float A = vertexAO(solid_array_isair(solid, x - 1, y - 1, z), solid_array_isair(solid, x - 1, y, z - 1),
-								   solid_array_isair(solid, x - 1, y - 1, z - 1));
-				float B = vertexAO(solid_array_isair(solid, x - 1, y - 1, z), solid_array_isair(solid, x - 1, y, z + 1),
-								   solid_array_isair(solid, x - 1, y - 1, z + 1));
-				float C = vertexAO(solid_array_isair(solid, x - 1, y + 1, z), solid_array_isair(solid, x - 1, y, z + 1),
-								   solid_array_isair(solid, x - 1, y + 1, z + 1));
-				float D = vertexAO(solid_array_isair(solid, x - 1, y + 1, z), solid_array_isair(solid, x - 1, y, z - 1),
-								   solid_array_isair(solid, x - 1, y + 1, z - 1));
+				float A
+					= vertexAO(solid_array_isair(blocks, x - 1, y - 1, z), solid_array_isair(blocks, x - 1, y, z - 1),
+							   solid_array_isair(blocks, x - 1, y - 1, z - 1));
+				float B
+					= vertexAO(solid_array_isair(blocks, x - 1, y - 1, z), solid_array_isair(blocks, x - 1, y, z + 1),
+							   solid_array_isair(blocks, x - 1, y - 1, z + 1));
+				float C
+					= vertexAO(solid_array_isair(blocks, x - 1, y + 1, z), solid_array_isair(blocks, x - 1, y, z + 1),
+							   solid_array_isair(blocks, x - 1, y + 1, z + 1));
+				float D
+					= vertexAO(solid_array_isair(blocks, x - 1, y + 1, z), solid_array_isair(blocks, x - 1, y, z - 1),
+							   solid_array_isair(blocks, x - 1, y + 1, z - 1));
 
 				tesselator_addi(tess, (int16_t[]) {x, y, z, x, y, z + 1, x, y + 1, z + 1, x, y + 1, z},
 								(uint32_t[]) {
@@ -649,16 +664,20 @@ void chunk_generate_naive(struct libvxl_block* blocks, size_t count, size_t* sol
 			}
 		}
 
-		if(solid_array_isair(solid, x + 1, y, z)) {
+		if(solid_array_isair(blocks, x + 1, y, z)) {
 			if(ao) {
-				float A = vertexAO(solid_array_isair(solid, x + 1, y - 1, z), solid_array_isair(solid, x + 1, y, z - 1),
-								   solid_array_isair(solid, x + 1, y - 1, z - 1));
-				float B = vertexAO(solid_array_isair(solid, x + 1, y + 1, z), solid_array_isair(solid, x + 1, y, z - 1),
-								   solid_array_isair(solid, x + 1, y + 1, z - 1));
-				float C = vertexAO(solid_array_isair(solid, x + 1, y + 1, z), solid_array_isair(solid, x + 1, y, z + 1),
-								   solid_array_isair(solid, x + 1, y + 1, z + 1));
-				float D = vertexAO(solid_array_isair(solid, x + 1, y - 1, z), solid_array_isair(solid, x + 1, y, z + 1),
-								   solid_array_isair(solid, x + 1, y - 1, z + 1));
+				float A
+					= vertexAO(solid_array_isair(blocks, x + 1, y - 1, z), solid_array_isair(blocks, x + 1, y, z - 1),
+							   solid_array_isair(blocks, x + 1, y - 1, z - 1));
+				float B
+					= vertexAO(solid_array_isair(blocks, x + 1, y + 1, z), solid_array_isair(blocks, x + 1, y, z - 1),
+							   solid_array_isair(blocks, x + 1, y + 1, z - 1));
+				float C
+					= vertexAO(solid_array_isair(blocks, x + 1, y + 1, z), solid_array_isair(blocks, x + 1, y, z + 1),
+							   solid_array_isair(blocks, x + 1, y + 1, z + 1));
+				float D
+					= vertexAO(solid_array_isair(blocks, x + 1, y - 1, z), solid_array_isair(blocks, x + 1, y, z + 1),
+							   solid_array_isair(blocks, x + 1, y - 1, z + 1));
 
 				tesselator_addi(tess, (int16_t[]) {x + 1, y, z, x + 1, y + 1, z, x + 1, y + 1, z + 1, x + 1, y, z + 1},
 								(uint32_t[]) {
@@ -674,16 +693,20 @@ void chunk_generate_naive(struct libvxl_block* blocks, size_t count, size_t* sol
 			}
 		}
 
-		if(y == map_size_y - 1 || solid_array_isair(solid, x, y + 1, z)) {
+		if(y == map_size_y - 1 || solid_array_isair(blocks, x, y + 1, z)) {
 			if(ao) {
-				float A = vertexAO(solid_array_isair(solid, x - 1, y + 1, z), solid_array_isair(solid, x, y + 1, z - 1),
-								   solid_array_isair(solid, x - 1, y + 1, z - 1));
-				float B = vertexAO(solid_array_isair(solid, x - 1, y + 1, z), solid_array_isair(solid, x, y + 1, z + 1),
-								   solid_array_isair(solid, x - 1, y + 1, z + 1));
-				float C = vertexAO(solid_array_isair(solid, x + 1, y + 1, z), solid_array_isair(solid, x, y + 1, z + 1),
-								   solid_array_isair(solid, x + 1, y + 1, z + 1));
-				float D = vertexAO(solid_array_isair(solid, x + 1, y + 1, z), solid_array_isair(solid, x, y + 1, z - 1),
-								   solid_array_isair(solid, x + 1, y + 1, z - 1));
+				float A
+					= vertexAO(solid_array_isair(blocks, x - 1, y + 1, z), solid_array_isair(blocks, x, y + 1, z - 1),
+							   solid_array_isair(blocks, x - 1, y + 1, z - 1));
+				float B
+					= vertexAO(solid_array_isair(blocks, x - 1, y + 1, z), solid_array_isair(blocks, x, y + 1, z + 1),
+							   solid_array_isair(blocks, x - 1, y + 1, z + 1));
+				float C
+					= vertexAO(solid_array_isair(blocks, x + 1, y + 1, z), solid_array_isair(blocks, x, y + 1, z + 1),
+							   solid_array_isair(blocks, x + 1, y + 1, z + 1));
+				float D
+					= vertexAO(solid_array_isair(blocks, x + 1, y + 1, z), solid_array_isair(blocks, x, y + 1, z - 1),
+							   solid_array_isair(blocks, x + 1, y + 1, z - 1));
 
 				tesselator_addi(tess, (int16_t[]) {x, y + 1, z, x, y + 1, z + 1, x + 1, y + 1, z + 1, x + 1, y + 1, z},
 								(uint32_t[]) {
@@ -699,16 +722,20 @@ void chunk_generate_naive(struct libvxl_block* blocks, size_t count, size_t* sol
 			}
 		}
 
-		if(y > 0 && solid_array_isair(solid, x, y - 1, z)) {
+		if(y > 0 && solid_array_isair(blocks, x, y - 1, z)) {
 			if(ao) {
-				float A = vertexAO(solid_array_isair(solid, x - 1, y - 1, z), solid_array_isair(solid, x, y - 1, z - 1),
-								   solid_array_isair(solid, x - 1, y - 1, z - 1));
-				float B = vertexAO(solid_array_isair(solid, x + 1, y - 1, z), solid_array_isair(solid, x, y - 1, z - 1),
-								   solid_array_isair(solid, x + 1, y - 1, z - 1));
-				float C = vertexAO(solid_array_isair(solid, x + 1, y - 1, z), solid_array_isair(solid, x, y - 1, z + 1),
-								   solid_array_isair(solid, x + 1, y - 1, z + 1));
-				float D = vertexAO(solid_array_isair(solid, x - 1, y - 1, z), solid_array_isair(solid, x, y - 1, z + 1),
-								   solid_array_isair(solid, x - 1, y - 1, z + 1));
+				float A
+					= vertexAO(solid_array_isair(blocks, x - 1, y - 1, z), solid_array_isair(blocks, x, y - 1, z - 1),
+							   solid_array_isair(blocks, x - 1, y - 1, z - 1));
+				float B
+					= vertexAO(solid_array_isair(blocks, x + 1, y - 1, z), solid_array_isair(blocks, x, y - 1, z - 1),
+							   solid_array_isair(blocks, x + 1, y - 1, z - 1));
+				float C
+					= vertexAO(solid_array_isair(blocks, x + 1, y - 1, z), solid_array_isair(blocks, x, y - 1, z + 1),
+							   solid_array_isair(blocks, x + 1, y - 1, z + 1));
+				float D
+					= vertexAO(solid_array_isair(blocks, x - 1, y - 1, z), solid_array_isair(blocks, x, y - 1, z + 1),
+							   solid_array_isair(blocks, x - 1, y - 1, z + 1));
 
 				tesselator_addi(tess, (int16_t[]) {x, y, z, x + 1, y, z, x + 1, y, z + 1, x, y, z + 1},
 								(uint32_t[]) {
