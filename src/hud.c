@@ -801,8 +801,41 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 		}
 
 		if(camera_mode != CAMERAMODE_SELECTION) {
-			glColor3f(1.0F, 1.0F, 1.0F);
 			font_select(FONT_SMALLFNT);
+
+			if(settings.chat_shadow) {
+				float chat_width = 0;
+				int chat_height = 0;
+				for(int k = 0; k < 6; k++) {
+					if((window_time() - chat_timer[0][k + 1] < 10.0F || chat_input_mode != CHAT_NO_INPUT)
+					   && strlen(chat[0][k + 1]) > 0) {
+						chat_width = fmaxf(font_length(8.0F * scalef, chat[0][k + 1]), chat_width);
+						chat_height = k + 1;
+					}
+				}
+
+				if(chat_input_mode != CHAT_NO_INPUT) {
+					chat_height += 2;
+					chat_width = fmaxf(settings.window_width / 2.0F, chat_width);
+				}
+
+				if(chat_height > 0) {
+					glColor4f(0, 0, 0, 0.5F);
+					glEnable(GL_BLEND);
+					glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+					if(chat_input_mode == CHAT_NO_INPUT) {
+						texture_draw_empty(3.0F * scalef, settings.window_height * 0.15F + 6.0F * scalef,
+										   chat_width + 16.0F * scalef, 10.0F * scalef * chat_height + 6.0F * scalef);
+					} else {
+						texture_draw_empty(3.0F * scalef, settings.window_height * 0.15F + 26.0F * scalef,
+										   chat_width + 16.0F * scalef, 10.0F * scalef * chat_height + 6.0F * scalef);
+					}
+					glDisable(GL_BLEND);
+				}
+			}
+
+			glColor3f(1.0F, 1.0F, 1.0F);
+
 			if(chat_input_mode != CHAT_NO_INPUT) {
 				switch(chat_input_mode) {
 					case CHAT_ALL_INPUT:
@@ -820,6 +853,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 				font_render(11.0F * scalef, settings.window_height * 0.15F + 10.0F * scalef, 8.0F * scalef, chat[0][0]);
 				chat[0][0][l] = 0;
 			}
+
 			for(int k = 0; k < 6; k++) {
 				if(window_time() - chat_timer[0][k + 1] < 10.0F || chat_input_mode != CHAT_NO_INPUT) {
 					glColor3ub(red(chat_color[0][k + 1]), green(chat_color[0][k + 1]), blue(chat_color[0][k + 1]));

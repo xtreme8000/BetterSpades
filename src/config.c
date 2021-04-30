@@ -86,6 +86,7 @@ void config_save() {
 	config_seti("client", "ambient_occlusion", settings.ambient_occlusion);
 	config_setf("client", "camera_fov", settings.camera_fov);
 	config_seti("client", "hold_down_sights", settings.hold_down_sights);
+	config_seti("client", "chat_shadow", settings.chat_shadow);
 
 	for(int k = 0; k < list_size(&config_keys); k++) {
 		struct config_key_pair* e = list_get(&config_keys, k);
@@ -156,6 +157,8 @@ static int config_read_key(void* user, const char* section, const char* name, co
 			settings.camera_fov = fmax(fmin(atof(value), CAMERA_MAX_FOV), CAMERA_DEFAULT_FOV);
 		} else if(!strcmp(name, "hold_down_sights")) {
 			settings.hold_down_sights = atoi(value);
+		} else if(!strcmp(name, "chat_shadow")) {
+			settings.chat_shadow = atoi(value);
 		}
 	}
 	if(!strcmp(section, "controls")) {
@@ -494,6 +497,15 @@ void config_reload() {
 				 16,
 				 .defaults_length = 5,
 				 .label_callback = config_label_msaa,
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = &settings_tmp.chat_shadow,
+				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
+				 .max = 1,
+				 .help = "Dark chat background",
+				 .name = "Chat shadow",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
