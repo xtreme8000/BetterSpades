@@ -229,6 +229,8 @@ static bool falling_blocks_pivot(void* key, void* value, void* user) {
 	return true;
 }
 
+static const int DIRECTION_MASK[][3] = {{1, 0, 0}, {-1, 0, 0}, {0, 1, 0}, {0, -1, 0}, {0, 0, 1}, {0, 0, -1}};
+
 static bool map_update_physics_sub(struct map_collapsing* collapsing, int x, int y, int z) {
 	if(y <= 1)
 		return false;
@@ -238,50 +240,49 @@ static bool map_update_physics_sub(struct map_collapsing* collapsing, int x, int
 
 	struct minheap openlist;
 	minheap_create(&openlist);
+
 	HashTable closedlist;
 	ht_setup(&closedlist, sizeof(uint32_t), sizeof(uint32_t), 256);
 	closedlist.compare = int_cmp;
 	closedlist.hash = int_hash;
 
-	struct minheap_block start;
-	start.pos = pos_key(x, y, z);
+	struct minheap_block start = (struct minheap_block) {
+		.pos = pos_key(x, y, z),
+	};
+
+	uint32_t start_color = map_get(x, y, z);
+
 	minheap_put(&openlist, &start);
+	ht_insert(&closedlist, &start.pos, &start_color);
 
 	while(!minheap_isempty(&openlist)) { // find all connected blocks
 		struct minheap_block current = minheap_extract(&openlist);
-		uint32_t color = map_get(pos_keyx(current.pos), pos_keyy(current.pos), pos_keyz(current.pos));
-		ht_insert(&closedlist, &current.pos, &color);
 
-		int x = pos_keyx(current.pos);
-		int y = pos_keyy(current.pos);
-		int z = pos_keyz(current.pos);
-
-		if(y >= 1 && !map_isair(x, y - 1, z) && !ht_contains(&closedlist, (uint32_t[]) {pos_key(x, y - 1, z)})) {
-			if(y <= 2) { // reached layer at water level = finished!
-				minheap_destroy(&openlist);
-				ht_destroy(&closedlist);
-				return false;
-			}
-			minheap_put(&openlist, &(struct minheap_block) {.pos = pos_key(x, y - 1, z)});
+		if(pos_keyy(current.pos) <= 1) { // stop at indestructible ground layer
+			minheap_destroy(&openlist);
+			ht_destroy(&closedlist);
+			return false;
 		}
 
-		if(y < map_size_y - 1 && !map_isair(x, y + 1, z)
-		   && !ht_contains(&closedlist, (uint32_t[]) {pos_key(x, y + 1, z)}))
-			minheap_put(&openlist, &(struct minheap_block) {.pos = pos_key(x, y + 1, z)});
+		for(size_t k = 0; k < sizeof(DIRECTION_MASK) / sizeof(*DIRECTION_MASK); k++) {
+			int dir_block[3] = {
+				pos_keyx(current.pos) + DIRECTION_MASK[k][0],
+				pos_keyy(current.pos) + DIRECTION_MASK[k][1],
+				pos_keyz(current.pos) + DIRECTION_MASK[k][2],
+			};
 
-		if(x < map_size_x - 1 && !map_isair(x + 1, y, z)
-		   && !ht_contains(&closedlist, (uint32_t[]) {pos_key(x + 1, y, z)}))
-			minheap_put(&openlist, &(struct minheap_block) {.pos = pos_key(x + 1, y, z)});
+			struct minheap_block block = (struct minheap_block) {
+				.pos = pos_key(dir_block[0], dir_block[1], dir_block[2]),
+			};
 
-		if(y >= 1 && !map_isair(x - 1, y, z) && !ht_contains(&closedlist, (uint32_t[]) {pos_key(x - 1, y, z)}))
-			minheap_put(&openlist, &(struct minheap_block) {.pos = pos_key(x - 1, y, z)});
-
-		if(z < map_size_z - 1 && !map_isair(x, y, z + 1)
-		   && !ht_contains(&closedlist, (uint32_t[]) {pos_key(x, y, z + 1)}))
-			minheap_put(&openlist, &(struct minheap_block) {.pos = pos_key(x, y, z + 1)});
-
-		if(z >= 1 && !map_isair(x, y, z - 1) && !ht_contains(&closedlist, (uint32_t[]) {pos_key(x, y, z - 1)}))
-			minheap_put(&openlist, &(struct minheap_block) {.pos = pos_key(x, y, z - 1)});
+			if(dir_block[0] >= 0 && dir_block[1] >= 0 && dir_block[2] >= 0 && dir_block[0] < map_size_x
+			   && dir_block[1] < map_size_y && dir_block[2] < map_size_z && !ht_contains(&closedlist, &block.pos)
+			   && !map_isair(dir_block[0], dir_block[1], dir_block[2])) {
+				minheap_put(&openlist, &block);
+				uint32_t color = map_get(dir_block[0], dir_block[1], dir_block[2]);
+				ht_insert(&closedlist, &block.pos, &color);
+			}
+		}
 	}
 
 	minheap_destroy(&openlist);
@@ -447,17 +448,17 @@ void map_collapsing_update(float dt) {
 }
 
 void map_update_physics(int x, int y, int z) {
-	if(!map_isair(x + 1, y, z))
+	if(x + 1 < map_size_x && !map_isair(x + 1, y, z))
 		channel_put(&map_work_queue, &(struct map_work_packet) {.x = x + 1, .y = y, .z = z});
-	if(!map_isair(x - 1, y, z))
+	if(x >= 1 && !map_isair(x - 1, y, z))
 		channel_put(&map_work_queue, &(struct map_work_packet) {.x = x - 1, .y = y, .z = z});
-	if(!map_isair(x, y, z + 1))
+	if(z + 1 < map_size_z && !map_isair(x, y, z + 1))
 		channel_put(&map_work_queue, &(struct map_work_packet) {.x = x, .y = y, .z = z + 1});
-	if(!map_isair(x, y, z - 1))
+	if(z >= 1 && !map_isair(x, y, z - 1))
 		channel_put(&map_work_queue, &(struct map_work_packet) {.x = x, .y = y, .z = z - 1});
-	if(!map_isair(x, y - 1, z))
+	if(y >= 3 && !map_isair(x, y - 1, z)) // don't check ground layers
 		channel_put(&map_work_queue, &(struct map_work_packet) {.x = x, .y = y - 1, .z = z});
-	if(!map_isair(x, y + 1, z))
+	if(y + 1 < map_size_y && !map_isair(x, y + 1, z))
 		channel_put(&map_work_queue, &(struct map_work_packet) {.x = x, .y = y + 1, .z = z});
 }
 
