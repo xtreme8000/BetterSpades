@@ -401,6 +401,7 @@ void read_PacketPlayerLeft(void* data, int len) {
 	if(p->player_id < PLAYERS_MAX) {
 		players[p->player_id].connected = 0;
 		players[p->player_id].alive = 0;
+		players[p->player_id].score = 0;
 		char s[32];
 		sprintf(s, "%s disconnected", players[p->player_id].name);
 		chat_add(0, 0x0000FF, s);
