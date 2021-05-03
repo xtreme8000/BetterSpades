@@ -1682,9 +1682,9 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 			if(screen_current == SCREEN_TEAM_SELECT) {
 				int new_team = 256;
 				switch(key) {
-					case WINDOW_KEY_TOOL1: new_team = TEAM_1; break;
-					case WINDOW_KEY_TOOL2: new_team = TEAM_2; break;
-					case WINDOW_KEY_TOOL3: new_team = TEAM_SPECTATOR; break;
+					case WINDOW_KEY_SELECT1: new_team = TEAM_1; break;
+					case WINDOW_KEY_SELECT2: new_team = TEAM_2; break;
+					case WINDOW_KEY_SELECT3: new_team = TEAM_SPECTATOR; break;
 				}
 				if(new_team <= 255) {
 					if(network_logged_in) {
@@ -1725,9 +1725,9 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 			if(screen_current == SCREEN_GUN_SELECT) {
 				int new_gun = 255;
 				switch(key) {
-					case WINDOW_KEY_TOOL1: new_gun = WEAPON_RIFLE; break;
-					case WINDOW_KEY_TOOL2: new_gun = WEAPON_SMG; break;
-					case WINDOW_KEY_TOOL3: new_gun = WEAPON_SHOTGUN; break;
+					case WINDOW_KEY_SELECT1: new_gun = WEAPON_RIFLE; break;
+					case WINDOW_KEY_SELECT2: new_gun = WEAPON_SMG; break;
+					case WINDOW_KEY_SELECT3: new_gun = WEAPON_SHOTGUN; break;
 				}
 				if(new_gun < 255) {
 					if(network_logged_in) {
