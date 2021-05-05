@@ -1025,7 +1025,8 @@ int network_update() {
 					break;
 				}
 				case ENET_EVENT_TYPE_DISCONNECT:
-					hud_change(&hud_serverlist);
+					if(network_logged_in)
+						hud_change(&hud_serverlist);
 					chat_showpopup(network_reason_disconnect(event.data), 10.0F, rgb(255, 0, 0));
 					log_error("server disconnected! reason: %s", network_reason_disconnect(event.data));
 					event.peer->data = NULL;
