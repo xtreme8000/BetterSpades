@@ -755,7 +755,7 @@ int main(int argc, char** argv) {
 			exit(0);
 		}
 
-		if(!network_connect_string(argv[1] + 1)) {
+		if(!network_connect_string(argv[1] + 1, VERSION_075)) {
 			log_error("Error: Connection failed (use --help for instructions)");
 			exit(1);
 		} else {

@@ -2086,7 +2086,7 @@ static void server_c(char* address, char* name) {
 		} else {
 			rpc_seti(RPC_VALUE_SLOTS, 0);
 		}
-		if(network_connect_string(address))
+		if(network_connect_string(address, VERSION_075))
 			hud_change(&hud_ingame);
 	}
 }
