@@ -253,11 +253,12 @@ void chunk_generate_greedy(struct libvxl_chunk_copy* blocks, size_t start_x, siz
 					if((z == 0 && solid_array_isair(blocks, x, y, map_size_z - 1))
 					   || (z > 0 && solid_array_isair(blocks, x, y, z - 1))) {
 						if(checked_voxels2[0][y + (x - start_x) * map_size_y] == 0) {
-							int len_y = 0;
+							int len_y = 1;
 							int len_x = 1;
 
-							for(int a = 0; a < map_size_y - y; a++) {
-								if(libvxl_copy_chunk_get_color(blocks, x, z, map_size_y - 1 - (y + a)) == col
+							for(int a = 1; a < map_size_y - y; a++) {
+								if(!solid_array_isair(blocks, x, y + a, z)
+								   && libvxl_copy_chunk_get_color(blocks, x, z, map_size_y - 1 - (y + a)) == col
 								   && checked_voxels2[0][y + a + (x - start_x) * map_size_y] == 0
 								   && ((z == 0 && solid_array_isair(blocks, x, y + a, map_size_z - 1))
 									   || (z > 0 && solid_array_isair(blocks, x, y + a, z - 1))))
@@ -269,7 +270,8 @@ void chunk_generate_greedy(struct libvxl_chunk_copy* blocks, size_t start_x, siz
 							for(int b = 1; b < (start_x + CHUNK_SIZE - x); b++) {
 								int a;
 								for(a = 0; a < len_y; a++) {
-									if(libvxl_copy_chunk_get_color(blocks, x + b, z, map_size_y - 1 - (y + a)) != col
+									if(solid_array_isair(blocks, x + b, y + a, z)
+									   || libvxl_copy_chunk_get_color(blocks, x + b, z, map_size_y - 1 - (y + a)) != col
 									   || checked_voxels2[0][y + a + (x + b - start_x) * map_size_y] != 0
 									   || !((z == 0 && solid_array_isair(blocks, x + b, y + a, map_size_z - 1))
 											|| (z > 0 && solid_array_isair(blocks, x + b, y + a, z - 1))))
@@ -294,11 +296,12 @@ void chunk_generate_greedy(struct libvxl_chunk_copy* blocks, size_t start_x, siz
 					if((z == map_size_z - 1 && solid_array_isair(blocks, x, y, 0))
 					   || (z < map_size_z - 1 && solid_array_isair(blocks, x, y, z + 1))) {
 						if(checked_voxels2[1][y + (x - start_x) * map_size_y] == 0) {
-							int len_y = 0;
+							int len_y = 1;
 							int len_x = 1;
 
-							for(int a = 0; a < map_size_y - y; a++) {
-								if(libvxl_copy_chunk_get_color(blocks, x, z, map_size_y - 1 - (y + a)) == col
+							for(int a = 1; a < map_size_y - y; a++) {
+								if(!solid_array_isair(blocks, x, y + a, z)
+								   && libvxl_copy_chunk_get_color(blocks, x, z, map_size_y - 1 - (y + a)) == col
 								   && checked_voxels2[1][y + a + (x - start_x) * map_size_y] == 0
 								   && ((z == map_size_z - 1 && solid_array_isair(blocks, x, y + a, 0))
 									   || (z < map_size_z - 1 && solid_array_isair(blocks, x, y + a, z + 1))))
@@ -310,7 +313,8 @@ void chunk_generate_greedy(struct libvxl_chunk_copy* blocks, size_t start_x, siz
 							for(int b = 1; b < (start_x + CHUNK_SIZE - x); b++) {
 								int a;
 								for(a = 0; a < len_y; a++) {
-									if(libvxl_copy_chunk_get_color(blocks, x + b, z, map_size_y - 1 - (y + a)) != col
+									if(solid_array_isair(blocks, x + b, y + a, z)
+									   || libvxl_copy_chunk_get_color(blocks, x + b, z, map_size_y - 1 - (y + a)) != col
 									   || checked_voxels2[1][y + a + (x + b - start_x) * map_size_y] != 0
 									   || !((z == map_size_z - 1 && solid_array_isair(blocks, x + b, y + a, 0))
 											|| (z < map_size_z - 1 && solid_array_isair(blocks, x + b, y + a, z + 1))))
@@ -356,11 +360,12 @@ void chunk_generate_greedy(struct libvxl_chunk_copy* blocks, size_t start_x, siz
 					if((x == 0 && solid_array_isair(blocks, map_size_x - 1, y, z))
 					   || (x > 0 && solid_array_isair(blocks, x - 1, y, z))) {
 						if(checked_voxels2[0][y + (z - start_z) * map_size_y] == 0) {
-							int len_y = 0;
+							int len_y = 1;
 							int len_z = 1;
 
-							for(int a = 0; a < map_size_y - y; a++) {
-								if(libvxl_copy_chunk_get_color(blocks, x, z, map_size_y - 1 - (y + a)) == col
+							for(int a = 1; a < map_size_y - y; a++) {
+								if(!solid_array_isair(blocks, x, y + a, z)
+								   && libvxl_copy_chunk_get_color(blocks, x, z, map_size_y - 1 - (y + a)) == col
 								   && checked_voxels2[0][y + a + (z - start_z) * map_size_y] == 0
 								   && ((x == 0 && solid_array_isair(blocks, map_size_x - 1, y + a, z))
 									   || (x > 0 && solid_array_isair(blocks, x - 1, y + a, z))))
@@ -372,7 +377,8 @@ void chunk_generate_greedy(struct libvxl_chunk_copy* blocks, size_t start_x, siz
 							for(int b = 1; b < (start_z + CHUNK_SIZE - z); b++) {
 								int a;
 								for(a = 0; a < len_y; a++) {
-									if(libvxl_copy_chunk_get_color(blocks, x, z + b, map_size_y - 1 - (y + a)) != col
+									if(solid_array_isair(blocks, x, y + a, z + b)
+									   || libvxl_copy_chunk_get_color(blocks, x, z + b, map_size_y - 1 - (y + a)) != col
 									   || checked_voxels2[0][y + a + (z + b - start_z) * map_size_y] != 0
 									   || !((x == 0 && solid_array_isair(blocks, map_size_x - 1, y + a, z + b))
 											|| (x > 0 && solid_array_isair(blocks, x - 1, y + a, z + b))))
@@ -397,11 +403,12 @@ void chunk_generate_greedy(struct libvxl_chunk_copy* blocks, size_t start_x, siz
 					if((x == map_size_x - 1 && solid_array_isair(blocks, 0, y, z))
 					   || (x < map_size_x - 1 && solid_array_isair(blocks, x + 1, y, z))) {
 						if(checked_voxels2[1][y + (z - start_z) * map_size_y] == 0) {
-							int len_y = 0;
+							int len_y = 1;
 							int len_z = 1;
 
-							for(int a = 0; a < map_size_y - y; a++) {
-								if(libvxl_copy_chunk_get_color(blocks, x, z, map_size_y - 1 - (y + a)) == col
+							for(int a = 1; a < map_size_y - y; a++) {
+								if(!solid_array_isair(blocks, x, y + a, z)
+								   && libvxl_copy_chunk_get_color(blocks, x, z, map_size_y - 1 - (y + a)) == col
 								   && checked_voxels2[1][y + a + (z - start_z) * map_size_y] == 0
 								   && ((x == map_size_x - 1 && solid_array_isair(blocks, 0, y + a, z))
 									   || (x < map_size_x - 1 && solid_array_isair(blocks, x + 1, y + a, z))))
@@ -413,7 +420,8 @@ void chunk_generate_greedy(struct libvxl_chunk_copy* blocks, size_t start_x, siz
 							for(int b = 1; b < (start_z + CHUNK_SIZE - z); b++) {
 								int a;
 								for(a = 0; a < len_y; a++) {
-									if(libvxl_copy_chunk_get_color(blocks, x, z + b, map_size_y - 1 - (y + a)) != col
+									if(solid_array_isair(blocks, x, y + a, z + b)
+									   || libvxl_copy_chunk_get_color(blocks, x, z + b, map_size_y - 1 - (y + a)) != col
 									   || checked_voxels2[1][y + a + (z + b - start_z) * map_size_y] != 0
 									   || !((x == map_size_x - 1 && solid_array_isair(blocks, 0, y + a, z + b))
 											|| (x < map_size_x - 1 && solid_array_isair(blocks, x + 1, y + a, z + b))))
@@ -458,11 +466,12 @@ void chunk_generate_greedy(struct libvxl_chunk_copy* blocks, size_t start_x, siz
 
 					if(y == map_size_y - 1 || solid_array_isair(blocks, x, y + 1, z)) {
 						if(checked_voxels[0][(x - start_x) + (z - start_z) * CHUNK_SIZE] == 0) {
-							int len_x = 0;
+							int len_x = 1;
 							int len_z = 1;
 
-							for(int a = 0; a < (start_x + CHUNK_SIZE - x); a++) {
-								if(libvxl_copy_chunk_get_color(blocks, x + a, z, map_size_y - 1 - y) == col
+							for(int a = 1; a < (start_x + CHUNK_SIZE - x); a++) {
+								if(!solid_array_isair(blocks, x + a, y, z)
+								   && libvxl_copy_chunk_get_color(blocks, x + a, z, map_size_y - 1 - y) == col
 								   && checked_voxels[0][(x + a - start_x) + (z - start_z) * CHUNK_SIZE] == 0
 								   && (y == map_size_y - 1 || solid_array_isair(blocks, x + a, y + 1, z)))
 									len_x++;
@@ -473,7 +482,8 @@ void chunk_generate_greedy(struct libvxl_chunk_copy* blocks, size_t start_x, siz
 							for(int b = 1; b < (start_z + CHUNK_SIZE - z); b++) {
 								int a;
 								for(a = 0; a < len_x; a++) {
-									if(libvxl_copy_chunk_get_color(blocks, x + a, z + b, map_size_y - 1 - y) != col
+									if(solid_array_isair(blocks, x + a, y, z + b)
+									   || libvxl_copy_chunk_get_color(blocks, x + a, z + b, map_size_y - 1 - y) != col
 									   || checked_voxels[0][(x + a - start_x) + (z + b - start_z) * CHUNK_SIZE] != 0
 									   || !(y == map_size_y - 1 || solid_array_isair(blocks, x + a, y + 1, z + b)))
 										break;
@@ -497,11 +507,12 @@ void chunk_generate_greedy(struct libvxl_chunk_copy* blocks, size_t start_x, siz
 
 					if(y > 0 && solid_array_isair(blocks, x, y - 1, z)) {
 						if(checked_voxels[1][(x - start_x) + (z - start_z) * CHUNK_SIZE] == 0) {
-							int len_x = 0;
+							int len_x = 1;
 							int len_z = 1;
 
-							for(int a = 0; a < (start_x + CHUNK_SIZE - x); a++) {
-								if(libvxl_copy_chunk_get_color(blocks, x + a, z, map_size_y - 1 - y) == col
+							for(int a = 1; a < (start_x + CHUNK_SIZE - x); a++) {
+								if(!solid_array_isair(blocks, x + a, y, z)
+								   && libvxl_copy_chunk_get_color(blocks, x + a, z, map_size_y - 1 - y) == col
 								   && checked_voxels[1][(x + a - start_x) + (z - start_z) * CHUNK_SIZE] == 0
 								   && (y > 0 && solid_array_isair(blocks, x + a, y - 1, z)))
 									len_x++;
@@ -512,7 +523,8 @@ void chunk_generate_greedy(struct libvxl_chunk_copy* blocks, size_t start_x, siz
 							for(int b = 1; b < (start_z + CHUNK_SIZE - z); b++) {
 								int a;
 								for(a = 0; a < len_x; a++) {
-									if(libvxl_copy_chunk_get_color(blocks, x + a, z + b, map_size_y - 1 - y) != col
+									if(solid_array_isair(blocks, x + a, y, z + b)
+									   || libvxl_copy_chunk_get_color(blocks, x + a, z + b, map_size_y - 1 - y) != col
 									   || checked_voxels[1][(x + a - start_x) + (z + b - start_z) * CHUNK_SIZE] != 0
 									   || !(y > 0 && solid_array_isair(blocks, x + a, y - 1, z + b)))
 										break;
