@@ -70,7 +70,7 @@ void chat_add(int channel, unsigned int color, const char* msg) {
 	chat_color[channel][1] = color;
 	chat_timer[channel][1] = window_time();
 	if(channel == 0)
-		log_info(msg);
+		log_info("%s", msg);
 }
 char chat_popup[256] = {};
 int chat_popup_color;

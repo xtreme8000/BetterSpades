@@ -429,7 +429,7 @@ void read_PacketMapStart(void* data, int len) {
 		char filename[128];
 		sprintf(filename, "cache/%02X%02X%02X%02X.vxl", red(p->crc32), green(p->crc32), blue(p->crc32),
 				alpha(p->crc32));
-		log_info(filename);
+		log_info("%s", filename);
 		if(file_exists(filename)) {
 			network_map_cached = 1;
 			void* mapd = file_load(filename);
