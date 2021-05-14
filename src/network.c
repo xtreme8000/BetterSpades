@@ -865,20 +865,42 @@ void read_PacketExtInfo(void* data, int len) {
 		}
 
 		struct PacketExtInfo reply;
-		reply.length = 3;
+		reply.length = 4;
 		reply.entries[0] = (struct PacketExtInfoEntry) {
-			.id = EXT_256PLAYERS,
+			.id = EXT_PLAYER_PROPERTIES,
 			.version = 1,
 		};
 		reply.entries[1] = (struct PacketExtInfoEntry) {
-			.id = EXT_MESSAGES,
+			.id = EXT_256PLAYERS,
 			.version = 1,
 		};
 		reply.entries[2] = (struct PacketExtInfoEntry) {
+			.id = EXT_MESSAGES,
+			.version = 1,
+		};
+		reply.entries[3] = (struct PacketExtInfoEntry) {
 			.id = EXT_KICKREASON,
 			.version = 1,
 		};
 		network_send(PACKET_EXTINFO_ID, &reply, reply.length * sizeof(struct PacketExtInfoEntry) + 1);
+	}
+}
+
+void read_PacketPlayerProperties(void* data, int len) {
+	struct PacketPlayerProperties* p = (struct PacketPlayerProperties*)data;
+
+	if(len >= sizeof(struct PacketPlayerProperties) && p->subID == 0) {
+		players[p->player_id].ammo = p->ammo_clip;
+		players[p->player_id].ammo_reserved = p->ammo_reserved;
+		players[p->player_id].score = p->score;
+
+		if(p->player_id == local_player_id) {
+			local_player_health = p->health;
+			local_player_blocks = p->blocks;
+			local_player_grenades = p->grenades;
+			local_player_ammo = p->ammo_clip;
+			local_player_ammo_reserved = p->ammo_reserved;
+		}
 	}
 }
 
@@ -1138,4 +1160,5 @@ void network_init() {
 	packets[PACKET_HANDSHAKEINIT_ID] = read_PacketHandshakeInit;
 	packets[PACKET_VERSIONGET_ID] = read_PacketVersionGet;
 	packets[PACKET_EXTINFO_ID] = read_PacketExtInfo;
+	packets[PACKET_EXT_BASE + EXT_PLAYER_PROPERTIES] = read_PacketPlayerProperties;
 }

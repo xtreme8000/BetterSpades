@@ -417,7 +417,21 @@ struct PacketExtInfo {
 	} entries[256];
 };
 
+struct PacketPlayerProperties {
+	uint8_t subID;
+	uint8_t player_id;
+	uint8_t health;
+	uint8_t blocks;
+	uint8_t grenades;
+	uint8_t ammo_clip;
+	uint8_t ammo_reserved;
+	uint32_t score;
+};
+
+#define PACKET_EXT_BASE 0x40
+
 enum Extension {
+	EXT_PLAYER_PROPERTIES = 0x00,
 	EXT_256PLAYERS = 0xC0,
 	EXT_MESSAGES = 0xC1,
 	EXT_KICKREASON = 0xC2,
