@@ -27,7 +27,6 @@ void network_send(int id, void* data, int len);
 void network_updateColor(void);
 void network_disconnect(void);
 int network_identifier_split(char* addr, char* ip_out, int* port_out);
-int network_connect(char* ip, int port);
 int network_connect_string(char* addr, int version);
 int network_update(void);
 int network_status(void);

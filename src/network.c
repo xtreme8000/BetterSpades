@@ -979,6 +979,7 @@ int network_connect_string(char* addr, int version) {
 	int port;
 	if(!network_identifier_split(addr, ip, &port))
 		return 0;
+	log_info("Connecting to %s at port %i", ip, port);
 	return network_connect_sub(ip, port, version);
 }
 
@@ -1014,7 +1015,6 @@ int network_update() {
 					if(event.data == 3) {
 						char addr[32];
 						sprintf(addr, "aos://%i:%i", event.peer->address.host, event.peer->address.port);
-						log_info("Wrong protocol detected, trying to connect with 0.76");
 						network_connect_string(addr, VERSION_076);
 						break;
 					}
