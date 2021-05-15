@@ -741,6 +741,17 @@ void read_PacketIntelCapture(void* data, int len) {
 
 			gamestate.gamemode.ctf.team_1_score = 0;
 			gamestate.gamemode.ctf.team_2_score = 0;
+			
+			if(settings.auto_gg) {
+				struct PacketChatMessage msg;
+				msg.player_id = local_player_id;
+				msg.chat_type = CHAT_ALL;
+				window_textinput(1);
+				chat_input_mode = CHAT_NO_INPUT;
+				strcpy(msg.message, "GG");
+				network_send(PACKET_CHATMESSAGE_ID, &msg,
+							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+			}
 		}
 	}
 }
