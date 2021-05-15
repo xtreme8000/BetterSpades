@@ -1648,6 +1648,19 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(chat[0][0], "/");
 			}
 
+			if(key == WINDOW_KEY_MACRO) {
+				if(settings.macros) {
+				struct PacketChatMessage msg;
+				msg.player_id = local_player_id;
+				msg.chat_type = CHAT_ALL;
+				window_textinput(1);
+				chat_input_mode = CHAT_NO_INPUT;
+				strcpy(msg.message, settings.macros);
+				network_send(PACKET_CHATMESSAGE_ID, &msg,
+							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				}
+			}
+
 			if(key == WINDOW_KEY_CHAT) {
 				window_textinput(1);
 				chat_input_mode = CHAT_ALL_INPUT;

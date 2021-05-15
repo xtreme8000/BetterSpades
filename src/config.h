@@ -27,6 +27,7 @@
 struct config_file_entry {
 	char section[32];
 	char name[32];
+	char macros[32];
 	char value[32];
 };
 
@@ -57,6 +58,7 @@ extern struct RENDER_OPTIONS {
 	int chat_shadow;
 	int send_client_info;
 	int auto_gg;
+	char macros[50];
 } settings, settings_tmp;
 
 extern struct list config_keys;

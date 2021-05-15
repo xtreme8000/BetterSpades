@@ -90,6 +90,7 @@ void config_save() {
 	config_seti("client", "show_player_arms", settings.player_arms);
 	config_seti("client", "send_client_info", settings.send_client_info);
 	config_seti("client", "auto_gg", settings.auto_gg);
+	config_seti("client", "macros", settings.macros);
 
 	for(int k = 0; k < list_size(&config_keys); k++) {
 		struct config_key_pair* e = list_get(&config_keys, k);
@@ -168,6 +169,8 @@ static int config_read_key(void* user, const char* section, const char* name, co
 			settings.send_client_info = atoi(value);
 		} else if(!strcmp(name, "auto_gg")) {
 			settings.auto_gg = atoi(value);
+		} else if(!strcmp(name, "macros")) {
+			strcpy(settings.macros, value);
 		}
 	}
 	if(!strcmp(section, "controls")) {
@@ -290,6 +293,7 @@ void config_reload() {
 		list_clear(&config_keys);
 
 #ifdef USE_SDL
+	config_register_key(WINDOW_KEY_MACRO, SDLK_f, "key_macros", 1, "Establece una key para el macro", "Macros");
 	config_register_key(WINDOW_KEY_UP, SDLK_w, "move_forward", 0, "Forward", "Movement");
 	config_register_key(WINDOW_KEY_DOWN, SDLK_s, "move_backward", 0, "Backward", "Movement");
 	config_register_key(WINDOW_KEY_LEFT, SDLK_a, "move_left", 0, "Left", "Movement");
@@ -341,6 +345,7 @@ void config_reload() {
 #endif
 
 #ifdef USE_GLFW
+	config_register_key(WINDOW_KEY_MACRO, GLFW_KEY_F, "key_macros", 1, "Establece una key para el macro", "Macros");
 	config_register_key(WINDOW_KEY_UP, GLFW_KEY_W, "move_forward", 0, "Forward", "Movement");
 	config_register_key(WINDOW_KEY_DOWN, GLFW_KEY_S, "move_backward", 0, "Backward", "Movement");
 	config_register_key(WINDOW_KEY_LEFT, GLFW_KEY_A, "move_left", 0, "Left", "Movement");
@@ -620,6 +625,15 @@ void config_reload() {
 				 .max = 1,
 				 .name = "Auto GG",
 				 .help = "Say GG in chat when a team wins",
+				 .help = "GG en el chat por cada win.",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.macros,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.macros) - 1,
+				 .name = "Macros",
+				 .help = "Establece un macro para el chat",
 			 });
 }
 

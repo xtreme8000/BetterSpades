@@ -87,6 +87,7 @@ enum window_keys {
 	WINDOW_KEY_SELECT1,
 	WINDOW_KEY_SELECT2,
 	WINDOW_KEY_SELECT3,
+	WINDOW_KEY_MACRO,
 };
 
 enum {
