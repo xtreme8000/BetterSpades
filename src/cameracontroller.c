@@ -198,33 +198,35 @@ void cameracontroller_spectator(float dt) {
 
 	float x = 0.0F, y = 0.0F, z = 0.0F;
 
-	if(window_key_down(WINDOW_KEY_UP)) {
-		x += sin(camera_rot_x) * sin(camera_rot_y);
-		y += cos(camera_rot_y);
-		z += cos(camera_rot_x) * sin(camera_rot_y);
-	} else {
-		if(window_key_down(WINDOW_KEY_DOWN)) {
-			x -= sin(camera_rot_x) * sin(camera_rot_y);
-			y -= cos(camera_rot_y);
-			z -= cos(camera_rot_x) * sin(camera_rot_y);
+	if(chat_input_mode == CHAT_NO_INPUT){
+		if(window_key_down(WINDOW_KEY_UP)) {
+			x += sin(camera_rot_x) * sin(camera_rot_y);
+			y += cos(camera_rot_y);
+			z += cos(camera_rot_x) * sin(camera_rot_y);
+		} else {
+			if(window_key_down(WINDOW_KEY_DOWN)) {
+				x -= sin(camera_rot_x) * sin(camera_rot_y);
+				y -= cos(camera_rot_y);
+				z -= cos(camera_rot_x) * sin(camera_rot_y);
+			}
 		}
-	}
 
-	if(window_key_down(WINDOW_KEY_LEFT)) {
-		x += sin(camera_rot_x + 1.57F);
-		z += cos(camera_rot_x + 1.57F);
-	} else {
-		if(window_key_down(WINDOW_KEY_RIGHT)) {
-			x += sin(camera_rot_x - 1.57F);
-			z += cos(camera_rot_x - 1.57F);
+		if(window_key_down(WINDOW_KEY_LEFT)) {
+			x += sin(camera_rot_x + 1.57F);
+			z += cos(camera_rot_x + 1.57F);
+		} else {
+			if(window_key_down(WINDOW_KEY_RIGHT)) {
+				x += sin(camera_rot_x - 1.57F);
+				z += cos(camera_rot_x - 1.57F);
+			}
 		}
-	}
 
-	if(window_key_down(WINDOW_KEY_SPACE)) {
-		y++;
-	} else {
-		if(window_key_down(WINDOW_KEY_CROUCH)) {
-			y--;
+		if(window_key_down(WINDOW_KEY_SPACE)) {
+			y++;
+		} else {
+			if(window_key_down(WINDOW_KEY_CROUCH)) {
+				y--;
+			}
 		}
 	}
 
