@@ -56,6 +56,7 @@ extern struct RENDER_OPTIONS {
 	int hold_down_sights;
 	int chat_shadow;
 	int send_client_info;
+	int auto_gg;
 } settings, settings_tmp;
 
 extern struct list config_keys;
