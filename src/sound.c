@@ -93,6 +93,8 @@ struct Sound_wav sound_intro;
 struct Sound_wav sound_debris;
 struct Sound_wav sound_bounce;
 struct Sound_wav sound_impact;
+struct Sound_wav sound_macros;
+struct Sound_wav sound_chat;
 
 void sound_volume(float vol) {
 #ifdef USE_SOUND
@@ -316,5 +318,7 @@ void sound_init() {
 	sound_load(&sound_debris, "wav/debris.wav", 0.1F, 53.0F);
 	sound_load(&sound_bounce, "wav/bounce.wav", 0.1F, 32.0F);
 	sound_load(&sound_impact, "wav/impact.wav", 0.1F, 53.0F);
+	sound_load(&sound_macros, "wav/macros_sound.wav", 0.1F, 1024.0F);
+	sound_load(&sound_chat, "wav/chat.wav", 0.1F, 1024.0F);
 #endif
 }

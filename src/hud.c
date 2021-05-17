@@ -1686,6 +1686,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(msg.message, settings.analyze);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
 				}
 			}
 
@@ -1699,6 +1700,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(msg.message, settings.ratio);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
 				}
 			}
 
@@ -1712,6 +1714,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(msg.message, settings.accuracy);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
 				}
 			}
 
@@ -1725,6 +1728,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(msg.message, settings.streak);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
 				}
 			}
 
@@ -1738,6 +1742,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(msg.message, settings.votekick_vote_yes);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
 				}
 			}
 
@@ -1751,6 +1756,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(msg.message, settings.votekick_cancel);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
 				}
 			}
 
@@ -1764,6 +1770,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(msg.message, settings.medkit);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
 				}
 			}
 
@@ -1777,6 +1784,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(msg.message, settings.custom_macro);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
 				}
 			}
 
@@ -2040,6 +2048,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				}
 				window_textinput(0);
 				chat_input_mode = CHAT_NO_INPUT;
+				sound_create(SOUND_LOCAL, &sound_chat, 0.0F, 0.0F, 0.0F);
 			}
 			if(key == WINDOW_KEY_BACKSPACE) {
 				size_t text_len = strlen(chat[0][0]);

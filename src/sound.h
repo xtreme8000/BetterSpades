@@ -97,6 +97,8 @@ extern struct Sound_wav sound_intro;
 extern struct Sound_wav sound_debris;
 extern struct Sound_wav sound_bounce;
 extern struct Sound_wav sound_impact;
+extern struct Sound_wav sound_macros;
+extern struct Sound_wav sound_chat;
 
 void sound_volume(float vol);
 void sound_create_sticky(struct Sound_wav* w, struct Player* player, int player_id);
