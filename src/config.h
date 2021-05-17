@@ -27,8 +27,15 @@
 struct config_file_entry {
 	char section[32];
 	char name[32];
-	char macros[32];
 	char value[32];
+	char analyze[32];
+	char ratio[32];
+	char accuracy[32];
+	char streak[32];
+	char votekick_vote_yes[32];
+	char votekick_cancel[32];
+	char medkit[32];
+	char custom_macro[32];
 };
 
 extern struct RENDER_OPTIONS {
@@ -58,7 +65,14 @@ extern struct RENDER_OPTIONS {
 	int chat_shadow;
 	int send_client_info;
 	int auto_gg;
-	char macros[50];
+	char analyze[50];
+	char ratio[50];
+	char accuracy[50];
+	char streak[50];
+	char votekick_vote_yes[50];
+	char votekick_cancel[50];
+	char medkit[50];
+	char custom_macro[50];
 } settings, settings_tmp;
 
 extern struct list config_keys;

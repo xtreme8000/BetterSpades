@@ -1392,6 +1392,7 @@ static void hud_ingame_mouseclick(double x, double y, int button, int action, in
 		if(action == WINDOW_PRESS && players[local_player_id].held_item == TOOL_GUN && !settings.hold_down_sights
 		   && !players[local_player_id].items_show) {
 			players[local_player_id].input.buttons.rmb ^= 1;
+
 		}
 		if(local_player_drag_active && action == WINDOW_RELEASE && players[local_player_id].held_item == TOOL_BLOCK) {
 			int* pos = camera_terrain_pick(0);
@@ -1648,18 +1649,113 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(chat[0][0], "/");
 			}
 
-			if(key == WINDOW_KEY_MACRO) {
-				if(settings.macros) {
+	//*******************MACROS*******************//
+
+			if(key == WINDOW_KEY_ANALYZE) { //analyze
+				if(settings.analyze) {
 				struct PacketChatMessage msg;
 				msg.player_id = local_player_id;
 				msg.chat_type = CHAT_ALL;
 				window_textinput(1);
 				chat_input_mode = CHAT_NO_INPUT;
-				strcpy(msg.message, settings.macros);
+				strcpy(msg.message, settings.analyze);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
 				}
 			}
+
+			if(key == WINDOW_KEY_RATIO) { //RATIO
+				if(settings.ratio) {
+				struct PacketChatMessage msg;
+				msg.player_id = local_player_id;
+				msg.chat_type = CHAT_ALL;
+				window_textinput(1);
+				chat_input_mode = CHAT_NO_INPUT;
+				strcpy(msg.message, settings.ratio);
+				network_send(PACKET_CHATMESSAGE_ID, &msg,
+							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				}
+			}
+
+			if(key == WINDOW_KEY_ACCURACY) { //ACCURACY
+				if(settings.accuracy) {
+				struct PacketChatMessage msg;
+				msg.player_id = local_player_id;
+				msg.chat_type = CHAT_ALL;
+				window_textinput(1);
+				chat_input_mode = CHAT_NO_INPUT;
+				strcpy(msg.message, settings.accuracy);
+				network_send(PACKET_CHATMESSAGE_ID, &msg,
+							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				}
+			}
+
+			if(key == WINDOW_KEY_STREAK) { //STREAK
+				if(settings.streak) {
+				struct PacketChatMessage msg;
+				msg.player_id = local_player_id;
+				msg.chat_type = CHAT_ALL;
+				window_textinput(1);
+				chat_input_mode = CHAT_NO_INPUT;
+				strcpy(msg.message, settings.streak);
+				network_send(PACKET_CHATMESSAGE_ID, &msg,
+							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				}
+			}
+
+			if(key == WINDOW_KEY_VOTEKICK_YES) { //VOTEKICK VOTE YES
+				if(settings.votekick_vote_yes) {
+				struct PacketChatMessage msg;
+				msg.player_id = local_player_id;
+				msg.chat_type = CHAT_ALL;
+				window_textinput(1);
+				chat_input_mode = CHAT_NO_INPUT;
+				strcpy(msg.message, settings.votekick_vote_yes);
+				network_send(PACKET_CHATMESSAGE_ID, &msg,
+							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				}
+			}
+
+			if(key == WINDOW_KEY_VOTEKICK_CANCEL) { //VOTEKICK CANCEL
+				if(settings.votekick_cancel) {
+				struct PacketChatMessage msg;
+				msg.player_id = local_player_id;
+				msg.chat_type = CHAT_ALL;
+				window_textinput(1);
+				chat_input_mode = CHAT_NO_INPUT;
+				strcpy(msg.message, settings.votekick_cancel);
+				network_send(PACKET_CHATMESSAGE_ID, &msg,
+							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				}
+			}
+
+			if(key == WINDOW_KEY_MEDKIT) { //MEDKIT
+				if(settings.medkit) {
+				struct PacketChatMessage msg;
+				msg.player_id = local_player_id;
+				msg.chat_type = CHAT_ALL;
+				window_textinput(1);
+				chat_input_mode = CHAT_NO_INPUT;
+				strcpy(msg.message, settings.medkit);
+				network_send(PACKET_CHATMESSAGE_ID, &msg,
+							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				}
+			}
+
+			if(key == WINDOW_KEY_CUSTOM_MACRO) { //CUSTOM MACRO
+				if(settings.custom_macro) {
+				struct PacketChatMessage msg;
+				msg.player_id = local_player_id;
+				msg.chat_type = CHAT_ALL;
+				window_textinput(1);
+				chat_input_mode = CHAT_NO_INPUT;
+				strcpy(msg.message, settings.custom_macro);
+				network_send(PACKET_CHATMESSAGE_ID, &msg,
+							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				}
+			}
+
+	//*******************MACROS*******************//
 
 			if(key == WINDOW_KEY_CHAT) {
 				window_textinput(1);

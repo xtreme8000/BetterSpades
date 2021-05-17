@@ -90,7 +90,14 @@ void config_save() {
 	config_seti("client", "show_player_arms", settings.player_arms);
 	config_seti("client", "send_client_info", settings.send_client_info);
 	config_seti("client", "auto_gg", settings.auto_gg);
-	config_seti("client", "macros", settings.macros);
+	config_sets("client", "analyze", settings.analyze);
+	config_sets("client", "ratio", settings.ratio);
+	config_sets("client", "accuracy", settings.accuracy);
+	config_sets("client", "streak", settings.streak);
+	config_sets("client", "votekick_vote_yes", settings.votekick_vote_yes);
+	config_sets("client", "votekick_cancel", settings.votekick_cancel);
+	config_sets("client", "medkit", settings.medkit);
+	config_sets("client", "custom_macro", settings.custom_macro);
 
 	for(int k = 0; k < list_size(&config_keys); k++) {
 		struct config_key_pair* e = list_get(&config_keys, k);
@@ -169,8 +176,22 @@ static int config_read_key(void* user, const char* section, const char* name, co
 			settings.send_client_info = atoi(value);
 		} else if(!strcmp(name, "auto_gg")) {
 			settings.auto_gg = atoi(value);
-		} else if(!strcmp(name, "macros")) {
-			strcpy(settings.macros, value);
+		} else if(!strcmp(name, "ratio")) {
+			strcpy(settings.ratio, value);
+		} else if(!strcmp(name, "analyze")) {
+			strcpy(settings.analyze, value);
+		} else if(!strcmp(name, "accuracy")) {
+			strcpy(settings.accuracy, value);
+		} else if(!strcmp(name, "streak")) {
+			strcpy(settings.streak, value);
+		} else if(!strcmp(name, "votekick_vote_yes")) {
+			strcpy(settings.votekick_vote_yes, value);
+		} else if(!strcmp(name, "votekick_cancel")) {
+			strcpy(settings.votekick_cancel, value);
+		} else if(!strcmp(name, "medkit")) {
+			strcpy(settings.medkit, value);
+		} else if(!strcmp(name, "custom_macro")) {
+			strcpy(settings.custom_macro, value);
 		}
 	}
 	if(!strcmp(section, "controls")) {
@@ -293,7 +314,6 @@ void config_reload() {
 		list_clear(&config_keys);
 
 #ifdef USE_SDL
-	config_register_key(WINDOW_KEY_MACRO, SDLK_f, "key_macros", 1, "Establece una key para el macro", "Macros");
 	config_register_key(WINDOW_KEY_UP, SDLK_w, "move_forward", 0, "Forward", "Movement");
 	config_register_key(WINDOW_KEY_DOWN, SDLK_s, "move_backward", 0, "Backward", "Movement");
 	config_register_key(WINDOW_KEY_LEFT, SDLK_a, "move_left", 0, "Left", "Movement");
@@ -342,10 +362,25 @@ void config_reload() {
 	config_register_key(WINDOW_KEY_SELECT1, SDLK_1, NULL, 0, NULL, NULL);
 	config_register_key(WINDOW_KEY_SELECT2, SDLK_2, NULL, 0, NULL, NULL);
 	config_register_key(WINDOW_KEY_SELECT3, SDLK_3, NULL, 0, NULL, NULL);
+	config_register_key(WINDOW_KEY_RATIO, SDLK_f, "key_ratio", 1, "Ratio Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_ANALYZE, SDLK_g, "key_analyze", 1, "Analyze Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_ACCURACY, SDLK_h, "key_accuracy", 1, "Accuracy Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_STREAK, SDLK_j, "key_streak", 1, "Streak Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_VOTEKICK_YES, SDLK_k, "key_votekick_vote_yes", 1, "Votekick Vote Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_VOTEKICK_CANCEL, SDLK_l, "key_votekick_cancel", 1, "Votekick Cancel Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_MEDKIT, SDLK_c, "key_medkit", 1, "Medkit Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_CUSTOM_MACRO, SDLK_n, "key_custom_macro", 1, "Custom Macro", "Macros");
 #endif
 
 #ifdef USE_GLFW
-	config_register_key(WINDOW_KEY_MACRO, GLFW_KEY_F, "key_macros", 1, "Establece una key para el macro", "Macros");
+	config_register_key(WINDOW_KEY_RATIO, GLFW_KEY_F, "key_ratio", 1, "Ratio Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_ANALYZE, GLFW_KEY_G, "key_analyze", 1, "Analyze Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_ACCURACY, GLFW_KEY_H, "key_accuracy", 1, "Accuracy Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_STREAK, GLFW_KEY_J, "key_streak", 1, "Streak Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_VOTEKICK_YES, GLFW_KEY_K, "key_votekick_vote_yes", 1, "Votekick Vote Key", "Macros");
+	config_register_key(WINDOW_KEY_VOTEKICK_CANCEL, GLFW_KEY_L, "key_votekick_cancel", 1, "Votekick Cancel Key", "Macros");
+	config_register_key(WINDOW_KEY_MEDKIT, GLFW_KEY_C, "key_medkit", 1, "Medkit Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_CUSTOM_MACRO, GLFW_KEY_N, "key_custom_macro", 1, "Custom Macro", "Macros");
 	config_register_key(WINDOW_KEY_UP, GLFW_KEY_W, "move_forward", 0, "Forward", "Movement");
 	config_register_key(WINDOW_KEY_DOWN, GLFW_KEY_S, "move_backward", 0, "Backward", "Movement");
 	config_register_key(WINDOW_KEY_LEFT, GLFW_KEY_A, "move_left", 0, "Left", "Movement");
@@ -629,11 +664,67 @@ void config_reload() {
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
-				 .value = settings_tmp.macros,
+				 .value = settings_tmp.analyze,
 				 .type = CONFIG_TYPE_STRING,
-				 .max = sizeof(settings.macros) - 1,
-				 .name = "Macros",
-				 .help = "Establece un macro para el chat",
+				 .max = sizeof(settings.analyze) - 1,
+				 .name = "Analyze",
+				 .help = "Run the command /analyze",
 			 });
-}
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.ratio,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.ratio) - 1,
+				 .name = "Ratio",
+				 .help = "Run the command /ratio",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.accuracy,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.accuracy) - 1,
+				 .name = "Accuracy",
+				 .help = "Run the command /accuracy",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.streak,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.streak) - 1,
+				 .name = "Streak",
+				 .help = "Run the command /streak",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.votekick_vote_yes,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.votekick_vote_yes) - 1,
+				 .name = "Votekick Vote Yes",
+				 .help = "Run the command /y",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.votekick_cancel,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.votekick_cancel) - 1,
+				 .name = "Votekick Cancel",
+				 .help = "Run the command /cancel",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.medkit,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.medkit) - 1,
+				 .name = "Medkit",
+				 .help = "Run the command /m",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.custom_macro,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.custom_macro) - 1,
+				 .name = "Custom macro",
+				 .help = "Set a custom macro",
+			 });
+		}
 
