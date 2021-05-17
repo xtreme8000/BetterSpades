@@ -27,6 +27,7 @@
 #include "log.h"
 #include "player.h"
 #include "rpc.h"
+#include "config.h"
 
 struct rpc {
 	int needs_update;
@@ -116,7 +117,8 @@ void rpc_update() {
 		memset(&discordPresence, 0, sizeof(discordPresence));
 		discordPresence.largeImageKey = "pic03";
 		discordPresence.smallImageKey = "logo";
-		discordPresence.smallImageText = BETTERSPADES_VERSION;
+		discordPresence.largeImageText = settings.name;
+		discordPresence.smallImageText = "BetterSpades" BETTERSPADES_VERSION;
 		discordPresence.instance = 1;
 		if(rpc_state.slots > 0) {
 			discordPresence.state = "Playing";
@@ -132,7 +134,7 @@ void rpc_update() {
 		rpc_state.needs_update = 0;
 	}
 
-	Discord_UpdateConnection();
 	Discord_RunCallbacks();
 #endif
 }
+
