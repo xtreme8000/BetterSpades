@@ -26,8 +26,8 @@
 #include "common.h"
 #include "log.h"
 #include "player.h"
-#include "rpc.h"
 #include "config.h"
+#include "rpc.h"
 
 struct rpc {
 	int needs_update;
@@ -115,6 +115,8 @@ void rpc_update() {
 	if(rpc_state.needs_update) {
 		DiscordRichPresence discordPresence;
 		memset(&discordPresence, 0, sizeof(discordPresence));
+		char nick_server[128];
+		sprintf(nick_server, "Server: %s Nick: %s", rpc_state.server_name, settings.name);
 		discordPresence.largeImageKey = "pic03";
 		discordPresence.smallImageKey = "logo";
 		discordPresence.largeImageText = settings.name;
@@ -125,7 +127,7 @@ void rpc_update() {
 			discordPresence.partyId = "42";
 			discordPresence.partySize = max(rpc_state.players, 1);
 			discordPresence.partyMax = rpc_state.slots;
-			discordPresence.details = rpc_state.server_name;
+			discordPresence.details = nick_server;
 			discordPresence.joinSecret = rpc_state.server_url;
 		} else {
 			discordPresence.state = "Waiting";

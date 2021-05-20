@@ -741,7 +741,7 @@ void read_PacketIntelCapture(void* data, int len) {
 
 			gamestate.gamemode.ctf.team_1_score = 0;
 			gamestate.gamemode.ctf.team_2_score = 0;
-			
+
 			if(settings.auto_gg) {
 				struct PacketChatMessage msg;
 				msg.player_id = local_player_id;

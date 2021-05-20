@@ -624,11 +624,14 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 					default:
 					case TEAM_SPECTATOR: mul = 2; break;
 				}
-				if(pt[k].id == local_player_id)
-					glColor3f(1.0F, 1.0F, 0.0F);
-				else if(!players[pt[k].id].alive)
+				if(pt[k].id == local_player_id) {
+					switch(players[local_player_id].team) {
+					case TEAM_1: glColor3ub(gamestate.team_1.red, gamestate.team_1.green, gamestate.team_1.blue); break;
+					case TEAM_2: glColor3ub(gamestate.team_2.red, gamestate.team_2.green, gamestate.team_2.blue); break;
+					}
+				} else if(!players[pt[k].id].alive) {
 					glColor3f(0.6F, 0.6F, 0.6F);
-				else
+				} else
 					glColor3f(1.0F, 1.0F, 1.0F);
 				char id_str[16];
 				sprintf(id_str, "#%i", pt[k].id);
@@ -946,10 +949,12 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 			}
 
 			for(int k = 0; k < 6; k++) {
+
 				if(window_time() - chat_timer[0][k + 1] < 10.0F || chat_input_mode != CHAT_NO_INPUT) {
 					glColor3ub(red(chat_color[0][k + 1]), green(chat_color[0][k + 1]), blue(chat_color[0][k + 1]));
-					font_render(11.0F * scalef, settings.window_height * 0.15F - 10.0F * scalef * k, 8.0F * scalef,
+					font_render(10.0F * scalef, settings.window_height * 0.15F - 10.0F * scalef * k, 8.0F * scalef,
 								chat[0][k + 1]);
+
 				}
 
 				if(window_time() - chat_timer[1][k + 1] < 10.0F) {
@@ -1218,9 +1223,9 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 
 				for(int k = 0; k < PLAYERS_MAX; k++) {
 					if(players[k].connected && players[k].alive
-					   && (players[k].team == players[local_player_id].team
-						   || (camera_mode == CAMERAMODE_SPECTATOR
-							   && (k == local_player_id || players[k].team != TEAM_SPECTATOR)))) {
+					&& (players[k].team == players[local_player_id].team
+					|| (camera_mode == CAMERAMODE_SPECTATOR
+					&& (k == local_player_id || players[k].team != TEAM_SPECTATOR)))) {
 						if(k == local_player_id) {
 							glColor3ub(0, 255, 255);
 						} else {
@@ -2011,6 +2016,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 					strcpy(msg.message, chat[0][0]);
 					network_send(PACKET_CHATMESSAGE_ID, &msg,
 								 sizeof(msg) - sizeof(msg.message) + strlen(chat[0][0]) + 1);
+				sound_create(SOUND_LOCAL, &sound_chat, 0.0F, 0.0F, 0.0F);
 				}
 				window_textinput(0);
 				chat_input_mode = CHAT_NO_INPUT;

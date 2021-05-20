@@ -101,7 +101,7 @@ float weapon_delay(int gun) {
 	switch(gun) {
 		case WEAPON_RIFLE: return 0.5F;
 		case WEAPON_SMG: return 0.1F;
-		case WEAPON_SHOTGUN: return 1.0F;
+		case WEAPON_SHOTGUN: return 0.8F;
 		default: return 0.0F;
 	}
 }
