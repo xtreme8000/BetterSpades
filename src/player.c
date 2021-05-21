@@ -35,6 +35,7 @@
 #include "weapon.h"
 #include "window.h"
 #include "particle.h"
+#include "http.h"
 
 struct GameState gamestate;
 
@@ -623,10 +624,16 @@ void player_render(struct Player* p, int id) {
 	kv6_calclight(p->pos.x, p->pos.y, p->pos.z);
 
 if(settings.toggle_teamname) {
+
+	int distancia = sqrt(distance3D( p->pos.x, p->pos.y, p->pos.z, camera_x, camera_y, camera_z));
+	for(int k = 0; k < PLAYERS_MAX; k++) {
 	if(camera_mode == CAMERAMODE_FPS
 		&& p->team == players[local_player_id].team
 		&& p->alive
-		&& p->name != players[local_player_id].name) {
+		&& p->name != players[local_player_id].name
+		&& distancia >= 10
+		&& (players[k].connected && players[k].team != TEAM_1 
+			&& (players[k].connected && players[k].team != TEAM_SPECTATOR))) {
 		matrix_push(matrix_model);
 		matrix_translate(matrix_model, p->pos.x, p->physics.eye.y + player_height(p) + 1.25F, p->pos.z);
 		matrix_rotate(matrix_model, camera_rot_x / PI * 180.0F + 180.0F, 0.0F, 1.0F, 0.0F);
@@ -639,10 +646,11 @@ if(settings.toggle_teamname) {
 			case TEAM_2: glColor3ub(gamestate.team_2.red, gamestate.team_2.green, gamestate.team_2.blue); break;
 		}
 		char id_str[128];
+		
 			switch(p->weapon) {
-				case WEAPON_RIFLE: sprintf(id_str, "%s [RIFLE] #%i", p->name, id); break;
-				case WEAPON_SMG: sprintf(id_str, "%s [SMG] #%i", p->name, id); break;
-				case WEAPON_SHOTGUN: sprintf(id_str, "%s [SHOTGUN] #%i", p->name, id); break;
+				case WEAPON_RIFLE: sprintf(id_str, "%s [RIFLE] #%i [%i Blocks]", p->name, id, distancia); break;
+				case WEAPON_SMG: sprintf(id_str, "%s [SMG] #%i [%i Blocks]", p->name, id, distancia); break;
+				case WEAPON_SHOTGUN: sprintf(id_str, "%s [SHOTGUN] #%i [%i Blocks]", p->name, id, distancia); break;
 			}
 
 		font_select(FONT_FIXEDSYS);
@@ -654,8 +662,9 @@ if(settings.toggle_teamname) {
 		glDisable(GL_ALPHA_TEST);
 		matrix_pop(matrix_model);
 		matrix_upload();
-	}
-}
+				}
+			}
+		}
 
 	float l = sqrt(distance3D(p->orientation_smooth.x, p->orientation_smooth.y, p->orientation_smooth.z, 0, 0, 0));
 	float ox = p->orientation_smooth.x / l;
