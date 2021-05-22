@@ -817,7 +817,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 			} else {
 				texture_draw(&texture_target, (settings.window_width - 16) / 2.0F, (settings.window_height + 16) / 2.0F,
 							 16, 16);
-			}
+				}
 
 			if(window_time() - local_player_last_damage_timer <= 0.5F && is_local) {
 				float ang = atan2(players[local_player_id].orientation.z, players[local_player_id].orientation.x)
@@ -1174,7 +1174,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 							= min(max(gamestate.gamemode.ctf.team_1_intel_location.dropped.y, view_z), view_z + 128.0F)
 							- view_z;
 						glColor3ub(gamestate.team_1.red, gamestate.team_1.green, gamestate.team_1.blue);
-						texture_draw_rotated(&texture_intel, settings.window_width - 143 * scalef + intel_x * scalef,
+						texture_draw_rotated(&texture_intel, settings.window_width - 137 * scalef + intel_x * scalef,
 											 (585 - intel_y) * scalef, 12 * scalef, 12 * scalef, 0.0F);
 					}
 
