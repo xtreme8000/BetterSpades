@@ -632,6 +632,7 @@ if(settings.toggle_teamname) {
 		&& p->alive
 		&& p->name != players[local_player_id].name
 		&& distancia >= 10
+		&& (id != 255 && (id != 256))
 		&& (players[k].connected && players[k].team != TEAM_1 
 			&& (players[k].connected && players[k].team != TEAM_SPECTATOR))) {
 		matrix_push(matrix_model);
