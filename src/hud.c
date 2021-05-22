@@ -639,11 +639,22 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 						   && gamestate.gamemode.ctf.team_2_intel_location.held.player_id == pt[k].id))) {
 					texture_draw(&texture_intel,
 								 settings.window_width / 4.0F * mul
-									 - font_length(18.0F * scalef, players[pt[k].id].name) - 27.0F * scalef,
-								 (427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, 18.0F * scalef);
+									 - font_length(18.0F * scalef, players[pt[k].id].name) - 66.0F * scalef,
+								 (427 - 18.3 * cntt[mul - 1]) * scalef, 18.0F * scalef, 18.0F * scalef);
 				}
-				font_render(settings.window_width / 4.0F * mul - font_length(18.0F * scalef, players[pt[k].id].name),
-							(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, players[pt[k].id].name);
+
+					char name_y_rifle[128];
+					char name_y_smg[128];
+					char name_y_shotgun[128];
+
+					switch(players[pt[k].id].weapon) {
+						case WEAPON_RIFLE:
+
+						if(players[pt[k].id].team == TEAM_SPECTATOR) {
+				sprintf(name_y_rifle, "%s", players[pt[k].id].name);
+
+				font_render(settings.window_width / 4.0F * mul - font_length(18.0F * scalef, name_y_rifle),
+							(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, name_y_rifle);
 				font_render(settings.window_width / 4.0F * mul + 8.82F * scalef, (427 - 18 * cntt[mul - 1]) * scalef,
 							18.0F * scalef, id_str);
 				if(mul != 2) {
@@ -652,6 +663,84 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 								(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, id_str);
 				}
 				cntt[mul - 1]++;
+						} else {
+						sprintf(name_y_rifle, "[RF] %s", players[pt[k].id].name);
+
+				font_render(settings.window_width / 4.0F * mul - font_length(18.0F * scalef, name_y_rifle),
+							(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, name_y_rifle);
+				font_render(settings.window_width / 4.0F * mul + 8.82F * scalef, (427 - 18 * cntt[mul - 1]) * scalef,
+							18.0F * scalef, id_str);
+				if(mul != 2) {
+					sprintf(id_str, "%i", pt[k].score);
+					font_render(settings.window_width / 4.0F * mul + 44.1F * scalef,
+								(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, id_str);
+				}
+				cntt[mul - 1]++;
+				}
+					break;
+
+					case WEAPON_SMG:
+
+				if(players[pt[k].id].team == TEAM_SPECTATOR) {
+				sprintf(name_y_smg, "%s", players[pt[k].id].name);
+
+				font_render(settings.window_width / 4.0F * mul - font_length(18.0F * scalef, name_y_smg),
+							(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, name_y_smg);
+				font_render(settings.window_width / 4.0F * mul + 8.82F * scalef, (427 - 18 * cntt[mul - 1]) * scalef,
+							18.0F * scalef, id_str);
+				if(mul != 2) {
+					sprintf(id_str, "%i", pt[k].score);
+					font_render(settings.window_width / 4.0F * mul + 44.1F * scalef,
+								(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, id_str);
+				}
+				cntt[mul - 1]++;
+				} else {
+					sprintf(name_y_smg, "[SM] %s", players[pt[k].id].name);
+
+				font_render(settings.window_width / 4.0F * mul - font_length(18.0F * scalef, name_y_smg),
+							(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, name_y_smg);
+				font_render(settings.window_width / 4.0F * mul + 8.82F * scalef, (427 - 18 * cntt[mul - 1]) * scalef,
+							18.0F * scalef, id_str);
+				if(mul != 2) {
+					sprintf(id_str, "%i", pt[k].score);
+					font_render(settings.window_width / 4.0F * mul + 44.1F * scalef,
+								(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, id_str);
+				}
+				cntt[mul - 1]++;
+				}
+					break;
+
+					case WEAPON_SHOTGUN:
+
+				if(players[pt[k].id].team == TEAM_SPECTATOR) {
+				sprintf(name_y_shotgun, "%s", players[pt[k].id].name);
+
+				font_render(settings.window_width / 4.0F * mul - font_length(18.0F * scalef, name_y_shotgun),
+							(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, name_y_shotgun);
+				font_render(settings.window_width / 4.0F * mul + 8.82F * scalef, (427 - 18 * cntt[mul - 1]) * scalef,
+							18.0F * scalef, id_str);
+				if(mul != 2) {
+					sprintf(id_str, "%i", pt[k].score);
+					font_render(settings.window_width / 4.0F * mul + 44.1F * scalef,
+								(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, id_str);
+				}
+				cntt[mul - 1]++;
+				} else {
+					sprintf(name_y_shotgun, "[SH] %s", players[pt[k].id].name);
+
+				font_render(settings.window_width / 4.0F * mul - font_length(18.0F * scalef, name_y_shotgun),
+							(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, name_y_shotgun);
+				font_render(settings.window_width / 4.0F * mul + 8.82F * scalef, (427 - 18 * cntt[mul - 1]) * scalef,
+							18.0F * scalef, id_str);
+				if(mul != 2) {
+					sprintf(id_str, "%i", pt[k].score);
+					font_render(settings.window_width / 4.0F * mul + 44.1F * scalef,
+								(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, id_str);
+				}
+				cntt[mul - 1]++;
+				}
+					break;
+				}
 			}
 		}
 
@@ -1144,6 +1233,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 									break;
 							}
 						}
+
 						float player_x = ((k == local_player_id) ? camera_x : players[k].pos.x) - view_x;
 						float player_y = ((k == local_player_id) ? camera_z : players[k].pos.z) - view_z;
 						if(player_x > 0.0F && player_x < 128.0F && player_y > 0.0F && player_y < 128.0F) {
