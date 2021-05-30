@@ -499,6 +499,8 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 			if(!k) {
 				sprintf(dbg_str, "ping: %i", network_stats[1].avg_ping);
 				font_render(8.0F * scalex, 202.0F * scalef, 8.0F * scalef, dbg_str);
+				sprintf(dbg_str, "fps: %i", (int)fps);
+				font_render(8.0F * scalex, 192.0F * scalef, 8.0F * scalef, dbg_str);
 			}
 		}
 		font_select(FONT_FIXEDSYS);
@@ -1298,6 +1300,28 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 		sprintf(debug_str, "%i", (int)fps);
 		font_render(11.0F * scalef, settings.window_height * 0.33F - 20.0F * scalef, 20.0F * scalef, debug_str);
 	}
+
+if(settings.show_itemname) {
+	if(window_key_down(WINDOW_KEY_SPRINT) || camera_mode == CAMERAMODE_SELECTION) {
+				switch(players[local_player_id].held_item) {
+					case TOOL_SPADE: 
+						glColor3f(1.0F, 0.0F, 0.0F);
+						font_render((settings.window_width - font_length(53.0F * scalef, "SPADE")) / 2.0F,
+							settings.window_height / 2.0F + 2.0F * scalef, 53.0F * scalef, "SPADE");
+					break;
+					case TOOL_BLOCK: 
+						glColor3f(1.0F, 0.0F, 0.0F);
+						font_render((settings.window_width - font_length(53.0F * scalef, "BLOCK")) / 2.0F,
+							settings.window_height / 2.0F + 2.0F * scalef, 53.0F * scalef, "BLOCK");
+					 break;
+					 case TOOL_GRENADE:
+						glColor3f(1.0F, 0.0F, 0.0F);
+						font_render((settings.window_width - font_length(53.0F * scalef, "GRENADE")) / 2.0F,
+							settings.window_height / 2.0F + 2.0F * scalef, 53.0F * scalef, "GRENADE");
+					break;
+				}
+		}
+}
 
 #ifdef USE_TOUCH
 	glColor3f(1.0F, 1.0F, 1.0F);

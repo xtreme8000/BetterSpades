@@ -74,6 +74,7 @@ extern struct RENDER_OPTIONS {
 	char medkit[50];
 	char custom_macro[50];
 	int toggle_teamname;
+	int show_itemname;
 } settings, settings_tmp;
 
 extern struct list config_keys;
