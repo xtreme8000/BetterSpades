@@ -459,24 +459,20 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 		else
 			glColor3f(0.0F, 0.0F, 0.0F);
 		glEnable(GL_DEPTH_TEST);
-		glColorMask(0, 0, 0, 0);
-		texture_draw_empty(8.0F * scalex, 380.0F * scalef, 160.0F * scalef, 160.0F * scalef);
-		glColorMask(1, 1, 1, 1);
 		glDepthFunc(GL_NOTEQUAL);
-		texture_draw_empty(7.0F * scalex, 381.0F * scalef, 162.0F * scalef, 162.0F * scalef);
 		glDepthFunc(GL_LEQUAL);
 		glDisable(GL_DEPTH_TEST);
 		font_select(FONT_SMALLFNT);
 		char dbg_str[32];
 
 		int max = 0;
-		for(int k = 0; k < 40; k++) {
+		for(int k = 0; k < 35; k++) {
 			max = max(max, network_stats[k].ingoing + network_stats[k].outgoing);
 		}
-		for(int k = 0; k < 40; k++) {
-			float in_h = (float)(network_stats[39 - k].ingoing) / max * 160.0F;
-			float out_h = (float)(network_stats[39 - k].ingoing + network_stats[39 - k].outgoing) / max * 160.0F;
-			float ping_h = min(network_stats[39 - k].avg_ping / 25.0F, 160.0F);
+		for(int k = 0; k < 35; k++) {
+			float in_h = (float)(network_stats[34 - k].ingoing) / max * 100.0F;
+			float out_h = (float)(network_stats[34 - k].ingoing + network_stats[34 - k].outgoing) / max * 100.0F;
+			float ping_h = min(network_stats[34 - k].avg_ping / 25.0F, 100.0F);
 
 			glColor3f(0.0F, 0.0F, 1.0F);
 			texture_draw_empty(8.0F * scalex + 4 * k * scalef, (220.0F + out_h) * scalef, 4.0F * scalef,
@@ -1304,12 +1300,12 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 if(settings.show_itemname) {
 	if(window_key_down(WINDOW_KEY_SPRINT) || camera_mode == CAMERAMODE_SELECTION) {
 				switch(players[local_player_id].held_item) {
-					case TOOL_SPADE: 
+					case TOOL_SPADE:
 						glColor3f(1.0F, 0.0F, 0.0F);
 						font_render((settings.window_width - font_length(53.0F * scalef, "SPADE")) / 2.0F,
 							settings.window_height / 2.0F + 2.0F * scalef, 53.0F * scalef, "SPADE");
 					break;
-					case TOOL_BLOCK: 
+					case TOOL_BLOCK:
 						glColor3f(1.0F, 0.0F, 0.0F);
 						font_render((settings.window_width - font_length(53.0F * scalef, "BLOCK")) / 2.0F,
 							settings.window_height / 2.0F + 2.0F * scalef, 53.0F * scalef, "BLOCK");
