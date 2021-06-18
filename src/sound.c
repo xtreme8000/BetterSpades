@@ -112,22 +112,30 @@ static void sound_createEx(enum sound_space option, struct Sound_wav* w, float x
 		.stick_to_player = player,
 	};
 
+	alGetError();
 	alGenSources(1, &s.openal_handle);
-	alSourcef(s.openal_handle, AL_PITCH, 1.0F);
-	alSourcef(s.openal_handle, AL_GAIN, 1.0F);
-	alSourcef(s.openal_handle, AL_REFERENCE_DISTANCE, s.local ? 0.0F : w->min * SOUND_SCALE);
-	alSourcef(s.openal_handle, AL_MAX_DISTANCE, s.local ? 2048.0F : w->max * SOUND_SCALE);
-	alSource3f(s.openal_handle, AL_POSITION, s.local ? 0.0F : x * SOUND_SCALE, s.local ? 0.0F : y * SOUND_SCALE,
-			   s.local ? 0.0F : z * SOUND_SCALE);
-	alSource3f(s.openal_handle, AL_VELOCITY, s.local ? 0.0F : vx * SOUND_SCALE, s.local ? 0.0F : vy * SOUND_SCALE,
-			   s.local ? 0.0F : vz * SOUND_SCALE);
-	alSourcei(s.openal_handle, AL_SOURCE_RELATIVE, s.local);
-	alSourcei(s.openal_handle, AL_LOOPING, AL_FALSE);
-	alSourcei(s.openal_handle, AL_BUFFER, w->openal_buffer);
 
-	alSourcePlay(s.openal_handle);
+	if(alGetError() == AL_NO_ERROR) {
+		alSourcef(s.openal_handle, AL_PITCH, 1.0F);
+		alSourcef(s.openal_handle, AL_GAIN, 1.0F);
+		alSourcef(s.openal_handle, AL_REFERENCE_DISTANCE, s.local ? 0.0F : w->min * SOUND_SCALE);
+		alSourcef(s.openal_handle, AL_MAX_DISTANCE, s.local ? 2048.0F : w->max * SOUND_SCALE);
+		alSource3f(s.openal_handle, AL_POSITION, s.local ? 0.0F : x * SOUND_SCALE, s.local ? 0.0F : y * SOUND_SCALE,
+				   s.local ? 0.0F : z * SOUND_SCALE);
+		alSource3f(s.openal_handle, AL_VELOCITY, s.local ? 0.0F : vx * SOUND_SCALE, s.local ? 0.0F : vy * SOUND_SCALE,
+				   s.local ? 0.0F : vz * SOUND_SCALE);
+		alSourcei(s.openal_handle, AL_SOURCE_RELATIVE, s.local);
+		alSourcei(s.openal_handle, AL_LOOPING, AL_FALSE);
+		alSourcei(s.openal_handle, AL_BUFFER, w->openal_buffer);
 
-	entitysys_add(&sound_sources, &s);
+		alSourcePlay(s.openal_handle);
+
+		if(alGetError() == AL_NO_ERROR) {
+			entitysys_add(&sound_sources, &s);
+		} else {
+			alDeleteSources(1, &s.openal_handle);
+		}
+	}
 #endif
 }
 
