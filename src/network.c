@@ -206,10 +206,14 @@ void read_PacketBlockAction(void* data, int len) {
 			break;
 		case ACTION_BUILD:
 			if(p->player_id < PLAYERS_MAX) {
+				bool play_sound = map_isair(p->x, 63 - p->z, p->y);
+
 				map_set(p->x, 63 - p->z, p->y,
 						players[p->player_id].block.red | (players[p->player_id].block.green << 8)
 							| (players[p->player_id].block.blue << 16));
-				sound_create(SOUND_WORLD, &sound_build, p->x + 0.5F, 63 - p->z + 0.5F, p->y + 0.5F);
+
+				if(play_sound)
+					sound_create(SOUND_WORLD, &sound_build, p->x + 0.5F, 63 - p->z + 0.5F, p->y + 0.5F);
 			}
 			break;
 	}
