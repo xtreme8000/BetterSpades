@@ -50,33 +50,41 @@ static bool particle_update_single(void* obj, void* user) {
 		return true;
 	} else {
 		float acc_y = -32.0F * dt;
+
 		if(map_isair(p->x, p->y + acc_y * dt - p->size / 2.0F, p->z) && !p->y + acc_y * dt < 0.0F) {
 			p->vy += acc_y;
 		}
+
 		float movement_x = p->vx * dt;
 		float movement_y = p->vy * dt;
 		float movement_z = p->vz * dt;
-		int on_ground = 0;
+		bool on_ground = false;
+
 		if(!map_isair(p->x + movement_x, p->y, p->z)) {
 			movement_x = 0.0F;
 			p->vx = -p->vx * 0.6F;
-			on_ground = 1;
+			on_ground = true;
 		}
 		if(!map_isair(p->x + movement_x, p->y + movement_y, p->z)) {
 			movement_y = 0.0F;
 			p->vy = -p->vy * 0.6F;
-			on_ground = 1;
+			on_ground = true;
 		}
 		if(!map_isair(p->x + movement_x, p->y + movement_y, p->z + movement_z)) {
 			movement_z = 0.0F;
 			p->vz = -p->vz * 0.6F;
-			on_ground = 1;
+			on_ground = true;
 		}
+
+		float pow1_tys = 0.999991F + (2.55114F * dt - 2.30093F) * dt;
+		float pow4_tys = 1.0F + (0.413432 * dt - 0.916185F) * dt;
+
 		// air and ground friction
 		if(on_ground) {
-			p->vx *= pow(0.1F, dt);
-			p->vy *= pow(0.1F, dt);
-			p->vz *= pow(0.1F, dt);
+			p->vx *= pow1_tys; // pow(0.1F, dt);
+			p->vy *= pow1_tys; // pow(0.1F, dt);
+			p->vz *= pow1_tys; // pow(0.1F, dt);
+
 			if(abs(p->vx) < 0.1F)
 				p->vx = 0.0F;
 			if(abs(p->vy) < 0.1F)
@@ -84,10 +92,11 @@ static bool particle_update_single(void* obj, void* user) {
 			if(abs(p->vz) < 0.1F)
 				p->vz = 0.0F;
 		} else {
-			p->vx *= pow(0.4F, dt);
-			p->vy *= pow(0.4F, dt);
-			p->vz *= pow(0.4F, dt);
+			p->vx *= pow4_tys; // pow(0.4F, dt);
+			p->vy *= pow4_tys; // pow(0.4F, dt);
+			p->vz *= pow4_tys; // pow(0.4F, dt);
 		}
+
 		p->x += movement_x;
 		p->y += movement_y;
 		p->z += movement_z;
@@ -104,7 +113,7 @@ static bool particle_render_single(void* obj, void* user) {
 	struct Particle* p = (struct Particle*)obj;
 	struct tesselator* tess = (struct tesselator*)user;
 
-	if(distance2D(camera_x, camera_z, p->x, p->z) > pow(settings.render_distance, 2.0F))
+	if(distance2D(camera_x, camera_z, p->x, p->z) > settings.render_distance * settings.render_distance)
 		return false;
 
 	float size = p->size / 2.0F * (1.0F - ((float)(window_time() - p->fade) / 2.0F));
