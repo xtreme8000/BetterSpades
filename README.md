@@ -99,8 +99,9 @@ client.exe -aos://16777343:32887 //Connects to a local server
 Compilation now works the same on Linux. Just change the build system to `Unix Makefiles` or leaving it as default will work too (`cmake ..`).
 
 You can build each library yourself, or install them with your distro's package manager:
+Debian-based distributions(Ubuntu, Linux mint, etc)
 ```
-sudo apt install libgl1-mesa libgl1-mesa-dev libopenal1 libopenal-dev libglfw-dev libenet-dev libglew-dev
+sudo apt install libgl1 libgl1-mesa-dev libopenal1 libopenal-dev libglfw3 libenet-dev libglew-dev
 ```
 (this does not include [libdeflate](https://github.com/ebiggers/libdeflate) which is a requirement too, see [_Wiki/Building_](https://github.com/xtreme8000/BetterSpades/wiki/Building) for more details)
 
