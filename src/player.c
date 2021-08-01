@@ -657,10 +657,8 @@ void player_render(struct Player* p, int id) {
 			matrix_translate(matrix_model, p->pos.x, p->pos.y + 0.25F, p->pos.z);
 			matrix_pointAt(matrix_model, ox, 0.0F, oz);
 			matrix_rotate(matrix_model, 90.0F, 0.0F, 1.0F, 0.0F);
-			if(p->physics.velocity.y < 0.05F && p->pos.y < 1.5F) {
-				matrix_translate(matrix_model, 0.0F, (sin(window_time() * 1.5F) - 1.0F) * 0.15F, 0.0F);
-				matrix_rotate(matrix_model, sin(window_time() * 1.5F) * 5.0F, 1.0F, 0.0F, 0.0F);
-			}
+			if(p->physics.velocity.y < 0.05F && p->pos.y < 1.5F)
+				matrix_translate(matrix_model, 0.0F, (sin(window_time() * 1.5F) - 1.0F) * 0.1F, 0.0F);
 			matrix_upload();
 			kv6_render(&model_playerdead, p->team);
 			matrix_pop(matrix_model);
