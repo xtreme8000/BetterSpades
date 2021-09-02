@@ -3,7 +3,7 @@ include(FetchContent)
 FetchContent_Declare(
 	cglm
 	GIT_REPOSITORY	https://github.com/recp/cglm
-	GIT_TAG			v0.8.0
+	GIT_TAG			v0.8.4
 )
 
 set(CGLM_STATIC ON CACHE INTERNAL "")
