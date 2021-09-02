@@ -4,7 +4,7 @@
 [![GPL](https://img.shields.io/badge/license-GPL--3.0-red.svg)](https://github.com/xtreme8000/BetterSpades/blob/standalone/LICENSE)
 [![DonateBTC](https://img.shields.io/badge/bitcoin-donate-yellow.svg)](https://github.com/xtreme8000/BetterSpades#donate)
 
-![GPL v3](https://www.gnu.org/graphics/gplv3-127x51.png)
+![GPL v3](https://www.gnu.org/graphics/gplv3-127x51.png)](https://www.gnu.org/licenses/gpl-3.0.html)
 
 ## ![](docs/icon_small.png) BetterSpades
 
