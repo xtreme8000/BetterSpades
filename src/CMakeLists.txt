@@ -47,7 +47,6 @@ download_file_if_it_doesnt_exist(log.c https://raw.githubusercontent.com/xtreme8
 download_file_if_it_doesnt_exist(hashtable.c https://raw.githubusercontent.com/goldsborough/hashtable/master/hashtable.c)
 download_file_if_it_doesnt_exist(hashtable.h https://raw.githubusercontent.com/goldsborough/hashtable/master/hashtable.h)
 download_file_if_it_doesnt_exist(../deps/libdeflate.h https://raw.githubusercontent.com/ebiggers/libdeflate/master/libdeflate.h)
-download_file_if_it_doesnt_exist(../bsresources.zip http://aos.party/bsresources.zip)
 download_file_if_it_doesnt_exist(microui.c https://raw.githubusercontent.com/rxi/microui/master/src/microui.c)
 download_file_if_it_doesnt_exist(microui.h https://raw.githubusercontent.com/rxi/microui/master/src/microui.h)
 
@@ -183,15 +182,6 @@ add_custom_command(
 	POST_BUILD
 	COMMENT "Copying resources..."
 	COMMAND ${CMAKE_COMMAND} -E copy_directory ${BetterSpades_SOURCE_DIR}/resources ${BetterSpades_SOURCE_DIR}/build/BetterSpades
-)
-
-add_custom_command(
-	TARGET client
-	POST_BUILD
-	COMMENT "Extracting additional third-party assets..."
-	DEPENDS ${BetterSpades_SOURCE_DIR}/bsresources.zip
-	WORKING_DIRECTORY ${BetterSpades_SOURCE_DIR}/build/BetterSpades
-	COMMAND ${CMAKE_COMMAND} -E tar xzf ${BetterSpades_SOURCE_DIR}/bsresources.zip
 )
 
 install(
