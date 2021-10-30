@@ -1100,7 +1100,7 @@ int network_update() {
 				pos.z = 63.0F - players[local_player_id].pos.y;
 				network_send(PACKET_POSITIONDATA_ID, &pos, sizeof(pos));
 			}
-			if(window_time() - network_orient_update > 0.05F
+			if(window_time() - network_orient_update > (1.0F/120.0F)
 			   && angle3D(network_orient_last.x, network_orient_last.y, network_orient_last.z,
 						  players[local_player_id].orientation.x, players[local_player_id].orientation.y,
 						  players[local_player_id].orientation.z)
