@@ -1061,7 +1061,7 @@ int network_update() {
 			}
 		}
 
-		if(network_logged_in && players[local_player_id].team != TEAM_SPECTATOR && players[local_player_id].alive) {
+		if(network_logged_in && players[local_player_id].team != TEAM_SPECTATOR && players[local_player_id].alive && players[local_player_id].physics.airborne == 0) {
 			if(players[local_player_id].input.keys.packed != network_keys_last) {
 				struct PacketInputData in;
 				in.player_id = local_player_id;
