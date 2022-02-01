@@ -1070,7 +1070,7 @@ int network_update() {
 
 				network_keys_last = players[local_player_id].input.keys.packed;
 			}
-			if(players[local_player_id].input.buttons.packed != network_buttons_last) {
+			if(players[local_player_id].input.buttons.packed != network_buttons_last && players[local_player_id].input.keys.sprint == 0) {
 				struct PacketWeaponInput in;
 				in.player_id = local_player_id;
 				in.primary = players[local_player_id].input.buttons.lmb;
