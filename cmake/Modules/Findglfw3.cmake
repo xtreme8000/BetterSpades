@@ -24,7 +24,7 @@ find_path(glfw3_INCLUDE_DIR
   PATH_SUFFIXES GLFW
 )
 find_library(glfw3_LIBRARY
-  NAMES glfw
+  NAMES glfw glfw3
   PATHS ${PC_glfw3_LIBRARY_DIRS} ../../deps
 )
 
