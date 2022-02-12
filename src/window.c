@@ -178,6 +178,13 @@ void window_init() {
 		glfwWindowHint(GLFW_SAMPLES, settings.multisamples);
 	}
 
+	/*
+	#FIXME: This is intended to fix the issue #145.
+	This is dirty because it disables the application-level Hi-DPI support for every installation
+	instead of being applied only to those who needs it.
+	*/
+	glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
+
 	hud_window->impl
 		= glfwCreateWindow(settings.window_width, settings.window_height, "BetterSpades " BETTERSPADES_VERSION,
 						   settings.fullscreen ? glfwGetPrimaryMonitor() : NULL, NULL);
