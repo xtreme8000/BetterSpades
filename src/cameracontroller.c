@@ -198,7 +198,7 @@ void cameracontroller_spectator(float dt) {
 
 	float x = 0.0F, y = 0.0F, z = 0.0F;
 
-	if(chat_input_mode == CHAT_NO_INPUT){
+	if(chat_input_mode == CHAT_NO_INPUT) {
 		if(window_key_down(WINDOW_KEY_UP)) {
 			x += sin(camera_rot_x) * sin(camera_rot_y);
 			y += cos(camera_rot_y);
