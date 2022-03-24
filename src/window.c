@@ -37,6 +37,22 @@
 
 #ifdef USE_GLFW
 
+static bool joystick_available = false;
+static int joystick_id;
+static float joystick_mouse[2] = {0, 0};
+static GLFWgamepadstate joystick_state;
+
+static void window_impl_joystick(int jid, int event) {
+	if(event == GLFW_CONNECTED) {
+		joystick_available = true;
+		joystick_id = jid;
+		log_info("Joystick detected: %s", glfwGetJoystickName(joystick_id));
+	} else if(event == GLFW_DISCONNECTED) {
+		joystick_available = false;
+		log_info("Joystick removed: %s", glfwGetJoystickName(joystick_id));
+	}
+}
+
 void window_textinput(int allow) { }
 
 void window_setmouseloc(double x, double y) { }
@@ -59,7 +75,8 @@ static void window_impl_mouseclick(GLFWwindow* window, int button, int action, i
 		mouse_click(hud_window, b, a, mods & GLFW_MOD_CONTROL);
 }
 static void window_impl_mouse(GLFWwindow* window, double x, double y) {
-	mouse(hud_window, x, y);
+	if(!joystick_available)
+		mouse(hud_window, x, y);
 }
 static void window_impl_mousescroll(GLFWwindow* window, double xoffset, double yoffset) {
 	mouse_scroll(hud_window, xoffset, yoffset);
@@ -174,6 +191,8 @@ void window_init() {
 		exit(1);
 	}
 
+	glfwSetJoystickCallback(window_impl_joystick);
+
 	if(settings.multisamples > 0) {
 		glfwWindowHint(GLFW_SAMPLES, settings.multisamples);
 	}
@@ -235,9 +254,63 @@ void window_deinit() {
 	glfwTerminate();
 }
 
+static void gamepad_translate_key(GLFWgamepadstate* state, GLFWgamepadstate* old, int gamepad, enum window_keys key) {
+	if(!old->buttons[gamepad] && state->buttons[gamepad]) {
+		keys(hud_window, key, 0, WINDOW_PRESS, 0);
+
+		if(hud_active->input_keyboard)
+			hud_active->input_keyboard(key, WINDOW_PRESS, 0, 0);
+	} else if(old->buttons[gamepad] && !state->buttons[gamepad]) {
+		keys(hud_window, key, 0, WINDOW_RELEASE, 0);
+
+		if(hud_active->input_keyboard)
+			hud_active->input_keyboard(key, WINDOW_RELEASE, 0, 0);
+	}
+}
+
+static void gamepad_translate_button(GLFWgamepadstate* state, GLFWgamepadstate* old, int gamepad,
+									 enum window_buttons button) {
+	if(!old->buttons[gamepad] && state->buttons[gamepad]) {
+		mouse_click(hud_window, button, WINDOW_PRESS, 0);
+	} else if(old->buttons[gamepad] && !state->buttons[gamepad]) {
+		mouse_click(hud_window, button, WINDOW_RELEASE, 0);
+	}
+}
+
 void window_update() {
 	glfwSwapBuffers(hud_window->impl);
 	glfwPollEvents();
+
+	if(joystick_available && glfwJoystickIsGamepad(joystick_id)) {
+		GLFWgamepadstate state;
+
+		if(glfwGetGamepadState(joystick_id, &state)) {
+			gamepad_translate_key(&state, &joystick_state, GLFW_GAMEPAD_BUTTON_DPAD_UP, WINDOW_KEY_TOOL1);
+			gamepad_translate_key(&state, &joystick_state, GLFW_GAMEPAD_BUTTON_DPAD_DOWN, WINDOW_KEY_TOOL3);
+			gamepad_translate_key(&state, &joystick_state, GLFW_GAMEPAD_BUTTON_DPAD_LEFT, WINDOW_KEY_TOOL4);
+			gamepad_translate_key(&state, &joystick_state, GLFW_GAMEPAD_BUTTON_DPAD_RIGHT, WINDOW_KEY_TOOL2);
+
+			gamepad_translate_key(&state, &joystick_state, GLFW_GAMEPAD_BUTTON_START, WINDOW_KEY_ESCAPE);
+			gamepad_translate_key(&state, &joystick_state, GLFW_GAMEPAD_BUTTON_RIGHT_BUMPER, WINDOW_KEY_SPACE);
+			gamepad_translate_key(&state, &joystick_state, GLFW_GAMEPAD_BUTTON_LEFT_THUMB, WINDOW_KEY_CROUCH);
+			gamepad_translate_key(&state, &joystick_state, GLFW_GAMEPAD_BUTTON_LEFT_BUMPER, WINDOW_KEY_SPRINT);
+			gamepad_translate_key(&state, &joystick_state, GLFW_GAMEPAD_BUTTON_X, WINDOW_KEY_RELOAD);
+
+			window_pressed_keys[WINDOW_KEY_UP] = state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y] < -0.25F;
+			window_pressed_keys[WINDOW_KEY_DOWN] = state.axes[GLFW_GAMEPAD_AXIS_LEFT_Y] > 0.25F;
+			window_pressed_keys[WINDOW_KEY_LEFT] = state.axes[GLFW_GAMEPAD_AXIS_LEFT_X] < -0.25F;
+			window_pressed_keys[WINDOW_KEY_RIGHT] = state.axes[GLFW_GAMEPAD_AXIS_LEFT_X] > 0.25F;
+
+			joystick_mouse[0] += state.axes[GLFW_GAMEPAD_AXIS_RIGHT_X] * 15.0F;
+			joystick_mouse[1] += state.axes[GLFW_GAMEPAD_AXIS_RIGHT_Y] * 15.0F;
+			mouse(hud_window, joystick_mouse[0], joystick_mouse[1]);
+
+			gamepad_translate_button(&state, &joystick_state, GLFW_GAMEPAD_BUTTON_A, WINDOW_MOUSE_LMB);
+			gamepad_translate_button(&state, &joystick_state, GLFW_GAMEPAD_BUTTON_B, WINDOW_MOUSE_RMB);
+		}
+
+		joystick_state = state;
+	}
 }
 
 int window_closed() {

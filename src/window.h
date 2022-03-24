@@ -94,7 +94,7 @@ enum {
 	WINDOW_CURSOR_ENABLED,
 };
 
-enum {
+enum window_buttons {
 	WINDOW_MOUSE_LMB,
 	WINDOW_MOUSE_MMB,
 	WINDOW_MOUSE_RMB,
