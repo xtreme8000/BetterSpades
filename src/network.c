@@ -279,7 +279,7 @@ void read_PacketStateData(void* data, int len) {
 	local_player_health = 100;
 	local_player_blocks = 50;
 	local_player_grenades = 3;
-	weapon_set();
+	weapon_set(0);
 
 	players[local_player_id].block.red = 111;
 	players[local_player_id].block.green = 111;
@@ -395,7 +395,7 @@ void read_PacketCreatePlayer(void* data, int len) {
 			local_player_blocks = 50;
 			local_player_grenades = 3;
 			local_player_lasttool = TOOL_GUN;
-			weapon_set();
+			weapon_set(0);
 		}
 	}
 }
@@ -645,7 +645,7 @@ void read_PacketRestock(void* data, int len) {
 	local_player_health = 100;
 	local_player_blocks = 50;
 	local_player_grenades = 3;
-	weapon_set();
+	weapon_set(1);
 	sound_create(SOUND_LOCAL, &sound_switch, 0.0F, 0.0F, 0.0F);
 }
 
