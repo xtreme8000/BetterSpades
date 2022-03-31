@@ -843,6 +843,9 @@ void read_PacketVersionGet(void* data, int len) {
 #ifdef OS_APPLE
 	char* os = "BetterSpades (Apple) " GIT_COMMIT_HASH;
 #endif
+#ifdef OS_HAIKU
+	char* os = "BetterSpades (Haiku) " GIT_COMMIT_HASH;
+#endif
 #else
 #ifdef USE_TOUCH
 	char* os = "BetterSpades (Android) " GIT_COMMIT_HASH;

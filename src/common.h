@@ -59,6 +59,10 @@
 #define OS_APPLE
 #endif
 
+#ifdef __HAIKU__
+#define OS_HAIKU
+#endif
+
 #ifndef min
 #define min(a, b) ((a) < (b) ? (a) : (b))
 #endif
