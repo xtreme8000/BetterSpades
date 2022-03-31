@@ -49,6 +49,10 @@ void file_url(char* url) {
 	sprintf(cmd, "xdg-open %s", url);
 	system(cmd);
 #endif
+#ifdef OS_HAIKU
+	sprintf(cmd, "open %s", url);
+	system(cmd);
+#endif
 }
 
 int file_dir_exists(const char* path) {

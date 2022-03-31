@@ -35,6 +35,10 @@
 #include <unistd.h>
 #endif
 
+#ifdef OS_HAIKU
+#include <kernel/OS.h>
+#endif
+
 #ifdef USE_GLFW
 
 static bool joystick_available = false;
@@ -600,5 +604,10 @@ int window_cpucores() {
 	GetSystemInfo(&info);
 	return info.dwNumberOfProcessors;
 #endif
-	return 1;
+#ifdef OS_HAIKU
+	system_info info;
+	get_system_info(&info);
+	return info.cpu_count;
+#endif
+return 1;
 }
