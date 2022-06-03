@@ -786,7 +786,7 @@ int main(int argc, char** argv) {
 
 			// these run at min. ~60fps but as fast as possible
 			double step = fmin(dt, PHYSICS_STEP_TIME);
-			while(physics_time_fast >= step) {
+			while(step > 0 && physics_time_fast >= step) {
 				physics_time_fast -= step;
 				player_update(step, 0); // smooth orientation update
 				camera_update(step);
