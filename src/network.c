@@ -981,21 +981,6 @@ int network_connect_sub(char* ip, int port, int version) {
 	return 0;
 }
 
-int network_connect(char* ip, int port) {
-	log_info("Connecting to %s at port %i", ip, port);
-	if(network_connected) {
-		network_disconnect();
-	}
-	if(network_connect_sub(ip, port, VERSION_075)) {
-		return 1;
-	}
-	if(network_connect_sub(ip, port, VERSION_076)) {
-		return 1;
-	}
-	network_connected = 0;
-	return 0;
-}
-
 int network_identifier_split(char* addr, char* ip_out, int* port_out) {
 	char* ip_start = strstr(addr, "aos://") + 6;
 	if((size_t)ip_start <= 6)
@@ -1018,12 +1003,13 @@ int network_identifier_split(char* addr, char* ip_out, int* port_out) {
 	return 1;
 }
 
-int network_connect_string(char* addr) {
+int network_connect_string(char* addr, int version) {
 	char ip[32];
 	int port;
 	if(!network_identifier_split(addr, ip, &port))
 		return 0;
-	return network_connect(ip, port);
+	log_info("Connecting to %s at port %i", ip, port);
+	return network_connect_sub(ip, port, version);
 }
 
 int network_update() {
@@ -1054,7 +1040,16 @@ int network_update() {
 					break;
 				}
 				case ENET_EVENT_TYPE_DISCONNECT:
-					hud_change(&hud_serverlist);
+					// If the disconnect reason is wrong protocol, he will try the 0.76
+					if(event.data == 3) {
+						char addr[32];
+						sprintf(addr, "aos://%i:%i", event.peer->address.host, event.peer->address.port);
+						network_connect_string(addr, VERSION_076);
+						break;
+					}
+
+					if(network_logged_in)
+						hud_change(&hud_serverlist);
 					chat_showpopup(network_reason_disconnect(event.data), 10.0F, rgb(255, 0, 0));
 					log_error("server disconnected! reason: %s", network_reason_disconnect(event.data));
 					event.peer->data = NULL;
