@@ -839,22 +839,22 @@ void read_PacketVersionGet(void* data, int len) {
 	ver.revision = BETTERSPADES_PATCH;
 #ifndef OPENGL_ES
 #ifdef OS_WINDOWS
-	char* os = "PixSpades (Windows) " GIT_COMMIT_HASH;
+	char* os = "PixSpades (Windows) " "(https://github.com/JimPix1/PixSpades)";
 #endif
 #ifdef OS_LINUX
-	char* os = "PixSpades (Linux) " GIT_COMMIT_HASH;
+	char* os = "PixSpades (Linux) " "(https://github.com/JimPix1/PixSpades)";
 #endif
 #ifdef OS_APPLE
-	char* os = "PixSpades (Apple) " GIT_COMMIT_HASH;
+	char* os = "PixSpades (Apple) " "(https://github.com/JimPix1/PixSpades)";
 #endif
 #ifdef OS_HAIKU
-	char* os = "PixSpades (Haiku) " GIT_COMMIT_HASH;
+	char* os = "PixSpades (Haiku) " "(https://github.com/JimPix1/PixSpades)";
 #endif
 #else
 #ifdef USE_TOUCH
-	char* os = "PixSpades (Android) " GIT_COMMIT_HASH;
+	char* os = "PixSpades (Android) " "(https://github.com/JimPix1/PixSpades)";
 #else
-	char* os = "PixSpades (Embedded) " GIT_COMMIT_HASH;
+	char* os = "PixSpades (Embedded) " "(https://github.com/JimPix1/PixSpades)";
 #endif
 #endif
 	strcpy(ver.operatingsystem, os);
