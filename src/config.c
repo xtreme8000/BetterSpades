@@ -607,7 +607,7 @@ void config_reload() {
 			 	.min = 0,
 			 	.max = 1,
 			 	.name = "Send client info",
-			 	.help = "Send client info for the servers",
+			 	.help = "Send client info for servers",
 			 });
 }
 
