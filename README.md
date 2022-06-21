@@ -1,30 +1,30 @@
-[![Build Status](https://aos.party/jenkins/buildStatus/icon?job=BetterSpades)](https://aos.party/jenkins/job/BetterSpades/)
-[![](https://img.shields.io/github/downloads/xtreme8000/BetterSpades/total.svg)](https://github.com/xtreme8000/BetterSpades/releases)
-[![Discord](https://img.shields.io/badge/discord-join-ff00ff.svg)](https://discord.gg/9JGXKBt)
 [![GPL](https://img.shields.io/badge/license-GPL--3.0-red.svg)](https://github.com/xtreme8000/BetterSpades/blob/standalone/LICENSE)
-[![DonateBTC](https://img.shields.io/badge/bitcoin-donate-yellow.svg)](https://github.com/xtreme8000/BetterSpades#donate)
+[![Discord](https://img.shields.io/badge/discord-join-ff00ff.svg)](https://discord.gg/tZuPt568Dp)
 
 ![GPL v3](https://www.gnu.org/graphics/gplv3-127x51.png)
 
 ## ![](docs/icon_small.png) PixSpades
 
-* Fork of the game *BetterSpades* (A Replicate of classic voxlap)
-* runs on very old systems back to OpenGL 1.1 (OpenGL ES support too)
-* shares similar if not even better performance to voxlap
-* can run on *"embedded"* systems like a [Steam Link](https://store.steampowered.com/app/353380/Steam_Link/)
+[BetterSpades Github](https://github.com/xtreme8000/BetterSpades) — [Community](https://buildandshoot.com)
+
+* Fork of the game *BetterSpades* (A replicate of classic voxlap)
+* Has additions and improvements not in BetterSpades
+* Runs on very old systems back to OpenGL 1.1 (OpenGL ES support too)
+* Shares similar if not even better performance to Voxlap
+* Can run on *"embedded"* systems like a [Steam Link](https://store.steampowered.com/app/353380/Steam_Link/)
 
 #### Why should I use this instead of ...?
 
-* free of any Jagex code, they can't shut it down
-* open for future expansion
-* easy to use
-* no hidden bugs
+* Free of any Jagex code - they can't shut it down
+* Open for future expansion
+* Easy to use
+* No hidden bugs
 
 ### Quick usage guide
 
 You can either:
-* use the client temporarily by extracting the downloaded zip into a new directory.
-* extract all contents to your current Ace of Spades installation directory (normally found at `C:/Ace of Spades/`), effectively replacing the old voxlap version
+* Use the client temporarily by extracting the downloaded zip into a new directory
+* Extract all contents to your current Ace of Spades installation directory (normally found at `C:/Ace of Spades/`), effectively replacing the old voxlap version
 
 ## System requirements
 
@@ -116,6 +116,12 @@ The same instructions for Linux work on macOS aside from some minor differences.
 brew install glfw enet
 ```
 The development headers for OpenAL and OpenGL don't have to be installed since they come with macOS by default. [libdeflate](https://github.com/ebiggers/libdeflate) should be installed and placed manually in a way similar to Linux. See [_Wiki/Building_](https://github.com/xtreme8000/BetterSpades/wiki/Building) for more details.
+
+## Bug reports
+Bug reports should generally go to the original [BetterSpades](https://github.com/xtreme8000/BetterSpades/issues) Repo unless the bug applies specifically to PixSpades.
+
+## Licensing
+Please see the file named LICENSE.
 
 ## Gallery
 
