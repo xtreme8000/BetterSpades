@@ -35,6 +35,7 @@ int glx_version = 0;
 int glx_fog = 0;
 
 static int glx_major_ver() {
+return 1;
 #ifdef OPENGL_ES
 	return 2;
 #else
@@ -321,3 +322,4 @@ void glx_disable_sphericalfog() {
 #endif
 	glx_fog = 0;
 }
+
