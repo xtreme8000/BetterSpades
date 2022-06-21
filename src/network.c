@@ -39,7 +39,6 @@
 #include "chunk.h"
 #include "config.h"
 #include "demo.h"
->>>>>>> 1f7fd91 (Auto record demos, compatible with aos_replay (https://github.com/BR-/aos_replay))
 
 void (*packets[256])(void* data, int len) = {NULL};
 
