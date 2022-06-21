@@ -6,9 +6,9 @@
 
 ![GPL v3](https://www.gnu.org/graphics/gplv3-127x51.png)
 
-## ![](docs/icon_small.png) BetterSpades
+## ![](docs/icon_small.png) PixSpades
 
-* Replicate of the great game *Ace of Spades* (classic voxlap)
+* Fork of the game *BetterSpades* (A Replicate of classic voxlap)
 * runs on very old systems back to OpenGL 1.1 (OpenGL ES support too)
 * shares similar if not even better performance to voxlap
 * can run on *"embedded"* systems like a [Steam Link](https://store.steampowered.com/app/353380/Steam_Link/)
@@ -21,10 +21,6 @@
 * no hidden bugs
 
 ### Quick usage guide
-
-**As of right now, you can download the newest stable version from the [releases page](https://github.com/xtreme8000/BetterSpades/releases).**
-
-**You can get [nightly builds here](https://aos.party/jenkins/job/BetterSpades/).**
 
 You can either:
 * use the client temporarily by extracting the downloaded zip into a new directory.

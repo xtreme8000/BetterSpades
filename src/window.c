@@ -169,10 +169,10 @@ void window_swapping(int value) {
 void window_title(char* suffix) {
 	if(suffix) {
 		char title[128];
-		snprintf(title, sizeof(title) - 1, "BetterSpades %s - %s", BETTERSPADES_VERSION, suffix);
+		snprintf(title, sizeof(title) - 1, "PixSpades %s - %s", BETTERSPADES_VERSION, suffix);
 		glfwSetWindowTitle(hud_window->impl, title);
 	} else {
-		glfwSetWindowTitle(hud_window->impl, "BetterSpades " BETTERSPADES_VERSION);
+		glfwSetWindowTitle(hud_window->impl, "PixSpades " BETTERSPADES_VERSION);
 	}
 }
 
@@ -209,7 +209,7 @@ void window_init() {
 	glfwWindowHint(GLFW_COCOA_RETINA_FRAMEBUFFER, GLFW_FALSE);
 
 	hud_window->impl
-		= glfwCreateWindow(settings.window_width, settings.window_height, "BetterSpades " BETTERSPADES_VERSION,
+		= glfwCreateWindow(settings.window_width, settings.window_height, "PixSpades " BETTERSPADES_VERSION,
 						   settings.fullscreen ? glfwGetPrimaryMonitor() : NULL, NULL);
 	if(!hud_window->impl) {
 		log_fatal("Could not open window");
@@ -407,7 +407,7 @@ void window_init() {
 	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_TIMER);
 
 	hud_window->impl
-		= SDL_CreateWindow("BetterSpades " BETTERSPADES_VERSION, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+		= SDL_CreateWindow("PixSpades " BETTERSPADES_VERSION, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 						   settings.window_width, settings.window_height, SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE);
 
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 1);
@@ -582,10 +582,10 @@ int window_closed() {
 void window_title(char* suffix) {
 	if(suffix) {
 		char title[128];
-		snprintf(title, sizeof(title) - 1, "BetterSpades %s - %s", BETTERSPADES_VERSION, suffix);
+		snprintf(title, sizeof(title) - 1, "PixSpades %s - %s", BETTERSPADES_VERSION, suffix);
 		SDL_SetWindowTitle(hud_window->impl, title);
 	} else {
-		SDL_SetWindowTitle(hud_window->impl, "BetterSpades " BETTERSPADES_VERSION);
+		SDL_SetWindowTitle(hud_window->impl, "PixSpades " BETTERSPADES_VERSION);
 	}
 }
 
@@ -611,3 +611,4 @@ int window_cpucores() {
 #endif
 return 1;
 }
+
