@@ -46,7 +46,6 @@
 #include "texture.h"
 #include "chunk.h"
 #include "main.h"
-#include "demo.h"
 
 int fps = 0;
 
@@ -740,6 +739,7 @@ int main(int argc, char** argv) {
 
 	while(glGetError() != GL_NO_ERROR)
 		;
+
 	init();
 	atexit(deinit);
 
@@ -760,8 +760,6 @@ int main(int argc, char** argv) {
 			exit(1);
 		} else {
 			log_info("Connection to %s successful", argv[1] + 1);
-			if (settings.auto_demo_record)
-				demo_start_record(argv[1]+7);
 			hud_change(&hud_ingame);
 		}
 	}

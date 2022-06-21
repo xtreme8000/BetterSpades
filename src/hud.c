@@ -48,7 +48,6 @@
 #include "weapon.h"
 #include "tracer.h"
 #include "font.h"
-#include "demo.h"
 
 struct hud* hud_active;
 struct window_instance* hud_window;
@@ -2080,9 +2079,6 @@ static void server_c(char* address, char* name) {
 		hud_change(&hud_ingame);
 	} else {
 		window_title(name);
-		if (settings.auto_demo_record)
-			demo_start_record(name);
-
 		if(name && address) {
 			rpc_setv(RPC_VALUE_SERVERNAME, name);
 			rpc_setv(RPC_VALUE_SERVERURL, address);

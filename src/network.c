@@ -38,7 +38,6 @@
 #include "texture.h"
 #include "chunk.h"
 #include "config.h"
-#include "demo.h"
 
 void (*packets[256])(void* data, int len) = {NULL};
 
@@ -934,11 +933,7 @@ void network_send(int id, void* data, int len) {
 		network_stats[0].outgoing += len + 1;
 		network_send_tmp[0] = id;
 		memcpy(network_send_tmp + 1, data, len);
-		ENetPacket* packet = enet_packet_create(network_send_tmp, len + 1, ENET_PACKET_FLAG_RELIABLE);
-		enet_peer_send(peer, 0, packet);
-
-		if(settings.auto_demo_record)
-			register_demo_packet(packet);
+		enet_peer_send(peer, 0, enet_packet_create(network_send_tmp, len + 1, ENET_PACKET_FLAG_RELIABLE));
 	}
 }
 
@@ -1040,17 +1035,6 @@ int network_update() {
 				case ENET_EVENT_TYPE_RECEIVE: {
 					network_stats[0].ingoing += event.packet->dataLength;
 					int id = event.packet->data[0];
-
-					if(settings.auto_demo_record){
-						int player_id = event.packet->data[1];
-						if(id == 15) {
-							event.packet->data[1] = 33;
-						}
-						register_demo_packet(event.packet);
-
-						event.packet->data[1] = player_id;
-					}
-
 					if(*packets[id]) {
 						log_debug("Packet id %i", id);
 						(*packets[id])(event.packet->data + 1, event.packet->dataLength - 1);
