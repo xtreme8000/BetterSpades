@@ -619,7 +619,7 @@ void config_reload() {
 			 	.min = 0,
 			 	.max = 1,
 			 	.name = "Auto demo record",
-			 	.help = "Record demos automatically when join a server",
+			 	.help = "Record demos when join a server",
 			 });
 }
 
