@@ -37,7 +37,6 @@
 #include "particle.h"
 #include "texture.h"
 #include "chunk.h"
-#include "rain.h"
 #include "config.h"
 #include "demo.h"
 >>>>>>> 1f7fd91 (Auto record demos, compatible with aos_replay (https://github.com/BR-/aos_replay))
@@ -953,10 +952,6 @@ void network_disconnect() {
 		enet_peer_disconnect(peer, 0);
 		network_connected = 0;
 		network_logged_in = 0;
-
-		rain_update(0); // stop the rain
-		if (settings.auto_demo_record)
-			demo_stop_record();
 
 		ENetEvent event;
 		while(enet_host_service(client, &event, 3000) > 0) {
