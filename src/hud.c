@@ -1037,7 +1037,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 					case TEAM_1: glColor3ub(gamestate.team_1.red, gamestate.team_1.green, gamestate.team_1.blue); break;
 					case TEAM_2: glColor3ub(gamestate.team_2.red, gamestate.team_2.green, gamestate.team_2.blue); break;
 					case TEAM_SPECTATOR:
-					default: glColor3f(0.0F, 0.0F, 0.0F); // same as chat
+					default: glColor3f(1.0F, 1.0F, 1.0F); // same as chat
 				}
 
 				char sector_str[3] = {(int)(camera_x / 64.0F) + 'A', (int)(camera_z / 64.0F) + '1', 0};
