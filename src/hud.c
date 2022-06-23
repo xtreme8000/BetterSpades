@@ -875,7 +875,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 			texture_draw(&texture_splash, (settings.window_width - 240 * scalef) * 0.5F, 599 * scalef, 240 * scalef,
 						 180 * scalef);
 			glColor3f(1.0F, 1.0F, 0.0F);
-			font_centered(settings.window_width / 2.0F, 420 * scalef, 27 * scalef, "CONTROLS");
+			/*font_centered(settings.window_width / 2.0F, 420 * scalef, 27 * scalef, "CONTROLS");
 			char help_str[2][18][16] = {{"Movement", "Fire", "Gunsight", "Weapons", "Reload", "Jump", "Crouch", "Sneak",
 										 "Sprint", "View Score", "Map", "Change Team", "Change Weapon", "Global Chat",
 										 "Team Chat", "Color Select", "Grab Color", "Quit"},
@@ -886,7 +886,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 							(420 - 27 - 18 * k) * scalef, 18 * scalef, help_str[0][k]);
 				font_render(settings.window_width / 2.0F + font_length(18 * scalef, " "), (420 - 27 - 18 * k) * scalef,
 							18 * scalef, help_str[1][k]);
-			}
+			}*/
 			glColor3f(1.0F, 1.0F, 1.0F);
 		}
 
