@@ -249,3 +249,4 @@ void font_render(float x, float y, float h, char* text) {
 void font_centered(float x, float y, float h, char* text) {
 	font_render(x - font_length(h, text) / 2.0F, y, h, text);
 }
+

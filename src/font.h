@@ -33,3 +33,4 @@ void font_centered(float x, float y, float h, char* text);
 void font_select(enum font_type type);
 
 #endif
+

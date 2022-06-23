@@ -527,14 +527,14 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 		font_select(FONT_SMALLFNT);
 		glColor3f(1.0F, 1.0F, 0.0F);
 		font_render(0.0F, 8.0F * scalef, 8.0F * scalef,
-					"Created by ByteBit, visit https://github.com/xtreme8000/BetterSpades");
+					"You are playing PixSpades by JimPix - https://github.com/JimPix1/PixSpades");
 		font_select(FONT_FIXEDSYS);
 	} else {
 		if(window_key_down(WINDOW_KEY_HIDEHUD))
 			return;
 
 		if(screen_current == SCREEN_TEAM_SELECT) {
-			glColor3f(1.0F, 0.0F, 0.0F);
+			glColor3f(1.0F, 0.94F, 0.0F);
 			char join_str[48];
 			sprintf(join_str, "Press 1 to join %s", gamestate.team_1.name);
 			font_centered(settings.window_width / 4.0F, 61 * scalef, 18.0F * scalef, join_str);
@@ -545,7 +545,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 		}
 
 		if(screen_current == SCREEN_GUN_SELECT) {
-			glColor3f(1.0F, 0.0F, 0.0F);
+			glColor3f(1.0F, 0.94F, 0.0F);
 			font_centered(settings.window_width / 4.0F * 1.0F, 61 * scalef, 18.0F * scalef, "Press 1 to select");
 			font_centered(settings.window_width / 4.0F * 2.0F, 61 * scalef, 18.0F * scalef, "Press 2 to select");
 			font_centered(settings.window_width / 4.0F * 3.0F, 61 * scalef, 18.0F * scalef, "Press 3 to select");
@@ -1175,9 +1175,10 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 
 		if(show_exit) {
 			glColor3f(1.0F, 0.0F, 0.0F);
-			font_render((settings.window_width - font_length(53.0F * scalef, "EXIT GAME? Y/N")) / 2.0F,
-						settings.window_height / 2.0F + 53.0F * scalef, 53.0F * scalef, "EXIT GAME? Y/N");
+			font_render((settings.window_width - font_length(53.0F * scalef, "TOUCH GRASS? Y/N")) / 2.0F,
+						settings.window_height / 2.0F + 53.0F * scalef, 53.0F * scalef, "TOUCH GRASS? Y/N");
 
+			glColor3f(1.0F, 0.94F, 0.0F);
 			char play_time[128];
 			sprintf(play_time, "Playing for %im%is", (int)window_time() / 60, (int)window_time() % 60);
 			font_render(settings.window_width - font_length(27.0F * scalef, play_time), settings.window_height,
