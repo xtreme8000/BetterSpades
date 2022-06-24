@@ -579,7 +579,7 @@ void config_reload() {
 				 .type = CONFIG_TYPE_INT,
 				 .min = 0,
 				 .max = 1,
-				 .name = "Show fps",
+				 .name = "Show fps and ping",
 				 .help = "Show current fps and ping ingame",
 			 });
 	list_add(&config_settings,
