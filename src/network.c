@@ -618,6 +618,7 @@ void read_PacketGrenade(void* data, int len) {
 	struct PacketGrenade* p = (struct PacketGrenade*)data;
 
 	grenade_add(&(struct Grenade) {
+		.team = players[p->player_id].team,
 		.fuse_length = p->fuse_length,
 		.pos.x = p->x,
 		.pos.y = 63.0F - p->z,
@@ -1073,7 +1074,8 @@ int network_update() {
 
 				network_keys_last = players[local_player_id].input.keys.packed;
 			}
-			if(players[local_player_id].input.buttons.packed != network_buttons_last && players[local_player_id].input.keys.sprint == 0) {
+			if(players[local_player_id].input.buttons.packed != network_buttons_last
+			   && players[local_player_id].input.keys.sprint == 0) {
 				struct PacketWeaponInput in;
 				in.player_id = local_player_id;
 				in.primary = players[local_player_id].input.buttons.lmb;
@@ -1103,7 +1105,7 @@ int network_update() {
 				pos.z = 63.0F - players[local_player_id].pos.y;
 				network_send(PACKET_POSITIONDATA_ID, &pos, sizeof(pos));
 			}
-			if(window_time() - network_orient_update > (1.0F/120.0F)
+			if(window_time() - network_orient_update > (1.0F / 120.0F)
 			   && angle3D(network_orient_last.x, network_orient_last.y, network_orient_last.z,
 						  players[local_player_id].orientation.x, players[local_player_id].orientation.y,
 						  players[local_player_id].orientation.z)

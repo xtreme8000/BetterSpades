@@ -21,6 +21,7 @@
 #define GRENADE_H
 
 struct Grenade {
+	unsigned char team;
 	float fuse_length;
 	float created;
 	struct Position pos;
