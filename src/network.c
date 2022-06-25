@@ -574,7 +574,7 @@ void read_PacketKillAction(void* data, int len) {
 		if(p->player_id != p->killer_id) {
 			players[p->killer_id].score++;
 		}
-		char* gun_name[3] = {"PISTOL", "SMGAY", "SHOTGUN"};
+		char* gun_name[3] = {"RIFLE", "SMGAY", "SHOTGUN"};
 		char m[256];
 		switch(p->kill_type) {
 			case KILLTYPE_WEAPON:
