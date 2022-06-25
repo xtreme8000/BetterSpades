@@ -250,6 +250,8 @@ static void hud_ingame_render3D() {
 		}
 
 		if(screen_current == SCREEN_GUN_SELECT) {
+			int team = network_logged_in ? players[local_player_id].team : local_player_newteam;
+
 			matrix_identity(matrix_model);
 			matrix_translate(matrix_model, -1.5F, -1.25F, -3.25F);
 			matrix_rotate(matrix_model, window_time() * 90.0F, 0.0F, 1.0F, 0.0F);
@@ -257,7 +259,7 @@ static void hud_ingame_render3D() {
 							 (model_semi.zpiv - model_semi.zsiz / 2.0F) * model_semi.scale,
 							 (model_semi.ypiv - model_semi.ysiz / 2.0F) * model_semi.scale);
 			matrix_upload();
-			kv6_render(&model_semi, TEAM_SPECTATOR);
+			kv6_render(&model_semi, team);
 
 			matrix_identity(matrix_model);
 			matrix_translate(matrix_model, 0.0F, -1.25F, -3.25F);
@@ -266,7 +268,7 @@ static void hud_ingame_render3D() {
 							 (model_smg.zpiv - model_smg.zsiz / 2.0F) * model_smg.scale,
 							 (model_smg.ypiv - model_smg.ysiz / 2.0F) * model_smg.scale);
 			matrix_upload();
-			kv6_render(&model_smg, TEAM_SPECTATOR);
+			kv6_render(&model_smg, team);
 
 			matrix_identity(matrix_model);
 			matrix_translate(matrix_model, 1.5F, -1.25F, -3.25F);
@@ -275,7 +277,7 @@ static void hud_ingame_render3D() {
 							 (model_shotgun.zpiv - model_shotgun.zsiz / 2.0F) * model_shotgun.scale,
 							 (model_shotgun.ypiv - model_shotgun.ysiz / 2.0F) * model_shotgun.scale);
 			matrix_upload();
-			kv6_render(&model_shotgun, TEAM_SPECTATOR);
+			kv6_render(&model_shotgun, team);
 		}
 
 		struct kv6_t* rotating_model = NULL;
