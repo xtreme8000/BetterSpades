@@ -574,7 +574,7 @@ void read_PacketKillAction(void* data, int len) {
 		if(p->player_id != p->killer_id) {
 			players[p->killer_id].score++;
 		}
-		char* gun_name[3] = {"Rifle", "SMG", "Shotgun"};
+		char* gun_name[3] = {"PISTOL", "SMGAY", "SHOTGUN"};
 		char m[256];
 		switch(p->kill_type) {
 			case KILLTYPE_WEAPON:
@@ -582,13 +582,13 @@ void read_PacketKillAction(void* data, int len) {
 						gun_name[players[p->killer_id].weapon]);
 				break;
 			case KILLTYPE_HEADSHOT:
-				sprintf(m, "%s killed %s (Headshot)", players[p->killer_id].name, players[p->player_id].name);
+				sprintf(m, "%s killed %s (HEADSHOT)", players[p->killer_id].name, players[p->player_id].name);
 				break;
 			case KILLTYPE_MELEE:
-				sprintf(m, "%s killed %s (Spade)", players[p->killer_id].name, players[p->player_id].name);
+				sprintf(m, "%s killed %s (PICKAXE)", players[p->killer_id].name, players[p->player_id].name);
 				break;
 			case KILLTYPE_GRENADE:
-				sprintf(m, "%s killed %s (Grenade)", players[p->killer_id].name, players[p->player_id].name);
+				sprintf(m, "%s killed %s (GRENADE)", players[p->killer_id].name, players[p->player_id].name);
 				break;
 			case KILLTYPE_FALL: sprintf(m, "%s fell too far", players[p->player_id].name); break;
 			case KILLTYPE_TEAMCHANGE: sprintf(m, "%s changed teams", players[p->player_id].name); break;
