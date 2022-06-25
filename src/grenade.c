@@ -142,7 +142,7 @@ bool grenade_render_single(void* obj, void* user) {
 
 	kv6_calclight(g->pos.x, g->pos.y, g->pos.z);
 
-	kv6_render(&model_grenade, TEAM_1);
+	kv6_render(&model_grenade, g->team);
 	matrix_pop(matrix_model);
 	return false;
 }
