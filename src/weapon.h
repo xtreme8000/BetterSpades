@@ -25,7 +25,7 @@
 #include "model.h"
 
 void weapon_update(void);
-void weapon_set(bool restock);
+void weapon_set(void);
 void weapon_reload(void);
 int weapon_reloading(void);
 int weapon_can_reload(void);
@@ -46,3 +46,4 @@ extern float weapon_reload_start, weapon_last_shot;
 extern unsigned char weapon_reload_inprogress;
 
 #endif
+

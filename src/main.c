@@ -499,7 +499,7 @@ void init() {
 	chunk_init();
 	grenade_init();
 
-	weapon_set(false);
+	weapon_set();
 
 	rpc_init();
 }
