@@ -633,7 +633,7 @@ if(settings.toggle_teamname) {
 		&& p->name != players[local_player_id].name
 		&& distancia >= 10
 		&& (id != 255 && (id != 256))
-		&& (players[k].connected && players[k].team != TEAM_1 
+		&& (players[k].connected && players[k].team != TEAM_1
 			&& (players[k].connected && players[k].team != TEAM_SPECTATOR))) {
 		matrix_push(matrix_model);
 		matrix_translate(matrix_model, p->pos.x, p->physics.eye.y + player_height(p) + 1.25F, p->pos.z);
@@ -647,11 +647,11 @@ if(settings.toggle_teamname) {
 			case TEAM_2: glColor3ub(gamestate.team_2.red, gamestate.team_2.green, gamestate.team_2.blue); break;
 		}
 		char id_str[128];
-		
+
 			switch(p->weapon) {
-				case WEAPON_RIFLE: sprintf(id_str, "%s [RIFLE] #%i [%i Blocks]", p->name, id, distancia); break;
-				case WEAPON_SMG: sprintf(id_str, "%s [SMG] #%i [%i Blocks]", p->name, id, distancia); break;
-				case WEAPON_SHOTGUN: sprintf(id_str, "%s [SHOTGUN] #%i [%i Blocks]", p->name, id, distancia); break;
+				case WEAPON_RIFLE: sprintf(id_str, "%s [RIFLE] #%i [%iBs]", p->name, id, distancia); break;
+				case WEAPON_SMG: sprintf(id_str, "%s [SMG] #%i [%iBs]", p->name, id, distancia); break;
+				case WEAPON_SHOTGUN: sprintf(id_str, "%s [SHOTGUN] #%i [%iBs]", p->name, id, distancia); break;
 			}
 
 		font_select(FONT_FIXEDSYS);
@@ -1182,3 +1182,4 @@ int player_uncrouch(struct Player* p) {
 	player_coordsystem_adjust2(p);
 	return 0;
 }
+

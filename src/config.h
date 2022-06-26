@@ -75,6 +75,8 @@ extern struct RENDER_OPTIONS {
 	char custom_macro[50];
 	int toggle_teamname;
 	int show_itemname;
+	int chat_sounds;
+	int macro_sounds;
 } settings, settings_tmp;
 
 extern struct list config_keys;

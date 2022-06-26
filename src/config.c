@@ -100,6 +100,8 @@ void config_save() {
 	config_sets("client", "custom_macro", settings.custom_macro);
 	config_seti("client", "toggle_teamname", settings.toggle_teamname);
 	config_seti("client", "show_itemname", settings.show_itemname);
+	config_seti("client", "chat_sounds", settings.chat_sounds);
+	config_seti("client", "macro_sounds", settings.macro_sounds);
 
 	for(int k = 0; k < list_size(&config_keys); k++) {
 		struct config_key_pair* e = list_get(&config_keys, k);
@@ -198,6 +200,10 @@ static int config_read_key(void* user, const char* section, const char* name, co
 			settings.toggle_teamname = atoi(value);
 		} else if(!strcmp(name, "show_itemname")) {
 			settings.show_itemname = atoi(value);
+		} else if(!strcmp(name, "chat_sounds")) {
+			settings.chat_sounds = atoi(value);
+		} else if(!strcmp(name, "macro_sounds")) {
+			settings.macro_sounds = atoi(value);
 		}
 	}
 	if(!strcmp(section, "controls")) {
@@ -666,7 +672,6 @@ void config_reload() {
 				 .max = 1,
 				 .name = "Auto GG",
 				 .help = "Say GG in chat when a team wins",
-				 .help = "GG en el chat por cada win.",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
@@ -675,7 +680,7 @@ void config_reload() {
 				 .min = 0,
 				 .max = 1,
 				 .name = "Toggle Team Name",
-				 .help = "Muestra el nombre de tu equipo",
+				 .help = "Show your team name",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
@@ -684,7 +689,25 @@ void config_reload() {
 				 .min = 0,
 				 .max = 1,
 				 .name = "Show Item Name",
-				 .help = "show_itemname",
+				 .help = "Show item name below target",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = &settings_tmp.chat_sounds,
+				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
+				 .max = 1,
+				 .name = "Chat sounds",
+				 .help = "Chat sounds",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = &settings_tmp.macro_sounds,
+				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
+				 .max = 1,
+				 .name = "Macro sounds",
+				 .help = "Macro sounds",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {

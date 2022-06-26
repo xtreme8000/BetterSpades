@@ -493,9 +493,9 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 			texture_draw_empty(8.0F * scalex + 4 * k * scalef, (220.0F + ping_h) * scalef, 4.0F * scalef,
 							   ping_h * scalef);
 			if(!k) {
-				sprintf(dbg_str, "ping: %i", network_stats[1].avg_ping);
+				sprintf(dbg_str, "PING: %i", network_stats[1].avg_ping);
 				font_render(8.0F * scalex, 202.0F * scalef, 8.0F * scalef, dbg_str);
-				sprintf(dbg_str, "fps: %i", (int)fps);
+				sprintf(dbg_str, "FPS: %i", (int)fps);
 				font_render(8.0F * scalex, 192.0F * scalef, 8.0F * scalef, dbg_str);
 			}
 		}
@@ -555,7 +555,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 		if(window_key_down(WINDOW_KEY_TAB) || camera_mode == CAMERAMODE_SELECTION) {
 			if(network_connected && network_logged_in) {
 				char ping_str[16];
-				sprintf(ping_str, "PING: %ims", network_ping());
+				sprintf(ping_str, "%ims", network_ping());
 				font_select(FONT_SMALLFNT);
 				glColor3f(1.0F, 0.0F, 0.0F);
 				font_centered(settings.window_width / 2.0F, settings.window_height * 0.92F, 8.0F * scalef, ping_str);
@@ -1302,18 +1302,18 @@ if(settings.show_itemname) {
 				switch(players[local_player_id].held_item) {
 					case TOOL_SPADE:
 						glColor3f(1.0F, 0.0F, 0.0F);
-						font_render((settings.window_width - font_length(53.0F * scalef, "SPADE")) / 2.0F,
-							settings.window_height / 2.0F + 2.0F * scalef, 53.0F * scalef, "SPADE");
+						font_render((settings.window_width - font_length(19.0F * scalef, "SPADE")) / 2.0F,
+							settings.window_height / 2.06F + 2.0F * scalef, 19.0F * scalef, "SPADE");
 					break;
 					case TOOL_BLOCK:
 						glColor3f(1.0F, 0.0F, 0.0F);
-						font_render((settings.window_width - font_length(53.0F * scalef, "BLOCK")) / 2.0F,
-							settings.window_height / 2.0F + 2.0F * scalef, 53.0F * scalef, "BLOCK");
+						font_render((settings.window_width - font_length(19.0F * scalef, "BLOCK")) / 2.0F,
+							settings.window_height / 2.06F + 2.0F * scalef, 19.0F * scalef, "BLOCK");
 					 break;
 					 case TOOL_GRENADE:
 						glColor3f(1.0F, 0.0F, 0.0F);
-						font_render((settings.window_width - font_length(53.0F * scalef, "GRENADE")) / 2.0F,
-							settings.window_height / 2.0F + 2.0F * scalef, 53.0F * scalef, "GRENADE");
+						font_render((settings.window_width - font_length(19.0F * scalef, "GRENADE")) / 2.0F,
+							settings.window_height / 2.06F + 2.0F * scalef, 19.0F * scalef, "GRENADE");
 					break;
 				}
 		}
@@ -1674,9 +1674,9 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(chat[0][0], "/");
 			}
 
-	//*******************MACROS*******************//
+//*******************MACROS START*******************//
 
-			if(key == WINDOW_KEY_ANALYZE) { //analyze
+			if(key == WINDOW_KEY_ANALYZE) { //ANALYZE
 				if(settings.analyze) {
 				struct PacketChatMessage msg;
 				msg.player_id = local_player_id;
@@ -1686,6 +1686,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(msg.message, settings.analyze);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				if(settings.macro_sounds)
 				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
 				}
 			}
@@ -1700,6 +1701,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(msg.message, settings.ratio);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				if(settings.macro_sounds)
 				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
 				}
 			}
@@ -1714,6 +1716,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(msg.message, settings.accuracy);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				if(settings.macro_sounds)
 				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
 				}
 			}
@@ -1728,6 +1731,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(msg.message, settings.streak);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				if(settings.macro_sounds)
 				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
 				}
 			}
@@ -1742,6 +1746,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(msg.message, settings.votekick_vote_yes);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				if(settings.macro_sounds)
 				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
 				}
 			}
@@ -1756,6 +1761,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(msg.message, settings.votekick_cancel);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				if(settings.macro_sounds)
 				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
 				}
 			}
@@ -1770,6 +1776,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(msg.message, settings.medkit);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				if(settings.macro_sounds)
 				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
 				}
 			}
@@ -1784,11 +1791,12 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				strcpy(msg.message, settings.custom_macro);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				if(settings.macro_sounds)
 				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
 				}
 			}
 
-	//*******************MACROS*******************//
+//*******************MACROS END*******************//
 
 			if(key == WINDOW_KEY_CHAT) {
 				window_textinput(1);
@@ -2044,11 +2052,11 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 					strcpy(msg.message, chat[0][0]);
 					network_send(PACKET_CHATMESSAGE_ID, &msg,
 								 sizeof(msg) - sizeof(msg.message) + strlen(chat[0][0]) + 1);
+				if(settings.macro_sounds)
 				sound_create(SOUND_LOCAL, &sound_chat, 0.0F, 0.0F, 0.0F);
 				}
 				window_textinput(0);
 				chat_input_mode = CHAT_NO_INPUT;
-				sound_create(SOUND_LOCAL, &sound_chat, 0.0F, 0.0F, 0.0F);
 			}
 			if(key == WINDOW_KEY_BACKSPACE) {
 				size_t text_len = strlen(chat[0][0]);

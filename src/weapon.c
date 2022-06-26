@@ -128,8 +128,8 @@ void weapon_spread(struct Player* p, float* d) {
 	float spread = 0.0F;
 	switch(p->weapon) {
 		case WEAPON_RIFLE: spread = 0.006F; break;
-		case WEAPON_SMG: spread = 0.012F; break;
-		case WEAPON_SHOTGUN: spread = 0.024F; break;
+		case WEAPON_SMG: spread = 0.005F; break;
+		case WEAPON_SHOTGUN: spread = 0.05F; break;
 	}
 	d[0] += (ms_rand() - ms_rand()) / 16383.0F * spread * (p->input.buttons.rmb ? 0.5F : 1.0F)
 		* ((p->input.keys.crouch && p->weapon != WEAPON_SHOTGUN) ? 0.5F : 1.0F);
