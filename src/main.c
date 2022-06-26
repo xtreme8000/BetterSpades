@@ -712,12 +712,12 @@ int main(int argc, char** argv) {
 
 	time_t t = time(NULL);
 	char buf[32];
-	strftime(buf, 32, "logs/%m-%d-%Y.log", localtime(&t));
+	strftime(buf, 32, "logs/%d-%m-%Y.log", localtime(&t));
 	log_set_fp(fopen(buf, "a"));
 
 	srand(t);
 
-	log_info("Game started!");
+	log_info("PixSpades started!");
 
 	config_reload();
 
