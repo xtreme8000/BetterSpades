@@ -114,11 +114,11 @@ void read_PacketChatMessage(void* data, int len) {
 	char m[256];
 	switch(p->chat_type) {
 		case CHAT_ERROR: sound_create(SOUND_LOCAL, &sound_beep2, 0.0F, 0.0F, 0.0F);
-		case CHAT_BIG: chat_showpopup(p->message, 5.0F, rgb(255, 0, 0)); return;
-		case CHAT_INFO: chat_showpopup(p->message, 5.0F, rgb(255, 255, 255)); return;
+		case CHAT_BIG: chat_showpopup(p->message, 4.5F, rgb(255, 0, 0)); return;
+		case CHAT_INFO: chat_showpopup(p->message, 4.5F, rgb(255, 255, 255)); return;
 		case CHAT_WARNING:
 			sound_create(SOUND_LOCAL, &sound_beep1, 0.0F, 0.0F, 0.0F);
-			chat_showpopup(p->message, 5.0F, rgb(255, 255, 0));
+			chat_showpopup(p->message, 4.5F, rgb(255, 255, 0));
 			return;
 		case CHAT_SYSTEM:
 			if(p->player_id == 255) {
@@ -1068,7 +1068,7 @@ int network_update() {
 
 					if(network_logged_in)
 						hud_change(&hud_serverlist);
-					chat_showpopup(network_reason_disconnect(event.data), 10.0F, rgb(255, 0, 0));
+					chat_showpopup(network_reason_disconnect(event.data), 6.0F, rgb(255, 0, 0));
 					log_error("server disconnected! reason: %s", network_reason_disconnect(event.data));
 					event.peer->data = NULL;
 					network_connected = 0;

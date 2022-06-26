@@ -649,9 +649,9 @@ if(settings.toggle_teamname) {
 		char id_str[128];
 
 			switch(p->weapon) {
-				case WEAPON_RIFLE: sprintf(id_str, "%s [RIFLE] #%i [%iBs]", p->name, id, distancia); break;
-				case WEAPON_SMG: sprintf(id_str, "%s [SMG] #%i [%iBs]", p->name, id, distancia); break;
-				case WEAPON_SHOTGUN: sprintf(id_str, "%s [SHOTGUN] #%i [%iBs]", p->name, id, distancia); break;
+				case WEAPON_RIFLE: sprintf(id_str, "%s [RIFLE] #%i [%i Blocks]", p->name, id, distancia); break;
+				case WEAPON_SMG: sprintf(id_str, "%s [SMG] #%i [%i Blocks]", p->name, id, distancia); break;
+				case WEAPON_SHOTGUN: sprintf(id_str, "%s [SHOTGUN] #%i [%i Blocks]", p->name, id, distancia); break;
 			}
 
 		font_select(FONT_FIXEDSYS);

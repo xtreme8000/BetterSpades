@@ -622,14 +622,11 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 					default:
 					case TEAM_SPECTATOR: mul = 2; break;
 				}
-				if(pt[k].id == local_player_id) {
-					switch(players[local_player_id].team) {
-					case TEAM_1: glColor3ub(gamestate.team_1.red, gamestate.team_1.green, gamestate.team_1.blue); break;
-					case TEAM_2: glColor3ub(gamestate.team_2.red, gamestate.team_2.green, gamestate.team_2.blue); break;
-					}
-				} else if(!players[pt[k].id].alive) {
+				if(pt[k].id == local_player_id)
+					glColor3f(1.0F, 1.0F, 0.0F);
+				else if(!players[pt[k].id].alive)
 					glColor3f(0.6F, 0.6F, 0.6F);
-				} else
+				else
 					glColor3f(1.0F, 1.0F, 1.0F);
 				char id_str[16];
 				sprintf(id_str, "#%i", pt[k].id);
@@ -1281,8 +1278,8 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 		}
 		if(window_time() - chat_popup_timer < chat_popup_duration) {
 			glColor3ub(red(chat_popup_color), green(chat_popup_color), blue(chat_popup_color));
-			font_render((settings.window_width - font_length(53.0F * scalef, chat_popup)) / 2.0F,
-						settings.window_height / 2.0F, 53.0F * scalef, chat_popup);
+			font_render((settings.window_width - font_length(40.0F * scalef, chat_popup)) / 2.0F,
+						settings.window_height / 3.6F, 40.0F * scalef, chat_popup);
 		}
 		glColor3f(1.0F, 1.0F, 1.0F);
 	}
@@ -1303,17 +1300,17 @@ if(settings.show_itemname) {
 					case TOOL_SPADE:
 						glColor3f(1.0F, 0.0F, 0.0F);
 						font_render((settings.window_width - font_length(19.0F * scalef, "SPADE")) / 2.0F,
-							settings.window_height / 2.06F + 2.0F * scalef, 19.0F * scalef, "SPADE");
+							settings.window_height / 2.07F + 2.0F * scalef, 19.0F * scalef, "SPADE");
 					break;
 					case TOOL_BLOCK:
 						glColor3f(1.0F, 0.0F, 0.0F);
 						font_render((settings.window_width - font_length(19.0F * scalef, "BLOCK")) / 2.0F,
-							settings.window_height / 2.06F + 2.0F * scalef, 19.0F * scalef, "BLOCK");
+							settings.window_height / 2.07F + 2.0F * scalef, 19.0F * scalef, "BLOCK");
 					 break;
 					 case TOOL_GRENADE:
 						glColor3f(1.0F, 0.0F, 0.0F);
 						font_render((settings.window_width - font_length(19.0F * scalef, "GRENADE")) / 2.0F,
-							settings.window_height / 2.06F + 2.0F * scalef, 19.0F * scalef, "GRENADE");
+							settings.window_height / 2.07F + 2.0F * scalef, 19.0F * scalef, "GRENADE");
 					break;
 				}
 		}
@@ -1525,7 +1522,7 @@ static void hud_ingame_mouseclick(double x, double y, int button, int action, in
 				}
 				if(local_player_ammo == 0 && window_time() - players[local_player_id].item_showup >= 0.5F) {
 					sound_create(SOUND_LOCAL, &sound_empty, 0.0F, 0.0F, 0.0F);
-					chat_showpopup("RELOAD", 0.4F, rgb(255, 0, 0));
+					chat_showpopup("RELOAD", 0.5F, rgb(255, 0, 0));
 				}
 			}
 		}
