@@ -23,6 +23,8 @@
 * Different branding from BetterSpades
 * Show the name of the item you're holding when you're sprinting to prevent confusion (Toggleable - Only shows tools, not guns)
 * Many small improvements to the game such as longer chat history, bigger fonts sizes for things that were too small etc.
+* Bullet spread and recoil is the same as the spread and recoil in OpenSpades
+* Improved names above players in spectator mode (Now shows their gun and their player ID)
 * Always kept up to date with the main BetterSpades repository
 * And more!
 

@@ -493,7 +493,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 			texture_draw_empty(8.0F * scalex + 4 * k * scalef, (220.0F + ping_h) * scalef, 4.0F * scalef,
 							   ping_h * scalef);
 			if(!k) {
-				sprintf(dbg_str, "PING: %i", network_stats[1].avg_ping);
+				sprintf(dbg_str, "Ping: %i", network_stats[1].avg_ping);
 				font_render(8.0F * scalex, 202.0F * scalef, 8.0F * scalef, dbg_str);
 				sprintf(dbg_str, "FPS: %i", (int)fps);
 				font_render(8.0F * scalex, 192.0F * scalef, 8.0F * scalef, dbg_str);

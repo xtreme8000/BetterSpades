@@ -127,9 +127,9 @@ struct Sound_wav* weapon_sound_reload(int gun) {
 void weapon_spread(struct Player* p, float* d) {
 	float spread = 0.0F;
 	switch(p->weapon) {
-		case WEAPON_RIFLE: spread = 0.006F; break;
-		case WEAPON_SMG: spread = 0.005F; break;
-		case WEAPON_SHOTGUN: spread = 0.05F; break;
+		case WEAPON_RIFLE: spread = 0.005F; break;
+		case WEAPON_SMG: spread = 0.012F; break;
+		case WEAPON_SHOTGUN: spread = 0.022F; break;
 	}
 	d[0] += (ms_rand() - ms_rand()) / 16383.0F * spread * (p->input.buttons.rmb ? 0.5F : 1.0F)
 		* ((p->input.keys.crouch && p->weapon != WEAPON_SHOTGUN) ? 0.5F : 1.0F);
@@ -143,11 +143,11 @@ void weapon_recoil(int gun, double* horiz_recoil, double* vert_recoil) {
 	switch(gun) {
 		case WEAPON_RIFLE:
 			*horiz_recoil = 0.0001;
-			*vert_recoil = 0.050000001;
+			*vert_recoil = 0.05;
 			break;
 		case WEAPON_SMG:
 			*horiz_recoil = 0.00005;
-			*vert_recoil = 0.0125;
+			*vert_recoil = 0.0120;
 			break;
 		case WEAPON_SHOTGUN:
 			*horiz_recoil = 0.0002;
