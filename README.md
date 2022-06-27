@@ -26,7 +26,7 @@
 * Bullet spread and recoil is the same as the spread and recoil in OpenSpades
 * Improved names above players in spectator mode (Now shows their gun and their player ID)
 * Always kept up to date with the main BetterSpades repository
-* And more!
+* **And more!**
 
 #### Why should I use this instead of ...?
 

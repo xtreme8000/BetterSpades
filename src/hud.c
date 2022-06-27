@@ -753,7 +753,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 					case TEAM_1: glColor3ub(gamestate.team_1.red, gamestate.team_1.green, gamestate.team_1.blue); break;
 					case TEAM_2: glColor3ub(gamestate.team_2.red, gamestate.team_2.green, gamestate.team_2.blue); break;
 				}
-				font_centered(settings.window_width / 2.0F, settings.window_height * 0.23F, 12.0F * scalef,
+				font_centered(settings.window_width / 2.0F, settings.window_height * 0.961F, 13.0F * scalef,
 							  players[cameracontroller_bodyview_player].name);
 			}
 			font_select(FONT_FIXEDSYS);
@@ -1250,8 +1250,11 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 		}
 
 		if(player_intersection_type >= 0
-		   && (players[local_player_id].team == TEAM_SPECTATOR
-			   || players[player_intersection_player].team == players[local_player_id].team)) {
+		   && camera_mode == CAMERAMODE_FPS
+		   && (players[local_player_id].team != TEAM_SPECTATOR
+		   && (players[local_player_id].team == TEAM_1
+		   && (players[local_player_id].team == TEAM_2
+			   || players[player_intersection_player].team == players[local_player_id].team)))) {
 			font_select(FONT_SMALLFNT);
 			char* th[4] = {"torso", "head", "arms", "legs"};
 			char str[32];
@@ -1261,7 +1264,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 				default: glColor3f(1.0F, 1.0F, 1.0F);
 			}
 			sprintf(str, "%s's %s", players[player_intersection_player].name, th[player_intersection_type]);
-			font_centered(settings.window_width / 2.0F, settings.window_height * 0.19F, 8.5F * scalef, str);
+			font_centered(settings.window_width / 2.0F, settings.window_height * 0.19F, 9.0F * scalef, str);
 			font_select(FONT_FIXEDSYS);
 		}
 
@@ -1279,7 +1282,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 		if(window_time() - chat_popup_timer < chat_popup_duration) {
 			glColor3ub(red(chat_popup_color), green(chat_popup_color), blue(chat_popup_color));
 			font_render((settings.window_width - font_length(40.0F * scalef, chat_popup)) / 2.0F,
-						settings.window_height / 3.6F, 40.0F * scalef, chat_popup);
+						settings.window_height / 3.7F, 40.0F * scalef, chat_popup);
 		}
 		glColor3f(1.0F, 1.0F, 1.0F);
 	}
