@@ -625,16 +625,16 @@ void player_render(struct Player* p, int id) {
 
 if(settings.toggle_teamname) {
 
-	int distancia = sqrt(distance3D( p->pos.x, p->pos.y, p->pos.z, camera_x, camera_y, camera_z));
+	int distance = sqrt(distance3D( p->pos.x, p->pos.y, p->pos.z, camera_x, camera_y, camera_z));
 	for(int k = 0; k < PLAYERS_MAX; k++) {
-	if(camera_mode == CAMERAMODE_FPS
+	if(camera_mode == CAMERAMODE_FPS && CAMERAMODE_SPECTATOR
 		&& p->team == players[local_player_id].team
 		&& p->alive
 		&& p->name != players[local_player_id].name
-		&& distancia >= 10
+		&& distance >= 10
 		&& (id != 255 && (id != 256))
 		&& (players[k].connected && players[k].team != TEAM_1
-			&& (players[k].connected && players[k].team != TEAM_SPECTATOR))) {
+			&& (players[k].connected))) {
 		matrix_push(matrix_model);
 		matrix_translate(matrix_model, p->pos.x, p->physics.eye.y + player_height(p) + 1.25F, p->pos.z);
 		matrix_rotate(matrix_model, camera_rot_x / PI * 180.0F + 180.0F, 0.0F, 1.0F, 0.0F);
@@ -649,9 +649,49 @@ if(settings.toggle_teamname) {
 		char id_str[128];
 
 			switch(p->weapon) {
-				case WEAPON_RIFLE: sprintf(id_str, "%s [RIFLE] #%i [%i Blocks]", p->name, id, distancia); break;
-				case WEAPON_SMG: sprintf(id_str, "%s [SMG] #%i [%i Blocks]", p->name, id, distancia); break;
-				case WEAPON_SHOTGUN: sprintf(id_str, "%s [SHOTGUN] #%i [%i Blocks]", p->name, id, distancia); break;
+				case WEAPON_RIFLE: sprintf(id_str, "%s [RIFLE] #%i [%i Bks]", p->name, id, distance); break;
+				case WEAPON_SMG: sprintf(id_str, "%s [SMG] #%i [%i Bks]", p->name, id, distance); break;
+				case WEAPON_SHOTGUN: sprintf(id_str, "%s [SHOTGUN] #%i [%i Bks]", p->name, id, distance); break;
+			}
+
+		font_select(FONT_FIXEDSYS);
+		glEnable(GL_ALPHA_TEST);
+		glAlphaFunc(GL_GREATER, 0.5F);
+		glDisable(GL_DEPTH_TEST);
+		font_centered(0, 0, 64, id_str);
+		glEnable(GL_DEPTH_TEST);
+		glDisable(GL_ALPHA_TEST);
+		matrix_pop(matrix_model);
+		matrix_upload();
+				}
+			}
+		}
+
+	if(camera_mode == CAMERAMODE_SPECTATOR && p->team != TEAM_SPECTATOR && !cameracontroller_bodyview_mode) {
+	for(int k = 0; k < PLAYERS_MAX; k++) {
+		p->team == players[local_player_id].team
+		&& p->alive
+		&& p->name != players[local_player_id].name
+		&& (id != 255 && (id != 256))
+		&& (players[k].connected && players[k].team != TEAM_1
+			&& (players[k].connected)); {
+		matrix_push(matrix_model);
+		matrix_translate(matrix_model, p->pos.x, p->physics.eye.y + player_height(p) + 1.25F, p->pos.z);
+		matrix_rotate(matrix_model, camera_rot_x / PI * 180.0F + 180.0F, 0.0F, 1.0F, 0.0F);
+		matrix_rotate(matrix_model, -camera_rot_y / PI * 180.0F + 90.0F, 1.0F, 0.0F, 0.0F);
+		matrix_scale(matrix_model, 1.0F / 92.0F, 1.0F / 92.0F, 1.0F / 92.0F);
+		matrix_upload();
+
+		switch(p->team) {
+			case TEAM_1: glColor3ub(gamestate.team_1.red, gamestate.team_1.green, gamestate.team_1.blue); break;
+			case TEAM_2: glColor3ub(gamestate.team_2.red, gamestate.team_2.green, gamestate.team_2.blue); break;
+		}
+		char id_str[128];
+
+			switch(p->weapon) {
+				case WEAPON_RIFLE: sprintf(id_str, "%s [RIFLE] #%i", p->name, id); break;
+				case WEAPON_SMG: sprintf(id_str, "%s [SMG] #%i", p->name, id); break;
+				case WEAPON_SHOTGUN: sprintf(id_str, "%s [SHOTGUN] #%i", p->name, id); break;
 			}
 
 		font_select(FONT_FIXEDSYS);

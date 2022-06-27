@@ -90,10 +90,11 @@ void config_save() {
 	config_seti("client", "show_player_arms", settings.player_arms);
 	config_seti("client", "send_client_info", settings.send_client_info);
 	config_seti("client", "auto_gg", settings.auto_gg);
-	config_sets("client", "analyze", settings.analyze);
+	config_sets("client", "kill", settings.kill);
 	config_sets("client", "ratio", settings.ratio);
 	config_sets("client", "accuracy", settings.accuracy);
 	config_sets("client", "streak", settings.streak);
+	config_sets("client", "deaf", settings.deaf);
 	config_sets("client", "votekick_vote_yes", settings.votekick_vote_yes);
 	config_sets("client", "votekick_cancel", settings.votekick_cancel);
 	config_sets("client", "medkit", settings.medkit);
@@ -182,12 +183,14 @@ static int config_read_key(void* user, const char* section, const char* name, co
 			settings.auto_gg = atoi(value);
 		} else if(!strcmp(name, "ratio")) {
 			strcpy(settings.ratio, value);
-		} else if(!strcmp(name, "analyze")) {
-			strcpy(settings.analyze, value);
+		} else if(!strcmp(name, "kill")) {
+			strcpy(settings.kill, value);
 		} else if(!strcmp(name, "accuracy")) {
 			strcpy(settings.accuracy, value);
 		} else if(!strcmp(name, "streak")) {
 			strcpy(settings.streak, value);
+		} else if(!strcmp(name, "deaf")) {
+			strcpy(settings.deaf, value);
 		} else if(!strcmp(name, "votekick_vote_yes")) {
 			strcpy(settings.votekick_vote_yes, value);
 		} else if(!strcmp(name, "votekick_cancel")) {
@@ -374,23 +377,25 @@ void config_reload() {
 	config_register_key(WINDOW_KEY_SELECT1, SDLK_1, NULL, 0, NULL, NULL);
 	config_register_key(WINDOW_KEY_SELECT2, SDLK_2, NULL, 0, NULL, NULL);
 	config_register_key(WINDOW_KEY_SELECT3, SDLK_3, NULL, 0, NULL, NULL);
-	config_register_key(WINDOW_KEY_RATIO, SDLK_f, "key_ratio", 1, "Ratio Macro Key", "Macros");
-	config_register_key(WINDOW_KEY_ANALYZE, SDLK_g, "key_analyze", 1, "Analyze Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_RATIO, SDLK_h, "key_ratio", 1, "Ratio Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_KILL, SDLK_g, "key_kill", 1, "Kill Macro Key", "Macros");
 	config_register_key(WINDOW_KEY_ACCURACY, SDLK_h, "key_accuracy", 1, "Accuracy Macro Key", "Macros");
 	config_register_key(WINDOW_KEY_STREAK, SDLK_j, "key_streak", 1, "Streak Macro Key", "Macros");
-	config_register_key(WINDOW_KEY_VOTEKICK_YES, SDLK_k, "key_votekick_vote_yes", 1, "Votekick Vote Macro Key", "Macros");
-	config_register_key(WINDOW_KEY_VOTEKICK_CANCEL, SDLK_l, "key_votekick_cancel", 1, "Votekick Cancel Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_DEAF, SDLK_b, "key_deaf", 1, "Deaf Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_VOTEKICK_YES, SDLK_l, "key_votekick_vote_yes", 1, "Votekick Vote Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_VOTEKICK_CANCEL, SDLK_k, "key_votekick_cancel", 1, "Votekick Cancel Macro Key", "Macros");
 	config_register_key(WINDOW_KEY_MEDKIT, SDLK_c, "key_medkit", 1, "Medkit Macro Key", "Macros");
 	config_register_key(WINDOW_KEY_CUSTOM_MACRO, SDLK_n, "key_custom_macro", 1, "Custom Macro", "Macros");
 #endif
 
 #ifdef USE_GLFW
-	config_register_key(WINDOW_KEY_RATIO, GLFW_KEY_F, "key_ratio", 1, "Ratio Macro Key", "Macros");
-	config_register_key(WINDOW_KEY_ANALYZE, GLFW_KEY_G, "key_analyze", 1, "Analyze Macro Key", "Macros");
-	config_register_key(WINDOW_KEY_ACCURACY, GLFW_KEY_H, "key_accuracy", 1, "Accuracy Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_RATIO, GLFW_KEY_H, "key_ratio", 1, "Ratio Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_KILL, GLFW_KEY_G, "key_kill", 1, "Kill Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_ACCURACY, GLFW_KEY_SEMICOLON, "key_accuracy", 1, "Accuracy Macro Key", "Macros");
 	config_register_key(WINDOW_KEY_STREAK, GLFW_KEY_J, "key_streak", 1, "Streak Macro Key", "Macros");
-	config_register_key(WINDOW_KEY_VOTEKICK_YES, GLFW_KEY_K, "key_votekick_vote_yes", 1, "Votekick Vote Key", "Macros");
-	config_register_key(WINDOW_KEY_VOTEKICK_CANCEL, GLFW_KEY_L, "key_votekick_cancel", 1, "Votekick Cancel Key", "Macros");
+	config_register_key(WINDOW_KEY_DEAF, GLFW_KEY_B, "key_deaf", 1, "Deaf Macro Key", "Macros");
+	config_register_key(WINDOW_KEY_VOTEKICK_YES, GLFW_KEY_L, "key_votekick_vote_yes", 1, "Votekick Vote Key", "Macros");
+	config_register_key(WINDOW_KEY_VOTEKICK_CANCEL, GLFW_KEY_K, "key_votekick_cancel", 1, "Votekick Cancel Key", "Macros");
 	config_register_key(WINDOW_KEY_MEDKIT, GLFW_KEY_C, "key_medkit", 1, "Medkit Macro Key", "Macros");
 	config_register_key(WINDOW_KEY_CUSTOM_MACRO, GLFW_KEY_N, "key_custom_macro", 1, "Custom Macro", "Macros");
 	config_register_key(WINDOW_KEY_UP, GLFW_KEY_W, "move_forward", 0, "Forward", "Movement");
@@ -711,11 +716,11 @@ void config_reload() {
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
-				 .value = settings_tmp.analyze,
+				 .value = settings_tmp.kill,
 				 .type = CONFIG_TYPE_STRING,
-				 .max = sizeof(settings.analyze) - 1,
-				 .name = "Analyze",
-				 .help = "Run the command /analyze",
+				 .max = sizeof(settings.kill) - 1,
+				 .name = "Kill",
+				 .help = "Run the command /kill",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
@@ -740,6 +745,14 @@ void config_reload() {
 				 .max = sizeof(settings.streak) - 1,
 				 .name = "Streak",
 				 .help = "Run the command /streak",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.deaf,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.deaf) - 1,
+				 .name = "Deaf",
+				 .help = "Run the command /deaf",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {

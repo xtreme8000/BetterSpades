@@ -637,8 +637,8 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 						   && gamestate.gamemode.ctf.team_2_intel_location.held.player_id == pt[k].id))) {
 					texture_draw(&texture_intel,
 								 settings.window_width / 4.0F * mul
-									 - font_length(18.0F * scalef, players[pt[k].id].name) - 66.0F * scalef,
-								 (427 - 18.3 * cntt[mul - 1]) * scalef, 18.0F * scalef, 18.0F * scalef);
+									 - font_length(18.0F * scalef, players[pt[k].id].name) - 73.0F * scalef,
+								 (427 - 18.1 * cntt[mul - 1]) * scalef, 18.0F * scalef, 18.0F * scalef);
 				}
 
 					char name_y_rifle[128];
@@ -662,7 +662,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 				}
 				cntt[mul - 1]++;
 						} else {
-						sprintf(name_y_rifle, "[RF] %s", players[pt[k].id].name);
+						sprintf(name_y_rifle, "[RIF] %s", players[pt[k].id].name);
 
 				font_render(settings.window_width / 4.0F * mul - font_length(18.0F * scalef, name_y_rifle),
 							(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, name_y_rifle);
@@ -693,7 +693,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 				}
 				cntt[mul - 1]++;
 				} else {
-					sprintf(name_y_smg, "[SM] %s", players[pt[k].id].name);
+					sprintf(name_y_smg, "[SMG] %s", players[pt[k].id].name);
 
 				font_render(settings.window_width / 4.0F * mul - font_length(18.0F * scalef, name_y_smg),
 							(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, name_y_smg);
@@ -724,7 +724,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 				}
 				cntt[mul - 1]++;
 				} else {
-					sprintf(name_y_shotgun, "[SH] %s", players[pt[k].id].name);
+					sprintf(name_y_shotgun, "[SHO] %s", players[pt[k].id].name);
 
 				font_render(settings.window_width / 4.0F * mul - font_length(18.0F * scalef, name_y_shotgun),
 							(427 - 18 * cntt[mul - 1]) * scalef, 18.0F * scalef, name_y_shotgun);
@@ -753,7 +753,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 					case TEAM_1: glColor3ub(gamestate.team_1.red, gamestate.team_1.green, gamestate.team_1.blue); break;
 					case TEAM_2: glColor3ub(gamestate.team_2.red, gamestate.team_2.green, gamestate.team_2.blue); break;
 				}
-				font_centered(settings.window_width / 2.0F, settings.window_height * 0.25F, 8.0F * scalef,
+				font_centered(settings.window_width / 2.0F, settings.window_height * 0.23F, 12.0F * scalef,
 							  players[cameracontroller_bodyview_player].name);
 			}
 			font_select(FONT_FIXEDSYS);
@@ -895,7 +895,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 			if(settings.chat_shadow) {
 				float chat_width = 0;
 				int chat_height = 0;
-				for(int k = 0; k < 6; k++) {
+				for(int k = 0; k < 8; k++) {
 					if((window_time() - chat_timer[0][k + 1] < 10.0F || chat_input_mode != CHAT_NO_INPUT)
 					   && strlen(chat[0][k + 1]) > 0) {
 						chat_width = fmaxf(font_length(8.0F * scalef, chat[0][k + 1]), chat_width);
@@ -943,7 +943,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 				chat[0][0][l] = 0;
 			}
 
-			for(int k = 0; k < 6; k++) {
+			for(int k = 0; k < 8; k++) {
 
 				if(window_time() - chat_timer[0][k + 1] < 10.0F || chat_input_mode != CHAT_NO_INPUT) {
 					glColor3ub(red(chat_color[0][k + 1]), green(chat_color[0][k + 1]), blue(chat_color[0][k + 1]));
@@ -1261,7 +1261,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 				default: glColor3f(1.0F, 1.0F, 1.0F);
 			}
 			sprintf(str, "%s's %s", players[player_intersection_player].name, th[player_intersection_type]);
-			font_centered(settings.window_width / 2.0F, settings.window_height * 0.2F, 8.0F * scalef, str);
+			font_centered(settings.window_width / 2.0F, settings.window_height * 0.19F, 8.5F * scalef, str);
 			font_select(FONT_FIXEDSYS);
 		}
 
@@ -1673,14 +1673,14 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 
 //*******************MACROS START*******************//
 
-			if(key == WINDOW_KEY_ANALYZE) { //ANALYZE
-				if(settings.analyze) {
+			if(key == WINDOW_KEY_KILL) { //KILL
+				if(settings.kill) {
 				struct PacketChatMessage msg;
 				msg.player_id = local_player_id;
 				msg.chat_type = CHAT_ALL;
 				window_textinput(1);
 				chat_input_mode = CHAT_NO_INPUT;
-				strcpy(msg.message, settings.analyze);
+				strcpy(msg.message, settings.kill);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
 				if(settings.macro_sounds)
@@ -1726,6 +1726,21 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				window_textinput(1);
 				chat_input_mode = CHAT_NO_INPUT;
 				strcpy(msg.message, settings.streak);
+				network_send(PACKET_CHATMESSAGE_ID, &msg,
+							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				if(settings.macro_sounds)
+				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
+				}
+			}
+
+			if(key == WINDOW_KEY_DEAF) { //DEAF
+				if(settings.deaf) {
+				struct PacketChatMessage msg;
+				msg.player_id = local_player_id;
+				msg.chat_type = CHAT_ALL;
+				window_textinput(1);
+				chat_input_mode = CHAT_NO_INPUT;
+				strcpy(msg.message, settings.deaf);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
 				if(settings.macro_sounds)
@@ -2049,7 +2064,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 					strcpy(msg.message, chat[0][0]);
 					network_send(PACKET_CHATMESSAGE_ID, &msg,
 								 sizeof(msg) - sizeof(msg.message) + strlen(chat[0][0]) + 1);
-				if(settings.macro_sounds)
+				if(settings.chat_sounds)
 				sound_create(SOUND_LOCAL, &sound_chat, 0.0F, 0.0F, 0.0F);
 				}
 				window_textinput(0);
