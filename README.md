@@ -11,10 +11,10 @@
 
 ### Differences in this fork
 * Many bug fixes not in BetterSpades
-* Better default settings
-* Toggleable Client spoofing
+* Better default settings than BetterSpades
+* Toggleable client spoofing
 * Customizable macros (Defaults: /medkit, /deaf, /kill, /ratio, /accuracy, /streak, /cancel, /y and a customizable macro)
-* Toggleable Auto GG (The client says GG for you when a team wins)
+* Toggleable Auto GG (The client says GG for you automatically when a team wins)
 * Improved networkstats popup (No border, is smaller and shows you your ping and FPS)
 * Toggleable chat and macro sounds
 * Improved scoreboard with weapon names beside players ([RIF] = Rifle, [SMG] = Sub Machine Gun, [SHO] = Shotgun)
@@ -23,8 +23,11 @@
 * Different branding from BetterSpades
 * Show the name of the item you're holding when you're sprinting to prevent confusion (Toggleable - Only shows tools, not guns)
 * Many small improvements to the game such as longer chat history, bigger fonts sizes for things that were too small etc.
-* Bullet spread and recoil is the same as the spread and recoil in OpenSpades
-* Improved names above players in spectator mode (Now shows their gun and their player ID)
+* Improved the player name indicator when in spectator mode
+* Popup messages are smaller and lower on the screen and don't last as long
+* Bullet spread and recoil are the same as the spread and recoil in OpenSpades
+* The tent refills your clip and magazine, so no reloading needed when you go to a tent!
+* Other additional settings
 * Always kept up to date with the main BetterSpades repository
 * **And more!**
 

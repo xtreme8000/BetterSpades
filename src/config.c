@@ -475,6 +475,7 @@ void config_reload() {
 				 .min = 0,
 				 .max = INT_MAX,
 				 .name = "Mouse sensitivity",
+				 .help = "Your mouse sensitivity",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
@@ -492,6 +493,7 @@ void config_reload() {
 				 .min = 0,
 				 .max = 10,
 				 .name = "Volume",
+				 .help = "How loud the game will be",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
@@ -548,14 +550,6 @@ void config_reload() {
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
-				 .value = &settings_tmp.fullscreen,
-				 .type = CONFIG_TYPE_INT,
-				 .min = 0,
-				 .max = 1,
-				 .name = "Fullscreen",
-			 });
-	list_add(&config_settings,
-			 &(struct config_setting) {
 				 .value = &settings_tmp.multisamples,
 				 .type = CONFIG_TYPE_INT,
 				 .min = 0,
@@ -569,6 +563,15 @@ void config_reload() {
 				 16,
 				 .defaults_length = 5,
 				 .label_callback = config_label_msaa,
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = &settings_tmp.fullscreen,
+				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
+				 .max = 1,
+				 .name = "Fullscreen",
+				 .help = "Enable fullscreen",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
@@ -613,7 +616,7 @@ void config_reload() {
 				 .min = 0,
 				 .max = 1,
 				 .help = "Enable this on buggy drivers",
-				 .name = "Force Displaylist",
+				 .name = "Force displaylist",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
@@ -630,7 +633,7 @@ void config_reload() {
 				 .type = CONFIG_TYPE_INT,
 				 .min = 0,
 				 .max = 1,
-				 .help = "(won't work with greedy mesh)",
+				 .help = "(Won't work with greedy mesh)",
 				 .name = "Ambient occlusion",
 			 });
 	list_add(&config_settings,
@@ -639,8 +642,8 @@ void config_reload() {
 				 .type = CONFIG_TYPE_INT,
 				 .min = 0,
 				 .max = 1,
-				 .name = "Show fps and ping",
-				 .help = "Show current fps and ping ingame",
+				 .name = "Show FPS and ping",
+				 .help = "Show current FPS ingame",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
@@ -659,6 +662,15 @@ void config_reload() {
 				 .max = 1,
 				 .name = "Show news",
 				 .help = "Show news on server list",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = &settings_tmp.player_arms,
+				 .type = CONFIG_TYPE_INT,
+				 .min = 0,
+				 .max = 1,
+				 .name = "Show player arms",
+				 .help = "Show your arms in-game",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
@@ -684,7 +696,7 @@ void config_reload() {
 				 .type = CONFIG_TYPE_INT,
 				 .min = 0,
 				 .max = 1,
-				 .name = "Toggle Team Name",
+				 .name = "Toggle team name",
 				 .help = "Show your team name",
 			 });
 	list_add(&config_settings,
@@ -693,7 +705,7 @@ void config_reload() {
 				 .type = CONFIG_TYPE_INT,
 				 .min = 0,
 				 .max = 1,
-				 .name = "Show Item Name",
+				 .name = "Show item name",
 				 .help = "Show item name below target",
 			 });
 	list_add(&config_settings,
@@ -703,7 +715,7 @@ void config_reload() {
 				 .min = 0,
 				 .max = 1,
 				 .name = "Chat sounds",
-				 .help = "Chat sounds",
+				 .help = "Sound when you send a message",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
@@ -712,71 +724,7 @@ void config_reload() {
 				 .min = 0,
 				 .max = 1,
 				 .name = "Macro sounds",
-				 .help = "Macro sounds",
-			 });
-	list_add(&config_settings,
-			 &(struct config_setting) {
-				 .value = settings_tmp.kill,
-				 .type = CONFIG_TYPE_STRING,
-				 .max = sizeof(settings.kill) - 1,
-				 .name = "Kill",
-				 .help = "Run the command /kill",
-			 });
-	list_add(&config_settings,
-			 &(struct config_setting) {
-				 .value = settings_tmp.ratio,
-				 .type = CONFIG_TYPE_STRING,
-				 .max = sizeof(settings.ratio) - 1,
-				 .name = "Ratio",
-				 .help = "Run the command /ratio",
-			 });
-	list_add(&config_settings,
-			 &(struct config_setting) {
-				 .value = settings_tmp.accuracy,
-				 .type = CONFIG_TYPE_STRING,
-				 .max = sizeof(settings.accuracy) - 1,
-				 .name = "Accuracy",
-				 .help = "Run the command /accuracy",
-			 });
-	list_add(&config_settings,
-			 &(struct config_setting) {
-				 .value = settings_tmp.streak,
-				 .type = CONFIG_TYPE_STRING,
-				 .max = sizeof(settings.streak) - 1,
-				 .name = "Streak",
-				 .help = "Run the command /streak",
-			 });
-	list_add(&config_settings,
-			 &(struct config_setting) {
-				 .value = settings_tmp.deaf,
-				 .type = CONFIG_TYPE_STRING,
-				 .max = sizeof(settings.deaf) - 1,
-				 .name = "Deaf",
-				 .help = "Run the command /deaf",
-			 });
-	list_add(&config_settings,
-			 &(struct config_setting) {
-				 .value = settings_tmp.votekick_vote_yes,
-				 .type = CONFIG_TYPE_STRING,
-				 .max = sizeof(settings.votekick_vote_yes) - 1,
-				 .name = "Votekick Vote Yes",
-				 .help = "Run the command /y",
-			 });
-	list_add(&config_settings,
-			 &(struct config_setting) {
-				 .value = settings_tmp.votekick_cancel,
-				 .type = CONFIG_TYPE_STRING,
-				 .max = sizeof(settings.votekick_cancel) - 1,
-				 .name = "Votekick Cancel",
-				 .help = "Run the command /cancel",
-			 });
-	list_add(&config_settings,
-			 &(struct config_setting) {
-				 .value = settings_tmp.medkit,
-				 .type = CONFIG_TYPE_STRING,
-				 .max = sizeof(settings.medkit) - 1,
-				 .name = "Medkit",
-				 .help = "Run the command /m",
+				 .help = "Sound when you use a macro",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
@@ -785,6 +733,70 @@ void config_reload() {
 				 .max = sizeof(settings.custom_macro) - 1,
 				 .name = "Custom macro",
 				 .help = "Set a custom macro",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.accuracy,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.accuracy) - 1,
+				 .name = "Accuracy macro",
+				 .help = "Run the command /accuracy",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.deaf,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.deaf) - 1,
+				 .name = "Deaf macro",
+				 .help = "Run the command /deaf",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.medkit,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.medkit) - 1,
+				 .name = "Medkit macro",
+				 .help = "Run the command /medkit",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.ratio,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.ratio) - 1,
+				 .name = "Ratio macro",
+				 .help = "Run the command /ratio",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.kill,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.kill) - 1,
+				 .name = "Kill macro",
+				 .help = "Run the command /kill",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.streak,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.streak) - 1,
+				 .name = "Streak macro",
+				 .help = "Run the command /streak",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.votekick_cancel,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.votekick_cancel) - 1,
+				 .name = "Votekick cancel macro",
+				 .help = "Run the command /cancel",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.votekick_vote_yes,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.votekick_vote_yes) - 1,
+				 .name = "Votekick vote yes macro",
+				 .help = "Run the command /y",
 			 });
 		}
 

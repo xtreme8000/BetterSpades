@@ -1676,29 +1676,14 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 
 //*******************MACROS START*******************//
 
-			if(key == WINDOW_KEY_KILL) { //KILL
-				if(settings.kill) {
+			if(key == WINDOW_KEY_CUSTOM_MACRO) { //CUSTOM MACRO
+				if(settings.custom_macro) {
 				struct PacketChatMessage msg;
 				msg.player_id = local_player_id;
 				msg.chat_type = CHAT_ALL;
 				window_textinput(1);
 				chat_input_mode = CHAT_NO_INPUT;
-				strcpy(msg.message, settings.kill);
-				network_send(PACKET_CHATMESSAGE_ID, &msg,
-							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
-				if(settings.macro_sounds)
-				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
-				}
-			}
-
-			if(key == WINDOW_KEY_RATIO) { //RATIO
-				if(settings.ratio) {
-				struct PacketChatMessage msg;
-				msg.player_id = local_player_id;
-				msg.chat_type = CHAT_ALL;
-				window_textinput(1);
-				chat_input_mode = CHAT_NO_INPUT;
-				strcpy(msg.message, settings.ratio);
+				strcpy(msg.message, settings.custom_macro);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
 				if(settings.macro_sounds)
@@ -1721,21 +1706,6 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				}
 			}
 
-			if(key == WINDOW_KEY_STREAK) { //STREAK
-				if(settings.streak) {
-				struct PacketChatMessage msg;
-				msg.player_id = local_player_id;
-				msg.chat_type = CHAT_ALL;
-				window_textinput(1);
-				chat_input_mode = CHAT_NO_INPUT;
-				strcpy(msg.message, settings.streak);
-				network_send(PACKET_CHATMESSAGE_ID, &msg,
-							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
-				if(settings.macro_sounds)
-				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
-				}
-			}
-
 			if(key == WINDOW_KEY_DEAF) { //DEAF
 				if(settings.deaf) {
 				struct PacketChatMessage msg;
@@ -1751,29 +1721,14 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				}
 			}
 
-			if(key == WINDOW_KEY_VOTEKICK_YES) { //VOTEKICK VOTE YES
-				if(settings.votekick_vote_yes) {
+			if(key == WINDOW_KEY_KILL) { //KILL
+				if(settings.kill) {
 				struct PacketChatMessage msg;
 				msg.player_id = local_player_id;
 				msg.chat_type = CHAT_ALL;
 				window_textinput(1);
 				chat_input_mode = CHAT_NO_INPUT;
-				strcpy(msg.message, settings.votekick_vote_yes);
-				network_send(PACKET_CHATMESSAGE_ID, &msg,
-							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
-				if(settings.macro_sounds)
-				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
-				}
-			}
-
-			if(key == WINDOW_KEY_VOTEKICK_CANCEL) { //VOTEKICK CANCEL
-				if(settings.votekick_cancel) {
-				struct PacketChatMessage msg;
-				msg.player_id = local_player_id;
-				msg.chat_type = CHAT_ALL;
-				window_textinput(1);
-				chat_input_mode = CHAT_NO_INPUT;
-				strcpy(msg.message, settings.votekick_cancel);
+				strcpy(msg.message, settings.kill);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
 				if(settings.macro_sounds)
@@ -1796,14 +1751,59 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				}
 			}
 
-			if(key == WINDOW_KEY_CUSTOM_MACRO) { //CUSTOM MACRO
-				if(settings.custom_macro) {
+			if(key == WINDOW_KEY_RATIO) { //RATIO
+				if(settings.ratio) {
 				struct PacketChatMessage msg;
 				msg.player_id = local_player_id;
 				msg.chat_type = CHAT_ALL;
 				window_textinput(1);
 				chat_input_mode = CHAT_NO_INPUT;
-				strcpy(msg.message, settings.custom_macro);
+				strcpy(msg.message, settings.ratio);
+				network_send(PACKET_CHATMESSAGE_ID, &msg,
+							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				if(settings.macro_sounds)
+				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
+				}
+			}
+
+			if(key == WINDOW_KEY_STREAK) { //STREAK
+				if(settings.streak) {
+				struct PacketChatMessage msg;
+				msg.player_id = local_player_id;
+				msg.chat_type = CHAT_ALL;
+				window_textinput(1);
+				chat_input_mode = CHAT_NO_INPUT;
+				strcpy(msg.message, settings.streak);
+				network_send(PACKET_CHATMESSAGE_ID, &msg,
+							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				if(settings.macro_sounds)
+				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
+				}
+			}
+
+			if(key == WINDOW_KEY_VOTEKICK_CANCEL) { //VOTEKICK CANCEL
+				if(settings.votekick_cancel) {
+				struct PacketChatMessage msg;
+				msg.player_id = local_player_id;
+				msg.chat_type = CHAT_ALL;
+				window_textinput(1);
+				chat_input_mode = CHAT_NO_INPUT;
+				strcpy(msg.message, settings.votekick_cancel);
+				network_send(PACKET_CHATMESSAGE_ID, &msg,
+							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				if(settings.macro_sounds)
+				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
+				}
+			}
+
+			if(key == WINDOW_KEY_VOTEKICK_YES) { //VOTEKICK VOTE YES
+				if(settings.votekick_vote_yes) {
+				struct PacketChatMessage msg;
+				msg.player_id = local_player_id;
+				msg.chat_type = CHAT_ALL;
+				window_textinput(1);
+				chat_input_mode = CHAT_NO_INPUT;
+				strcpy(msg.message, settings.votekick_vote_yes);
 				network_send(PACKET_CHATMESSAGE_ID, &msg,
 							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
 				if(settings.macro_sounds)
