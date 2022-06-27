@@ -1,24 +1,38 @@
 [![GPL](https://img.shields.io/badge/license-GPL--3.0-red.svg)](https://github.com/xtreme8000/BetterSpades/blob/standalone/LICENSE)
 [![Discord](https://img.shields.io/badge/discord-join-ff00ff.svg)](https://discord.gg/tZuPt568Dp)
 
-![GPL v3](https://www.gnu.org/graphics/gplv3-127x51.png)
-
 ## ![](docs/icon_small.png) PixSpades
 
-[BetterSpades Github](https://github.com/xtreme8000/BetterSpades) — [Community](https://buildandshoot.com)
-
-* Fork of the game *BetterSpades* (A replicate of classic voxlap)
+* Fork of the game *BetterSpades* (A replicate of classic Voxlap) - See fork differences below
 * Has additions and improvements not in BetterSpades
 * Runs on very old systems back to OpenGL 1.1 (OpenGL ES support too)
 * Shares similar if not even better performance to Voxlap
 * Can run on *"embedded"* systems like a [Steam Link](https://store.steampowered.com/app/353380/Steam_Link/)
 
+### Differences in this fork
+* Many bug fixes not in BetterSpades
+* Better default settings
+* Toggleable Client spoofing
+* Customizable macros (Defaults: /medkit, /deaf, /kill, /ratio, /accuracy, /streak, /cancel, /y and a customizable macro)
+* Toggleable Auto GG (The client says GG for you when a team wins)
+* Improved networkstats popup (No border, is smaller and shows you your ping and FPS)
+* Toggleable chat and macro sounds
+* Improved scoreboard with weapon names beside players ([RIF] = Rifle, [SMG] = Sub Machine Gun, [SHO] = Shotgun)
+* Toggleable team names
+* Improved UI
+* Different branding from BetterSpades
+* Show the name of the item you're holding when you're sprinting to prevent confusion (Toggleable - Only shows tools, not guns)
+* Many small improvements to the game such as longer chat history, bigger fonts sizes for things that were too small etc.
+* Always kept up to date with the main BetterSpades repository
+* And more!
+
 #### Why should I use this instead of ...?
 
-* Free of any Jagex code - they can't shut it down
+* Free of any Jagex code, they can't shut it down
 * Open for future expansion
 * Easy to use
 * No hidden bugs
+* Custom features not in BetterSpades, Voxlap or OpenSpades
 
 ### Quick usage guide
 
@@ -118,13 +132,13 @@ brew install glfw enet
 The development headers for OpenAL and OpenGL don't have to be installed since they come with macOS by default. [libdeflate](https://github.com/ebiggers/libdeflate) should be installed and placed manually in a way similar to Linux. See [_Wiki/Building_](https://github.com/xtreme8000/BetterSpades/wiki/Building) for more details.
 
 ## Bug reports
-Bug reports should generally go to the original [BetterSpades](https://github.com/xtreme8000/BetterSpades/issues) Repo unless the bug applies specifically to PixSpades.
+Bug reports should generally go to the original [BetterSpades repository](https://github.com/xtreme8000/BetterSpades/issues) unless the bug applies specifically to PixSpades.
 
 ## Licensing
 Please see the file named LICENSE.
 
 ## Gallery
 
-| <img src="/docs/pic01.png" width="250px"><br />*quite old* | <img src="/docs/pic02.png" width="250px"><br />hiesville | <img src="/docs/pic03.png" width="250px"> |
-| :-: | :-: | :-: |
+| <img src="/docs/pic01.png" width="250px"><br />*quite old*   | <img src="/docs/pic02.png" width="250px"><br />hiesville                 | <img src="/docs/pic03.png" width="250px">                             |
+| :-:                                                          | :-:                                                                      | :-:                                                                   |
 | <img src="/docs/pic04.png" width="250px"><br />*grenade fun* | <img src="/docs/pic05.png" width="250px"><br />*falling block animation* | <img src="/docs/pic06.png" width="250px"><br />*sniping on normandie* |
