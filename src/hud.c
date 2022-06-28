@@ -1250,11 +1250,9 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 		}
 
 		if(player_intersection_type >= 0
-		   && camera_mode == CAMERAMODE_FPS
+		   && camera_mode != CAMERAMODE_BODYVIEW
 		   && (players[local_player_id].team != TEAM_SPECTATOR
-		   && (players[local_player_id].team == TEAM_1
-		   && (players[local_player_id].team == TEAM_2
-			   || players[player_intersection_player].team == players[local_player_id].team)))) {
+			   || players[player_intersection_player].team == players[local_player_id].team)) {
 			font_select(FONT_SMALLFNT);
 			char* th[4] = {"torso", "head", "arms", "legs"};
 			char str[32];
