@@ -1296,7 +1296,7 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 	}
 
 if(settings.show_itemname) {
-	if(window_key_down(WINDOW_KEY_SPRINT) || camera_mode == CAMERAMODE_SELECTION) {
+	if(window_key_down(WINDOW_KEY_SPRINT) && chat_input_mode == CHAT_NO_INPUT || camera_mode == CAMERAMODE_SELECTION) {
 				switch(players[local_player_id].held_item) {
 					case TOOL_SPADE:
 						glColor3f(1.0F, 0.0F, 0.0F);

@@ -223,7 +223,7 @@ void display() {
 			if(camera_mode == CAMERAMODE_FPS) {
 				weapon_update();
 				if(players[local_player_id].input.buttons.lmb && players[local_player_id].held_item == TOOL_BLOCK
-				   && (window_time() - players[local_player_id].item_showup) >= 0.5F && local_player_blocks > 0) {
+				   && (window_time() - players[local_player_id].item_showup) >= 0.35F && local_player_blocks > 0) {
 					int* pos = camera_terrain_pick(0);
 					if(pos != NULL && pos[1] > 1
 					   && distance3D(camera_x, camera_y, camera_z, pos[0], pos[1], pos[2]) < 5.0F * 5.0F
@@ -615,7 +615,7 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
 		chat_add(0, 0x0000FF, pic_name);
 	}
 
-	if(key == WINDOW_KEY_SAVE_MAP && action == WINDOW_PRESS) { // save map
+	if(key == WINDOW_KEY_SAVE_MAP && action == WINDOW_PRESS && chat_input_mode == CHAT_NO_INPUT) { // save map
 		time_t save_time;
 		time(&save_time);
 		char save_name[128];
