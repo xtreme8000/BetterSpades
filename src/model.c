@@ -321,6 +321,11 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		return;
 	if(team == TEAM_SPECTATOR)
 		team = 2;
+
+	if (camera_mode == CAMERAMODE_SPECTATOR) {
+		glx_disable_sphericalfog();
+	}
+
 	if(!settings.voxlap_models) {
 		if(!kv6->has_display_list) {
 			struct tesselator tess_color;
@@ -618,3 +623,4 @@ void kv6_render(struct kv6_t* kv6, unsigned char team) {
 		}
 	}
 }
+

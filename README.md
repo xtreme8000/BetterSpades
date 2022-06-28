@@ -28,6 +28,7 @@
 * Popup messages are smaller and lower on the screen and don't last as long
 * Bullet spread and recoil are the same as the spread and recoil in OpenSpades
 * The tent refills your clip and magazine, so no reloading needed when you go to a tent!
+* When in spectator mode players don't fade into fog, so it's much easier to see them now
 * Other additional settings
 * Always kept up to date with the main BetterSpades repository
 * **And more!**
