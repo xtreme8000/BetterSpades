@@ -957,8 +957,8 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 					}
 					if(map_object_visible(gamestate.gamemode.ctf.team_1_base.x, 0.0F,
 										  gamestate.gamemode.ctf.team_1_base.y)) {
-						glColor3f(gamestate.team_1.red * 0.94F, gamestate.team_1.green * 0.94F,
-								  gamestate.team_1.blue * 0.94F);
+						glColor3ub(gamestate.team_1.red * 0.94F, gamestate.team_1.green * 0.94F,
+								   gamestate.team_1.blue * 0.94F);
 						texture_draw_empty_rotated(minimap_x + gamestate.gamemode.ctf.team_1_base.x * scalef,
 												   minimap_y - gamestate.gamemode.ctf.team_1_base.y * scalef,
 												   12 * scalef, 12 * scalef, 0.0F);
@@ -977,8 +977,8 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 					}
 					if(map_object_visible(gamestate.gamemode.ctf.team_2_base.x, 0.0F,
 										  gamestate.gamemode.ctf.team_2_base.y)) {
-						glColor3f(gamestate.team_2.red * 0.94F, gamestate.team_2.green * 0.94F,
-								  gamestate.team_2.blue * 0.94F);
+						glColor3ub(gamestate.team_2.red * 0.94F, gamestate.team_2.green * 0.94F,
+								   gamestate.team_2.blue * 0.94F);
 						texture_draw_empty_rotated(minimap_x + gamestate.gamemode.ctf.team_2_base.x * scalef,
 												   minimap_y - gamestate.gamemode.ctf.team_2_base.y * scalef,
 												   12 * scalef, 12 * scalef, 0.0F);
@@ -1064,8 +1064,8 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 
 					if(map_object_visible(gamestate.gamemode.ctf.team_1_base.x, 0.0F,
 										  gamestate.gamemode.ctf.team_1_base.y)) {
-						glColor3f(gamestate.team_1.red * 0.94F, gamestate.team_1.green * 0.94F,
-								  gamestate.team_1.blue * 0.94F);
+						glColor3ub(gamestate.team_1.red * 0.94F, gamestate.team_1.green * 0.94F,
+								   gamestate.team_1.blue * 0.94F);
 						texture_draw_empty_rotated(settings.window_width - 143 * scalef + tent1_x * scalef,
 												   (585 - tent1_y) * scalef, 12 * scalef, 12 * scalef, 0.0F);
 						glColor3f(1.0F, 1.0F, 1.0F);
@@ -1086,8 +1086,8 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 
 					if(map_object_visible(gamestate.gamemode.ctf.team_2_base.x, 0.0F,
 										  gamestate.gamemode.ctf.team_2_base.y)) {
-						glColor3f(gamestate.team_2.red * 0.94F, gamestate.team_2.green * 0.94F,
-								  gamestate.team_2.blue * 0.94F);
+						glColor3ub(gamestate.team_2.red * 0.94F, gamestate.team_2.green * 0.94F,
+								   gamestate.team_2.blue * 0.94F);
 						texture_draw_empty_rotated(settings.window_width - 143 * scalef + tent2_x * scalef,
 												   (585 - tent2_y) * scalef, 12 * scalef, 12 * scalef, 0.0F);
 						glColor3f(1.0F, 1.0F, 1.0F);
