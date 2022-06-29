@@ -637,8 +637,8 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 						   && gamestate.gamemode.ctf.team_2_intel_location.held.player_id == pt[k].id))) {
 					texture_draw(&texture_intel,
 								 settings.window_width / 4.0F * mul
-									 - font_length(18.0F * scalef, players[pt[k].id].name) - 73.0F * scalef,
-								 (427 - 18.1 * cntt[mul - 1]) * scalef, 18.0F * scalef, 18.0F * scalef);
+									 - font_length(18.0F * scalef, players[pt[k].id].name) - 73.43F * scalef,
+								 (427 - 18.0 * cntt[mul - 1]) * scalef, 18.0F * scalef, 18.0F * scalef);
 				}
 
 					char name_y_rifle[128];

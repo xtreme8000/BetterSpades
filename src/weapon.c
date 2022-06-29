@@ -92,7 +92,7 @@ int weapon_block_damage(int gun) {
 	switch(gun) {
 		case WEAPON_RIFLE: return 50;
 		case WEAPON_SMG: return 34;
-		case WEAPON_SHOTGUN: return 20;
+		case WEAPON_SHOTGUN: return 22;
 		default: return 0;
 	}
 }
@@ -101,7 +101,7 @@ float weapon_delay(int gun) {
 	switch(gun) {
 		case WEAPON_RIFLE: return 0.5F;
 		case WEAPON_SMG: return 0.1F;
-		case WEAPON_SHOTGUN: return 0.8F;
+		case WEAPON_SHOTGUN: return 1.0F;
 		default: return 0.0F;
 	}
 }
