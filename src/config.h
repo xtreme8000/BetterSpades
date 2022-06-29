@@ -37,6 +37,7 @@ struct config_file_entry {
 	char votekick_cancel[32];
 	char medkit[32];
 	char custom_macro[32];
+	char custom_macro2[32];
 };
 
 extern struct RENDER_OPTIONS {
@@ -75,6 +76,7 @@ extern struct RENDER_OPTIONS {
 	char votekick_cancel[50];
 	char medkit[50];
 	char custom_macro[50];
+	char custom_macro2[50];
 	int toggle_teamname;
 	int show_itemname;
 	int chat_sounds;

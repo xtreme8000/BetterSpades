@@ -1689,6 +1689,21 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 				}
 			}
 
+			if(key == WINDOW_KEY_CUSTOM_MACRO2) { //CUSTOM MACRO 2
+				if(settings.custom_macro2) {
+				struct PacketChatMessage msg;
+				msg.player_id = local_player_id;
+				msg.chat_type = CHAT_ALL;
+				window_textinput(1);
+				chat_input_mode = CHAT_NO_INPUT;
+				strcpy(msg.message, settings.custom_macro2);
+				network_send(PACKET_CHATMESSAGE_ID, &msg,
+							 sizeof(msg) - sizeof(msg.message) + strlen(msg.message) + 1);
+				if(settings.macro_sounds)
+				sound_create(SOUND_LOCAL, &sound_macros, 0.0F, 0.0F, 0.0F);
+				}
+			}
+
 			if(key == WINDOW_KEY_ACCURACY) { //ACCURACY
 				if(settings.accuracy) {
 				struct PacketChatMessage msg;

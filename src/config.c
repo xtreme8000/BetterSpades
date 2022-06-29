@@ -99,6 +99,7 @@ void config_save() {
 	config_sets("client", "votekick_cancel", settings.votekick_cancel);
 	config_sets("client", "medkit", settings.medkit);
 	config_sets("client", "custom_macro", settings.custom_macro);
+	config_sets("client", "custom_macro2", settings.custom_macro2);
 	config_seti("client", "toggle_teamname", settings.toggle_teamname);
 	config_seti("client", "show_itemname", settings.show_itemname);
 	config_seti("client", "chat_sounds", settings.chat_sounds);
@@ -199,6 +200,8 @@ static int config_read_key(void* user, const char* section, const char* name, co
 			strcpy(settings.medkit, value);
 		} else if(!strcmp(name, "custom_macro")) {
 			strcpy(settings.custom_macro, value);
+		} else if(!strcmp(name, "custom_macro2")) {
+			strcpy(settings.custom_macro2, value);
 		} else if(!strcmp(name, "toggle_teamname")) {
 			settings.toggle_teamname = atoi(value);
 		} else if(!strcmp(name, "show_itemname")) {
@@ -386,6 +389,7 @@ void config_reload() {
 	config_register_key(WINDOW_KEY_VOTEKICK_CANCEL, SDLK_k, "key_votekick_cancel", 1, "Votekick Cancel Macro Key", "Macros");
 	config_register_key(WINDOW_KEY_MEDKIT, SDLK_c, "key_medkit", 1, "Medkit Macro Key", "Macros");
 	config_register_key(WINDOW_KEY_CUSTOM_MACRO, SDLK_n, "key_custom_macro", 1, "Custom Macro", "Macros");
+	config_register_key(WINDOW_KEY_CUSTOM_MACRO2, SDLK_x, "key_custom_macro2", 1, "Custom Macro 2", "Macros");
 #endif
 
 #ifdef USE_GLFW
@@ -398,6 +402,7 @@ void config_reload() {
 	config_register_key(WINDOW_KEY_VOTEKICK_CANCEL, GLFW_KEY_K, "key_votekick_cancel", 1, "Votekick Cancel Key", "Macros");
 	config_register_key(WINDOW_KEY_MEDKIT, GLFW_KEY_C, "key_medkit", 1, "Medkit Macro Key", "Macros");
 	config_register_key(WINDOW_KEY_CUSTOM_MACRO, GLFW_KEY_N, "key_custom_macro", 1, "Custom Macro", "Macros");
+	config_register_key(WINDOW_KEY_CUSTOM_MACRO2, GLFW_KEY_X, "key_custom_macro2", 1, "Custom Macro 2", "Macros");
 	config_register_key(WINDOW_KEY_UP, GLFW_KEY_W, "move_forward", 0, "Forward", "Movement");
 	config_register_key(WINDOW_KEY_DOWN, GLFW_KEY_S, "move_backward", 0, "Backward", "Movement");
 	config_register_key(WINDOW_KEY_LEFT, GLFW_KEY_A, "move_left", 0, "Left", "Movement");
@@ -733,6 +738,14 @@ void config_reload() {
 				 .max = sizeof(settings.custom_macro) - 1,
 				 .name = "Custom macro",
 				 .help = "Set a custom macro",
+			 });
+	list_add(&config_settings,
+			 &(struct config_setting) {
+				 .value = settings_tmp.custom_macro2,
+				 .type = CONFIG_TYPE_STRING,
+				 .max = sizeof(settings.custom_macro2) - 1,
+				 .name = "Custom macro 2",
+				 .help = "Set a 2nd custom macro",
 			 });
 	list_add(&config_settings,
 			 &(struct config_setting) {
