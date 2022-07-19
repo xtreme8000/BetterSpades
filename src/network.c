@@ -157,7 +157,7 @@ void read_PacketChatMessage(void* data, int len) {
 				case TEAM_1: color = rgb(gamestate.team_1.red, gamestate.team_1.green, gamestate.team_1.blue); break;
 				case TEAM_2: color = rgb(gamestate.team_2.red, gamestate.team_2.green, gamestate.team_2.blue); break;
 				case TEAM_SPECTATOR:
-				default: color = rgb(255, 255, 255); break;
+				default: color = rgb(255, 255, 0); break;
 			}
 			break;
 		default:
