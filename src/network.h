@@ -30,6 +30,7 @@ int network_identifier_split(char* addr, char* ip_out, int* port_out);
 int network_connect_string(char* addr, int version);
 int network_update(void);
 int network_status(void);
+void network_init_host(void);
 void network_init(void);
 
 void read_PacketMapChunk(void* data, int len);
