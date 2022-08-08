@@ -68,6 +68,11 @@ ENetPeer* peer;
 
 char network_custom_reason[17];
 
+void network_init_host() {
+	client = enet_host_create(NULL, 1, 1, 0, 0); // limit bandwidth here if you want to
+	enet_host_compress_with_range_coder(client);
+}
+
 const char* network_reason_disconnect(int code) {
 	if(*network_custom_reason)
 		return network_custom_reason;
@@ -963,17 +968,21 @@ void network_disconnect() {
 		while(enet_host_service(client, &event, 3000) > 0) {
 			switch(event.type) {
 				case ENET_EVENT_TYPE_RECEIVE: enet_packet_destroy(event.packet); break;
-				case ENET_EVENT_TYPE_DISCONNECT: return;
+				case ENET_EVENT_TYPE_DISCONNECT:
+					enet_host_destroy(client);
+				return;
 			}
 		}
 
 		enet_peer_reset(peer);
+		enet_host_destroy(client);
 	}
 }
 
 int network_connect_sub(char* ip, int port, int version) {
 	ENetAddress address;
 	ENetEvent event;
+	network_init_host();
 	enet_address_set_host(&address, ip);
 	address.port = port;
 	peer = enet_host_connect(client, &address, 1, version);
@@ -1144,8 +1153,6 @@ int network_status() {
 
 void network_init() {
 	enet_initialize();
-	client = enet_host_create(NULL, 1, 1, 0, 0); // limit bandwidth here if you want to
-	enet_host_compress_with_range_coder(client);
 
 	packets[PACKET_POSITIONDATA_ID] = read_PacketPositionData;
 	packets[PACKET_ORIENTATIONDATA_ID] = read_PacketOrientationData;
