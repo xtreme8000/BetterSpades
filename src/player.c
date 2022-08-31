@@ -315,6 +315,7 @@ void player_render_all() {
 		   && window_time() - players[k].item_showup >= 0.5F) {
 			// now run a hitscan and see if any block or player is in the way
 			struct Camera_HitType hit;
+			// 0.7 for turbospade
 			if(players[k].input.buttons.lmb && window_time() - players[k].spade_use_timer > 0.2F) {
 				camera_hit_fromplayer(&hit, k, 4.0F);
 				if(hit.y == 0 && hit.type == CAMERA_HITTYPE_BLOCK)
@@ -361,6 +362,7 @@ void player_render_all() {
 				players[k].spade_use_timer = window_time();
 			}
 
+			// 0.115 for turbospade
 			if(players[k].input.buttons.rmb && window_time() - players[k].spade_use_timer > 1.0F) {
 				if(players[k].spade_used) {
 					camera_hit_fromplayer(&hit, k, 4.0F);
