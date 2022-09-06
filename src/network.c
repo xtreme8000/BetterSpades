@@ -1096,7 +1096,7 @@ int network_update() {
 			if(window_time() - network_pos_update > 1.0F
 			   && (distance3D(network_pos_last.x, network_pos_last.y, network_pos_last.z, players[local_player_id].pos.x,
 							 players[local_player_id].pos.y, players[local_player_id].pos.z)
-				   > 0.01F || (63.f - players[local_player_id].pos.y >= 61 && 63.f - players[local_player_id].pos.y <= 62))) {
+				   > 0.01F || players[local_player_id].pos.y <= 2)) {
 				network_pos_update = window_time();
 				memcpy(&network_pos_last, &players[local_player_id].pos, sizeof(struct Position));
 				struct PacketPositionData pos;
