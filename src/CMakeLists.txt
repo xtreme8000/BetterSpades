@@ -175,8 +175,12 @@ if(ENABLE_RPC)
 	target_compile_definitions(client PRIVATE USE_RPC DISCORD_DISABLE_IO_THREAD)
 endif()
 
+if(WIN32)
+	target_compile_definitions(client PRIVATE LIBDEFLATE_STATIC)
+endif()
+
 target_link_libraries(client ${CMAKE_THREAD_LIBS_INIT} ${OPENGL_LIBRARIES} enet::enet deflate::deflate m cglm vxl)
-include_directories(client ${OPENAL_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIR} ${OPENGL_EGL_INCLUDE_DIRS})
+target_include_directories(client PRIVATE ${OPENAL_INCLUDE_DIRS} ${OPENGL_INCLUDE_DIR} ${OPENGL_EGL_INCLUDE_DIRS})
 
 add_custom_command(
 	TARGET client
