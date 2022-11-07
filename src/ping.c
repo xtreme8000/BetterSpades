@@ -98,6 +98,9 @@ void* ping_update(void* data) {
 	ht_setup(&pings, sizeof(uint64_t), sizeof(struct ping_entry), 64);
 
 	while(1) {
+		if (!ping_result)
+			continue;
+
 		size_t drain = channel_size(&ping_queue);
 		for(size_t k = 0; (k < drain) || (!pings.size && window_time() - ping_start >= 8.0F); k++) {
 			struct ping_entry entry;
@@ -167,7 +170,7 @@ void* ping_update(void* data) {
 			}
 		}
 
-		usleep(1000);
+		usleep(1000000);
 	}
 }
 
@@ -197,3 +200,4 @@ void ping_start(void (*result)(void*, float, char*)) {
 void ping_stop() {
 	channel_clear(&ping_queue);
 }
+
