@@ -1249,7 +1249,11 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 			}
 		}
 
-		if(player_intersection_type >= 0
+		struct Camera_HitType hit;
+		camera_hit_fromplayer(&hit, local_player_id, 128.0F);
+
+		if(   hit.type == CAMERA_HITTYPE_PLAYER
+		   && player_intersection_type >= 0
 		   && camera_mode != CAMERAMODE_BODYVIEW
 		   && (players[local_player_id].team != TEAM_SPECTATOR
 			   || players[player_intersection_player].team == players[local_player_id].team)) {
