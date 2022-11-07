@@ -25,7 +25,7 @@
 #include "model.h"
 
 void weapon_update(void);
-void weapon_set(void);
+void weapon_set(bool restock);
 void weapon_reload(void);
 int weapon_reloading(void);
 int weapon_can_reload(void);

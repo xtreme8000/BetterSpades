@@ -184,8 +184,10 @@ struct kv6_t* weapon_casing(int gun) {
 	}
 }
 
-void weapon_set() {
- 	local_player_ammo = weapon_ammo(players[local_player_id].weapon);
+void weapon_set(bool restock) {
+	if(!restock)
+		local_player_ammo = weapon_ammo(players[local_player_id].weapon);
+
 	local_player_ammo_reserved = weapon_ammo_reserved(players[local_player_id].weapon);
 	weapon_reload_inprogress = 0;
 }
