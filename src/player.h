@@ -163,6 +163,7 @@ extern struct Player {
 } players[PLAYERS_MAX];
 // pyspades/pysnip/piqueserver sometimes uses ids that are out of range
 
+void player_on_held_item_change(struct Player* p);
 int player_can_spectate(struct Player* p);
 float player_section_height(int section);
 void player_init(void);
