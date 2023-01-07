@@ -65,7 +65,8 @@ static void ping_lan() {
 	};
 
 	for(addr.port = 32882; addr.port < 32892; addr.port++)
-		enet_socket_send(lan, &addr, &buffer, 1);
+		if (enet_socket_connect(lan, &addr))
+			enet_socket_send(lan, &addr, &buffer, 1);
 }
 
 static bool pings_retry(void* key, void* value, void* user) {
