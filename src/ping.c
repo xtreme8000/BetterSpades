@@ -161,6 +161,10 @@ void* ping_update(void* data) {
 				e.map[sizeof(e.map) - 1] = 0;
 				e.current = json_object_get_number(root, "players_current");
 				e.max = json_object_get_number(root, "players_max");
+				if (ping_result == NULL) {
+					json_value_free(js);
+					break;
+				}
 				ping_result(&e, window_time() - ping_start, NULL);
 
 				json_value_free(js);
