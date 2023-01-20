@@ -336,8 +336,9 @@ void display() {
 			if(window_time() - players[local_player_id].item_disabled < 0.3F) {
 				players[local_player_id].item_showup = window_time();
 				if(players[local_player_id].input.buttons.lmb)
-					players[local_player_id].input.buttons.lmb_start = window_time();
-				players[local_player_id].input.buttons.rmb = 0;
+					players[local_player_id].input.buttons.lmb_start = window_time() + 0.5F;
+				if(players[local_player_id].input.buttons.rmb)
+					players[local_player_id].input.buttons.rmb_start = window_time() + 0.5F;
 			} else {
 				if(hud_active->render_localplayer) {
 					float tmp2 = players[local_player_id].physics.eye.y;

@@ -98,6 +98,18 @@ void player_reset(struct Player* p) {
 	p->input.buttons.packed = 0;
 }
 
+void player_on_held_item_change(struct Player* p) {
+	if(p->input.buttons.lmb)
+		p->input.buttons.lmb_start = window_time() + 0.8F;
+	if(p->input.buttons.rmb)
+		p->input.buttons.rmb_start = window_time() + 0.8F;
+
+	p->item_disabled = window_time();
+	p->items_show_start = window_time();
+	p->item_showup = window_time() + 0.3F;
+	p->items_show = 1;
+}
+
 int player_can_spectate(struct Player* p) {
 	return p->connected
 		&& ((players[local_player_id].team != TEAM_SPECTATOR && p->team == players[local_player_id].team)

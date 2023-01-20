@@ -510,9 +510,9 @@ void read_PacketPositionData(void* data, int len) {
 
 void read_PacketOrientationData(void* data, int len) {
 	struct PacketOrientationData* p = (struct PacketOrientationData*)data;
-	players[local_player_id].pos.x = p->x;
-	players[local_player_id].pos.y = -p->z;
-	players[local_player_id].pos.z = p->y;
+	players[local_player_id].orientation.x = p->x;
+	players[local_player_id].orientation.y = -p->z;
+	players[local_player_id].orientation.z = p->y;
 }
 
 void read_PacketSetColor(void* data, int len) {

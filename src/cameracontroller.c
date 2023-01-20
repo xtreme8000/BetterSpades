@@ -96,11 +96,8 @@ void cameracontroller_fps(float dt) {
 		cooldown = 1;
 	}
 
-	if(cooldown) {
-		players[local_player_id].item_disabled = window_time();
-		players[local_player_id].items_show_start = window_time();
-		players[local_player_id].items_show = 1;
-	}
+	if(cooldown)
+		player_on_held_item_change(players + local_player_id);
 
 #ifdef USE_TOUCH
 	if(!local_player_ammo) {
