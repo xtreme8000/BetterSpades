@@ -65,7 +65,7 @@ static void ping_lan() {
 	};
 
 	for(addr.port = 32882; addr.port < 32892; addr.port++)
-		if (enet_socket_connect(lan, &addr))
+		if (enet_socket_bind(lan, &addr) >= 0)
 			enet_socket_send(lan, &addr, &buffer, 1);
 }
 
