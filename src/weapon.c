@@ -66,6 +66,8 @@ void weapon_update() {
 			players[local_player_id].item_disabled = window_time();
 			players[local_player_id].items_show_start = window_time();
 			players[local_player_id].items_show = 1;
+		} else {
+			weapon_reload_inprogress = 0;
 		}
 	} else {
 		if(screen_current == SCREEN_NONE && window_time() - players[local_player_id].item_disabled >= 0.5F) {
