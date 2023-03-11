@@ -95,6 +95,8 @@ All other requirements of the above list (like single file libs) will be downloa
 
 #### Windows
 
+There are GitHub releases for Windows users if you're too lazy to compile PixSpades, with new releases for major commits. Download the release and start the executable. Refer to https://github.com/JimPix1/PixSpades/releases
+
 This project uses CMake to generate all Makefiles automatically. It's best to use MinGW-w64 for GCC on Windows. You can generate the required files by opening `cmd.exe` in the `build/` directory and typing:
 ```
 cmake -G "MinGW Makefiles" ..
