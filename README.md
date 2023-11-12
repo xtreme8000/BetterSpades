@@ -20,14 +20,12 @@
 * Improved scoreboard with weapon names beside players ([RIF] = Rifle, [SMG] = Sub Machine Gun, [SHO] = Shotgun)
 * Toggleable team names
 * Improved user interface
-* Different branding from BetterSpades
 * Show the name of the item you're holding when you're sprinting to prevent confusion (Toggleable - Only shows tools, not guns)
 * Many small improvements to the game such as longer chat history, bigger fonts sizes for things that were too small etc.
 * Improved the player name indicator when in spectator mode
 * Show the '[Player]'s [Body Part]' text even when you're looking at an enemy, now you won't be confused about who's who!
 * Popup messages are smaller and lower on the screen and don't last as long
 * Bullet spread and recoil are the same as the spread and recoil in OpenSpades, balance for the win!
-* The tent refills your clip and magazine, so no reloading needed when you go to a tent!
 * When in spectator mode players don't fade into fog, so it's much easier to see them now
 * Other additional settings!
 * Always kept up to date with the main BetterSpades repository
