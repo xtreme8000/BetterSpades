@@ -253,15 +253,15 @@ void read_PacketBlockLine(void* data, int len) {
 void read_PacketStateData(void* data, int len) {
 	struct PacketStateData* p = (struct PacketStateData*)data;
 
-	memcpy(gamestate.team_1.name, p->team_1_name, sizeof(p->team_1_name));
-	gamestate.team_1.name[sizeof(p->team_1_name)] = 0;
+	strncpy(gamestate.team_1.name, p->team_1_name, sizeof(p->team_1_name));
+	gamestate.team_1.name[sizeof(gamestate.team_1.name) - 1] = 0;
 
 	gamestate.team_1.red = p->team_1_red;
 	gamestate.team_1.green = p->team_1_green;
 	gamestate.team_1.blue = p->team_1_blue;
 
-	memcpy(gamestate.team_2.name, p->team_2_name, sizeof(p->team_1_name));
-	gamestate.team_2.name[sizeof(p->team_1_name)] = 0;
+	strncpy(gamestate.team_2.name, p->team_2_name, sizeof(p->team_2_name));
+	gamestate.team_2.name[sizeof(gamestate.team_2.name) - 1] = 0;
 
 	gamestate.team_2.red = p->team_2_red;
 	gamestate.team_2.green = p->team_2_green;
@@ -358,7 +358,9 @@ void read_PacketExistingPlayer(void* data, int len) {
 		players[p->player_id].block.blue = p->blue;
 		players[p->player_id].ammo = weapon_ammo(p->weapon);
 		players[p->player_id].ammo_reserved = weapon_ammo_reserved(p->weapon);
-		strcpy(players[p->player_id].name, p->name);
+
+		strncpy(players[p->player_id].name, p->name, sizeof(players[p->player_id].name));
+		players[p->player_id].name[sizeof(players[p->player_id].name) - 1] = 0;
 	}
 }
 
@@ -376,7 +378,10 @@ void read_PacketCreatePlayer(void* data, int len) {
 		players[p->player_id].pos.x = p->x;
 		players[p->player_id].pos.y = 63.0F - p->z;
 		players[p->player_id].pos.z = p->y;
-		strcpy(players[p->player_id].name, p->name);
+
+		strncpy(players[p->player_id].name, p->name, sizeof(players[p->player_id].name));
+		players[p->player_id].name[sizeof(players[p->player_id].name) - 1] = 0;
+
 		players[p->player_id].orientation.x = players[p->player_id].orientation_smooth.x
 			= (p->team == TEAM_1) ? 1.0F : -1.0F;
 		players[p->player_id].orientation.y = players[p->player_id].orientation_smooth.y = 0.0F;
@@ -434,6 +439,7 @@ void read_PacketMapStart(void* data, int len) {
 	} else {
 		struct PacketMapStart076* p = (struct PacketMapStart076*)data;
 		compressed_chunk_data_estimate = p->map_size;
+		p->map_name[sizeof(p->map_name) - 1] = 0;
 		log_info("map name: %s", p->map_name);
 		log_info("map crc32: 0x%08X", p->crc32);
 		char filename[128];
