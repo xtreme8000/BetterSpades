@@ -2400,7 +2400,8 @@ static void hud_serverlist_render(mu_Context* ctx, float scalex, float scaley) {
 		int A = ctx->text_width(ctx->style->font, "Servers", 0) * 1.5F;
 		int B = ctx->text_width(ctx->style->font, "Settings", 0) * 1.5F;
 		int C = ctx->text_width(ctx->style->font, "Controls", 0) * 1.5F;
-		mu_layout_row(ctx, 4, (int[]) {A, B, C, -1}, 0);
+		int D = ctx->text_width(ctx->style->font, "Exit", 0) * 1.5F;
+		mu_layout_row(ctx, 5, (int[]) {A, B, C, D, -1}, 0);
 		mu_text_color(ctx, 255, 255, 0);
 		mu_button_ex(ctx, "Servers", 0, MU_OPT_NOINTERACT | MU_OPT_ALIGNCENTER);
 		mu_text_color_default(ctx);
@@ -2408,6 +2409,10 @@ static void hud_serverlist_render(mu_Context* ctx, float scalex, float scaley) {
 			hud_change(&hud_settings);
 		if(mu_button(ctx, "Controls"))
 			hud_change(&hud_controls);
+		mu_text_color(ctx, 255, 60, 60);
+		if(mu_button(ctx, "Exit"))
+			exit(0);
+		mu_text_color_default(ctx);
 
 		char total_str[128];
 		sprintf(total_str, (server_count > 0) ? "%i players on %i servers" : "No servers", player_count, server_count);
