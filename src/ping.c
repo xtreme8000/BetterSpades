@@ -79,7 +79,7 @@ static bool pings_retry(void* key, void* value, void* user) {
 			enet_socket_send(sock, &entry->addr, &(ENetBuffer) {.data = "HELLO", .dataLength = 5}, 1);
 			entry->time_start = window_time();
 			entry->trycount++;
-			log_warn("Ping timeout on %s, retrying", entry->aos);
+			log_warn("Ping timeout on %s, retrying attempt No. %i", entry->aos, entry->trycount);
 		}
 	}
 
@@ -91,7 +91,6 @@ static bool pings_retry(void* key, void* value, void* user) {
 void* ping_update(void* data) {
 	pthread_detach(pthread_self());
 
-	ping_lan();
 	float ping_start = window_time();
 
 	HashTable pings;
@@ -141,6 +140,8 @@ void* ping_update(void* data) {
 
 		ht_iterate_remove(&pings, NULL, pings_retry);
 
+		float lan_ping_start = window_time();
+
 		int length = enet_socket_receive(lan, &from, &buf, 1);
 		if(length) {
 			JSON_Value* js = json_parse_string(buf.data);
@@ -150,7 +151,7 @@ void* ping_update(void* data) {
 				struct serverlist_entry e;
 
 				strcpy(e.country, "LAN");
-				e.ping = ceil((window_time() - ping_start) * 1000.0F);
+				e.ping = ceil((window_time() - lan_ping_start) * 1000.0F);
 				snprintf(e.identifier, sizeof(e.identifier) - 1, "aos://%u:%u", from.host, from.port);
 
 				strncpy(e.name, json_object_get_string(root, "name"), sizeof(e.name) - 1);
@@ -161,7 +162,7 @@ void* ping_update(void* data) {
 				e.map[sizeof(e.map) - 1] = 0;
 				e.current = json_object_get_number(root, "players_current");
 				e.max = json_object_get_number(root, "players_max");
-				ping_result(&e, window_time() - ping_start, NULL);
+				ping_result(&e, window_time() - lan_ping_start, NULL);
 
 				json_value_free(js);
 			}
@@ -191,6 +192,7 @@ void ping_check(char* addr, int port, char* aos) {
 void ping_start(void (*result)(void*, float, char*)) {
 	ping_stop();
 
+	ping_lan();
 	ping_result = result;
 }
 
