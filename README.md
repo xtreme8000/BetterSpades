@@ -4,31 +4,26 @@
 ## ![](docs/icon_small.png) PixSpades
 
 * Fork of the game *BetterSpades* (A replicate of classic Voxlap) - See fork differences below
-* Has additions and improvements not in BetterSpades
 * Runs on very old systems back to OpenGL 1.1 (OpenGL ES support too)
 * Shares similar if not even better performance to Voxlap
 * Can run on *"embedded"* systems like a [Steam Link](https://store.steampowered.com/app/353380/Steam_Link/)
 
 ### Differences in this fork
-* Many bug fixes not in BetterSpades
-* Better default settings than BetterSpades
+* Bug fixes not in BetterSpades
 * Toggleable client spoofing
-* Customizable macros (Defaults: /medkit, /deaf, /kill, /ratio, /accuracy, /streak, /cancel, /y and two customizable macros!)
-* Toggleable Auto GG (The client says GG for you automatically when a team wins)
-* Improved networkstats popup (No border, is smaller and shows you your ping and FPS)
+* Customizable macros (/medkit, /deaf, /kill, /ratio, /accuracy, /streak, /cancel, /y and two customizable macros)
+* Toggleable Auto GG
 * Toggleable chat and macro sounds
 * Improved scoreboard with weapon names beside players ([RIF] = Rifle, [SMG] = Sub Machine Gun, [SHO] = Shotgun)
 * Toggleable team names
 * Improved user interface
 * Show the name of the item you're holding when you're sprinting to prevent confusion (Toggleable - Only shows tools, not guns)
-* Many small improvements to the game such as longer chat history, bigger fonts sizes for things that were too small etc.
+* Small improvements to the game such as longer chat history, bigger fonts sizes for things that were too small etc.
 * Improved the player name indicator when in spectator mode
-* Show the '[Player]'s [Body Part]' text even when you're looking at an enemy, now you won't be confused about who's who!
+* Show the '[Player]'s [Body Part]' text even when you're looking at an enemy
 * Popup messages are smaller and lower on the screen and don't last as long
-* Bullet spread and recoil are the same as the spread and recoil in OpenSpades, balance for the win!
-* When in spectator mode players don't fade into fog, so it's much easier to see them now
-* Other additional settings!
-* Always kept up to date with the main BetterSpades repository
+* Bullet spread and recoil are the same as OpenSpades
+* When in spectator mode players don't fade into fog
 * **And more!**
 
 #### Why should I use this instead of ...?
