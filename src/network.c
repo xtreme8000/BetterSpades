@@ -1025,7 +1025,21 @@ int network_identifier_split(char* addr, char* ip_out, int* port_out) {
 	return 1;
 }
 
+char* removeSuffix(char* str) {
+	if(strcmp(str + strlen(str) - 5, ":0.75") == 0) {
+		str[strlen(str) - 5] = '\0';
+	} else if(strcmp(str + strlen(str) - 5, ":0.76") == 0) {
+		str[strlen(str) - 5] = '\0';
+	} else {
+		return str;
+	}
+	return str;
+}
+
 int network_connect_string(char* addr) {
+	// simply remove :0.75 or :0.76 suffix because version selection is
+	// handled in network_connect and read_PacketWorldUpdate
+	addr = removeSuffix(addr);
 	char ip[32];
 	int port;
 	if(!network_identifier_split(addr, ip, &port))
