@@ -2383,11 +2383,12 @@ static void hud_serverlist_render(mu_Context* ctx, float scalex, float scaley) {
 				JSON_Array* servers = json_value_get_array(js);
 				server_count = json_array_get_count(servers);
 
+				HashTable* pings = malloc(sizeof(struct HashTable));
+				ht_setup(pings, sizeof(uint64_t), sizeof(struct ping_entry), 64);
+
 				pthread_mutex_lock(&serverlist_lock);
 				serverlist = realloc(serverlist, server_count * sizeof(struct serverlist_entry));
 				CHECK_ALLOCATION_ERROR(serverlist)
-
-				ping_start(hud_serverlist_pingupdate);
 
 				player_count = 0;
 				for(int k = 0; k < server_count; k++) {
@@ -2410,13 +2411,15 @@ static void hud_serverlist_render(mu_Context* ctx, float scalex, float scaley) {
 					int port;
 					char ip[32];
 					if(network_identifier_split(serverlist[k].identifier, ip, &port))
-						ping_check(ip, port, serverlist[k].identifier);
+						ping_check(pings, ip, port, serverlist[k].identifier);
 
 					player_count += serverlist[k].current;
 				}
 
 				qsort(serverlist, server_count, sizeof(struct serverlist_entry), hud_serverlist_sort);
 				pthread_mutex_unlock(&serverlist_lock);
+
+				ping_start(pings, hud_serverlist_pingupdate);
 
 				http_release(request_serverlist);
 				json_value_free(js);

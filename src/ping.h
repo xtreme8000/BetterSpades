@@ -22,18 +22,18 @@
 
 #include <enet/enet.h>
 
+#include "hashtable.h"
+
 struct ping_entry {
 	ENetAddress addr;
 	char aos[64];
 	float time_start;
-	int trycount;
 };
 
-void ping_init();
-void ping_deinit();
-void ping_check(char* addr, int port, char* aos);
-void* ping_update(void* data);
-void ping_start(void (*result)(void*, float, char*));
-void ping_stop();
+void ping_init(void);
+void ping_deinit(void);
+void ping_check(HashTable* pings, char* addr, int port, char* aos);
+void ping_start(HashTable* pings, void (*result)(void*, float, char*));
+void ping_stop(void);
 
 #endif
