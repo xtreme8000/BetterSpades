@@ -1057,7 +1057,7 @@ int player_move(struct Player* p, float fsynctics, int id) {
 		f *= 0.1f;
 	else if(p->input.keys.crouch)
 		f *= 0.3f;
-	else if((p->input.buttons.rmb && p->held_item == TOOL_GUN) || p->input.keys.sneak)
+	else if((p->input.buttons.rmb && p->held_item == TOOL_GUN && !p->input.keys.sprint) || p->input.keys.sneak)
 		f *= 0.5f;
 	else if(p->input.keys.sprint)
 		f *= 1.3f;

@@ -695,8 +695,8 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 			   && cameracontroller_bodyview_mode)) {
 			glColor3f(1.0F, 1.0F, 1.0F);
 
-			if(players[local_id].held_item == TOOL_GUN && players[local_id].input.buttons.rmb
-			   && players[local_id].alive) {
+			if(players[local_id].held_item == TOOL_GUN && players[local_id].input.buttons.rmb && players[local_id].alive
+			   && !players[local_id].input.keys.sprint) {
 				struct texture* zoom;
 				switch(players[local_id].weapon) {
 					case WEAPON_RIFLE: zoom = &texture_zoom_semi; break;
