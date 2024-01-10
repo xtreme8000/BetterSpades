@@ -1024,29 +1024,33 @@ int network_identifier_split(char* addr, char* ip_out, int* port_out) {
 
 	return 1;
 }
-
-char* removeSuffix(char* str) {
-	if(strcmp(str + strlen(str) - 5, ":0.75") == 0) {
-		str[strlen(str) - 5] = '\0';
-	} else if(strcmp(str + strlen(str) - 5, ":0.76") == 0) {
-		str[strlen(str) - 5] = '\0';
-	} else {
-		return str;
+int removeSuffix(char* addr) {
+	size_t strLength = strlen(addr);
+	if(strLength < 6) {
+		// no valid aos url is shorter than 6 characters
+		return 0;
 	}
-	return str;
+
+	if(strcmp(addr + strLength - 5, ":0.75") == 0) {
+		addr[strLength - 5] = '\0';
+	} else if(strcmp(addr + strLength - 5, ":0.76") == 0) {
+		addr[strLength - 5] = '\0';
+	}
+	return 1;
 }
 
 int network_connect_string(char* addr) {
-	// simply remove :0.75 or :0.76 suffix because version selection is
+	// Simply remove :0.75 or :0.76 suffix because version selection is
 	// handled in network_connect and read_PacketWorldUpdate
-	addr = removeSuffix(addr);
+	if (!removeSuffix(addr)) return 0;
+
 	char ip[32];
 	int port;
 	if(!network_identifier_split(addr, ip, &port))
 		return 0;
+
 	return network_connect(ip, port);
 }
-
 int network_update() {
 	if(network_connected) {
 		if(window_time() - network_stats_last >= 1.0F) {
