@@ -116,6 +116,7 @@ extern struct Player {
 	unsigned char alive, connected;
 	float item_showup, item_disabled, items_show_start;
 	unsigned char items_show;
+	bool is_ads; // is *currently* aiming down sights
 	union {
 		unsigned int packed;
 		struct {

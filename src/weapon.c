@@ -131,12 +131,12 @@ void weapon_spread(struct Player* p, float* d) {
 		case WEAPON_SMG: spread = 0.012F; break;
 		case WEAPON_SHOTGUN: spread = 0.024F; break;
 	}
-	unsigned char is_sighting = p->input.buttons.rmb && !p->input.keys.sprint;
-	d[0] += (ms_rand() - ms_rand()) / 16383.0F * spread * (is_sighting ? 0.5F : 1.0F)
+
+	d[0] += (ms_rand() - ms_rand()) / 16383.0F * spread * (p->is_ads ? 0.5F : 1.0F)
 		* ((p->input.keys.crouch && p->weapon != WEAPON_SHOTGUN) ? 0.5F : 1.0F);
-	d[1] += (ms_rand() - ms_rand()) / 16383.0F * spread * (is_sighting ? 0.5F : 1.0F)
+	d[1] += (ms_rand() - ms_rand()) / 16383.0F * spread * (p->is_ads ? 0.5F : 1.0F)
 		* ((p->input.keys.crouch && p->weapon != WEAPON_SHOTGUN) ? 0.5F : 1.0F);
-	d[2] += (ms_rand() - ms_rand()) / 16383.0F * spread * (is_sighting ? 0.5F : 1.0F)
+	d[2] += (ms_rand() - ms_rand()) / 16383.0F * spread * (p->is_ads ? 0.5F : 1.0F)
 		* ((p->input.keys.crouch && p->weapon != WEAPON_SHOTGUN) ? 0.5F : 1.0F);
 }
 

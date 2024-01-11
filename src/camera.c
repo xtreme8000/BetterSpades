@@ -47,8 +47,7 @@ float camera_fov_scaled() {
 			&& cameracontroller_bodyview_mode);
 	int local_id = (camera_mode == CAMERAMODE_FPS) ? local_player_id : cameracontroller_bodyview_player;
 
-	if(render_fpv && players[local_id].held_item == TOOL_GUN && players[local_id].input.buttons.rmb
-	   && !players[local_id].input.keys.sprint && players[local_id].alive)
+	if(render_fpv && players[local_id].held_item == TOOL_GUN && players[local_id].is_ads && players[local_id].alive)
 		return CAMERA_DEFAULT_FOV * atan(tan((CAMERA_DEFAULT_FOV / 180.0F * PI) / 2) / 2.0F) * 2.0F;
 	return settings.camera_fov;
 }

@@ -831,7 +831,7 @@ void player_render(struct Player* p, int id) {
 		case TOOL_GUN:
 			// matrix_translate(matrix_model, 3.0F*0.1F-0.01F+0.025F,0.25F,-0.0625F);
 			// matrix_upload();
-			if(!(render_fpv && p->input.buttons.rmb)) {
+			if(!(render_fpv && p->is_ads)) {
 				switch(p->weapon) {
 					case WEAPON_RIFLE: kv6_render(&model_semi, p->team); break;
 					case WEAPON_SMG: kv6_render(&model_smg, p->team); break;
@@ -1057,7 +1057,7 @@ int player_move(struct Player* p, float fsynctics, int id) {
 		f *= 0.1f;
 	else if(p->input.keys.crouch)
 		f *= 0.3f;
-	else if((p->input.buttons.rmb && p->held_item == TOOL_GUN && !p->input.keys.sprint) || p->input.keys.sneak)
+	else if((p->is_ads && p->held_item == TOOL_GUN) || p->input.keys.sneak)
 		f *= 0.5f;
 	else if(p->input.keys.sprint)
 		f *= 1.3f;

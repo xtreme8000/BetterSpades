@@ -703,6 +703,8 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 					case WEAPON_SMG: zoom = &texture_zoom_smg; break;
 					case WEAPON_SHOTGUN: zoom = &texture_zoom_shotgun; break;
 				}
+				players[local_id].is_ads = true;
+
 				float last_shot = is_local ? weapon_last_shot : players[local_id].gun_shoot_timer;
 				float zoom_factor = fmax(
 					0.25F * (1.0F - ((window_time() - last_shot) / weapon_delay(players[local_id].weapon))) + 1.0F,
@@ -725,6 +727,8 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 			} else {
 				texture_draw(&texture_target, (settings.window_width - 16) / 2.0F, (settings.window_height + 16) / 2.0F,
 							 16, 16);
+
+				players[local_id].is_ads = false;
 			}
 
 			if(window_time() - local_player_last_damage_timer <= 0.5F && is_local) {
@@ -1278,7 +1282,7 @@ static void hud_ingame_mouselocation(double x, double y) {
 
 	float s = 1.0F;
 	if(camera_mode == CAMERAMODE_FPS && players[local_player_id].held_item == TOOL_GUN
-	   && players[local_player_id].input.buttons.rmb) {
+	   && players[local_player_id].is_ads) {
 		s = 0.5F;
 	}
 
