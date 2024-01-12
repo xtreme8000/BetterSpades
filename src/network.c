@@ -1008,42 +1008,32 @@ int network_identifier_split(char* addr, char* ip_out, int* port_out) {
 	if((size_t)ip_start <= 6)
 		return 0;
 	char* port_start = strchr(ip_start, ':');
-	*port_out = port_start ? strtoul(port_start + 1, NULL, 10) : 32887;
 
-	if(strchr(ip_start, '.')) {
-		if(port_start) {
-			strncpy(ip_out, ip_start, port_start - ip_start);
-			ip_out[port_start - ip_start] = 0;
-		} else {
-			strcpy(ip_out, ip_start);
-		}
-	} else {
+	// parse port, also ignore anything past another ':' (e.g. version info)
+	int next_colon = strchr(port_start + 1, ':');
+	*port_out = strtoul(port_start + 1, next_colon, 10);
+
+	// if no port is specified (conversion fails), use default port
+	if(*port_out == 0)
+		*port_out = 32887;
+
+	int ip_length = port_start - ip_start;
+	if(ip_length > 32) {
+		return 0; // invalid ip
+	}
+
+	strncpy(ip_out, ip_start, ip_length);
+	ip_out[ip_length] = 0;
+
+	if(!strchr(ip_out, '.')) {
 		unsigned int ip = strtoul(ip_start, NULL, 10);
 		sprintf(ip_out, "%i.%i.%i.%i", ip & 255, (ip >> 8) & 255, (ip >> 16) & 255, (ip >> 24) & 255);
 	}
 
 	return 1;
 }
-int removeSuffix(char* addr) {
-	size_t strLength = strlen(addr);
-	if(strLength < 6) {
-		// no valid aos url is shorter than 6 characters
-		return 0;
-	}
-
-	if(strcmp(addr + strLength - 5, ":0.75") == 0) {
-		addr[strLength - 5] = '\0';
-	} else if(strcmp(addr + strLength - 5, ":0.76") == 0) {
-		addr[strLength - 5] = '\0';
-	}
-	return 1;
-}
 
 int network_connect_string(char* addr) {
-	// Simply remove :0.75 or :0.76 suffix because version selection is
-	// handled in network_connect and read_PacketWorldUpdate
-	if (!removeSuffix(addr)) return 0;
-
 	char ip[32];
 	int port;
 	if(!network_identifier_split(addr, ip, &port))
