@@ -594,8 +594,9 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
 	if(key == WINDOW_KEY_SCREENSHOT && action == WINDOW_PRESS) { // take screenshot
 		time_t pic_time;
 		time(&pic_time);
+		struct tm* tm_info = localtime(&pic_time);
 		char pic_name[128];
-		sprintf(pic_name, "screenshots/%ld.png", (long)pic_time);
+		strftime(pic_name, sizeof(pic_name), "screenshots/%Y-%m-%d_%H-%M-%S.png", tm_info);
 
 		unsigned char* pic_data = malloc(settings.window_width * settings.window_height * 4 * 2);
 		CHECK_ALLOCATION_ERROR(pic_data)
@@ -612,7 +613,7 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
 							  settings.window_width, settings.window_height);
 		free(pic_data);
 
-		sprintf(pic_name, "Saved screenshot as screenshots/%ld.png", (long)pic_time);
+		sprintf(pic_name, "Saved screenshot as screenshots/%s", pic_name);
 		chat_add(0, 0x0000FF, pic_name);
 	}
 
