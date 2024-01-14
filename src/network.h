@@ -323,7 +323,7 @@ struct PacketSetTool {
 struct PacketChatMessage {
 	unsigned char player_id;
 	unsigned char chat_type;
-	char message[255];
+	char message[255 + 1]; // msg is limited to 255 chars but we manually terminate it
 };
 #define CHAT_ALL 0
 #define CHAT_TEAM 1

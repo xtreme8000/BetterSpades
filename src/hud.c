@@ -580,9 +580,9 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 					break;
 				}
 			}
-			font_centered(settings.window_width * 0.25F, 487 * scalef, 53.0F * scalef, score_str);
+			font_centered(settings.window_width * 0.25F, 487 * scalef, BIG_TEXT_SIZE * scalef, score_str);
 			font_render(settings.window_width * 0.25F - font_length(18.0F * scalef, gamestate.team_1.name)
-							- font_length(53.0F * scalef, score_str) / 2,
+							- font_length(BIG_TEXT_SIZE * scalef, score_str) / 2,
 						460 * scalef, 18.0F * scalef, gamestate.team_1.name);
 
 			glColor3ub(gamestate.team_2.red, gamestate.team_2.green, gamestate.team_2.blue);
@@ -600,9 +600,9 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 					break;
 				}
 			}
-			font_centered(settings.window_width * 0.75F, 487 * scalef, 53.0F * scalef, score_str);
+			font_centered(settings.window_width * 0.75F, 487 * scalef, BIG_TEXT_SIZE * scalef, score_str);
 			font_render(settings.window_width * 0.75F - font_length(18.0F * scalef, gamestate.team_2.name)
-							- font_length(53.0F * scalef, score_str) / 2,
+							- font_length(BIG_TEXT_SIZE * scalef, score_str) / 2,
 						460 * scalef, 18.0F * scalef, gamestate.team_2.name);
 
 			struct player_table pt[PLAYERS_MAX];
@@ -679,7 +679,8 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 				char coin[16];
 				sprintf(coin, "INSERT COIN:%i", cnt);
 				font_centered(settings.window_width / 2.0F,
-							  53.0F * scalef * (cameracontroller_bodyview_mode ? 2.0F : 1.0F), 53.0F * scalef, coin);
+							  BIG_TEXT_SIZE * scalef * (cameracontroller_bodyview_mode ? 2.0F : 1.0F),
+							  BIG_TEXT_SIZE * scalef, coin);
 				if(local_player_respawn_cnt_last != cnt) {
 					if(cnt < 4) {
 						sound_create(SOUND_LOCAL, (cnt == 1) ? &sound_beep1 : &sound_beep2, 0.0F, 0.0F, 0.0F);
@@ -742,8 +743,8 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 				glColor3f(1, 1, 1);
 			char hp[4];
 			sprintf(hp, "%i", health);
-			font_render(settings.window_width / 2.0F - font_length(53.0F * scalef, hp), 53.0F * scalef, 53.0F * scalef,
-						hp);
+			font_render(settings.window_width / 2.0F - font_length(BIG_TEXT_SIZE * scalef, hp), BIG_TEXT_SIZE * scalef,
+						BIG_TEXT_SIZE * scalef, hp);
 			texture_draw(&texture_health, settings.window_width / 2.0F, 44.0F * scalef, 32.0F * scalef, 32.0F * scalef);
 
 			char item_mini_str[32];
@@ -778,8 +779,9 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 
 			texture_draw(item_mini, settings.window_width - 44.0F * scalef - off, 44.0F * scalef, 32.0F * scalef,
 						 32.0F * scalef);
-			font_render(settings.window_width - font_length(53.0F * scalef, item_mini_str) - 44.0F * scalef - off,
-						53.0F * scalef, 53.0F * scalef, item_mini_str);
+			font_render(settings.window_width - font_length(BIG_TEXT_SIZE * scalef, item_mini_str) - 44.0F * scalef
+							- off,
+						BIG_TEXT_SIZE * scalef, BIG_TEXT_SIZE * scalef, item_mini_str);
 			glColor3f(1.0F, 1.0F, 1.0F);
 
 			if(players[local_id].held_item == TOOL_BLOCK) {
@@ -1177,8 +1179,9 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 
 		if(show_exit) {
 			glColor3f(1.0F, 0.0F, 0.0F);
-			font_render((settings.window_width - font_length(53.0F * scalef, "EXIT GAME? Y/N")) / 2.0F,
-						settings.window_height / 2.0F + 53.0F * scalef, 53.0F * scalef, "EXIT GAME? Y/N");
+			font_render((settings.window_width - font_length(BIG_TEXT_SIZE * scalef, "EXIT GAME? Y/N")) / 2.0F,
+						settings.window_height / 2.0F + BIG_TEXT_SIZE * scalef, BIG_TEXT_SIZE * scalef,
+						"EXIT GAME? Y/N");
 
 			char play_time[128];
 			sprintf(play_time, "Playing for %im%is", (int)window_time() / 60, (int)window_time() % 60);
@@ -1187,8 +1190,32 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 		}
 		if(window_time() - chat_popup_timer < chat_popup_duration) {
 			glColor3ub(red(chat_popup_color), green(chat_popup_color), blue(chat_popup_color));
-			font_render((settings.window_width - font_length(53.0F * scalef, chat_popup)) / 2.0F,
-						settings.window_height / 2.0F, 53.0F * scalef, chat_popup);
+
+			// Renders each string on a new line
+			// read chat_popup until the next new line
+			// then copy that string into a temporary string and increas i by 1
+			// then render the temporary string
+			// repeat until the end of chat_popup
+			char* chat_popup_line = chat_popup;
+			int i = 0;
+			while(chat_popup_line != NULL) {
+				char* next_line = strchr(chat_popup_line, '\n');
+				char chat_popup_temp[256];
+				if(next_line != NULL) {
+					strncpy(chat_popup_temp, chat_popup_line, next_line - chat_popup_line);
+					chat_popup_temp[next_line - chat_popup_line] = '\0';
+					chat_popup_line = next_line + 1;
+				} else {
+					strcpy(chat_popup_temp, chat_popup_line);
+					chat_popup_line = NULL;
+				}
+				float text_pixel_width = font_length(chat_popup_height, chat_popup_temp);
+
+				font_render((settings.window_width - text_pixel_width) / 2.0F,
+							settings.window_height * 2.0F / 3.0F - (chat_popup_height * i), chat_popup_height,
+							chat_popup_temp);
+				i++;
+			}
 		}
 		glColor3f(1.0F, 1.0F, 1.0F);
 	}

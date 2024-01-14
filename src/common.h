@@ -82,7 +82,7 @@
 #define rgba(r, g, b, a) (((int)(a) << 24) | ((int)(b) << 16) | ((int)(g) << 8) | (int)(r))
 #define rgb(r, g, b) (((b) << 16) | ((g) << 8) | (r))
 #define rgb2bgr(col) rgb(blue(col), green(col), red(col))
-#define red(col) ((col)&0xFF)
+#define red(col) ((col) & 0xFF)
 #define green(col) (((col) >> 8) & 0xFF)
 #define blue(col) (((col) >> 16) & 0xFF)
 #define alpha(col) (((col) >> 24) & 0xFF)
@@ -98,6 +98,8 @@
 #define CHAT_ALL_INPUT 1
 #define CHAT_TEAM_INPUT 2
 
+#define BIG_TEXT_SIZE 53.0F
+
 extern int chat_input_mode;
 extern float last_cy;
 
@@ -107,6 +109,7 @@ extern char chat[2][10][256];
 extern unsigned int chat_color[2][10];
 extern float chat_timer[2][10];
 extern char chat_popup[256];
+extern float chat_popup_height;
 extern float chat_popup_timer;
 extern float chat_popup_duration;
 extern int chat_popup_color;

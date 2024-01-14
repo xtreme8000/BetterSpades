@@ -128,7 +128,7 @@ static struct font_backed_data* font_find(float h) {
 	return ht_lookup(&fonts_backed, &id);
 }
 
-float font_length(float h, char* text) {
+float font_length_internal(float h, char* text, bool ignore_newlines) {
 	struct font_backed_data* font = font_find(h);
 
 	if(!font)
@@ -139,7 +139,7 @@ float font_length(float h, char* text) {
 	float x = 0.0F;
 	float length = 0.0F;
 	for(size_t k = 0; k < strlen(text); k++) {
-		if(text[k] == '\n') {
+		if(text[k] == '\n' && !ignore_newlines) {
 			length = fmax(length, x);
 			x = 0.0F;
 		}
@@ -149,6 +149,26 @@ float font_length(float h, char* text) {
 	}
 
 	return fmax(length, x) + h * 0.125F;
+}
+
+float font_length(float h, char* text) {
+	return font_length_internal(h, text, false);
+}
+
+// font_fit_height (int max_width, text, starting_height) - get height such that text fits in max_width ie.
+// window/screen width returns -1 if text is too long (ie. height is smaller than 16.0F) and needs to be broken up with
+// newlines
+
+float font_fit_height(int max_width, float starting_height, char* text) {
+	float scalex = max_width / 800.0F; // not sure if I should consider this a hacky solution
+
+	float h = starting_height * scalex;
+	float length = font_length_internal(h, text, true);
+
+	float target = max_width < length ? h / (length / max_width) : h;
+
+	// text under 16pt is unreadable
+	return target < 16.0F ? -1.0F : target;
 }
 
 bool font_remove_callback(void* key, void* value, void* user) {
