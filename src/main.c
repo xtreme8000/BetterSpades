@@ -74,12 +74,42 @@ void chat_add(int channel, unsigned int color, const char* msg) {
 }
 char chat_popup[256] = {};
 int chat_popup_color;
+float chat_popup_height = 0.0F;
 float chat_popup_timer = 0.0F;
 float chat_popup_duration = 0.0F;
 
 void chat_showpopup(const char* msg, float duration, int color) {
 	strcpy(chat_popup, msg);
 	chat_popup_timer = window_time();
+
+	chat_popup_height = font_fit_height(settings.window_width, BIG_TEXT_SIZE, chat_popup);
+
+	int len = strlen(chat_popup);
+	char tmp[len + 1];
+	strcpy(tmp, chat_popup);
+
+	char* tmp_offset = tmp;
+	while(chat_popup_height == -1.0F) {
+		// break up chat_popup into multiple lines
+
+		// find first space from the left of the middle of chat_popup
+		// replace with newline
+		char* pos = tmp_offset + len / 2;
+		while(*pos != ' ' && pos != tmp_offset)
+			pos--;
+
+		if(pos != tmp_offset)
+			*pos = '\n';
+		else {
+			chat_popup_height = 16.0F;
+			break;
+		}
+
+		chat_popup_height = fmin(chat_popup_height, font_fit_height(settings.window_width, BIG_TEXT_SIZE, pos));
+		tmp_offset = pos;
+	}
+	strcpy(chat_popup, tmp);
+
 	chat_popup_duration = duration;
 	chat_popup_color = color;
 }
@@ -506,8 +536,11 @@ void init() {
 }
 
 void reshape(struct window_instance* window, int width, int height) {
+	if(width == 0 || height == 0)
+		return;
 	font_reset();
 	glViewport(0, 0, width, height);
+	log_info("window size: %i:%ipx", width, height);
 	settings.window_width = width;
 	settings.window_height = height;
 	if(settings.vsync < 2)
@@ -583,6 +616,9 @@ void keys(struct window_instance* window, int key, int scancode, int action, int
 		if(!settings.fullscreen) {
 			glfwSetWindowMonitor(window->impl, glfwGetPrimaryMonitor(), 0, 0, mode->width, mode->height,
 								 mode->refreshRate);
+			log_info("Switched to fullscreen mode, %ix%i", mode->width, mode->height);
+			settings.window_width = mode->width;
+			settings.window_height = mode->height;
 			settings.fullscreen = 1;
 		} else {
 			glfwSetWindowMonitor(window->impl, NULL, (mode->width - 800) / 2, (mode->height - 600) / 2, 800, 600, 0);

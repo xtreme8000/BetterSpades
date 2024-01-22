@@ -28,6 +28,7 @@ enum font_type {
 void font_init(void);
 void font_reset(void);
 float font_length(float h, char* text);
+float font_fit_height(int max_width, float starting_height, char* text);
 void font_render(float x, float y, float h, char* text);
 void font_centered(float x, float y, float h, char* text);
 void font_select(enum font_type type);

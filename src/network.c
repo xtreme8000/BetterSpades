@@ -107,10 +107,10 @@ void read_PacketMapChunk(void* data, int len) {
 	compressed_chunk_data_offset += len;
 }
 
-void read_PacketChatMessage(void* data, int len) {
-	struct PacketChatMessage* p = (struct PacketChatMessage*)data;
+void read_PacketChatMessage_internal(struct PacketChatMessage* p, int len) {
 	char n[32] = {0};
 	char m[256];
+
 	switch(p->chat_type) {
 		case CHAT_ERROR: sound_create(SOUND_LOCAL, &sound_beep2, 0.0F, 0.0F, 0.0F);
 		case CHAT_BIG: chat_showpopup(p->message, 5.0F, rgb(255, 0, 0)); return;
@@ -163,6 +163,20 @@ void read_PacketChatMessage(void* data, int len) {
 		case CHAT_ALL: color = 0xFFFFFF; break;
 	}
 	chat_add(0, color, m);
+}
+
+void read_PacketChatMessage(void* data, int len) {
+	struct PacketChatMessage* p = (struct PacketChatMessage*)data;
+
+	// terminate the message string, len is message plus two byte chars (player id and chat type)
+	// however, enet actually needs whatever data is after the message to properly free the packet data
+	// so we have to return it to the original state in the end
+	char original_byte = p->message[len - 2];
+	p->message[len - 2] = 0;
+
+	read_PacketChatMessage_internal(p, len);
+
+	p->message[len - 2] = original_byte;
 }
 
 void read_PacketBlockAction(void* data, int len) {
@@ -308,14 +322,11 @@ void read_PacketStateData(void* data, int len) {
 			}
 			if(r == LIBDEFLATE_SUCCESS) {
 				map_vxl_load(decompressed, decompressed_size);
-/*#ifndef USE_TOUCH
-				char filename[128];
-				sprintf(filename, "cache/%08X.vxl", libdeflate_crc32(0, decompressed, decompressed_size));
-				log_info("%s", filename);
-				FILE* f = fopen(filename, "wb");
-				fwrite(decompressed, 1, decompressed_size, f);
-				fclose(f);
-#endif*/
+				/*#ifndef USE_TOUCH
+								char filename[128];
+								sprintf(filename, "cache/%08X.vxl", libdeflate_crc32(0, decompressed,
+				decompressed_size)); log_info("%s", filename); FILE* f = fopen(filename, "wb"); fwrite(decompressed, 1,
+				decompressed_size, f); fclose(f); #endif*/
 				chunk_rebuild_all();
 				break;
 			}
