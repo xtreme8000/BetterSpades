@@ -142,10 +142,13 @@ static void hud_ingame_render3D() {
 	matrix_identity(matrix_view);
 	matrix_upload_p();
 
+	if(camera_mode == CAMERAMODE_FPS
+	   && (players[local_player_id].input.keys.sprint || players[local_player_id].items_show)) {
+		players[local_player_id].input.buttons.rmb = 0;
+	}
+
 	if(!network_map_transfer) {
 		if(camera_mode == CAMERAMODE_FPS && players[local_player_id].items_show) {
-			players[local_player_id].input.buttons.rmb = 0;
-
 			matrix_identity(matrix_model);
 			matrix_translate(matrix_model, -2.25F, -1.5F - (players[local_player_id].held_item == TOOL_SPADE) * 0.5F,
 							 -6.0F);
@@ -695,8 +698,8 @@ static void hud_ingame_render(mu_Context* ctx, float scalex, float scalef) {
 			   && cameracontroller_bodyview_mode)) {
 			glColor3f(1.0F, 1.0F, 1.0F);
 
-			if(players[local_id].held_item == TOOL_GUN && players[local_id].input.buttons.rmb
-			   && players[local_id].alive) {
+			if(players[local_id].held_item == TOOL_GUN && players[local_id].input.buttons.rmb && players[local_id].alive
+			   && !players[local_id].input.keys.sprint) {
 				struct texture* zoom;
 				switch(players[local_id].weapon) {
 					case WEAPON_RIFLE: zoom = &texture_zoom_semi; break;
@@ -1297,7 +1300,7 @@ static void hud_ingame_mouseclick(double x, double y, int button, int action, in
 	}
 	if(button == WINDOW_MOUSE_RMB) {
 		if(action == WINDOW_PRESS && players[local_player_id].held_item == TOOL_GUN && !settings.hold_down_sights
-		   && !players[local_player_id].items_show) {
+		   && !players[local_player_id].items_show && !players[local_player_id].input.keys.sprint) {
 			players[local_player_id].input.buttons.rmb ^= 1;
 		}
 		if(local_player_drag_active && action == WINDOW_RELEASE && players[local_player_id].held_item == TOOL_BLOCK) {
