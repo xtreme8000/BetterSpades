@@ -131,9 +131,14 @@ static bool damaged_voxel_update(void* key, void* value, void* user) {
 void map_damaged_voxels_render() {
 	matrix_identity(matrix_model);
 	matrix_upload();
-	// glEnable(GL_POLYGON_OFFSET_FILL);
-	// glPolygonOffset(0.0F,-100.0F);
-	glDepthFunc(GL_EQUAL);
+
+	if(settings.greedy_meshing) {
+		glEnable(GL_POLYGON_OFFSET_FILL);
+		glPolygonOffset(0.0F, -100.0F);
+	} else {
+		glDepthFunc(GL_EQUAL);
+	}
+
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -142,11 +147,14 @@ void map_damaged_voxels_render() {
 	ht_iterate_remove(&map_damaged_voxels, &map_damaged_tesselator, damaged_voxel_update);
 
 	tesselator_draw(&map_damaged_tesselator, 1);
-
-	glDepthFunc(GL_LEQUAL);
 	glDisable(GL_BLEND);
-	// glPolygonOffset(0.0F,0.0F);
-	// glDisable(GL_POLYGON_OFFSET_FILL);
+
+	if(settings.greedy_meshing) {
+		glPolygonOffset(0.0F, 0.0F);
+		glDisable(GL_POLYGON_OFFSET_FILL);
+	} else {
+		glDepthFunc(GL_LEQUAL);
+	}
 }
 
 struct map_work_packet {
