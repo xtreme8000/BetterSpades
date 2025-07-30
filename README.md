@@ -117,9 +117,67 @@ Or connect directly to localhost:
 
 The same instructions for Linux work on macOS aside from some minor differences. First, use Homebrew or MacPorts to grab dependencies:
 ```
-brew install glfw enet
+brew install glfw enet cmake glew
 ```
-The development headers for OpenAL and OpenGL don't have to be installed since they come with macOS by default. [libdeflate](https://github.com/ebiggers/libdeflate) should be installed and placed manually in a way similar to Linux. See [_Wiki/Building_](https://github.com/xtreme8000/BetterSpades/wiki/Building) for more details.
+
+OpenAL and OpenGL headers come bundled with macOS and do not require separate installation. You’ll need to build [libdeflate](https://github.com/ebiggers/libdeflate) manually and place it in a local `deps/` directory:
+```
+DEPS_DIR="$(pwd)/deps"
+LIBDEFLATE_A="$DEPS_DIR/libdeflate.a"
+
+mkdir -p "$DEPS_DIR"
+
+# Build or reuse libdeflate
+if [ ! -f "$LIBDEFLATE_A" ]; then
+    echo "Building libdeflate..."
+    TEMP_DIR=$(mktemp -d)
+    git -C "$TEMP_DIR" clone https://github.com/ebiggers/libdeflate.git
+    cmake -S "$TEMP_DIR/libdeflate" -B "$TEMP_DIR/libdeflate/build" -DCMAKE_BUILD_TYPE=Release
+    cmake --build "$TEMP_DIR/libdeflate/build"
+    cp "$TEMP_DIR"/libdeflate/build/{lib,}libdeflate.a "$DEPS_DIR/" 2>/dev/null || true
+    rm -rf "$TEMP_DIR"
+    echo "libdeflate built and copied to deps/"
+else
+    echo "libdeflate already present in deps/"
+fi
+```
+
+Then, you need to copy the GLEW static library from Homebrew to your `deps/` directory:
+```
+DEPS_DIR="$(pwd)/deps"
+GLEW_A="$DEPS_DIR/libGLEW.a"
+
+# Copy or reuse GLEW static library
+if [ ! -f "$GLEW_A" ]; then
+    echo "Copying GLEW static library from Homebrew..."
+    HOMEBREW_PREFIX=$(brew --prefix)
+    cp "$HOMEBREW_PREFIX/lib/libGLEW.a" "$DEPS_DIR/"
+    echo "GLEW copied to deps/"
+else
+    echo "GLEW already present in deps/"
+fi
+```
+
+Build the project using CMake:
+```
+# Configure and build
+BUILD_DIR="$(pwd)/build"
+mkdir -p "$BUILD_DIR"
+cd "$BUILD_DIR"
+
+echo "Configuring CMake..."
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+
+echo "Building BetterSpades..."
+make -j"$(sysctl -n hw.ncpu)"
+```
+
+Start the client e.g. with the following inside the `build/BetterSpades/` directory:
+```
+./client
+```
+
+Compilated binary should use [Metal API](https://en.wikipedia.org/wiki/Metal_(API)) on Apple Silicon.
 
 ## Gallery
 
