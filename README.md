@@ -8,17 +8,17 @@
 
 ## ![](docs/icon_small.png) BetterSpades
 
--   Replicate of the great game _Ace of Spades_ (classic voxlap)
--   runs on very old systems back to OpenGL 1.1 (OpenGL ES support too)
--   shares similar if not even better performance to voxlap
--   can run on _"embedded"_ systems like a [Steam Link](https://store.steampowered.com/app/353380/Steam_Link/)
+* Replicate of the great game *Ace of Spades* (classic voxlap)
+* runs on very old systems back to OpenGL 1.1 (OpenGL ES support too)
+* shares similar if not even better performance to voxlap
+* can run on *"embedded"* systems like a [Steam Link](https://store.steampowered.com/app/353380/Steam_Link/)
 
 #### Why should I use this instead of ...?
 
--   free of any Jagex code, they can't shut it down
--   open for future expansion
--   easy to use
--   no hidden bugs
+* free of any Jagex code, they can't shut it down
+* open for future expansion
+* easy to use
+* no hidden bugs
 
 ### Quick usage guide
 
@@ -27,59 +27,58 @@
 **You can get [nightly builds here](https://aos.party/jenkins/job/BetterSpades/).**
 
 You can either:
-
--   use the client temporarily by extracting the downloaded zip into a new directory.
--   extract all contents to your current Ace of Spades installation directory (normally found at `C:/Ace of Spades/`), effectively replacing the old voxlap version
+* use the client temporarily by extracting the downloaded zip into a new directory.
+* extract all contents to your current Ace of Spades installation directory (normally found at `C:/Ace of Spades/`), effectively replacing the old voxlap version
 
 ## System requirements
 
-| Type    | min. requirement                                   |
-| ------- | -------------------------------------------------- |
-| OS      | Windows 98 or Linux                                |
-| CPU     | 1 GHz single core processor                        |
-| GPU     | 64MB VRAM, Mobile Intel 945GM or equivalent        |
-| RAM     | 256MB                                              |
-| Display | 800x600px                                          |
-| Others  | Keyboard and mouse<br />Dial up network connection |
+| Type    | min. requirement                                     |
+| ------- | ---------------------------------------------------- |
+| OS      | Windows 98 or Linux                                  |
+| CPU     | 1 GHz single core processor                          |
+| GPU     | 64MB VRAM, Mobile Intel 945GM or equivalent          |
+| RAM     | 256MB                                                |
+| Display | 800x600px                                            |
+| Others  | Keyboard and mouse<br />Dial up network connection   |
+
 
 ## Build requirements
 
 This project uses the following libraries and files:
 
-| Name         | License         | Usage                  |                       GitHub                       |
+| Name         | License         | Usage                  | GitHub                                             |
 | ------------ | --------------- | ---------------------- | :------------------------------------------------: |
-| GLFW3        | _ZLib_          | OpenGL context         |        [Link](https://github.com/glfw/glfw)        |
-| OpenAL soft  | _LGPL-2.1_      | 3D sound environment   |    [Link](https://github.com/kcat/openal-soft)     |
-| inih         | _BSD-3.Clause_  | .INI file parser       |      [Link](https://github.com/benhoyt/inih)       |
-| stb_truetype | _Public domain_ | TrueType font renderer |      [Link](https://github.com/nothings/stb)       |
-| dr_wav       | _Public domain_ | wav support            |    [Link](https://github.com/mackron/dr_libs/)     |
-| http         | _Public domain_ | http client library    | [Link](https://github.com/mattiasgustavsson/libs)  |
-| LodePNG      | _MIT_           | png support            |    [Link](https://github.com/lvandeve/lodepng)     |
-| libdeflate   | _MIT_           | decompression of maps  |   [Link](https://github.com/ebiggers/libdeflate)   |
-| enet         | _MIT_           | networking library     |      [Link](https://github.com/lsalzman/enet)      |
-| parson       | _MIT_           | JSON parser            |      [Link](https://github.com/kgabis/parson)      |
-| log.c        | _MIT_           | logger                 |    [Link](https://github.com/xtreme8000/log.c)     |
-| GLEW         | _MIT_           | OpenGL extensions      |     [Link](https://github.com/nigels-com/glew)     |
-| hashtable    | _MIT_           | hashtable              | [Link](https://github.com/goldsborough/hashtable/) |
-| libvxl       | _MIT_           | access VXL format      |   [Link](https://github.com/xtreme8000/libvxl/)    |
-| microui      | _MIT_           | user interface         |       [Link](https://github.com/rxi/microui)       |
+| GLFW3        | *ZLib*          | OpenGL context         | [Link](https://github.com/glfw/glfw)               |
+| OpenAL soft  | *LGPL-2.1*      | 3D sound environment   | [Link](https://github.com/kcat/openal-soft)        |
+| inih         | *BSD-3.Clause*  | .INI file parser       | [Link](https://github.com/benhoyt/inih)            |
+| stb_truetype | *Public domain* | TrueType font renderer | [Link](https://github.com/nothings/stb)            |
+| dr_wav       | *Public domain* | wav support            | [Link](https://github.com/mackron/dr_libs/)        |
+| http         | *Public domain* | http client library    | [Link](https://github.com/mattiasgustavsson/libs)  |
+| LodePNG      | *MIT*           | png support            | [Link](https://github.com/lvandeve/lodepng)        |
+| libdeflate   | *MIT*           | decompression of maps  | [Link](https://github.com/ebiggers/libdeflate)     |
+| enet         | *MIT*           | networking library     | [Link](https://github.com/lsalzman/enet)           |
+| parson       | *MIT*           | JSON parser            | [Link](https://github.com/kgabis/parson)           |
+| log.c        | *MIT*           | logger                 | [Link](https://github.com/xtreme8000/log.c)        |
+| GLEW         | *MIT*           | OpenGL extensions      | [Link](https://github.com/nigels-com/glew)         |
+| hashtable    | *MIT*           | hashtable              | [Link](https://github.com/goldsborough/hashtable/) |
+| libvxl       | *MIT*           | access VXL format      | [Link](https://github.com/xtreme8000/libvxl/)      |
+| microui      | *MIT*           | user interface         | [Link](https://github.com/rxi/microui)             |
 
 You will need to compile the following by yourself, or get hold of precompiled binaries:
 
--   GLFW3
--   GLEW
--   OpenAL soft _(only needed on Windows)_
--   libdeflate
--   enet
+* GLFW3
+* GLEW
+* OpenAL soft *(only needed on Windows)*
+* libdeflate
+* enet
 
 Follow the instructions on their project page, then place produced static libraries in `deps/`.
 
-All other requirements of the above list (like single file libs) will be downloaded by CMake automatically and **don't** need to be taken care of. Because state of copyright of 0.75 assets is unknown, CMake will also download additional assets from [_here_](http://aos.party/bsresources.zip) which are not part of this repository.
+All other requirements of the above list (like single file libs) will be downloaded by CMake automatically and **don't** need to be taken care of. Because state of copyright of 0.75 assets is unknown, CMake will also download additional assets from [*here*](http://aos.party/bsresources.zip) which are not part of this repository.
 
 #### Windows
 
 This project uses CMake to generate all Makefiles automatically. It's best to use MinGW-w64 for GCC on Windows. You can generate the required files by opening `cmd.exe` in the `build/` directory and typing:
-
 ```
 cmake -G "MinGW Makefiles" ..
 mingw32-make
@@ -99,37 +98,89 @@ client.exe -aos://16777343:32887 //Connects to a local server
 Compilation now works the same on Linux. Just change the build system to `Unix Makefiles` or leaving it as default will work too (`cmake ..`).
 
 You can build each library yourself, or install them with your distro's package manager:
-
 ```
 sudo apt install libgl1-mesa libgl1-mesa-dev libopenal1 libopenal-dev libglfw-dev libenet-dev libglew-dev
 ```
-
 (this does not include [libdeflate](https://github.com/ebiggers/libdeflate) which is a requirement too, see [_Wiki/Building_](https://github.com/xtreme8000/BetterSpades/wiki/Building) for more details)
 
 Start the client e.g. with the following inside the `build/bin/` directory:
-
 ```
 ./client
 ```
-
 Or connect directly to localhost:
-
 ```
 ./client -aos://16777343:32887
 ```
 
+
 #### macOS
 
 The same instructions for Linux work on macOS aside from some minor differences. First, use Homebrew or MacPorts to grab dependencies:
-
 ```
-brew install glfw enet
+brew install glfw enet cmake glew
 ```
 
-The development headers for OpenAL and OpenGL don't have to be installed since they come with macOS by default. [libdeflate](https://github.com/ebiggers/libdeflate) should be installed and placed manually in a way similar to Linux. See [_Wiki/Building_](https://github.com/xtreme8000/BetterSpades/wiki/Building) for more details.
+OpenAL and OpenGL headers come bundled with macOS and do not require separate installation. You’ll need to build [libdeflate](https://github.com/ebiggers/libdeflate) manually and place it in a local `deps/` directory:
+```
+DEPS_DIR="$(pwd)/deps"
+LIBDEFLATE_A="$DEPS_DIR/libdeflate.a"
+
+mkdir -p "$DEPS_DIR"
+
+# Build or reuse libdeflate
+if [ ! -f "$LIBDEFLATE_A" ]; then
+    echo "Building libdeflate..."
+    TEMP_DIR=$(mktemp -d)
+    git -C "$TEMP_DIR" clone https://github.com/ebiggers/libdeflate.git
+    cmake -S "$TEMP_DIR/libdeflate" -B "$TEMP_DIR/libdeflate/build" -DCMAKE_BUILD_TYPE=Release
+    cmake --build "$TEMP_DIR/libdeflate/build"
+    cp "$TEMP_DIR"/libdeflate/build/{lib,}libdeflate.a "$DEPS_DIR/" 2>/dev/null || true
+    rm -rf "$TEMP_DIR"
+    echo "libdeflate built and copied to deps/"
+else
+    echo "libdeflate already present in deps/"
+fi
+```
+
+Then, you need to copy the GLEW static library from Homebrew to your `deps/` directory:
+```
+DEPS_DIR="$(pwd)/deps"
+GLEW_A="$DEPS_DIR/libGLEW.a"
+
+# Copy or reuse GLEW static library
+if [ ! -f "$GLEW_A" ]; then
+    echo "Copying GLEW static library from Homebrew..."
+    HOMEBREW_PREFIX=$(brew --prefix)
+    cp "$HOMEBREW_PREFIX/lib/libGLEW.a" "$DEPS_DIR/"
+    echo "GLEW copied to deps/"
+else
+    echo "GLEW already present in deps/"
+fi
+```
+
+Build the project using CMake:
+```
+# Configure and build
+BUILD_DIR="$(pwd)/build"
+mkdir -p "$BUILD_DIR"
+cd "$BUILD_DIR"
+
+echo "Configuring CMake..."
+cmake .. -DCMAKE_BUILD_TYPE=Release -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+
+echo "Building BetterSpades..."
+make -j"$(sysctl -n hw.ncpu)"
+```
+
+Start the client e.g. with the following inside the `build/BetterSpades/` directory:
+```
+./client
+```
+
+Compilated binary should use [Metal API](https://en.wikipedia.org/wiki/Metal_(API)) on Apple Silicon.
 
 ## Gallery
 
-|  <img src="/docs/pic01.png" width="250px"><br />_quite old_  |         <img src="/docs/pic02.png" width="250px"><br />hiesville         |               <img src="/docs/pic03.png" width="250px">               |
-| :----------------------------------------------------------: | :----------------------------------------------------------------------: | :-------------------------------------------------------------------: |
-| <img src="/docs/pic04.png" width="250px"><br />_grenade fun_ | <img src="/docs/pic05.png" width="250px"><br />_falling block animation_ | <img src="/docs/pic06.png" width="250px"><br />_sniping on normandie_ |
+| <img src="/docs/pic01.png" width="250px"><br />*quite old* | <img src="/docs/pic02.png" width="250px"><br />hiesville | <img src="/docs/pic03.png" width="250px"> |
+| :-: | :-: | :-: |
+| <img src="/docs/pic04.png" width="250px"><br />*grenade fun* | <img src="/docs/pic05.png" width="250px"><br />*falling block animation* | <img src="/docs/pic06.png" width="250px"><br />*sniping on normandie* |
