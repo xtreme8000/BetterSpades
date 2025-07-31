@@ -1,0 +1,100 @@
+app-id: party.aos.betterspades
+cleanup:
+- /include
+- /lib/pkgconfig
+- /lib/cmake
+- /lib/debug
+- /lib/*.a
+command: /app/start.sh
+finish-args:
+- --share=ipc
+- --socket=x11
+- --socket=pulseaudio
+- --share=network
+- --device=dri
+- --extension=org.freedesktop.Platform.GL=directory=lib/GL
+- --filesystem=xdg-cache
+- --filesystem=xdg-config
+modules:
+- shared-modules/glu/glu-9.json
+- shared-modules/glew/glew.json
+- buildsystem: cmake-ninja
+  config-opts:
+  - -DBUILD_SHARED_LIBS=ON
+  - -DGLFW_BUILD_EXAMPLES=OFF
+  - -DGLFW_BUILD_TESTS=OFF
+  - -DGLFW_BUILD_DOCS=OFF
+  name: glfw
+  sources:
+  - tag: 3.3.2
+    type: git
+    url: https://github.com/glfw/glfw
+- buildsystem: cmake-ninja
+  config-opts:
+  - -DALSOFT_EXAMPLES=OFF
+  - -DALSOFT_NO_CONFIG_UTIL=ON
+  - -DALSOFT_UTILS=OFF
+  name: openal-soft
+  sources:
+  - tag: openal-soft-1.21.0
+    type: git
+    url: https://github.com/kcat/openal-soft
+- build-commands:
+  - autoreconf -vfi
+  - ./configure --prefix=/app
+  - make -j
+  - make install
+  buildsystem: simple
+  name: enet
+  sources:
+  - tag: v1.3.17
+    type: git
+    url: https://github.com/lsalzman/enet
+- build-commands:
+  - make -j
+  - make PREFIX=/app install
+  buildsystem: simple
+  name: libdeflate
+  sources:
+  - tag: v1.7
+    type: git
+    url: https://github.com/ebiggers/libdeflate
+- build-options:
+    build-args:
+    - --share=network
+  buildsystem: cmake-ninja
+  name: BetterSpades
+  no-make-install: true
+  # This script creates the following symlink chains:
+  # /app/cache -> /run/cache -> $XDG_CACHE_HOME/party.aos.betterspades
+  # /app/config.ini -> /run/config.ini -> $XDG_CONFIG_HOME/party.aos.betterspades
+  post-install:
+  - mv build/BetterSpades/* /app/
+  - mv /app/config.ini /app/config.ini.initial
+  - ln -s /run/config.ini /app/config.ini
+  - rm -r /app/cache
+  - ln -s /run/cache /app/cache
+  - 'echo ''#!/bin/sh
+
+    mkdir -p $XDG_CACHE_HOME/party.aos.betterspades
+
+    mkdir -p $XDG_CONFIG_HOME/party.aos.betterspades
+
+    ln -s $XDG_CONFIG_HOME/party.aos.betterspades/config.ini /run/config.ini
+
+    ln -s $XDG_CACHE_HOME/party.aos.betterspades /run/cache
+
+    [ ! -f $XDG_CONFIG_HOME/party.aos.betterspades/config.ini ] && cp /app/config.ini.initial
+    $XDG_CONFIG_HOME/party.aos.betterspades/config.ini
+
+    cd /app
+
+    /app/client $@'' > /app/start.sh'
+  - chmod +x /app/start.sh
+  sources:
+  - branch: standalone
+    type: git
+    url: https://github.com/xtreme8000/BetterSpades
+runtime: org.freedesktop.Platform
+runtime-version: '20.08'
+sdk: org.freedesktop.Sdk

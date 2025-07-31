@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>party.aos.betterspades.desktop</id>
+  <metadata_license>GPL-3.0</metadata_license>
+  <project_license>GPL-3.0</project_license>
+  <name>BetterSpades</name>
+
+  <summary>BetterSpades, an Ace of Spades client targeted at low end systems (GL/ES 1.1). Runs on your grandmother's rig!</summary>
+
+  <description>
+    <p>Replicate of the great game Ace of Spades (classic voxlap)
+    runs on very old systems back to OpenGL 1.1 (OpenGL ES support too)
+    shares similar if not even better performance to voxlap
+    can run on "embedded" systems like a Steam Link</p>
+    <p>Why should I use this instead of ...?</p>
+    <ul>
+      <li>free of any Jagex code, they can't shut it down</li>
+      <li>open for future expansion</li>
+      <li>easy to use</li>
+      <li>no hidden bugs</li>
+    </ul>
+  </description>
+
+  <categories>
+    <category>Game</category>
+    <category>Shooter</category>
+  ​</categories>
+
+  <content_rating type="oars-1.1">
+    <content_attribute id="violence-cartoon">intense</content_attribute>
+    <content_attribute id="violence-bloodshed">mild</content_attribute>
+    <content_attribute id="social-chat">intense</content_attribute>
+  </content_rating>
+
+  <launchable type="desktop-id">party.aos.betterspades.desktop</launchable>
+
+  <url type="homepage">https://github.com/xtreme8000/BetterSpades/</url>
+  <url type="bugtracker">https://github.com/xtreme8000/BetterSpades/issues</url>
+  
+  <screenshots>
+    <screenshot type="default">
+      <image>https://github.com/xtreme8000/BetterSpades/raw/standalone/docs/pic01.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://github.com/xtreme8000/BetterSpades/raw/standalone/docs/pic02.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://github.com/xtreme8000/BetterSpades/raw/standalone/docs/pic03.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://github.com/xtreme8000/BetterSpades/raw/standalone/docs/pic04.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://github.com/xtreme8000/BetterSpades/raw/standalone/docs/pic05.png</image>
+    </screenshot>
+    <screenshot>
+      <image>https://github.com/xtreme8000/BetterSpades/raw/standalone/docs/pic06.png</image>
+    </screenshot>
+  </screenshots>
+
+  <releases>
+    <release version="0.1.4-beta" date="2019-01-04">
+      <description>
+        Most interesting changes:
+        serverlist now shows country flags
+        first person spectate, press crouch [V] key to activate when dead or in
+        spectator mode, press LMB/RMB to switch between players
+        added logger (also to file)
+        fixed chat input bug
+        remove shotgun reload bug
+        discover LAN servers and show them on server list (HELLOLAN)
+        switch between current and last tool by [Q] key
+        correctly pick block color when block was previously damaged
+        allow voxlap style model rendering
+        press F12 to show network stats like on voxlap aos
+        highlight local player on scoreboard
+        player rendering optimisations
+        show map sector in team color below minimap
+        improved particle performance
+        allow to grab block color from other players
+        invert-y support
+      </description>
+    </release>
+  </releases>
+</component>
