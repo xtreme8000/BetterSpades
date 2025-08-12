@@ -1801,7 +1801,7 @@ static void hud_ingame_keyboard(int key, int action, int mods, int internal) {
 			if(key == WINDOW_KEY_V && mods) {
 				const char* clipboard = window_clipboard();
 				if(clipboard)
-					strcat(chat[0][0], clipboard);
+					strncat(chat[0][0], clipboard, 254 - strlen(chat[0][0])); // -1 for null-terminator, -1 for cursor.
 			}
 			if(key == WINDOW_KEY_ESCAPE || key == WINDOW_KEY_ENTER) {
 				if(key == WINDOW_KEY_ENTER && strlen(chat[0][0]) > 0) {

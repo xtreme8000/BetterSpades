@@ -1,0 +1,16 @@
+# Ignore auto-downloaded sources
+ini.c
+ini.h
+lodepng/lodepng.c
+lodepng/lodepng.h
+dr_wav.c
+stb_truetype.h
+parson.c
+parson.h
+http.h
+log.h
+log.c
+hashtable.c
+hashtable.h
+microui.c
+microui.h
