@@ -1081,7 +1081,8 @@ int network_update() {
 				network_keys_last = players[local_player_id].input.keys.packed;
 			}
 			if(players[local_player_id].input.buttons.packed != network_buttons_last
-			   && players[local_player_id].input.keys.sprint == 0) {
+			   && players[local_player_id].input.keys.sprint == 0
+			   && (window_time() - players[local_player_id].item_showup) >= 0.5F) {
 				struct PacketWeaponInput in;
 				in.player_id = local_player_id;
 				in.primary = players[local_player_id].input.buttons.lmb;
